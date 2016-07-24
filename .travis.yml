@@ -1,0 +1,28 @@
+language: node_js
+node_js:
+- 5
+env:
+  global:
+    secure: aEjSjlHE0An6vY+xO5vg+VTcoMN4HLxgXDIpksOIfZkM4Y8JnLQwKH9wMvXIOaF7rf2t8UHZhLPXJdyYdt6Ei7B4l6jyDQ1UYqP+y7kKYAvDyvAhaTKJLpDFDyksV8fjCa3PIMa2IcN3JD2q/JxFGcRRugfN1h56kfuieHHm+VmeD3Y8hkRxm+X8SgHfaZPf5Tp9dITR2g90wlOmoNFRVwkgbo80QHgiIE4fUW8KNcAbL0VXzalIob54IPQNEA75JA700cHKt/lJstCWL+H+VLiLPBUKG/3L3D8hitfrQXBAVr5QiecY9giDyR5rTvps8UdpxnBTFqtLwFpMHY/9VhWAB8XraktfC5NkSjF4B81UoBKgek7fOB4Y45Hn5wYHqHAT6RLWJ8gOaWgPXaSKrtknS6eXV2nxO+VHMWa+VBuXdhbJKhYptXQhu75+HBYSr4QtZRwCXQG71GYU3QHAMvpCKZYSDHhuBnM2WNILOhY6g62Odjmdd9y0F9Ne7t2ZKxaLrL7PRFxMR/wFGR6XJssJMgCMer3aHXlqQsONhhXAg3TogDawvNGiD/nsOeqieEeCiDRsjoqSKY3TGgcFtaclIKJxWH0OJgSluafRE4RuTPK+f9hckqAWbD8sLSIMXupfEFNN4emNrClkrFk2bPNdXV3t+x6gWpUhp2wrpZc=
+before_script:
+- git config --global user.email "basaratali@gmail.com"
+- git config --global user.name "Travis-CI"
+- git remote set-url origin https://github.com/basarat/byots.git
+script:
+- bash prepare.sh
+after_success:
+- git config credential.helper "store --file=.git/credentials"
+- echo "https://${GH_TOKEN}:@github.com" > .git/credentials
+- git config --global push.default matching
+- bash release.sh
+branches:
+  only:
+  - master
+deploy:
+  skip_cleanup: true
+  provider: npm
+  email: basaratali@gmail.com
+  api_key:
+    secure: h7yi0DpUP+uHggiTKghv2iao+m+nepyQh1szaC06FAjm2Xjc+P00lwym0z+1vUvitfYv/9AeEfAvoT9+efpIK8H3zlb96TOxAiOBHvgqNMkROawbNUdyN4UI6XlzHHeM7KidtzD6gG3x/HVGHAayl61k0dR5cV6Tc0aVdoWGmhvUiyjWeptzs/ev1ux3wwO3fKdUogy1whTwBUUzszLCIReugdda+eH93dbaWTw1TBZ69P7EOSyNUY9qEZx/7dP1xQ/j2/93Z2S8baEmK7MG/SeywEIHJX7CfG9Uzp6tJpr0l4hL/Q/TOrnXgoKuw8lKawvhQAxAy5T0RlP2fkLys4T6v9WcxKX9VBRsp+98pYgVflKIdzht9x+MD1kxuEB/kyhoNXkbRZN7EmN8j1mt+7l5m6mW2JPFm17e2/Q8kABy7EMmVjKh/NI3FL6eaCDfCHFXxrMbxdVbCw0f8CH2WX5rprwl+aLi1KTRqlzx+HbTqxEMkixbGOGLUkkUW9W/vNdg29x4InfNfnYa2oi78YchBTx9V7u0wd11Gxr1oMBtTNOnpUe7d8oA4/CinJFpnHW52JwyUDz9kyQsemkCyAP/eAVs5N1Ewh83IfndB9BymYm8Z8dTbgM1JvC6phhIYnWo23js6rCwH2DcN1NueKFu9fg80Ki7Q70fqKWB1Nk=
+  on:
+    repo: basarat/byots
