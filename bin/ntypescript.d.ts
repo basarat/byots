@@ -406,7 +406,10 @@ declare namespace ts {
     interface ModifiersArray extends NodeArray<Modifier> {
         flags: NodeFlags;
     }
-    interface Modifier extends Node {
+    interface Token extends Node {
+        __tokenTag: any;
+    }
+    interface Modifier extends Token {
     }
     interface Identifier extends PrimaryExpression {
         text: string;
@@ -1794,6 +1797,7 @@ declare namespace ts {
         declaration?: boolean;
         declarationDir?: string;
         diagnostics?: boolean;
+        extendedDiagnostics?: boolean;
         disableSizeLimit?: boolean;
         emitBOM?: boolean;
         emitDecoratorMetadata?: boolean;
@@ -2110,7 +2114,6 @@ declare namespace ts {
         getCancellationToken?(): CancellationToken;
         getDefaultLibFileName(options: CompilerOptions): string;
         getDefaultLibLocation?(): string;
-        getDefaultTypeDirectiveNames?(rootPath: string): string[];
         writeFile: WriteFileCallback;
         getCurrentDirectory(): string;
         getDirectories(path: string): string[];
@@ -2141,6 +2144,58 @@ declare namespace ts {
     interface SyntaxList extends Node {
         _children: Node[];
     }
+}
+declare namespace ts {
+    /** Gets a timestamp with (at least) ms resolution */
+    const timestamp: () => number;
+}
+declare namespace ts.performance {
+    /**
+     * Emit a performance event if ts-profiler is connected. This is primarily used
+     * to generate heap snapshots.
+     *
+     * @param eventName A name for the event.
+     */
+    function emit(eventName: string): void;
+    /**
+     * Increments a counter with the specified name.
+     *
+     * @param counterName The name of the counter.
+     */
+    function increment(counterName: string): void;
+    /**
+     * Gets the value of the counter with the specified name.
+     *
+     * @param counterName The name of the counter.
+     */
+    function getCount(counterName: string): number;
+    /**
+     * Marks the start of a performance measurement.
+     */
+    function mark(): number;
+    /**
+     * Adds a performance measurement with the specified name.
+     *
+     * @param measureName The name of the performance measurement.
+     * @param marker The timestamp of the starting mark.
+     */
+    function measure(measureName: string, marker: number): void;
+    /**
+     * Iterate over each measure, performing some action
+     *
+     * @param cb The action to perform for each measure
+     */
+    function forEachMeasure(cb: (measureName: string, duration: number) => void): void;
+    /**
+     * Gets the total duration of all measurements with the supplied name.
+     *
+     * @param measureName The name of the measure whose durations should be accumulated.
+     */
+    function getDuration(measureName: string): number;
+    /** Enables (and resets) performance measurements for the compiler. */
+    function enable(): void;
+    /** Disables (and clears) performance measurements for the compiler. */
+    function disable(): void;
 }
 declare namespace ts {
     /**
@@ -2271,6 +2326,8 @@ declare namespace ts {
     function ensureTrailingDirectorySeparator(path: string): string;
     function comparePaths(a: string, b: string, currentDirectory: string, ignoreCase?: boolean): Comparison;
     function containsPath(parent: string, child: string, currentDirectory: string, ignoreCase?: boolean): boolean;
+    function startsWith(str: string, prefix: string): boolean;
+    function endsWith(str: string, suffix: string): boolean;
     function fileExtensionIs(path: string, extension: string): boolean;
     function fileExtensionIsAny(path: string, extensions: string[]): boolean;
     function getRegularExpressionForWildcard(specs: string[], basePath: string, usage: "files" | "directories" | "exclude"): string;
@@ -2322,6 +2379,8 @@ declare namespace ts {
     function changeExtension<T extends string | Path>(path: T, newExtension: string): T;
     interface ObjectAllocator {
         getNodeConstructor(): new (kind: SyntaxKind, pos?: number, end?: number) => Node;
+        getTokenConstructor(): new (kind: SyntaxKind, pos?: number, end?: number) => Token;
+        getIdentifierConstructor(): new (kind: SyntaxKind, pos?: number, end?: number) => Token;
         getSourceFileConstructor(): new (kind: SyntaxKind, pos?: number, end?: number) => SourceFile;
         getSymbolConstructor(): new (flags: SymbolFlags, name: string) => Symbol;
         getTypeConstructor(): new (checker: TypeChecker, flags: TypeFlags) => Type;
@@ -2723,8 +2782,6 @@ declare namespace ts {
     function collapseTextChangeRangesAcrossMultipleVersions(changes: TextChangeRange[]): TextChangeRange;
     function getTypeParameterOwner(d: Declaration): Declaration;
     function isParameterPropertyDeclaration(node: ParameterDeclaration): boolean;
-    function startsWith(str: string, prefix: string): boolean;
-    function endsWith(str: string, suffix: string): boolean;
 }
 declare namespace ts {
     var Diagnostics: {
@@ -6232,6 +6289,12 @@ declare namespace ts {
             key: string;
             message: string;
         };
+        Substitutions_for_pattern_0_shouldn_t_be_an_empty_array: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
         Concatenate_and_emit_output_to_single_file: {
             code: number;
             category: DiagnosticCategory;
@@ -6928,13 +6991,13 @@ declare namespace ts {
             key: string;
             message: string;
         };
-        Report_Errors_on_Unused_Locals: {
+        Report_errors_on_unused_locals: {
             code: number;
             category: DiagnosticCategory;
             key: string;
             message: string;
         };
-        Report_Errors_on_Unused_Parameters: {
+        Report_errors_on_unused_parameters: {
             code: number;
             category: DiagnosticCategory;
             key: string;
@@ -7285,6 +7348,7 @@ declare namespace ts {
         scanJsxToken(): SyntaxKind;
         scanJSDocToken(): SyntaxKind;
         scan(): SyntaxKind;
+        getText(): string;
         setText(text: string, start?: number, length?: number): void;
         setOnError(onError: ErrorCallback): void;
         setScriptTarget(scriptTarget: ScriptTarget): void;
@@ -7310,6 +7374,8 @@ declare namespace ts {
     };
     function getLineAndCharacterOfPosition(sourceFile: SourceFile, position: number): LineAndCharacter;
     function isWhiteSpace(ch: number): boolean;
+    /** Does not include line breaks. For that, see isWhiteSpaceLike. */
+    function isWhiteSpaceSingleLine(ch: number): boolean;
     function isLineBreak(ch: number): boolean;
     function isOctalDigit(ch: number): boolean;
     function couldStartTrivia(text: string, pos: number): boolean;
@@ -7324,7 +7390,6 @@ declare namespace ts {
     function createScanner(languageVersion: ScriptTarget, skipTrivia: boolean, languageVariant?: LanguageVariant, text?: string, onError?: ErrorCallback, start?: number, length?: number): Scanner;
 }
 declare namespace ts {
-    let parseTime: number;
     function createNode(kind: SyntaxKind, pos?: number, end?: number): Node;
     function forEachChild<T>(node: Node, cbNode: (node: Node) => T, cbNodeArray?: (nodes: Node[]) => T): T;
     function createSourceFile(fileName: string, sourceText: string, languageVersion: ScriptTarget, setParentNodes?: boolean, scriptKind?: ScriptKind): SourceFile;
@@ -7340,7 +7405,6 @@ declare namespace ts {
     };
 }
 declare namespace ts {
-    let bindTime: number;
     enum ModuleInstanceState {
         NonInstantiated = 0,
         Instantiated = 1,
@@ -7351,7 +7415,6 @@ declare namespace ts {
 }
 declare namespace ts {
     function getNodeId(node: Node): number;
-    let checkTime: number;
     function getSymbolId(symbol: Symbol): number;
     function createTypeChecker(host: TypeCheckerHost, produceDiagnostics: boolean): TypeChecker;
 }
@@ -7427,10 +7490,6 @@ declare namespace ts {
     function emitFiles(resolver: EmitResolver, host: EmitHost, targetSourceFile: SourceFile): EmitResult;
 }
 declare namespace ts {
-    let programTime: number;
-    let emitTime: number;
-    let ioReadTime: number;
-    let ioWriteTime: number;
     /** The version of the TypeScript compiler release */
     const version: string;
     function findConfigFile(searchPath: string, fileExists: (fileName: string) => boolean): string;
@@ -7455,6 +7514,12 @@ declare namespace ts {
     const defaultInitCompilerOptions: CompilerOptions;
     function createCompilerHost(options: CompilerOptions, setParentNodes?: boolean): CompilerHost;
     function getPreEmitDiagnostics(program: Program, sourceFile?: SourceFile, cancellationToken?: CancellationToken): Diagnostic[];
+    interface FormatDiagnosticsHost {
+        getCurrentDirectory(): string;
+        getCanonicalFileName(fileName: string): string;
+        getNewLine(): string;
+    }
+    function formatDiagnostics(diagnostics: Diagnostic[], host: FormatDiagnosticsHost): string;
     function flattenDiagnosticMessageText(messageText: string | DiagnosticMessageChain, newLine: string): string;
     /**
       * Given a set of options and a set of root files, returns the set of type directive names
@@ -7642,6 +7707,7 @@ declare namespace ts.formatting {
         readTokenInfo(n: Node): TokenInfo;
         getCurrentLeadingTrivia(): TextRangeWithKind[];
         lastTrailingTriviaWasNewLine(): boolean;
+        skipToEndOf(node: Node): void;
         close(): void;
     }
     function getFormattingScanner(sourceFile: SourceFile, startPos: number, endPos: number): FormattingScanner;
@@ -8101,7 +8167,7 @@ declare namespace ts {
          * change range cannot be determined.  However, in that case, incremental parsing will
          * not happen and the entire document will be re - parsed.
          */
-        getChangeRange(oldSnapshot: IScriptSnapshot): TextChangeRange;
+        getChangeRange(oldSnapshot: IScriptSnapshot): TextChangeRange | undefined;
         /** Releases all resources held by this script snapshot */
         dispose?(): void;
     }
@@ -8727,7 +8793,7 @@ declare namespace ts {
         getLocalizedDiagnosticMessages(): string;
         getCancellationToken(): HostCancellationToken;
         getCurrentDirectory(): string;
-        getDirectories(path: string): string[];
+        getDirectories(path: string): string;
         getDefaultLibFileName(options: string): string;
         getNewLine?(): string;
         getProjectVersion?(): string;
@@ -8860,6 +8926,7 @@ declare namespace ts {
          */
         isValidBraceCompletionAtPosition(fileName: string, position: number, openingBrace: number): string;
         getEmitOutput(fileName: string): string;
+        getEmitOutputObject(fileName: string): EmitOutput;
     }
     interface ClassifierShim extends Shim {
         getEncodedLexicalClassifications(text: string, lexState: EndOfLineState, syntacticClassifierAbsent?: boolean): string;
