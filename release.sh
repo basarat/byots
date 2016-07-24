@@ -11,9 +11,9 @@ git add -A
 echo "Committing"
 git commit -m "$commitName"
 echo "Pushing commit"
-# git push
+git push
 
 echo "Tagging"
 git tag $commitVersion
 echo "Pushing tags"
-# git push --tags
+git push --tags
