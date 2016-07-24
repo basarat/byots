@@ -1,3 +1,10 @@
+# What
+`package.json` points to `byots.js` and `boyts.d.ts` in the `bin` folder:
+
+* `byots.js` simple manually authored.
+* `byots.d.ts` simple manually authored.
+* `typescript.d.ts`: Generated from latest TypeScript just exposing all the helpful stuff we wanted.
+
 # How?
 See `prepare.sh` for comments.
 
