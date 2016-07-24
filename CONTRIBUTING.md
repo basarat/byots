@@ -33,6 +33,7 @@ npm publish
 This is just the documentation on how travis was setup to do automatic deploys (to help you with forks) 🌹
 
 * install travis `gem install travis`
+* go online and switch on travis on the repo
 * now go to your repository directory
 
 ## Github push
@@ -51,8 +52,9 @@ after_success:
 
 ## NPM
 * Then setup the API key using https://github.com/npm/npm/issues/8970#issuecomment-122854271 (your `.npmrc` is usually at `c:\users\<name>\.npmrc`)
-* NPM deploy setup by simply running `travis setup npm`. This should setup `deploy` (with `provider`,`email`,`api_key`,`on`) in your `.travis.yml`
+* NPM deploy setup by simply running `travis setup npm`.
+  * This should setup `deploy` (with `provider`,`email`,`api_key`,`on`) in your `.travis.yml`
 * Since we want to deploy the `build` directory which is git ignored set `deploy.skip_cleanup: true`.
 
 ## Nighly
-* Cron job setup using https://nightli.es/  (we also tried http://traviscron.pythonanywhere.com/ but it didn't work).
+* Cron job setup using https://nightli.es/.
