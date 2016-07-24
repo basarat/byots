@@ -5,7 +5,7 @@ See `prepare.sh` for comments.
 
 ## Quickly
 
-Quick workflow (runs `prepare` and `release` and releases):
+Quick workflow (runs `prepare` and `release` and `npm publish`):
 
 ```sh
 quick.sh
@@ -25,8 +25,6 @@ Manual verification here ... then:
 release.sh
 npm publish
 ```
-
-> Note: once travis was setup to publish we don't need `npm publish` anymore.
 
 # Travis
 

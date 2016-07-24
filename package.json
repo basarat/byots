@@ -21,5 +21,11 @@
   "bugs": {
     "url": "https://github.com/basarat/byots/issues"
   },
-  "homepage": "https://github.com/basarat/byots#readme"
+  "homepage": "https://github.com/basarat/byots#readme",
+  "devDependencies": {
+    "typescript": "^2.1.0-dev.20160723"
+  },
+  "peerDependencies": {
+    "typescript": "*"
+  }
 }
