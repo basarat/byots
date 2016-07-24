@@ -35,7 +35,6 @@ export function stringify(object: Object, eol: string = '\n'): string {
     cache = null;
     return value;
 }
-const padZero = (x:number) => x < 10 ? '0' + x : x.toString();
 
 /**
  * I think the `const enum` causes more pain than its worth for dev tools (everything needs to be rebuilt).
@@ -53,7 +52,7 @@ const tsVersion = require(packageJsonFilePath).devDependencies.typescript;
 console.log('TypeScript nightly version:', tsVersion);
 
 const now = new Date();
-const ourVersion = tsVersion + '.' + padZero(now.getUTCHours()) + padZero(now.getUTCMinutes());
+const ourVersion = tsVersion + '.' + now.getUTCHours() + '.' + now.getUTCMinutes();
 pkg.version = ourVersion;
 
 // Write it out

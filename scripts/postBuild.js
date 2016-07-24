@@ -26,7 +26,6 @@ function stringify(object, eol) {
     return value;
 }
 exports.stringify = stringify;
-var padZero = function (x) { return x < 10 ? '0' + x : x.toString(); };
 var dtsFilePath = '../bin/typescript.d.ts';
 writeFile(dtsFilePath, readFile(dtsFilePath).replace(/const enum /g, 'enum '));
 var packageJsonFilePath = '../package.json';
@@ -34,7 +33,7 @@ var pkg = require(packageJsonFilePath);
 var tsVersion = require(packageJsonFilePath).devDependencies.typescript;
 console.log('TypeScript nightly version:', tsVersion);
 var now = new Date();
-var ourVersion = tsVersion + '.' + padZero(now.getUTCHours()) + padZero(now.getUTCMinutes());
+var ourVersion = tsVersion + '.' + now.getUTCHours() + '.' + now.getUTCMinutes();
 pkg.version = ourVersion;
 writeFile(packageJsonFilePath, stringify(pkg));
 writeFile('../kicktravis', ourVersion);
