@@ -37,4 +37,4 @@ var now = new Date();
 var ourVersion = tsVersion + '.' + padZero(now.getUTCHours()) + padZero(now.getUTCMinutes());
 pkg.version = ourVersion;
 writeFile(packageJsonFilePath, stringify(pkg));
-writeFile('./kicktravis', ourVersion);
+writeFile('../kicktravis', ourVersion);

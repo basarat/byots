@@ -59,4 +59,4 @@ pkg.version = ourVersion;
 // Write it out
 writeFile(packageJsonFilePath,stringify(pkg));
 // Also write to kicktravis for usage
-writeFile('./kicktravis',ourVersion);
+writeFile('../kicktravis',ourVersion);
