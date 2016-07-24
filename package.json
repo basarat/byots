@@ -2,7 +2,8 @@
   "name": "byots",
   "version": "0.0.0",
   "description": "Bring your own TypeScript",
-  "main": "src/index.js",
+  "main": "bin/byots.js",
+  "typings": "bin/byots.d.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
