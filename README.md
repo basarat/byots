@@ -6,13 +6,17 @@
 
 [![NPM](https://nodei.co/npm-dl/byots.png)](https://nodei.co/npm/byots/)
 
-> Kudos to the TypeScript team for maintaining all the code that this project depends on. This project is just a minor automation on top.
 
-Reasons Why:
+**Still Just TypeScript**
+
 * `byots` will use whatever TypeScript version you install *in your application*. So you are actually using whatever TypeScript you bring in (recommend `npm install typescript@next`).
+
+**But with the following advantages**
+
 * Provide `ts` globally. If you are doing heavy TypeScript work this helps e.g. [alm](http://alm.tools) / atom-typescript / tslint all do this.
-* Export better defs
-    * We expose the internal APIs (the ones that have `/* internal */`).
+* With a better definition file. We expose the internal APIs (the ones that have `/* internal */`). It helps experiment by copy pasting from the TypeScript source code.
+
+> The definitions are updated daily automatically and our version numbers match the TypeScript nightly version numbers.
 
 ## Install
 In your package.json
