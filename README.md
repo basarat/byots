@@ -9,13 +9,10 @@
 > Kudos to the TypeScript team for maintaining all the code that this project depends on. This project is just a minor automation on top.
 
 Reasons Why:
-
-* Releases everyday.
-* `package.json` links you to typescript definitions
-* Super Nice: We expose the internal APIs (the ones that have `/* internal */`)
-* Super Nice: We expose the global `ts` variable. Just `require('byots')` once and start using `ts` like you are in the actual compiler source code.
-* Super Nice: Converts `const enum` in the compiler definition to `enum`. This decreases the typescript compiler version dependence on your dev tools TS->JS emit.
-* Takes `typescript@next` as a peer dependency and just re-exports it.
+* `byots` will use whatever TypeScript version you install *in your application*. So you are actually using whatever TypeScript you bring in (recommend `npm install typescript@next`).
+* Provide `ts` globally. If you are doing heavy TypeScript work this helps e.g. [alm](http://alm.tools) / atom-typescript / tslint all do this.
+* Export better defs
+    * We expose the internal APIs (the ones that have `/* internal */`).
 
 ## Install
 In your package.json
@@ -29,17 +26,16 @@ Each release is named after the day it was built and the git commit hash in Micr
 ## Usage
 
 ### Require
-Use `require('byots')` and you get what `typescript` would give you.
+Use `import * as ts from 'byots'` and you get what `require('typescript')` would give you.
 
 ### Global `ts`
 In addition to returning what `typescript` returns we also expose `ts` as a global.
 
 ```ts
-declare var require: any;
-require('byots');
+import 'byots';
 console.log(ts.createScanner);
 ```
-Which makes it easy to use the compiler API if you are using it heavily. Note you only need to `require` *once from any* file.
+Which makes it easy to use the compiler API if you are using it heavily. Note you only need to `import` *once from any* file.
 
 # About
 Note that this is a personal endeavor, not officially by Microsoft.
