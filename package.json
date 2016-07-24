@@ -1,0 +1,25 @@
+{
+  "name": "byots",
+  "version": "0.0.0",
+  "description": "Bring your own TypeScript",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/basarat/byots.git"
+  },
+  "keywords": [
+    "typescript",
+    "linter",
+    "ide",
+    "javascript"
+  ],
+  "author": "basaratali@gmail.com",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/basarat/byots/issues"
+  },
+  "homepage": "https://github.com/basarat/byots#readme"
+}
