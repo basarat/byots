@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+        "noImplicitAny": true,
+        "removeComments": false,
+        "preserveConstEnums": true,
+        "outFile": "../built/local/typescriptServices.js",
+        "sourceMap": true,
+        "noResolve": false,
+        "declaration": true
+    },
+    "include": [
+        "compiler/**/*.ts",
+        "services/**/*.ts"
+    ]
+}

@@ -20,10 +20,17 @@ git reset --hard origin/master
 # Install everything
 npm install
 
-# Build to get a new `typescriptServices.d.ts` file
-./node_modules/.bin/gulp local
+# Copy our tsconfig.json to do the building
+cp ../src/tsconfig.json ./src/tsconfig.json
 
-# copy to the
+# Now build the compiler to get new definition file
+./node_modules/.bin/tsc -p ./src
+
+# Finally just take the new typescript.d.ts
+mv ./built/local/typescriptServices.d.ts ../bin/typescript.d.ts
+
+# Some post build fixes
+node ../scripts/postBuild.js
 
 # Reset sub typescript
 git reset --hard origin/master
