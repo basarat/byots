@@ -12,10 +12,18 @@ npm install typescript@next --save-dev --save-exact
 # Official Microsoft/TypeScript clone
 cd ./TypeScript
 
-git clean -xfd
+# Get latest
+# git clean -xfd # deletes any untracted existing artifacts including node_modules
 git fetch origin
 git reset --hard origin/master
 
+# Install everything
+npm install
+
+# Build to get a new `typescriptServices.d.ts` file
+./node_modules/.bin/gulp local
+
+# copy to the
 
 # Reset sub typescript
 git reset --hard origin/master
