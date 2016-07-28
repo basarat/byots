@@ -1,6 +1,6 @@
 {
   "name": "byots",
-  "version": "2.1.0-dev.20160724.11.7",
+  "version": "2.1.0-dev.20160728.12.25",
   "description": "Bring your own TypeScript",
   "main": "bin/byots.js",
   "typings": "bin/byots.d.ts",
@@ -24,7 +24,7 @@
   },
   "homepage": "https://github.com/basarat/byots#readme",
   "devDependencies": {
-    "typescript": "2.1.0-dev.20160724"
+    "typescript": "2.1.0-dev.20160728"
   },
   "peerDependencies": {
     "typescript": "*"
