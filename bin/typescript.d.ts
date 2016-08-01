@@ -184,7 +184,7 @@ declare namespace ts {
         IntersectionType = 163,
         ParenthesizedType = 164,
         ThisType = 165,
-        StringLiteralType = 166,
+        LiteralType = 166,
         ObjectBindingPattern = 167,
         ArrayBindingPattern = 168,
         BindingElement = 169,
@@ -604,8 +604,9 @@ declare namespace ts {
     interface ParenthesizedTypeNode extends TypeNode {
         type: TypeNode;
     }
-    interface StringLiteralTypeNode extends LiteralLikeNode, TypeNode {
+    interface LiteralTypeNode extends TypeNode {
         _stringLiteralTypeBrand: any;
+        literal: Expression;
     }
     interface StringLiteral extends LiteralExpression {
         _stringLiteralBrand: any;
@@ -1346,6 +1347,7 @@ declare namespace ts {
         InElementType = 64,
         UseFullyQualifiedType = 128,
         InFirstTypeArgument = 256,
+        InTypeAlias = 512,
     }
     enum SymbolFormatFlags {
         None = 0,
@@ -1462,18 +1464,18 @@ declare namespace ts {
         Enum = 384,
         Variable = 3,
         Value = 107455,
-        Type = 793056,
-        Namespace = 1536,
+        Type = 793064,
+        Namespace = 1920,
         Module = 1536,
         Accessor = 98304,
         FunctionScopedVariableExcludes = 107454,
         BlockScopedVariableExcludes = 107455,
         ParameterExcludes = 107455,
         PropertyExcludes = 0,
-        EnumMemberExcludes = 107455,
+        EnumMemberExcludes = 900095,
         FunctionExcludes = 106927,
         ClassExcludes = 899519,
-        InterfaceExcludes = 792960,
+        InterfaceExcludes = 792968,
         RegularEnumExcludes = 899327,
         ConstEnumExcludes = 899967,
         ValueModuleExcludes = 106639,
@@ -1481,8 +1483,8 @@ declare namespace ts {
         MethodExcludes = 99263,
         GetAccessorExcludes = 41919,
         SetAccessorExcludes = 74687,
-        TypeParameterExcludes = 530912,
-        TypeAliasExcludes = 793056,
+        TypeParameterExcludes = 530920,
+        TypeAliasExcludes = 793064,
         AliasExcludes = 8388608,
         ModuleMember = 8914931,
         ExportHasLocal = 944,
@@ -1580,42 +1582,50 @@ declare namespace ts {
         String = 2,
         Number = 4,
         Boolean = 8,
-        Void = 16,
-        Undefined = 32,
-        Null = 64,
-        Enum = 128,
-        StringLiteral = 256,
-        TypeParameter = 512,
-        Class = 1024,
-        Interface = 2048,
-        Reference = 4096,
-        Tuple = 8192,
-        Union = 16384,
-        Intersection = 32768,
-        Anonymous = 65536,
-        Instantiated = 131072,
-        FromSignature = 262144,
-        ObjectLiteral = 524288,
-        FreshObjectLiteral = 1048576,
-        ContainsWideningType = 2097152,
-        ContainsObjectLiteral = 4194304,
-        ContainsAnyFunctionType = 8388608,
-        ESSymbol = 16777216,
-        ThisType = 33554432,
-        ObjectLiteralPatternWithComputedProperties = 67108864,
-        Never = 134217728,
-        Nullable = 96,
-        Falsy = 112,
-        Intrinsic = 150995071,
-        Primitive = 16777726,
-        StringLike = 258,
-        NumberLike = 132,
-        ObjectType = 80896,
-        UnionOrIntersection = 49152,
-        StructuredType = 130048,
-        Narrowable = 16908175,
-        RequiresWidening = 6291456,
-        PropagatingFlags = 14680064,
+        Enum = 16,
+        StringLiteral = 32,
+        NumberLiteral = 64,
+        BooleanLiteral = 128,
+        EnumLiteral = 256,
+        ESSymbol = 512,
+        Void = 1024,
+        Undefined = 2048,
+        Null = 4096,
+        Never = 8192,
+        TypeParameter = 16384,
+        Class = 32768,
+        Interface = 65536,
+        Reference = 131072,
+        Tuple = 262144,
+        Union = 524288,
+        Intersection = 1048576,
+        Anonymous = 2097152,
+        Instantiated = 4194304,
+        ObjectLiteral = 8388608,
+        FreshObjectLiteral = 16777216,
+        ContainsWideningType = 33554432,
+        ContainsObjectLiteral = 67108864,
+        ContainsAnyFunctionType = 134217728,
+        ThisType = 268435456,
+        ObjectLiteralPatternWithComputedProperties = 536870912,
+        Nullable = 6144,
+        Literal = 480,
+        DefinitelyFalsy = 7392,
+        PossiblyFalsy = 7406,
+        Intrinsic = 16015,
+        Primitive = 8190,
+        StringLike = 34,
+        NumberLike = 340,
+        BooleanLike = 136,
+        EnumLike = 272,
+        ObjectType = 2588672,
+        UnionOrIntersection = 1572864,
+        StructuredType = 4161536,
+        StructuredOrTypeParameter = 4177920,
+        Narrowable = 4178943,
+        NotUnionOrUnit = 2589191,
+        RequiresWidening = 100663296,
+        PropagatingFlags = 234881024,
     }
     type DestructuringPattern = BindingPattern | ObjectLiteralExpression | ArrayLiteralExpression;
     interface Type {
@@ -1623,12 +1633,20 @@ declare namespace ts {
         id: number;
         symbol?: Symbol;
         pattern?: DestructuringPattern;
+        aliasSymbol?: Symbol;
+        aliasTypeArguments?: Type[];
     }
     interface IntrinsicType extends Type {
         intrinsicName: string;
     }
-    interface StringLiteralType extends Type {
+    interface LiteralType extends Type {
         text: string;
+    }
+    interface EnumType extends Type {
+        memberTypes: Map<EnumLiteralType>;
+    }
+    interface EnumLiteralType extends LiteralType {
+        baseType: EnumType & UnionType;
     }
     interface ObjectType extends Type {
     }
@@ -1659,8 +1677,8 @@ declare namespace ts {
     }
     interface UnionOrIntersectionType extends Type {
         types: Type[];
-        reducedType: Type;
         resolvedProperties: SymbolTable;
+        couldContainTypeParameters: boolean;
     }
     interface UnionType extends UnionOrIntersectionType {
     }
@@ -1703,7 +1721,7 @@ declare namespace ts {
         resolvedReturnType: Type;
         minArgumentCount: number;
         hasRestParameter: boolean;
-        hasStringLiterals: boolean;
+        hasLiteralTypes: boolean;
         target?: Signature;
         mapper?: TypeMapper;
         unionSignatures?: Signature[];
@@ -1723,6 +1741,7 @@ declare namespace ts {
     interface TypeMapper {
         (t: TypeParameter): Type;
         mappedTypes?: Type[];
+        targetTypes?: Type[];
         instantiations?: Type[];
         context?: InferenceContext;
     }
@@ -2225,7 +2244,7 @@ declare namespace ts {
      * If no such value is found, the callback is applied to each element of array and undefined is returned.
      */
     function forEach<T, U>(array: T[], callback: (element: T, index: number) => U): U;
-    function contains<T>(array: T[], value: T, areEqual?: (a: T, b: T) => boolean): boolean;
+    function contains<T>(array: T[], value: T): boolean;
     function indexOf<T>(array: T[], value: T): number;
     function indexOfAnyCharCode(text: string, charCodes: number[], start?: number): number;
     function countWhere<T>(array: T[], predicate: (x: T) => boolean): number;
@@ -5419,6 +5438,12 @@ declare namespace ts {
             key: string;
             message: string;
         };
+        Enum_type_0_has_members_with_initializers_that_are_not_literals: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
         JSX_element_attributes_type_0_may_not_be_a_union_type: {
             code: number;
             category: DiagnosticCategory;
@@ -5696,6 +5721,12 @@ declare namespace ts {
             message: string;
         };
         Cannot_extend_an_interface_0_Did_you_mean_implements: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        A_class_must_be_declared_after_its_base_class: {
             code: number;
             category: DiagnosticCategory;
             key: string;
@@ -7427,7 +7458,7 @@ declare namespace ts {
     }
     function getOptionNameMap(): OptionNameMap;
     function createCompilerDiagnosticForInvalidCustomType(opt: CommandLineOptionOfCustomType): Diagnostic;
-    function parseCustomTypeOption(opt: CommandLineOptionOfCustomType, value: string, errors: Diagnostic[]): number | string;
+    function parseCustomTypeOption(opt: CommandLineOptionOfCustomType, value: string, errors: Diagnostic[]): string | number;
     function parseListTypeOption(opt: CommandLineOptionOfListType, value: string, errors: Diagnostic[]): (string | number)[] | undefined;
     function parseCommandLine(commandLine: string[], readFile?: (path: string) => string): ParsedCommandLine;
     /**
@@ -8616,6 +8647,7 @@ declare namespace ts {
         const typeElement: string;
         /** enum E */
         const enumElement: string;
+        const enumMemberElement: string;
         /**
          * Inside module and script only
          * const v = ..
