@@ -4,15 +4,16 @@ set -e
 commitVersion=`cat kicktravis`
 commitName="[ci skip] Version: $commitVersion"
 
+# NOTE: Checkout and merge with head is needed for travis
 echo "Adding to git"
 git add -A
-# Checkout : otherwise travis is on detached head
 git checkout master
 git status
 
 # Commit,tag,push,publish
 echo "Committing"
 git commit -m "$commitName"
+git merge HEAD@{1}
 echo "Pushing commit"
 git push
 
