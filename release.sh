@@ -6,6 +6,9 @@ commitName="[ci skip] Version: $commitVersion"
 
 echo "Adding to git"
 git add -A
+# Checkout : otherwise travis is on detached head
+git checkout master
+git status
 
 # Commit,tag,push,publish
 echo "Committing"
