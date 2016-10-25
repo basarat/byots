@@ -1913,19 +1913,13 @@ declare namespace ts {
         Null = 4096,
         Never = 8192,
         TypeParameter = 16384,
-        Class = 32768,
-        Interface = 65536,
-        Reference = 131072,
-        Tuple = 262144,
-        Union = 524288,
-        Intersection = 1048576,
-        Anonymous = 2097152,
-        Instantiated = 4194304,
-        ObjectLiteral = 8388608,
-        FreshLiteral = 16777216,
-        ContainsWideningType = 33554432,
-        ContainsObjectLiteral = 67108864,
-        ContainsAnyFunctionType = 134217728,
+        Object = 32768,
+        Union = 65536,
+        Intersection = 131072,
+        FreshLiteral = 262144,
+        ContainsWideningType = 524288,
+        ContainsObjectLiteral = 1048576,
+        ContainsAnyFunctionType = 2097152,
         Nullable = 6144,
         Literal = 480,
         StringOrNumberLiteral = 96,
@@ -1937,14 +1931,13 @@ declare namespace ts {
         NumberLike = 340,
         BooleanLike = 136,
         EnumLike = 272,
-        ObjectType = 2588672,
-        UnionOrIntersection = 1572864,
-        StructuredType = 4161536,
-        StructuredOrTypeParameter = 4177920,
-        Narrowable = 4178943,
-        NotUnionOrUnit = 2589185,
-        RequiresWidening = 100663296,
-        PropagatingFlags = 234881024,
+        UnionOrIntersection = 196608,
+        StructuredType = 229376,
+        StructuredOrTypeParameter = 245760,
+        Narrowable = 246783,
+        NotUnionOrUnit = 33281,
+        RequiresWidening = 1572864,
+        PropagatingFlags = 3670016,
     }
     type DestructuringPattern = BindingPattern | ObjectLiteralExpression | ArrayLiteralExpression;
     interface Type {
@@ -1969,8 +1962,20 @@ declare namespace ts {
     interface EnumLiteralType extends LiteralType {
         baseType: EnumType & UnionType;
     }
+    enum ObjectFlags {
+        Class = 1,
+        Interface = 2,
+        Reference = 4,
+        Tuple = 8,
+        Anonymous = 16,
+        Instantiated = 32,
+        ObjectLiteral = 64,
+        EvolvingArray = 128,
+        ObjectLiteralPatternWithComputedProperties = 256,
+        ClassOrInterface = 3,
+    }
     interface ObjectType extends Type {
-        isObjectLiteralPatternWithComputedProperties?: boolean;
+        objectFlags: ObjectFlags;
     }
     interface InterfaceType extends ObjectType {
         typeParameters: TypeParameter[];
@@ -2003,10 +2008,13 @@ declare namespace ts {
     }
     interface IntersectionType extends UnionOrIntersectionType {
     }
+    type StructuredType = ObjectType | UnionType | IntersectionType;
     interface AnonymousType extends ObjectType {
         target?: AnonymousType;
         mapper?: TypeMapper;
-        elementType?: Type;
+    }
+    interface EvolvingArrayType extends ObjectType {
+        elementType: Type;
         finalArrayType?: Type;
     }
     interface ResolvedType extends ObjectType, UnionOrIntersectionType {
@@ -3142,6 +3150,7 @@ declare namespace ts {
     function unescapeIdentifier(identifier: string): string;
     function makeIdentifierFromModuleName(moduleName: string): string;
     function isBlockOrCatchScoped(declaration: Declaration): boolean;
+    function isCatchClauseVariableDeclarationOrBindingElement(declaration: Declaration): boolean;
     function isAmbientModule(node: Node): boolean;
     function isShorthandAmbientModuleSymbol(moduleSymbol: Symbol): boolean;
     function isBlockScopedContainerTopLevel(node: Node): boolean;
@@ -3149,7 +3158,6 @@ declare namespace ts {
     function isExternalModuleAugmentation(node: Node): boolean;
     function isBlockScope(node: Node, parentNode: Node): boolean;
     function getEnclosingBlockScopeContainer(node: Node): Node;
-    function isCatchClauseVariableDeclaration(declaration: Declaration): boolean;
     function declarationNameToString(name: DeclarationName): string;
     function createDiagnosticForNode(node: Node, message: DiagnosticMessage, arg0?: string | number, arg1?: string | number, arg2?: string | number): Diagnostic;
     function createDiagnosticForNodeFromMessageChain(node: Node, messageChain: DiagnosticMessageChain): Diagnostic;
@@ -4574,12 +4582,6 @@ declare namespace ts {
             message: string;
         };
         Export_declarations_are_not_permitted_in_a_namespace: {
-            code: number;
-            category: DiagnosticCategory;
-            key: string;
-            message: string;
-        };
-        Catch_clause_variable_name_must_be_an_identifier: {
             code: number;
             category: DiagnosticCategory;
             key: string;
@@ -8294,6 +8296,18 @@ declare namespace ts {
             message: string;
         };
         The_path_in_an_extends_options_must_be_relative_or_rooted: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        The_files_list_in_config_file_0_is_empty: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        No_inputs_were_found_in_config_file_0_Specified_include_paths_were_1_and_exclude_paths_were_2: {
             code: number;
             category: DiagnosticCategory;
             key: string;
