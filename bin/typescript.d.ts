@@ -454,6 +454,7 @@ declare namespace ts {
         originalKeywordKind?: SyntaxKind;
         autoGenerateKind?: GeneratedIdentifierKind;
         autoGenerateId?: number;
+        isInJSDocNamespace?: boolean;
     }
     interface TransientIdentifier extends Identifier {
         resolvedSymbol: Symbol;
@@ -1164,11 +1165,15 @@ declare namespace ts {
     interface ModuleDeclaration extends DeclarationStatement {
         kind: SyntaxKind.ModuleDeclaration;
         name: Identifier | LiteralExpression;
-        body?: ModuleBlock | NamespaceDeclaration;
+        body?: ModuleBlock | NamespaceDeclaration | JSDocNamespaceDeclaration | Identifier;
     }
     interface NamespaceDeclaration extends ModuleDeclaration {
         name: Identifier;
         body: ModuleBlock | NamespaceDeclaration;
+    }
+    interface JSDocNamespaceDeclaration extends ModuleDeclaration {
+        name: Identifier;
+        body: JSDocNamespaceDeclaration | Identifier;
     }
     interface ModuleBlock extends Node, Statement {
         kind: SyntaxKind.ModuleBlock;
@@ -1341,6 +1346,7 @@ declare namespace ts {
     }
     interface JSDocTypedefTag extends JSDocTag, Declaration {
         kind: SyntaxKind.JSDocTypedefTag;
+        fullName?: JSDocNamespaceDeclaration | Identifier;
         name?: Identifier;
         typeExpression?: JSDocTypeExpression;
         jsDocTypeLiteral?: JSDocTypeLiteral;
@@ -2222,6 +2228,7 @@ declare namespace ts {
         packageNameToTypingLocation: Map<string>;
         typingOptions: TypingOptions;
         compilerOptions: CompilerOptions;
+        unresolvedImports: ReadonlyArray<string>;
     }
     enum ModuleKind {
         None = 0,
@@ -2731,6 +2738,8 @@ declare namespace ts {
     function some<T>(array: T[], predicate?: (value: T) => boolean): boolean;
     function concatenate<T>(array1: T[], array2: T[]): T[];
     function deduplicate<T>(array: T[], areEqual?: (a: T, b: T) => boolean): T[];
+    function arrayIsEqualTo<T>(array1: ReadonlyArray<T>, array2: ReadonlyArray<T>, equaler?: (a: T, b: T) => boolean): boolean;
+    function changesAffectModuleResolution(oldOptions: CompilerOptions, newOptions: CompilerOptions): boolean;
     /**
      * Compacts an array, removing any falsey elements.
      */
@@ -3119,7 +3128,6 @@ declare namespace ts {
     function getSingleLineStringWriter(): StringSymbolWriter;
     function releaseStringWriter(writer: StringSymbolWriter): void;
     function getFullWidth(node: Node): number;
-    function arrayIsEqualTo<T>(array1: ReadonlyArray<T>, array2: ReadonlyArray<T>, equaler?: (a: T, b: T) => boolean): boolean;
     function hasResolvedModule(sourceFile: SourceFile, moduleNameText: string): boolean;
     function getResolvedModule(sourceFile: SourceFile, moduleNameText: string): ResolvedModule;
     function setResolvedModule(sourceFile: SourceFile, moduleNameText: string, resolvedModule: ResolvedModule): void;
@@ -10185,6 +10193,7 @@ declare namespace ts.JsTyping {
         readFile: (path: string, encoding?: string) => string;
         readDirectory: (rootDir: string, extensions: string[], excludes: string[], includes: string[], depth?: number) => string[];
     }
+    const nodeCoreModuleList: ReadonlyArray<string>;
     /**
      * @param host is the object providing I/O related operations.
      * @param fileNames are the file names that belong to the same project
@@ -10194,7 +10203,7 @@ declare namespace ts.JsTyping {
      * @param typingOptions are used to customize the typing inference process
      * @param compilerOptions are used as a source for typing inference
      */
-    function discoverTypings(host: TypingResolutionHost, fileNames: string[], projectRootPath: Path, safeListPath: Path, packageNameToTypingLocation: Map<string>, typingOptions: TypingOptions): {
+    function discoverTypings(host: TypingResolutionHost, fileNames: string[], projectRootPath: Path, safeListPath: Path, packageNameToTypingLocation: Map<string>, typingOptions: TypingOptions, unresolvedImports: ReadonlyArray<string>): {
         cachedTypingPaths: string[];
         newTypingNames: string[];
         filesToWatch: string[];
