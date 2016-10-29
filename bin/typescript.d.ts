@@ -1485,6 +1485,7 @@ declare namespace ts {
         identifierCount: number;
         symbolCount: number;
         parseDiagnostics: Diagnostic[];
+        additionalSyntacticDiagnostics?: Diagnostic[];
         bindDiagnostics: Diagnostic[];
         lineMap: number[];
         classifiableNames?: Map<string>;
