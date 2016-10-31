@@ -2304,6 +2304,7 @@ declare namespace ts {
         Simple = 0,
         Pretty = 1,
     }
+    /** Either a parsed command line or a parsed tsconfig.json */
     interface ParsedCommandLine {
         options: CompilerOptions;
         typingOptions?: TypingOptions;
@@ -3055,9 +3056,15 @@ declare namespace ts {
     function containsPath(parent: string, child: string, currentDirectory: string, ignoreCase?: boolean): boolean;
     function startsWith(str: string, prefix: string): boolean;
     function endsWith(str: string, suffix: string): boolean;
+    function hasExtension(fileName: string): boolean;
     function fileExtensionIs(path: string, extension: string): boolean;
     function fileExtensionIsAny(path: string, extensions: string[]): boolean;
     function getRegularExpressionForWildcard(specs: string[], basePath: string, usage: "files" | "directories" | "exclude"): string;
+    /**
+     * An "includes" path "foo" is implicitly a glob "foo/** /*" (without the space) if its last component has no extension,
+     * and does not contain any glob characters itself.
+     */
+    function isImplicitGlob(lastPathComponent: string): boolean;
     interface FileSystemEntries {
         files: string[];
         directories: string[];
@@ -3262,7 +3269,7 @@ declare namespace ts {
     function isCatchClauseVariableDeclarationOrBindingElement(declaration: Declaration): boolean;
     function isAmbientModule(node: Node): boolean;
     /** Given a symbol for a module, checks that it is either an untyped import or a shorthand ambient module. */
-    function isUntypedModuleSymbol(moduleSymbol: Symbol): boolean;
+    function isShorthandAmbientModuleSymbol(moduleSymbol: Symbol): boolean;
     function isBlockScopedContainerTopLevel(node: Node): boolean;
     function isGlobalScopeAugmentation(module: ModuleDeclaration): boolean;
     function isExternalModuleAugmentation(node: Node): boolean;
@@ -6558,6 +6565,12 @@ declare namespace ts {
             message: string;
         };
         Invalid_module_name_in_augmentation_module_0_cannot_be_found: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Invalid_module_name_in_augmentation_Module_0_resolves_to_an_untyped_module_at_1_which_cannot_be_augmented: {
             code: number;
             category: DiagnosticCategory;
             key: string;
