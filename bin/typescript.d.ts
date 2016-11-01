@@ -2813,6 +2813,12 @@ declare namespace ts {
      * Compacts an array, removing any falsey elements.
      */
     function compact<T>(array: T[]): T[];
+    /**
+     * Gets the relative complement of `arrayA` with respect to `b`, returning the elements that
+     * are not present in `arrayA` but are present in `arrayB`. Assumes both arrays are sorted
+     * based on the provided comparer.
+     */
+    function relativeComplement<T>(arrayA: T[] | undefined, arrayB: T[] | undefined, comparer?: (x: T, y: T) => Comparison, offsetA?: number, offsetB?: number): T[] | undefined;
     function sum(array: any[], prop: string): number;
     /**
      * Appends a value to an array, returning the array.
@@ -2858,7 +2864,7 @@ declare namespace ts {
      * @param array A sorted array whose first element must be no larger than number
      * @param number The value to be searched for in the array.
      */
-    function binarySearch<T>(array: T[], value: T, comparer?: (v1: T, v2: T) => number): number;
+    function binarySearch<T>(array: T[], value: T, comparer?: (v1: T, v2: T) => number, offset?: number): number;
     function reduceLeft<T, U>(array: T[], f: (memo: U, value: T, i: number) => U, initial: U, start?: number, count?: number): U;
     function reduceLeft<T>(array: T[], f: (memo: T, value: T, i: number) => T): T;
     function reduceRight<T, U>(array: T[], f: (memo: U, value: T, i: number) => U, initial: U, start?: number, count?: number): U;
@@ -3276,6 +3282,7 @@ declare namespace ts {
     function isBlockScope(node: Node, parentNode: Node): boolean;
     function getEnclosingBlockScopeContainer(node: Node): Node;
     function declarationNameToString(name: DeclarationName): string;
+    function entityNameToString(name: EntityNameOrEntityNameExpression): string;
     function createDiagnosticForNode(node: Node, message: DiagnosticMessage, arg0?: string | number, arg1?: string | number, arg2?: string | number): Diagnostic;
     function createDiagnosticForNodeFromMessageChain(node: Node, messageChain: DiagnosticMessageChain): Diagnostic;
     function getSpanOfTokenAtPosition(sourceFile: SourceFile, pos: number): TextSpan;
@@ -4056,7 +4063,7 @@ declare namespace ts {
             key: string;
             message: string;
         };
-        Type_0_is_not_a_valid_async_function_return_type: {
+        Type_0_is_not_a_valid_async_function_return_type_in_ES5_SlashES3_because_it_does_not_refer_to_a_Promise_compatible_constructor_value: {
             code: number;
             category: DiagnosticCategory;
             key: string;
