@@ -1983,7 +1983,7 @@ declare namespace ts {
         EnumLike = 272,
         UnionOrIntersection = 196608,
         StructuredType = 229376,
-        StructuredOrTypeParameter = 245760,
+        StructuredOrTypeParameter = 507904,
         Narrowable = 1033215,
         NotUnionOrUnit = 33281,
         RequiresWidening = 6291456,
