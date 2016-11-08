@@ -1572,6 +1572,7 @@ declare namespace ts {
         getTypeCount(): number;
         getFileProcessingDiagnostics(): DiagnosticCollection;
         getResolvedTypeReferenceDirectives(): Map<ResolvedTypeReferenceDirective>;
+        isSourceFileFromExternalLibrary(file: SourceFile): boolean;
         structureIsReused?: boolean;
     }
     interface SourceMapSpan {
@@ -2117,6 +2118,7 @@ declare namespace ts {
         erasedSignatureCache?: Signature;
         isolatedSignatureType?: ObjectType;
         typePredicate?: TypePredicate;
+        instantiations?: Map<Signature>;
     }
     enum IndexKind {
         String = 0,
@@ -2130,7 +2132,6 @@ declare namespace ts {
     interface TypeMapper {
         (t: TypeParameter): Type;
         mappedTypes?: Type[];
-        targetTypes?: Type[];
         instantiations?: Type[];
         context?: InferenceContext;
     }
@@ -3214,7 +3215,11 @@ declare namespace ts {
         readFile(path: string, encoding?: string): string;
         getFileSize?(path: string): number;
         writeFile(path: string, data: string, writeByteOrderMark?: boolean): void;
-        watchFile?(path: string, callback: FileWatcherCallback): FileWatcher;
+        /**
+         * @pollingInterval - this parameter is used in polling-based watchers and ignored in watchers that
+         * use native OS file watching
+         */
+        watchFile?(path: string, callback: FileWatcherCallback, pollingInterval?: number): FileWatcher;
         watchDirectory?(path: string, callback: DirectoryWatcherCallback, recursive?: boolean): FileWatcher;
         resolvePath(path: string): string;
         fileExists(path: string): boolean;
@@ -9160,6 +9165,14 @@ declare namespace ts {
      * @param subtreeFlags Transform flags computed for this node's subtree
      */
     function computeTransformFlagsForNode(node: Node, subtreeFlags: TransformFlags): TransformFlags;
+    /**
+     * Gets the transform flags to exclude when unioning the transform flags of a subtree.
+     *
+     * NOTE: This needs to be kept up-to-date with the exclusions used in `computeTransformFlagsForNode`.
+     *       For performance reasons, `computeTransformFlagsForNode` uses local constant values rather
+     *       than calling this function.
+     */
+    function getTransformFlagsSubtreeExclusions(kind: SyntaxKind): TransformFlags;
 }
 declare namespace ts {
     function trace(host: ModuleResolutionHost, message: DiagnosticMessage, ...args: any[]): void;
