@@ -2241,7 +2241,7 @@ declare namespace ts {
         moduleResolution?: ModuleResolutionKind;
         newLine?: NewLineKind;
         noEmit?: boolean;
-        noEmitOverwritenFiles?: boolean;
+        noEmitForJsFiles?: boolean;
         noEmitHelpers?: boolean;
         noEmitOnError?: boolean;
         noErrorTruncation?: boolean;
@@ -3562,6 +3562,8 @@ declare namespace ts {
      * @param targetSourceFile An optional target source file to emit.
      */
     function getSourceFilesToEmit(host: EmitHost, targetSourceFile?: SourceFile): SourceFile[];
+    /** Don't call this for `--outFile`, just for `--outDir` or plain emit. */
+    function filterSourceFilesInDirectory(sourceFiles: SourceFile[], isSourceFileFromExternalLibrary: (file: SourceFile) => boolean): SourceFile[];
     /**
      * Iterates over each source file to emit. The source files are expected to have been
      * transformed for use by the pretty printer.
@@ -6861,6 +6863,12 @@ declare namespace ts {
             key: string;
             message: string;
         };
+        An_object_rest_element_must_be_an_identifier: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
         Import_declaration_0_is_using_private_name_1: {
             code: number;
             category: DiagnosticCategory;
@@ -9661,7 +9669,7 @@ declare namespace ts {
 }
 declare namespace ts {
     /** The version of the TypeScript compiler release */
-    const version = "2.1.0";
+    const version = "2.2.0";
     function findConfigFile(searchPath: string, fileExists: (fileName: string) => boolean, configName?: string): string;
     function resolveTripleslashReference(moduleName: string, containingFile: string): string;
     function computeCommonSourceDirectoryOfFilenames(fileNames: string[], currentDirectory: string, getCanonicalFileName: (fileName: string) => string): string;
@@ -11406,4 +11414,4 @@ declare namespace ts {
 declare namespace TypeScript.Services {
     const TypeScriptServicesFactory: typeof ts.TypeScriptServicesFactory;
 }
-declare const toolsVersion = "2.1";
+declare const toolsVersion = "2.2";
