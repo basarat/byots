@@ -3216,6 +3216,7 @@ declare namespace ts {
      * Path must have a valid extension.
      */
     function extensionFromPath(path: string): Extension;
+    function tryGetExtensionFromPath(path: string): Extension | undefined;
 }
 declare namespace ts {
     type FileWatcherCallback = (fileName: string, removed?: boolean) => void;
