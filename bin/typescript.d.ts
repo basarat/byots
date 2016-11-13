@@ -1950,6 +1950,7 @@ declare namespace ts {
         resolvedSignature?: Signature;
         resolvedSymbol?: Symbol;
         resolvedIndexInfo?: IndexInfo;
+        maybeTypePredicate?: boolean;
         enumMemberValue?: number;
         isVisible?: boolean;
         hasReportedStatementInAmbientContext?: boolean;
