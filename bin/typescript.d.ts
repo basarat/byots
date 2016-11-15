@@ -2779,6 +2779,10 @@ declare namespace ts.performance {
     function disable(): void;
 }
 declare namespace ts {
+    /** The version of the TypeScript compiler release */
+    const version = "2.2.0";
+}
+declare namespace ts {
     /**
      * Ternary values are defined such that
      * x & y is False if either x or y is False.
@@ -8526,6 +8530,12 @@ declare namespace ts {
             key: string;
             message: string;
         };
+        Language_service_is_disabled: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
         JSX_attributes_must_only_be_assigned_a_non_empty_expression: {
             code: number;
             category: DiagnosticCategory;
@@ -9687,8 +9697,6 @@ declare namespace ts {
     function emitFiles(resolver: EmitResolver, host: EmitHost, targetSourceFile: SourceFile, emitOnlyDtsFiles?: boolean): EmitResult;
 }
 declare namespace ts {
-    /** The version of the TypeScript compiler release */
-    const version = "2.2.0";
     function findConfigFile(searchPath: string, fileExists: (fileName: string) => boolean, configName?: string): string;
     function resolveTripleslashReference(moduleName: string, containingFile: string): string;
     function computeCommonSourceDirectoryOfFilenames(fileNames: string[], currentDirectory: string, getCanonicalFileName: (fileName: string) => string): string;
@@ -11140,6 +11148,8 @@ declare namespace ts {
         function getSupportedErrorCodes(): string[];
         function getFixes(context: CodeFixContext): CodeAction[];
     }
+}
+declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
 }
