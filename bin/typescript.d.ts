@@ -318,7 +318,8 @@ declare namespace ts {
         PartiallyEmittedExpression = 293,
         MergeDeclarationMarker = 294,
         EndOfDeclarationMarker = 295,
-        Count = 296,
+        RawExpression = 296,
+        Count = 297,
         FirstAssignment = 57,
         LastAssignment = 69,
         FirstCompoundAssignment = 58,
@@ -436,6 +437,7 @@ declare namespace ts {
     }
     interface NodeArray<T extends Node> extends Array<T>, TextRange {
         hasTrailingComma?: boolean;
+        transformFlags?: TransformFlags;
     }
     interface Token<TKind extends SyntaxKind> extends Node {
         kind: TKind;
@@ -478,14 +480,14 @@ declare namespace ts {
         right: Identifier;
     }
     type EntityName = Identifier | QualifiedName;
-    type PropertyName = Identifier | LiteralExpression | ComputedPropertyName;
-    type DeclarationName = Identifier | LiteralExpression | ComputedPropertyName | BindingPattern;
+    type PropertyName = Identifier | StringLiteral | NumericLiteral | ComputedPropertyName;
+    type DeclarationName = Identifier | StringLiteral | NumericLiteral | ComputedPropertyName | BindingPattern;
     interface Declaration extends Node {
         _declarationBrand: any;
         name?: DeclarationName;
     }
     interface DeclarationStatement extends Declaration, Statement {
-        name?: Identifier | LiteralExpression;
+        name?: Identifier | StringLiteral | NumericLiteral;
     }
     interface ComputedPropertyName extends Node {
         kind: SyntaxKind.ComputedPropertyName;
@@ -587,18 +589,16 @@ declare namespace ts {
     interface PropertyLikeDeclaration extends Declaration {
         name: PropertyName;
     }
-    interface BindingPattern extends Node {
-        elements: NodeArray<BindingElement | ArrayBindingElement>;
-    }
-    interface ObjectBindingPattern extends BindingPattern {
+    interface ObjectBindingPattern extends Node {
         kind: SyntaxKind.ObjectBindingPattern;
         elements: NodeArray<BindingElement>;
     }
-    type ArrayBindingElement = BindingElement | OmittedExpression;
-    interface ArrayBindingPattern extends BindingPattern {
+    interface ArrayBindingPattern extends Node {
         kind: SyntaxKind.ArrayBindingPattern;
         elements: NodeArray<ArrayBindingElement>;
     }
+    type BindingPattern = ObjectBindingPattern | ArrayBindingPattern;
+    type ArrayBindingElement = BindingElement | OmittedExpression;
     /**
      * Several node kinds share function-like features such as a signature,
      * a name, and a body. These nodes should extend FunctionLikeDeclaration.
@@ -729,7 +729,7 @@ declare namespace ts {
     }
     interface StringLiteral extends LiteralExpression {
         kind: SyntaxKind.StringLiteral;
-        textSourceNode?: Identifier | StringLiteral;
+        textSourceNode?: Identifier | StringLiteral | NumericLiteral;
     }
     interface Expression extends Node {
         _expressionBrand: any;
@@ -828,17 +828,25 @@ declare namespace ts {
         operatorToken: BinaryOperatorToken;
         right: Expression;
     }
-    interface AssignmentExpression extends BinaryExpression {
+    type AssignmentOperatorToken = Token<AssignmentOperator>;
+    interface AssignmentExpression<TOperator extends AssignmentOperatorToken> extends BinaryExpression {
         left: LeftHandSideExpression;
-        operatorToken: Token<SyntaxKind.EqualsToken>;
+        operatorToken: TOperator;
     }
-    interface ObjectDestructuringAssignment extends AssignmentExpression {
+    interface ObjectDestructuringAssignment extends AssignmentExpression<EqualsToken> {
         left: ObjectLiteralExpression;
     }
-    interface ArrayDestructuringAssignment extends AssignmentExpression {
+    interface ArrayDestructuringAssignment extends AssignmentExpression<EqualsToken> {
         left: ArrayLiteralExpression;
     }
     type DestructuringAssignment = ObjectDestructuringAssignment | ArrayDestructuringAssignment;
+    type BindingOrAssignmentElement = VariableDeclaration | ParameterDeclaration | BindingElement | PropertyAssignment | ShorthandPropertyAssignment | SpreadAssignment | OmittedExpression | SpreadElement | ArrayLiteralExpression | ObjectLiteralExpression | AssignmentExpression<EqualsToken> | Identifier | PropertyAccessExpression | ElementAccessExpression;
+    type BindingOrAssignmentElementRestIndicator = DotDotDotToken | SpreadElement | SpreadAssignment;
+    type BindingOrAssignmentElementTarget = BindingOrAssignmentPattern | Expression;
+    type ObjectBindingOrAssignmentPattern = ObjectBindingPattern | ObjectLiteralExpression;
+    type ArrayBindingOrAssignmentPattern = ArrayBindingPattern | ArrayLiteralExpression;
+    type AssignmentPattern = ObjectLiteralExpression | ArrayLiteralExpression;
+    type BindingOrAssignmentPattern = ObjectBindingOrAssignmentPattern | ArrayBindingOrAssignmentPattern;
     interface ConditionalExpression extends Expression {
         kind: SyntaxKind.ConditionalExpression;
         condition: Expression;
@@ -1042,6 +1050,14 @@ declare namespace ts {
         kind: SyntaxKind.EndOfDeclarationMarker;
     }
     /**
+     * Emits a string of raw text in an expression position. Raw text is never transformed, should
+     * be ES3 compliant, and should have the same precedence as PrimaryExpression.
+     */
+    interface RawExpression extends PrimaryExpression {
+        kind: SyntaxKind.RawExpression;
+        text: string;
+    }
+    /**
      * Marks the beginning of a merged transformed declaration.
      */
     interface MergeDeclarationMarker extends Statement {
@@ -1070,6 +1086,9 @@ declare namespace ts {
     interface ExpressionStatement extends Statement {
         kind: SyntaxKind.ExpressionStatement;
         expression: Expression;
+    }
+    interface PrologueDirective extends ExpressionStatement {
+        expression: StringLiteral;
     }
     interface IfStatement extends Statement {
         kind: SyntaxKind.IfStatement;
@@ -1218,7 +1237,7 @@ declare namespace ts {
     type ModuleName = Identifier | StringLiteral;
     interface ModuleDeclaration extends DeclarationStatement {
         kind: SyntaxKind.ModuleDeclaration;
-        name: Identifier | LiteralExpression;
+        name: Identifier | StringLiteral;
         body?: ModuleBlock | NamespaceDeclaration | JSDocNamespaceDeclaration | Identifier;
     }
     interface NamespaceDeclaration extends ModuleDeclaration {
@@ -1370,7 +1389,7 @@ declare namespace ts {
     type JSDocTypeReferencingNode = JSDocThisType | JSDocConstructorType | JSDocVariadicType | JSDocOptionalType | JSDocNullableType | JSDocNonNullableType;
     interface JSDocRecordMember extends PropertySignature {
         kind: SyntaxKind.JSDocRecordMember;
-        name: Identifier | LiteralExpression;
+        name: Identifier | StringLiteral | NumericLiteral;
         type?: JSDocType;
     }
     interface JSDoc extends Node {
@@ -1520,7 +1539,6 @@ declare namespace ts {
         moduleAugmentations: LiteralExpression[];
         patternAmbientModules?: PatternAmbientModule[];
         ambientModuleNames: string[];
-        externalHelpersModuleName?: Identifier;
     }
     interface ScriptReferenceHost {
         getCompilerOptions(): CompilerOptions;
@@ -2611,95 +2629,100 @@ declare namespace ts {
         None = 0,
         TypeScript = 1,
         ContainsTypeScript = 2,
-        Jsx = 4,
-        ContainsJsx = 8,
-        ESNext = 16,
-        ContainsESNext = 32,
-        ES2017 = 64,
-        ContainsES2017 = 128,
-        ES2016 = 256,
-        ContainsES2016 = 512,
-        ES2015 = 1024,
-        ContainsES2015 = 2048,
-        Generator = 4096,
-        ContainsGenerator = 8192,
-        DestructuringAssignment = 16384,
-        ContainsDestructuringAssignment = 32768,
-        ContainsDecorators = 65536,
-        ContainsPropertyInitializer = 131072,
-        ContainsLexicalThis = 262144,
-        ContainsCapturedLexicalThis = 524288,
-        ContainsLexicalThisInComputedPropertyName = 1048576,
-        ContainsDefaultValueAssignments = 2097152,
-        ContainsParameterPropertyAssignments = 4194304,
-        ContainsSpreadExpression = 8388608,
-        ContainsComputedPropertyName = 16777216,
-        ContainsBlockScopedBinding = 33554432,
-        ContainsBindingPattern = 67108864,
-        ContainsYield = 134217728,
-        ContainsHoistedDeclarationOrCompletion = 268435456,
+        ContainsJsx = 4,
+        ContainsESNext = 8,
+        ContainsES2017 = 16,
+        ContainsES2016 = 32,
+        ES2015 = 64,
+        ContainsES2015 = 128,
+        Generator = 256,
+        ContainsGenerator = 512,
+        DestructuringAssignment = 1024,
+        ContainsDestructuringAssignment = 2048,
+        ContainsDecorators = 4096,
+        ContainsPropertyInitializer = 8192,
+        ContainsLexicalThis = 16384,
+        ContainsCapturedLexicalThis = 32768,
+        ContainsLexicalThisInComputedPropertyName = 65536,
+        ContainsDefaultValueAssignments = 131072,
+        ContainsParameterPropertyAssignments = 262144,
+        ContainsSpread = 524288,
+        ContainsObjectSpread = 1048576,
+        ContainsRest = 524288,
+        ContainsObjectRest = 1048576,
+        ContainsComputedPropertyName = 2097152,
+        ContainsBlockScopedBinding = 4194304,
+        ContainsBindingPattern = 8388608,
+        ContainsYield = 16777216,
+        ContainsHoistedDeclarationOrCompletion = 33554432,
         HasComputedFlags = 536870912,
         AssertTypeScript = 3,
-        AssertJsx = 12,
-        AssertESNext = 48,
-        AssertES2017 = 192,
-        AssertES2016 = 768,
-        AssertES2015 = 3072,
-        AssertGenerator = 12288,
-        AssertDestructuringAssignment = 49152,
-        NodeExcludes = 536892757,
-        ArrowFunctionExcludes = 979719509,
-        FunctionExcludes = 980243797,
-        ConstructorExcludes = 975983957,
-        MethodOrAccessorExcludes = 975983957,
-        ClassExcludes = 559895893,
-        ModuleExcludes = 839734613,
+        AssertJsx = 4,
+        AssertESNext = 8,
+        AssertES2017 = 16,
+        AssertES2016 = 32,
+        AssertES2015 = 192,
+        AssertGenerator = 768,
+        AssertDestructuringAssignment = 3072,
+        NodeExcludes = 536872257,
+        ArrowFunctionExcludes = 601249089,
+        FunctionExcludes = 601281857,
+        ConstructorExcludes = 601015617,
+        MethodOrAccessorExcludes = 601015617,
+        ClassExcludes = 539358529,
+        ModuleExcludes = 574674241,
         TypeExcludes = -3,
-        ObjectLiteralExcludes = 554784085,
-        ArrayLiteralOrCallOrNewExcludes = 545281365,
-        VariableDeclarationListExcludes = 604001621,
-        ParameterExcludes = 604001621,
-        TypeScriptClassSyntaxMask = 4390912,
-        ES2015FunctionSyntaxMask = 2621440,
+        ObjectLiteralExcludes = 540087617,
+        ArrayLiteralOrCallOrNewExcludes = 537396545,
+        VariableDeclarationListExcludes = 546309441,
+        ParameterExcludes = 536872257,
+        CatchClauseExcludes = 537920833,
+        BindingPatternExcludes = 537396545,
+        TypeScriptClassSyntaxMask = 274432,
+        ES2015FunctionSyntaxMask = 163840,
     }
     interface EmitNode {
+        annotatedNodes?: Node[];
         flags?: EmitFlags;
         commentRange?: TextRange;
         sourceMapRange?: TextRange;
         tokenSourceMapRanges?: Map<TextRange>;
-        annotatedNodes?: Node[];
         constantValue?: number;
+        externalHelpersModuleName?: Identifier;
+        helpers?: EmitHelper[];
     }
     enum EmitFlags {
-        EmitEmitHelpers = 1,
-        EmitExportStar = 2,
-        EmitSuperHelper = 4,
-        EmitAdvancedSuperHelper = 8,
-        UMDDefine = 16,
-        SingleLine = 32,
-        AdviseOnEmitNode = 64,
-        NoSubstitution = 128,
-        CapturesThis = 256,
-        NoLeadingSourceMap = 512,
-        NoTrailingSourceMap = 1024,
-        NoSourceMap = 1536,
-        NoNestedSourceMaps = 2048,
-        NoTokenLeadingSourceMaps = 4096,
-        NoTokenTrailingSourceMaps = 8192,
-        NoTokenSourceMaps = 12288,
-        NoLeadingComments = 16384,
-        NoTrailingComments = 32768,
-        NoComments = 49152,
-        NoNestedComments = 65536,
-        ExportName = 131072,
-        LocalName = 262144,
-        Indented = 524288,
-        NoIndentation = 1048576,
-        AsyncFunctionBody = 2097152,
-        ReuseTempVariableScope = 4194304,
-        CustomPrologue = 8388608,
-        NoHoisting = 16777216,
-        HasEndOfDeclarationMarker = 33554432,
+        SingleLine = 1,
+        AdviseOnEmitNode = 2,
+        NoSubstitution = 4,
+        CapturesThis = 8,
+        NoLeadingSourceMap = 16,
+        NoTrailingSourceMap = 32,
+        NoSourceMap = 48,
+        NoNestedSourceMaps = 64,
+        NoTokenLeadingSourceMaps = 128,
+        NoTokenTrailingSourceMaps = 256,
+        NoTokenSourceMaps = 384,
+        NoLeadingComments = 512,
+        NoTrailingComments = 1024,
+        NoComments = 1536,
+        NoNestedComments = 2048,
+        HelperName = 4096,
+        ExportName = 8192,
+        LocalName = 16384,
+        Indented = 32768,
+        NoIndentation = 65536,
+        AsyncFunctionBody = 131072,
+        ReuseTempVariableScope = 262144,
+        CustomPrologue = 524288,
+        NoHoisting = 1048576,
+        HasEndOfDeclarationMarker = 2097152,
+    }
+    interface EmitHelper {
+        readonly name: string;
+        readonly scoped: boolean;
+        readonly text: string;
+        readonly priority?: number;
     }
     enum EmitContext {
         SourceFile = 0,
@@ -2707,13 +2730,95 @@ declare namespace ts {
         IdentifierName = 2,
         Unspecified = 3,
     }
-    /** Additional context provided to `visitEachChild` */
-    interface LexicalEnvironment {
+    interface EmitHost extends ScriptReferenceHost {
+        getSourceFiles(): SourceFile[];
+        isSourceFileFromExternalLibrary(file: SourceFile): boolean;
+        getCommonSourceDirectory(): string;
+        getCanonicalFileName(fileName: string): string;
+        getNewLine(): string;
+        isEmitBlocked(emitFileName: string): boolean;
+        writeFile: WriteFileCallback;
+    }
+    interface TransformationContext {
+        getCompilerOptions(): CompilerOptions;
+        getEmitResolver(): EmitResolver;
+        getEmitHost(): EmitHost;
         /** Starts a new lexical environment. */
         startLexicalEnvironment(): void;
+        /** Suspends the current lexical environment, usually after visiting a parameter list. */
+        suspendLexicalEnvironment(): void;
+        /** Resumes a suspended lexical environment, usually before visiting a function body. */
+        resumeLexicalEnvironment(): void;
         /** Ends a lexical environment, returning any declarations. */
         endLexicalEnvironment(): Statement[];
+        /**
+         * Hoists a function declaration to the containing scope.
+         */
+        hoistFunctionDeclaration(node: FunctionDeclaration): void;
+        /**
+         * Hoists a variable declaration to the containing scope.
+         */
+        hoistVariableDeclaration(node: Identifier): void;
+        /**
+         * Records a request for a non-scoped emit helper in the current context.
+         */
+        requestEmitHelper(helper: EmitHelper): void;
+        /**
+         * Gets and resets the requested non-scoped emit helpers.
+         */
+        readEmitHelpers(): EmitHelper[] | undefined;
+        /**
+         * Enables expression substitutions in the pretty printer for the provided SyntaxKind.
+         */
+        enableSubstitution(kind: SyntaxKind): void;
+        /**
+         * Determines whether expression substitutions are enabled for the provided node.
+         */
+        isSubstitutionEnabled(node: Node): boolean;
+        /**
+         * Hook used by transformers to substitute expressions just before they
+         * are emitted by the pretty printer.
+         */
+        onSubstituteNode?: (emitContext: EmitContext, node: Node) => Node;
+        /**
+         * Enables before/after emit notifications in the pretty printer for the provided
+         * SyntaxKind.
+         */
+        enableEmitNotification(kind: SyntaxKind): void;
+        /**
+         * Determines whether before/after emit notifications should be raised in the pretty
+         * printer when it emits a node.
+         */
+        isEmitNotificationEnabled(node: Node): boolean;
+        /**
+         * Hook used to allow transformers to capture state before or after
+         * the printer emits a node.
+         */
+        onEmitNode?: (emitContext: EmitContext, node: Node, emitCallback: (emitContext: EmitContext, node: Node) => void) => void;
     }
+    interface TransformationResult {
+        /**
+         * Gets the transformed source files.
+         */
+        transformed: SourceFile[];
+        /**
+         * Emits the substitute for a node, if one is available; otherwise, emits the node.
+         *
+         * @param emitContext The current emit context.
+         * @param node The node to substitute.
+         * @param emitCallback A callback used to emit the node or its substitute.
+         */
+        emitNodeWithSubstitution(emitContext: EmitContext, node: Node, emitCallback: (emitContext: EmitContext, node: Node) => void): void;
+        /**
+         * Emits a node with possible notification.
+         *
+         * @param emitContext The current emit context.
+         * @param node The node to emit.
+         * @param emitCallback A callback used to emit the node.
+         */
+        emitNodeWithNotification(emitContext: EmitContext, node: Node, emitCallback: (emitContext: EmitContext, node: Node) => void): void;
+    }
+    type Transformer = (context: TransformationContext) => (node: SourceFile) => SourceFile;
     interface TextSpan {
         start: number;
         length: number;
@@ -2903,6 +3008,10 @@ declare namespace ts {
      * appended. If an element of `from` is `undefined`, that element is not appended.
      */
     function addRange<T>(to: T[] | undefined, from: T[] | undefined): T[] | undefined;
+    /**
+     * Stable sort of an array. Elements equal to each other maintain their relative position in the array.
+     */
+    function stableSort<T>(array: T[], comparer?: (x: T, y: T) => Comparison): T[];
     function rangeEquals<T>(array1: T[], array2: T[], pos: number, end: number): boolean;
     /**
      * Returns the first element of an array if non-empty, `undefined` otherwise.
@@ -2984,6 +3093,7 @@ declare namespace ts {
      * @param target A map to which properties should be copied.
      */
     function copyProperties<T>(source: Map<T>, target: MapLike<T>): void;
+    function appendProperty<T>(map: Map<T>, key: string | number, value: T): Map<T>;
     function assign<T1 extends MapLike<{}>, T2, T3>(t: T1, arg1: T2, arg2: T3): T1 & T2 & T3;
     function assign<T1 extends MapLike<{}>, T2>(t: T1, arg1: T2): T1 & T2;
     function assign<T1 extends MapLike<{}>>(t: T1, ...args: any[]): any;
@@ -3210,6 +3320,8 @@ declare namespace ts {
         function fail(message?: string): void;
     }
     /** Remove an item from an array, moving everything to its right one space left. */
+    function orderedRemoveItem<T>(array: T[], item: T): boolean;
+    /** Remove an item by index from an array, moving everything to its right one space left. */
     function orderedRemoveItemAt<T>(array: T[], index: number): void;
     function unorderedRemoveItemAt<T>(array: T[], index: number): void;
     /** Remove the *first* occurrence of `item` from the array. */
@@ -3301,15 +3413,6 @@ declare namespace ts {
     interface StringSymbolWriter extends SymbolWriter {
         string(): string;
     }
-    interface EmitHost extends ScriptReferenceHost {
-        getSourceFiles(): SourceFile[];
-        isSourceFileFromExternalLibrary(file: SourceFile): boolean;
-        getCommonSourceDirectory(): string;
-        getCanonicalFileName(fileName: string): string;
-        getNewLine(): string;
-        isEmitBlocked(emitFileName: string): boolean;
-        writeFile: WriteFileCallback;
-    }
     function getSingleLineStringWriter(): StringSymbolWriter;
     function releaseStringWriter(writer: StringSymbolWriter): void;
     function getFullWidth(node: Node): number;
@@ -3366,7 +3469,7 @@ declare namespace ts {
     function isConst(node: Node): boolean;
     function isLet(node: Node): boolean;
     function isSuperCall(n: Node): n is SuperCall;
-    function isPrologueDirective(node: Node): boolean;
+    function isPrologueDirective(node: Node): node is PrologueDirective;
     function getLeadingCommentRangesOfNode(node: Node, sourceFileOfNode: SourceFile): CommentRange[];
     function getLeadingCommentRangesOfNodeFromText(node: Node, text: string): CommentRange[];
     function getJsDocComments(node: Node, sourceFileOfNode: SourceFile): CommentRange[];
@@ -3472,7 +3575,7 @@ declare namespace ts {
     function isKeyword(token: SyntaxKind): boolean;
     function isTrivia(token: SyntaxKind): boolean;
     function isAsyncFunctionLike(node: Node): boolean;
-    function isStringOrNumericLiteral(kind: SyntaxKind): boolean;
+    function isStringOrNumericLiteral(node: Node): node is StringLiteral | NumericLiteral;
     /**
      * A declaration has a dynamic name if both of the following are true:
      *   1. The declaration has a computed property name
@@ -3488,7 +3591,7 @@ declare namespace ts {
      * where Symbol is literally the word "Symbol", and name is any identifierName
      */
     function isWellKnownSymbolSyntactically(node: Expression): boolean;
-    function getPropertyNameForPropertyNameNode(name: DeclarationName): string;
+    function getPropertyNameForPropertyNameNode(name: DeclarationName | ParameterDeclaration): string;
     function getPropertyNameForKnownSymbolName(symbolName: string): string;
     /**
      * Includes the word "Symbol" with unicode escapes
@@ -3532,7 +3635,7 @@ declare namespace ts {
     function getExpressionAssociativity(expression: Expression): Associativity;
     function getOperatorAssociativity(kind: SyntaxKind, operator: SyntaxKind, hasArguments?: boolean): Associativity;
     function getExpressionPrecedence(expression: Expression): 0 | 1 | -1 | 2 | 4 | 3 | 19 | 18 | 17 | 16 | 15 | 14 | 13 | 12 | 11 | 10 | 9 | 8 | 7 | 6 | 5;
-    function getOperator(expression: Expression): SyntaxKind.Unknown | SyntaxKind.EndOfFileToken | SyntaxKind.SingleLineCommentTrivia | SyntaxKind.MultiLineCommentTrivia | SyntaxKind.NewLineTrivia | SyntaxKind.WhitespaceTrivia | SyntaxKind.ShebangTrivia | SyntaxKind.ConflictMarkerTrivia | SyntaxKind.NumericLiteral | SyntaxKind.StringLiteral | SyntaxKind.JsxText | SyntaxKind.RegularExpressionLiteral | SyntaxKind.NoSubstitutionTemplateLiteral | SyntaxKind.TemplateHead | SyntaxKind.TemplateMiddle | SyntaxKind.TemplateTail | SyntaxKind.OpenBraceToken | SyntaxKind.CloseBraceToken | SyntaxKind.OpenParenToken | SyntaxKind.CloseParenToken | SyntaxKind.OpenBracketToken | SyntaxKind.CloseBracketToken | SyntaxKind.DotToken | SyntaxKind.DotDotDotToken | SyntaxKind.SemicolonToken | SyntaxKind.CommaToken | SyntaxKind.LessThanToken | SyntaxKind.LessThanSlashToken | SyntaxKind.GreaterThanToken | SyntaxKind.LessThanEqualsToken | SyntaxKind.GreaterThanEqualsToken | SyntaxKind.EqualsEqualsToken | SyntaxKind.ExclamationEqualsToken | SyntaxKind.EqualsEqualsEqualsToken | SyntaxKind.ExclamationEqualsEqualsToken | SyntaxKind.EqualsGreaterThanToken | SyntaxKind.PlusToken | SyntaxKind.MinusToken | SyntaxKind.AsteriskToken | SyntaxKind.AsteriskAsteriskToken | SyntaxKind.SlashToken | SyntaxKind.PercentToken | SyntaxKind.PlusPlusToken | SyntaxKind.MinusMinusToken | SyntaxKind.LessThanLessThanToken | SyntaxKind.GreaterThanGreaterThanToken | SyntaxKind.GreaterThanGreaterThanGreaterThanToken | SyntaxKind.AmpersandToken | SyntaxKind.BarToken | SyntaxKind.CaretToken | SyntaxKind.ExclamationToken | SyntaxKind.TildeToken | SyntaxKind.AmpersandAmpersandToken | SyntaxKind.BarBarToken | SyntaxKind.QuestionToken | SyntaxKind.ColonToken | SyntaxKind.AtToken | SyntaxKind.EqualsToken | SyntaxKind.PlusEqualsToken | SyntaxKind.MinusEqualsToken | SyntaxKind.AsteriskEqualsToken | SyntaxKind.AsteriskAsteriskEqualsToken | SyntaxKind.SlashEqualsToken | SyntaxKind.PercentEqualsToken | SyntaxKind.LessThanLessThanEqualsToken | SyntaxKind.GreaterThanGreaterThanEqualsToken | SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken | SyntaxKind.AmpersandEqualsToken | SyntaxKind.BarEqualsToken | SyntaxKind.CaretEqualsToken | SyntaxKind.Identifier | SyntaxKind.BreakKeyword | SyntaxKind.CaseKeyword | SyntaxKind.CatchKeyword | SyntaxKind.ClassKeyword | SyntaxKind.ConstKeyword | SyntaxKind.ContinueKeyword | SyntaxKind.DebuggerKeyword | SyntaxKind.DefaultKeyword | SyntaxKind.DeleteKeyword | SyntaxKind.DoKeyword | SyntaxKind.ElseKeyword | SyntaxKind.EnumKeyword | SyntaxKind.ExportKeyword | SyntaxKind.ExtendsKeyword | SyntaxKind.FalseKeyword | SyntaxKind.FinallyKeyword | SyntaxKind.ForKeyword | SyntaxKind.FunctionKeyword | SyntaxKind.IfKeyword | SyntaxKind.ImportKeyword | SyntaxKind.InKeyword | SyntaxKind.InstanceOfKeyword | SyntaxKind.NewKeyword | SyntaxKind.NullKeyword | SyntaxKind.ReturnKeyword | SyntaxKind.SuperKeyword | SyntaxKind.SwitchKeyword | SyntaxKind.ThisKeyword | SyntaxKind.ThrowKeyword | SyntaxKind.TrueKeyword | SyntaxKind.TryKeyword | SyntaxKind.TypeOfKeyword | SyntaxKind.VarKeyword | SyntaxKind.VoidKeyword | SyntaxKind.WhileKeyword | SyntaxKind.WithKeyword | SyntaxKind.ImplementsKeyword | SyntaxKind.InterfaceKeyword | SyntaxKind.LetKeyword | SyntaxKind.PackageKeyword | SyntaxKind.PrivateKeyword | SyntaxKind.ProtectedKeyword | SyntaxKind.PublicKeyword | SyntaxKind.StaticKeyword | SyntaxKind.YieldKeyword | SyntaxKind.AbstractKeyword | SyntaxKind.AsKeyword | SyntaxKind.AnyKeyword | SyntaxKind.AsyncKeyword | SyntaxKind.AwaitKeyword | SyntaxKind.BooleanKeyword | SyntaxKind.ConstructorKeyword | SyntaxKind.DeclareKeyword | SyntaxKind.GetKeyword | SyntaxKind.IsKeyword | SyntaxKind.KeyOfKeyword | SyntaxKind.ModuleKeyword | SyntaxKind.NamespaceKeyword | SyntaxKind.NeverKeyword | SyntaxKind.ReadonlyKeyword | SyntaxKind.RequireKeyword | SyntaxKind.NumberKeyword | SyntaxKind.SetKeyword | SyntaxKind.StringKeyword | SyntaxKind.SymbolKeyword | SyntaxKind.TypeKeyword | SyntaxKind.UndefinedKeyword | SyntaxKind.FromKeyword | SyntaxKind.GlobalKeyword | SyntaxKind.OfKeyword | SyntaxKind.QualifiedName | SyntaxKind.ComputedPropertyName | SyntaxKind.TypeParameter | SyntaxKind.Parameter | SyntaxKind.Decorator | SyntaxKind.PropertySignature | SyntaxKind.PropertyDeclaration | SyntaxKind.MethodSignature | SyntaxKind.MethodDeclaration | SyntaxKind.Constructor | SyntaxKind.GetAccessor | SyntaxKind.SetAccessor | SyntaxKind.CallSignature | SyntaxKind.ConstructSignature | SyntaxKind.IndexSignature | SyntaxKind.TypePredicate | SyntaxKind.TypeReference | SyntaxKind.FunctionType | SyntaxKind.ConstructorType | SyntaxKind.TypeQuery | SyntaxKind.TypeLiteral | SyntaxKind.ArrayType | SyntaxKind.TupleType | SyntaxKind.UnionType | SyntaxKind.IntersectionType | SyntaxKind.ParenthesizedType | SyntaxKind.ThisType | SyntaxKind.TypeOperator | SyntaxKind.IndexedAccessType | SyntaxKind.MappedType | SyntaxKind.LiteralType | SyntaxKind.ObjectBindingPattern | SyntaxKind.ArrayBindingPattern | SyntaxKind.BindingElement | SyntaxKind.ArrayLiteralExpression | SyntaxKind.ObjectLiteralExpression | SyntaxKind.PropertyAccessExpression | SyntaxKind.ElementAccessExpression | SyntaxKind.CallExpression | SyntaxKind.NewExpression | SyntaxKind.TaggedTemplateExpression | SyntaxKind.TypeAssertionExpression | SyntaxKind.ParenthesizedExpression | SyntaxKind.FunctionExpression | SyntaxKind.ArrowFunction | SyntaxKind.DeleteExpression | SyntaxKind.TypeOfExpression | SyntaxKind.VoidExpression | SyntaxKind.AwaitExpression | SyntaxKind.ConditionalExpression | SyntaxKind.TemplateExpression | SyntaxKind.YieldExpression | SyntaxKind.SpreadElement | SyntaxKind.ClassExpression | SyntaxKind.OmittedExpression | SyntaxKind.ExpressionWithTypeArguments | SyntaxKind.AsExpression | SyntaxKind.NonNullExpression | SyntaxKind.TemplateSpan | SyntaxKind.SemicolonClassElement | SyntaxKind.Block | SyntaxKind.VariableStatement | SyntaxKind.EmptyStatement | SyntaxKind.ExpressionStatement | SyntaxKind.IfStatement | SyntaxKind.DoStatement | SyntaxKind.WhileStatement | SyntaxKind.ForStatement | SyntaxKind.ForInStatement | SyntaxKind.ForOfStatement | SyntaxKind.ContinueStatement | SyntaxKind.BreakStatement | SyntaxKind.ReturnStatement | SyntaxKind.WithStatement | SyntaxKind.SwitchStatement | SyntaxKind.LabeledStatement | SyntaxKind.ThrowStatement | SyntaxKind.TryStatement | SyntaxKind.DebuggerStatement | SyntaxKind.VariableDeclaration | SyntaxKind.VariableDeclarationList | SyntaxKind.FunctionDeclaration | SyntaxKind.ClassDeclaration | SyntaxKind.InterfaceDeclaration | SyntaxKind.TypeAliasDeclaration | SyntaxKind.EnumDeclaration | SyntaxKind.ModuleDeclaration | SyntaxKind.ModuleBlock | SyntaxKind.CaseBlock | SyntaxKind.NamespaceExportDeclaration | SyntaxKind.ImportEqualsDeclaration | SyntaxKind.ImportDeclaration | SyntaxKind.ImportClause | SyntaxKind.NamespaceImport | SyntaxKind.NamedImports | SyntaxKind.ImportSpecifier | SyntaxKind.ExportAssignment | SyntaxKind.ExportDeclaration | SyntaxKind.NamedExports | SyntaxKind.ExportSpecifier | SyntaxKind.MissingDeclaration | SyntaxKind.ExternalModuleReference | SyntaxKind.JsxElement | SyntaxKind.JsxSelfClosingElement | SyntaxKind.JsxOpeningElement | SyntaxKind.JsxClosingElement | SyntaxKind.JsxAttribute | SyntaxKind.JsxSpreadAttribute | SyntaxKind.JsxExpression | SyntaxKind.CaseClause | SyntaxKind.DefaultClause | SyntaxKind.HeritageClause | SyntaxKind.CatchClause | SyntaxKind.PropertyAssignment | SyntaxKind.ShorthandPropertyAssignment | SyntaxKind.SpreadAssignment | SyntaxKind.EnumMember | SyntaxKind.SourceFile | SyntaxKind.JSDocTypeExpression | SyntaxKind.JSDocAllType | SyntaxKind.JSDocUnknownType | SyntaxKind.JSDocArrayType | SyntaxKind.JSDocUnionType | SyntaxKind.JSDocTupleType | SyntaxKind.JSDocNullableType | SyntaxKind.JSDocNonNullableType | SyntaxKind.JSDocRecordType | SyntaxKind.JSDocRecordMember | SyntaxKind.JSDocTypeReference | SyntaxKind.JSDocOptionalType | SyntaxKind.JSDocFunctionType | SyntaxKind.JSDocVariadicType | SyntaxKind.JSDocConstructorType | SyntaxKind.JSDocThisType | SyntaxKind.JSDocComment | SyntaxKind.JSDocTag | SyntaxKind.JSDocParameterTag | SyntaxKind.JSDocReturnTag | SyntaxKind.JSDocTypeTag | SyntaxKind.JSDocTemplateTag | SyntaxKind.JSDocTypedefTag | SyntaxKind.JSDocPropertyTag | SyntaxKind.JSDocTypeLiteral | SyntaxKind.JSDocLiteralType | SyntaxKind.JSDocNullKeyword | SyntaxKind.JSDocUndefinedKeyword | SyntaxKind.JSDocNeverKeyword | SyntaxKind.SyntaxList | SyntaxKind.NotEmittedStatement | SyntaxKind.PartiallyEmittedExpression | SyntaxKind.MergeDeclarationMarker | SyntaxKind.EndOfDeclarationMarker | SyntaxKind.Count;
+    function getOperator(expression: Expression): SyntaxKind.Unknown | SyntaxKind.EndOfFileToken | SyntaxKind.SingleLineCommentTrivia | SyntaxKind.MultiLineCommentTrivia | SyntaxKind.NewLineTrivia | SyntaxKind.WhitespaceTrivia | SyntaxKind.ShebangTrivia | SyntaxKind.ConflictMarkerTrivia | SyntaxKind.NumericLiteral | SyntaxKind.StringLiteral | SyntaxKind.JsxText | SyntaxKind.RegularExpressionLiteral | SyntaxKind.NoSubstitutionTemplateLiteral | SyntaxKind.TemplateHead | SyntaxKind.TemplateMiddle | SyntaxKind.TemplateTail | SyntaxKind.OpenBraceToken | SyntaxKind.CloseBraceToken | SyntaxKind.OpenParenToken | SyntaxKind.CloseParenToken | SyntaxKind.OpenBracketToken | SyntaxKind.CloseBracketToken | SyntaxKind.DotToken | SyntaxKind.DotDotDotToken | SyntaxKind.SemicolonToken | SyntaxKind.CommaToken | SyntaxKind.LessThanToken | SyntaxKind.LessThanSlashToken | SyntaxKind.GreaterThanToken | SyntaxKind.LessThanEqualsToken | SyntaxKind.GreaterThanEqualsToken | SyntaxKind.EqualsEqualsToken | SyntaxKind.ExclamationEqualsToken | SyntaxKind.EqualsEqualsEqualsToken | SyntaxKind.ExclamationEqualsEqualsToken | SyntaxKind.EqualsGreaterThanToken | SyntaxKind.PlusToken | SyntaxKind.MinusToken | SyntaxKind.AsteriskToken | SyntaxKind.AsteriskAsteriskToken | SyntaxKind.SlashToken | SyntaxKind.PercentToken | SyntaxKind.PlusPlusToken | SyntaxKind.MinusMinusToken | SyntaxKind.LessThanLessThanToken | SyntaxKind.GreaterThanGreaterThanToken | SyntaxKind.GreaterThanGreaterThanGreaterThanToken | SyntaxKind.AmpersandToken | SyntaxKind.BarToken | SyntaxKind.CaretToken | SyntaxKind.ExclamationToken | SyntaxKind.TildeToken | SyntaxKind.AmpersandAmpersandToken | SyntaxKind.BarBarToken | SyntaxKind.QuestionToken | SyntaxKind.ColonToken | SyntaxKind.AtToken | SyntaxKind.EqualsToken | SyntaxKind.PlusEqualsToken | SyntaxKind.MinusEqualsToken | SyntaxKind.AsteriskEqualsToken | SyntaxKind.AsteriskAsteriskEqualsToken | SyntaxKind.SlashEqualsToken | SyntaxKind.PercentEqualsToken | SyntaxKind.LessThanLessThanEqualsToken | SyntaxKind.GreaterThanGreaterThanEqualsToken | SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken | SyntaxKind.AmpersandEqualsToken | SyntaxKind.BarEqualsToken | SyntaxKind.CaretEqualsToken | SyntaxKind.Identifier | SyntaxKind.BreakKeyword | SyntaxKind.CaseKeyword | SyntaxKind.CatchKeyword | SyntaxKind.ClassKeyword | SyntaxKind.ConstKeyword | SyntaxKind.ContinueKeyword | SyntaxKind.DebuggerKeyword | SyntaxKind.DefaultKeyword | SyntaxKind.DeleteKeyword | SyntaxKind.DoKeyword | SyntaxKind.ElseKeyword | SyntaxKind.EnumKeyword | SyntaxKind.ExportKeyword | SyntaxKind.ExtendsKeyword | SyntaxKind.FalseKeyword | SyntaxKind.FinallyKeyword | SyntaxKind.ForKeyword | SyntaxKind.FunctionKeyword | SyntaxKind.IfKeyword | SyntaxKind.ImportKeyword | SyntaxKind.InKeyword | SyntaxKind.InstanceOfKeyword | SyntaxKind.NewKeyword | SyntaxKind.NullKeyword | SyntaxKind.ReturnKeyword | SyntaxKind.SuperKeyword | SyntaxKind.SwitchKeyword | SyntaxKind.ThisKeyword | SyntaxKind.ThrowKeyword | SyntaxKind.TrueKeyword | SyntaxKind.TryKeyword | SyntaxKind.TypeOfKeyword | SyntaxKind.VarKeyword | SyntaxKind.VoidKeyword | SyntaxKind.WhileKeyword | SyntaxKind.WithKeyword | SyntaxKind.ImplementsKeyword | SyntaxKind.InterfaceKeyword | SyntaxKind.LetKeyword | SyntaxKind.PackageKeyword | SyntaxKind.PrivateKeyword | SyntaxKind.ProtectedKeyword | SyntaxKind.PublicKeyword | SyntaxKind.StaticKeyword | SyntaxKind.YieldKeyword | SyntaxKind.AbstractKeyword | SyntaxKind.AsKeyword | SyntaxKind.AnyKeyword | SyntaxKind.AsyncKeyword | SyntaxKind.AwaitKeyword | SyntaxKind.BooleanKeyword | SyntaxKind.ConstructorKeyword | SyntaxKind.DeclareKeyword | SyntaxKind.GetKeyword | SyntaxKind.IsKeyword | SyntaxKind.KeyOfKeyword | SyntaxKind.ModuleKeyword | SyntaxKind.NamespaceKeyword | SyntaxKind.NeverKeyword | SyntaxKind.ReadonlyKeyword | SyntaxKind.RequireKeyword | SyntaxKind.NumberKeyword | SyntaxKind.SetKeyword | SyntaxKind.StringKeyword | SyntaxKind.SymbolKeyword | SyntaxKind.TypeKeyword | SyntaxKind.UndefinedKeyword | SyntaxKind.FromKeyword | SyntaxKind.GlobalKeyword | SyntaxKind.OfKeyword | SyntaxKind.QualifiedName | SyntaxKind.ComputedPropertyName | SyntaxKind.TypeParameter | SyntaxKind.Parameter | SyntaxKind.Decorator | SyntaxKind.PropertySignature | SyntaxKind.PropertyDeclaration | SyntaxKind.MethodSignature | SyntaxKind.MethodDeclaration | SyntaxKind.Constructor | SyntaxKind.GetAccessor | SyntaxKind.SetAccessor | SyntaxKind.CallSignature | SyntaxKind.ConstructSignature | SyntaxKind.IndexSignature | SyntaxKind.TypePredicate | SyntaxKind.TypeReference | SyntaxKind.FunctionType | SyntaxKind.ConstructorType | SyntaxKind.TypeQuery | SyntaxKind.TypeLiteral | SyntaxKind.ArrayType | SyntaxKind.TupleType | SyntaxKind.UnionType | SyntaxKind.IntersectionType | SyntaxKind.ParenthesizedType | SyntaxKind.ThisType | SyntaxKind.TypeOperator | SyntaxKind.IndexedAccessType | SyntaxKind.MappedType | SyntaxKind.LiteralType | SyntaxKind.ObjectBindingPattern | SyntaxKind.ArrayBindingPattern | SyntaxKind.BindingElement | SyntaxKind.ArrayLiteralExpression | SyntaxKind.ObjectLiteralExpression | SyntaxKind.PropertyAccessExpression | SyntaxKind.ElementAccessExpression | SyntaxKind.CallExpression | SyntaxKind.NewExpression | SyntaxKind.TaggedTemplateExpression | SyntaxKind.TypeAssertionExpression | SyntaxKind.ParenthesizedExpression | SyntaxKind.FunctionExpression | SyntaxKind.ArrowFunction | SyntaxKind.DeleteExpression | SyntaxKind.TypeOfExpression | SyntaxKind.VoidExpression | SyntaxKind.AwaitExpression | SyntaxKind.ConditionalExpression | SyntaxKind.TemplateExpression | SyntaxKind.YieldExpression | SyntaxKind.SpreadElement | SyntaxKind.ClassExpression | SyntaxKind.OmittedExpression | SyntaxKind.ExpressionWithTypeArguments | SyntaxKind.AsExpression | SyntaxKind.NonNullExpression | SyntaxKind.TemplateSpan | SyntaxKind.SemicolonClassElement | SyntaxKind.Block | SyntaxKind.VariableStatement | SyntaxKind.EmptyStatement | SyntaxKind.ExpressionStatement | SyntaxKind.IfStatement | SyntaxKind.DoStatement | SyntaxKind.WhileStatement | SyntaxKind.ForStatement | SyntaxKind.ForInStatement | SyntaxKind.ForOfStatement | SyntaxKind.ContinueStatement | SyntaxKind.BreakStatement | SyntaxKind.ReturnStatement | SyntaxKind.WithStatement | SyntaxKind.SwitchStatement | SyntaxKind.LabeledStatement | SyntaxKind.ThrowStatement | SyntaxKind.TryStatement | SyntaxKind.DebuggerStatement | SyntaxKind.VariableDeclaration | SyntaxKind.VariableDeclarationList | SyntaxKind.FunctionDeclaration | SyntaxKind.ClassDeclaration | SyntaxKind.InterfaceDeclaration | SyntaxKind.TypeAliasDeclaration | SyntaxKind.EnumDeclaration | SyntaxKind.ModuleDeclaration | SyntaxKind.ModuleBlock | SyntaxKind.CaseBlock | SyntaxKind.NamespaceExportDeclaration | SyntaxKind.ImportEqualsDeclaration | SyntaxKind.ImportDeclaration | SyntaxKind.ImportClause | SyntaxKind.NamespaceImport | SyntaxKind.NamedImports | SyntaxKind.ImportSpecifier | SyntaxKind.ExportAssignment | SyntaxKind.ExportDeclaration | SyntaxKind.NamedExports | SyntaxKind.ExportSpecifier | SyntaxKind.MissingDeclaration | SyntaxKind.ExternalModuleReference | SyntaxKind.JsxElement | SyntaxKind.JsxSelfClosingElement | SyntaxKind.JsxOpeningElement | SyntaxKind.JsxClosingElement | SyntaxKind.JsxAttribute | SyntaxKind.JsxSpreadAttribute | SyntaxKind.JsxExpression | SyntaxKind.CaseClause | SyntaxKind.DefaultClause | SyntaxKind.HeritageClause | SyntaxKind.CatchClause | SyntaxKind.PropertyAssignment | SyntaxKind.ShorthandPropertyAssignment | SyntaxKind.SpreadAssignment | SyntaxKind.EnumMember | SyntaxKind.SourceFile | SyntaxKind.JSDocTypeExpression | SyntaxKind.JSDocAllType | SyntaxKind.JSDocUnknownType | SyntaxKind.JSDocArrayType | SyntaxKind.JSDocUnionType | SyntaxKind.JSDocTupleType | SyntaxKind.JSDocNullableType | SyntaxKind.JSDocNonNullableType | SyntaxKind.JSDocRecordType | SyntaxKind.JSDocRecordMember | SyntaxKind.JSDocTypeReference | SyntaxKind.JSDocOptionalType | SyntaxKind.JSDocFunctionType | SyntaxKind.JSDocVariadicType | SyntaxKind.JSDocConstructorType | SyntaxKind.JSDocThisType | SyntaxKind.JSDocComment | SyntaxKind.JSDocTag | SyntaxKind.JSDocParameterTag | SyntaxKind.JSDocReturnTag | SyntaxKind.JSDocTypeTag | SyntaxKind.JSDocTemplateTag | SyntaxKind.JSDocTypedefTag | SyntaxKind.JSDocPropertyTag | SyntaxKind.JSDocTypeLiteral | SyntaxKind.JSDocLiteralType | SyntaxKind.JSDocNullKeyword | SyntaxKind.JSDocUndefinedKeyword | SyntaxKind.JSDocNeverKeyword | SyntaxKind.SyntaxList | SyntaxKind.NotEmittedStatement | SyntaxKind.PartiallyEmittedExpression | SyntaxKind.MergeDeclarationMarker | SyntaxKind.EndOfDeclarationMarker | SyntaxKind.RawExpression | SyntaxKind.Count;
     function getOperatorPrecedence(nodeKind: SyntaxKind, operatorKind: SyntaxKind, hasArguments?: boolean): 0 | 1 | -1 | 2 | 4 | 3 | 19 | 18 | 17 | 16 | 15 | 14 | 13 | 12 | 11 | 10 | 9 | 8 | 7 | 6 | 5;
     function createDiagnosticCollection(): DiagnosticCollection;
     /**
@@ -3648,7 +3751,8 @@ declare namespace ts {
     function isAssignmentOperator(token: SyntaxKind): boolean;
     /** Get `C` given `N` if `N` is in the position `class C extends N` where `N` is an ExpressionWithTypeArguments. */
     function tryGetClassExtendingExpressionWithTypeArguments(node: Node): ClassLikeDeclaration | undefined;
-    function isAssignmentExpression(node: Node): node is AssignmentExpression;
+    function isAssignmentExpression(node: Node, excludeCompoundAssignment: true): node is AssignmentExpression<EqualsToken>;
+    function isAssignmentExpression(node: Node, excludeCompoundAssignment?: false): node is AssignmentExpression<AssignmentOperatorToken>;
     function isDestructuringAssignment(node: Node): node is DestructuringAssignment;
     function isSupportedExpressionWithTypeArguments(node: ExpressionWithTypeArguments): boolean;
     function isExpressionWithTypeArgumentsInClassExtendsClause(node: Node): boolean;
@@ -3746,15 +3850,6 @@ declare namespace ts {
     function rangeEndIsOnSameLineAsRangeStart(range1: TextRange, range2: TextRange, sourceFile: SourceFile): boolean;
     function positionsAreOnSameLine(pos1: number, pos2: number, sourceFile: SourceFile): boolean;
     function getStartPositionOfRange(range: TextRange, sourceFile: SourceFile): number;
-    interface ExternalModuleInfo {
-        externalImports: (ImportDeclaration | ImportEqualsDeclaration | ExportDeclaration)[];
-        exportSpecifiers: Map<ExportSpecifier[]>;
-        exportedBindings: Map<Identifier[]>;
-        exportedNames: Identifier[];
-        exportEquals: ExportAssignment | undefined;
-        hasExportStarsToExportValues: boolean;
-    }
-    function collectExternalModuleInfo(sourceFile: SourceFile, resolver: EmitResolver): ExternalModuleInfo;
     /**
      * Determines whether a name was originally the declaration name of an enum or namespace
      * declaration.
@@ -3801,9 +3896,28 @@ declare namespace ts {
      * of a TypeNode.
      */
     function isTypeNode(node: Node): node is TypeNode;
+    function isArrayBindingPattern(node: Node): node is ArrayBindingPattern;
+    function isObjectBindingPattern(node: Node): node is ObjectBindingPattern;
     function isBindingPattern(node: Node): node is BindingPattern;
+    function isAssignmentPattern(node: Node): node is AssignmentPattern;
     function isBindingElement(node: Node): node is BindingElement;
     function isArrayBindingElement(node: Node): node is ArrayBindingElement;
+    /**
+     * Determines whether the BindingOrAssignmentElement is a BindingElement-like declaration
+     */
+    function isDeclarationBindingElement(bindingElement: BindingOrAssignmentElement): bindingElement is VariableDeclaration | ParameterDeclaration | BindingElement;
+    /**
+     * Determines whether a node is a BindingOrAssignmentPattern
+     */
+    function isBindingOrAssignmentPattern(node: BindingOrAssignmentElementTarget): node is BindingOrAssignmentPattern;
+    /**
+     * Determines whether a node is an ObjectBindingOrAssignmentPattern
+     */
+    function isObjectBindingOrAssignmentPattern(node: BindingOrAssignmentElementTarget): node is ObjectBindingOrAssignmentPattern;
+    /**
+     * Determines whether a node is an ArrayBindingOrAssignmentPattern
+     */
+    function isArrayBindingOrAssignmentPattern(node: BindingOrAssignmentElementTarget): node is ArrayBindingOrAssignmentPattern;
     function isArrayLiteralExpression(node: Node): node is ArrayLiteralExpression;
     function isObjectLiteralExpression(node: Node): node is ObjectLiteralExpression;
     function isPropertyAccessExpression(node: Node): node is PropertyAccessExpression;
@@ -6886,7 +7000,7 @@ declare namespace ts {
             key: string;
             message: string;
         };
-        An_object_rest_element_must_be_an_identifier: {
+        The_target_of_an_object_rest_assignment_must_be_a_variable_or_a_property_access: {
             code: number;
             category: DiagnosticCategory;
             key: string;
@@ -8608,7 +8722,7 @@ declare namespace ts {
             key: string;
             message: string;
         };
-        The_path_in_an_extends_options_must_be_relative_or_rooted: {
+        A_path_in_an_extends_option_must_be_relative_or_rooted_but_0_is_not: {
             code: number;
             category: DiagnosticCategory;
             key: string;
@@ -8766,7 +8880,7 @@ declare namespace ts {
      * Creates a shallow, memberwise clone of a node for mutation.
      */
     function getMutableClone<T extends Node>(node: T): T;
-    function createLiteral(textSource: StringLiteral | Identifier, location?: TextRange): StringLiteral;
+    function createLiteral(textSource: StringLiteral | NumericLiteral | Identifier, location?: TextRange): StringLiteral;
     function createLiteral(value: string, location?: TextRange): StringLiteral;
     function createLiteral(value: number, location?: TextRange): NumericLiteral;
     function createLiteral(value: boolean, location?: TextRange): BooleanLiteral;
@@ -8783,7 +8897,7 @@ declare namespace ts {
     function createComputedPropertyName(expression: Expression, location?: TextRange): ComputedPropertyName;
     function updateComputedPropertyName(node: ComputedPropertyName, expression: Expression): ComputedPropertyName;
     function createParameter(decorators: Decorator[], modifiers: Modifier[], dotDotDotToken: DotDotDotToken, name: string | Identifier | BindingPattern, questionToken?: QuestionToken, type?: TypeNode, initializer?: Expression, location?: TextRange, flags?: NodeFlags): ParameterDeclaration;
-    function updateParameter(node: ParameterDeclaration, decorators: Decorator[], modifiers: Modifier[], name: BindingName, type: TypeNode, initializer: Expression): ParameterDeclaration;
+    function updateParameter(node: ParameterDeclaration, decorators: Decorator[], modifiers: Modifier[], dotDotDotToken: DotDotDotToken, name: BindingName, type: TypeNode, initializer: Expression): ParameterDeclaration;
     function createProperty(decorators: Decorator[], modifiers: Modifier[], name: string | PropertyName, questionToken: QuestionToken, type: TypeNode, initializer: Expression, location?: TextRange): PropertyDeclaration;
     function updateProperty(node: PropertyDeclaration, decorators: Decorator[], modifiers: Modifier[], name: PropertyName, type: TypeNode, initializer: Expression): PropertyDeclaration;
     function createMethod(decorators: Decorator[], modifiers: Modifier[], asteriskToken: AsteriskToken, name: string | PropertyName, typeParameters: TypeParameterDeclaration[], parameters: ParameterDeclaration[], type: TypeNode, body: Block, location?: TextRange, flags?: NodeFlags): MethodDeclaration;
@@ -8799,7 +8913,7 @@ declare namespace ts {
     function createArrayBindingPattern(elements: ArrayBindingElement[], location?: TextRange): ArrayBindingPattern;
     function updateArrayBindingPattern(node: ArrayBindingPattern, elements: ArrayBindingElement[]): ArrayBindingPattern;
     function createBindingElement(propertyName: string | PropertyName, dotDotDotToken: DotDotDotToken, name: string | BindingName, initializer?: Expression, location?: TextRange): BindingElement;
-    function updateBindingElement(node: BindingElement, propertyName: PropertyName, name: BindingName, initializer: Expression): BindingElement;
+    function updateBindingElement(node: BindingElement, dotDotDotToken: DotDotDotToken, propertyName: PropertyName, name: BindingName, initializer: Expression): BindingElement;
     function createArrayLiteral(elements?: Expression[], location?: TextRange, multiLine?: boolean): ArrayLiteralExpression;
     function updateArrayLiteral(node: ArrayLiteralExpression, elements: Expression[]): ArrayLiteralExpression;
     function createObjectLiteral(properties?: ObjectLiteralElementLike[], location?: TextRange, multiLine?: boolean): ObjectLiteralExpression;
@@ -8834,6 +8948,7 @@ declare namespace ts {
     function updatePostfix(node: PostfixUnaryExpression, operand: Expression): PostfixUnaryExpression;
     function createBinary(left: Expression, operator: BinaryOperator | BinaryOperatorToken, right: Expression, location?: TextRange): BinaryExpression;
     function updateBinary(node: BinaryExpression, left: Expression, right: Expression): BinaryExpression;
+    function createConditional(condition: Expression, whenTrue: Expression, whenFalse: Expression, location?: TextRange): ConditionalExpression;
     function createConditional(condition: Expression, questionToken: QuestionToken, whenTrue: Expression, colonToken: ColonToken, whenFalse: Expression, location?: TextRange): ConditionalExpression;
     function updateConditional(node: ConditionalExpression, condition: Expression, whenTrue: Expression, whenFalse: Expression): ConditionalExpression;
     function createTemplateExpression(head: TemplateHead, templateSpans: TemplateSpan[], location?: TextRange): TemplateExpression;
@@ -8968,8 +9083,17 @@ declare namespace ts {
      */
     function createPartiallyEmittedExpression(expression: Expression, original?: Node, location?: TextRange): PartiallyEmittedExpression;
     function updatePartiallyEmittedExpression(node: PartiallyEmittedExpression, expression: Expression): PartiallyEmittedExpression;
+    /**
+     * Creates a node that emits a string of raw text in an expression position. Raw text is never
+     * transformed, should be ES3 compliant, and should have the same precedence as
+     * PrimaryExpression.
+     *
+     * @param text The raw text of the node.
+     */
+    function createRawExpression(text: string): RawExpression;
     function createComma(left: Expression, right: Expression): Expression;
     function createLessThan(left: Expression, right: Expression, location?: TextRange): Expression;
+    function createAssignment(left: ObjectLiteralExpression | ArrayLiteralExpression, right: Expression, location?: TextRange): DestructuringAssignment;
     function createAssignment(left: Expression, right: Expression, location?: TextRange): BinaryExpression;
     function createStrictEquality(left: Expression, right: Expression): BinaryExpression;
     function createStrictInequality(left: Expression, right: Expression): BinaryExpression;
@@ -8980,6 +9104,8 @@ declare namespace ts {
     function createLogicalOr(left: Expression, right: Expression): BinaryExpression;
     function createLogicalNot(operand: Expression): PrefixUnaryExpression;
     function createVoidZero(): VoidExpression;
+    type TypeOfTag = "undefined" | "number" | "boolean" | "string" | "symbol" | "object" | "function";
+    function createTypeCheck(value: Expression, tag: TypeOfTag): BinaryExpression;
     function createMemberAccessForPropertyName(target: Expression, memberName: PropertyName, location?: TextRange): MemberExpression;
     function createFunctionCall(func: Expression, thisArg: Expression, argumentsList: Expression[], location?: TextRange): CallExpression;
     function createFunctionApply(func: Expression, thisArg: Expression, argumentsExpression: Expression, location?: TextRange): CallExpression;
@@ -8992,16 +9118,7 @@ declare namespace ts {
     function createLetStatement(name: Identifier, initializer: Expression, location?: TextRange): VariableStatement;
     function createLetDeclarationList(declarations: VariableDeclaration[], location?: TextRange): VariableDeclarationList;
     function createConstDeclarationList(declarations: VariableDeclaration[], location?: TextRange): VariableDeclarationList;
-    function createHelperName(externalHelpersModuleName: Identifier | undefined, name: string): Identifier | PropertyAccessExpression;
-    function createExtendsHelper(externalHelpersModuleName: Identifier | undefined, name: Identifier): CallExpression;
-    function createAssignHelper(externalHelpersModuleName: Identifier | undefined, attributesSegments: Expression[]): CallExpression;
-    function createParamHelper(externalHelpersModuleName: Identifier | undefined, expression: Expression, parameterOffset: number, location?: TextRange): CallExpression;
-    function createMetadataHelper(externalHelpersModuleName: Identifier | undefined, metadataKey: string, metadataValue: Expression): CallExpression;
-    function createDecorateHelper(externalHelpersModuleName: Identifier | undefined, decoratorExpressions: Expression[], target: Expression, memberName?: Expression, descriptor?: Expression, location?: TextRange): CallExpression;
-    function createAwaiterHelper(externalHelpersModuleName: Identifier | undefined, hasLexicalArguments: boolean, promiseConstructor: EntityName | Expression, body: Block): CallExpression;
-    function createHasOwnProperty(target: LeftHandSideExpression, propertyName: Expression): CallExpression;
-    function createAdvancedAsyncSuperHelper(): VariableStatement;
-    function createSimpleAsyncSuperHelper(): VariableStatement;
+    function getHelperName(name: string): Identifier;
     interface CallBinding {
         target: LeftHandSideExpression;
         thisArg: Expression;
@@ -9071,6 +9188,7 @@ declare namespace ts {
      * @param allowSourceMaps A value indicating whether source maps may be emitted for the name.
      */
     function getNamespaceMemberName(ns: Identifier, name: Identifier, allowComments?: boolean, allowSourceMaps?: boolean): PropertyAccessExpression;
+    function convertToFunctionBody(node: ConciseBody, multiLine?: boolean): Block;
     /**
      * Add any necessary prologue-directives into target statement-array.
      * The function needs to be called during each transformation step.
@@ -9083,12 +9201,13 @@ declare namespace ts {
      * @param visitor: Optional callback used to visit any custom prologue directives.
      */
     function addPrologueDirectives(target: Statement[], source: Statement[], ensureUseStrict?: boolean, visitor?: (node: Node) => VisitResult<Node>): number;
+    function startsWithUseStrict(statements: Statement[]): boolean;
     /**
      * Ensures "use strict" directive is added
      *
-     * @param node source file
+     * @param statements An array of statements
      */
-    function ensureUseStrict(node: SourceFile): SourceFile;
+    function ensureUseStrict(statements: NodeArray<Statement>): NodeArray<Statement>;
     /**
      * Wraps the operand to a BinaryExpression in parentheses if they are needed to preserve the intended
      * order of operations.
@@ -9099,6 +9218,7 @@ declare namespace ts {
      *                           BinaryExpression.
      */
     function parenthesizeBinaryOperand(binaryOperator: SyntaxKind, operand: Expression, isLeftSideOfBinary: boolean, leftOperand?: Expression): Expression;
+    function parenthesizeForConditionalHead(condition: Expression): Expression;
     /**
      * Wraps an expression in parentheses if it is needed in order to use the expression
      * as the expression of a NewExpression node.
@@ -9140,6 +9260,13 @@ declare namespace ts {
      */
     function disposeEmitNodes(sourceFile: SourceFile): void;
     /**
+     * Associates a node with the current transformation, initializing
+     * various transient transformation properties.
+     *
+     * @param node The node.
+     */
+    function getOrCreateEmitNode(node: Node): EmitNode;
+    /**
      * Gets flags that control emit behavior of a node.
      *
      * @param node The node.
@@ -9153,12 +9280,25 @@ declare namespace ts {
      */
     function setEmitFlags<T extends Node>(node: T, emitFlags: EmitFlags): T;
     /**
+     * Gets a custom text range to use when emitting source maps.
+     *
+     * @param node The node.
+     */
+    function getSourceMapRange(node: Node): TextRange;
+    /**
      * Sets a custom text range to use when emitting source maps.
      *
      * @param node The node.
      * @param range The text range.
      */
     function setSourceMapRange<T extends Node>(node: T, range: TextRange): T;
+    /**
+     * Gets the TextRange to use for source maps for a token of a node.
+     *
+     * @param node The node.
+     * @param token The token.
+     */
+    function getTokenSourceMapRange(node: Node, token: SyntaxKind): TextRange;
     /**
      * Sets the TextRange to use for source maps for a token of a node.
      *
@@ -9168,28 +9308,15 @@ declare namespace ts {
      */
     function setTokenSourceMapRange<T extends Node>(node: T, token: SyntaxKind, range: TextRange): T;
     /**
-     * Sets a custom text range to use when emitting comments.
-     */
-    function setCommentRange<T extends Node>(node: T, range: TextRange): T;
-    /**
      * Gets a custom text range to use when emitting comments.
      *
      * @param node The node.
      */
     function getCommentRange(node: Node): TextRange;
     /**
-     * Gets a custom text range to use when emitting source maps.
-     *
-     * @param node The node.
+     * Sets a custom text range to use when emitting comments.
      */
-    function getSourceMapRange(node: Node): TextRange;
-    /**
-     * Gets the TextRange to use for source maps for a token of a node.
-     *
-     * @param node The node.
-     * @param token The token.
-     */
-    function getTokenSourceMapRange(node: Node, token: SyntaxKind): TextRange;
+    function setCommentRange<T extends Node>(node: T, range: TextRange): T;
     /**
      * Gets the constant value to emit for an expression.
      */
@@ -9198,6 +9325,29 @@ declare namespace ts {
      * Sets the constant value to emit for an expression.
      */
     function setConstantValue(node: PropertyAccessExpression | ElementAccessExpression, value: number): PropertyAccessExpression | ElementAccessExpression;
+    function getExternalHelpersModuleName(node: SourceFile): Identifier;
+    function getOrCreateExternalHelpersModuleNameIfNeeded(node: SourceFile, compilerOptions: CompilerOptions): Identifier;
+    /**
+     * Adds an EmitHelper to a node.
+     */
+    function addEmitHelper<T extends Node>(node: T, helper: EmitHelper): T;
+    /**
+     * Adds an EmitHelper to a node.
+     */
+    function addEmitHelpers<T extends Node>(node: T, helpers: EmitHelper[] | undefined): T;
+    /**
+     * Removes an EmitHelper from a node.
+     */
+    function removeEmitHelper(node: Node, helper: EmitHelper): boolean;
+    /**
+     * Gets the EmitHelpers of a node.
+     */
+    function getEmitHelpers(node: Node): EmitHelper[] | undefined;
+    /**
+     * Moves matching emit helpers from a source node to a target node.
+     */
+    function moveEmitHelpers(source: Node, target: Node, predicate: (helper: EmitHelper) => boolean): void;
+    function compareEmitHelpers(x: EmitHelper, y: EmitHelper): Comparison;
     function setTextRange<T extends TextRange>(node: T, location: TextRange): T;
     function setNodeFlags<T extends Node>(node: T, flags: NodeFlags): T;
     function setMultiLine<T extends ObjectLiteralExpression | ArrayLiteralExpression | Block>(node: T, multiLine: boolean): T;
@@ -9224,38 +9374,41 @@ declare namespace ts {
      */
     function tryGetModuleNameFromFile(file: SourceFile, host: EmitHost, options: CompilerOptions): StringLiteral;
     /**
-     * Transforms the body of a function-like node.
-     *
-     * @param node A function-like node.
+     * Gets the initializer of an BindingOrAssignmentElement.
      */
-    function transformFunctionBody(node: FunctionLikeDeclaration, visitor: (node: Node) => VisitResult<Node>, currentSourceFile: SourceFile, context: TransformationContext, enableSubstitutionsForCapturedThis: () => void, convertObjectRest?: boolean): Block;
+    function getInitializerOfBindingOrAssignmentElement(bindingElement: BindingOrAssignmentElement): Expression | undefined;
     /**
-     * Adds a statement to capture the `this` of a function declaration if it is needed.
-     *
-     * @param statements The statements for the new function body.
-     * @param node A node.
+     * Gets the name of an BindingOrAssignmentElement.
      */
-    function addCaptureThisForNodeIfNeeded(statements: Statement[], node: Node, enableSubstitutionsForCapturedThis: () => void): void;
-    function captureThisForNode(statements: Statement[], node: Node, initializer: Expression | undefined, enableSubstitutionsForCapturedThis?: () => void, originalStatement?: Statement): void;
+    function getTargetOfBindingOrAssignmentElement(bindingElement: BindingOrAssignmentElement): BindingOrAssignmentElementTarget;
     /**
-     * Adds statements to the body of a function-like node if it contains parameters with
-     * binding patterns or initializers.
-     *
-     * @param statements The statements for the new function body.
-     * @param node A function-like node.
+     * Determines whether an BindingOrAssignmentElement is a rest element.
      */
-    function addDefaultValueAssignmentsIfNeeded(statements: Statement[], node: FunctionLikeDeclaration, visitor: (node: Node) => VisitResult<Node>, convertObjectRest: boolean): void;
+    function getRestIndicatorOfBindingOrAssignmentElement(bindingElement: BindingOrAssignmentElement): BindingOrAssignmentElementRestIndicator;
     /**
-     * Adds statements to the body of a function-like node if it contains a rest parameter.
-     *
-     * @param statements The statements for the new function body.
-     * @param node A function-like node.
-     * @param inConstructorWithSynthesizedSuper A value indicating whether the parameter is
-     *                                          part of a constructor declaration with a
-     *                                          synthesized call to `super`
+     * Gets the property name of a BindingOrAssignmentElement
      */
-    function addRestParameterIfNeeded(statements: Statement[], node: FunctionLikeDeclaration, inConstructorWithSynthesizedSuper: boolean): void;
-    function convertForOf(node: ForOfStatement, convertedLoopBodyStatements: Statement[], visitor: (node: Node) => VisitResult<Node>, enableSubstitutionsForBlockScopedBindings: () => void, context: TransformationContext, convertObjectRest?: boolean): ForStatement | ForOfStatement;
+    function getPropertyNameOfBindingOrAssignmentElement(bindingElement: BindingOrAssignmentElement): PropertyName;
+    /**
+     * Gets the elements of a BindingOrAssignmentPattern
+     */
+    function getElementsOfBindingOrAssignmentPattern(name: BindingOrAssignmentPattern): BindingOrAssignmentElement[];
+    function convertToArrayAssignmentElement(element: BindingOrAssignmentElement): Expression;
+    function convertToObjectAssignmentElement(element: BindingOrAssignmentElement): ObjectLiteralElementLike;
+    function convertToAssignmentPattern(node: BindingOrAssignmentPattern): AssignmentPattern;
+    function convertToObjectAssignmentPattern(node: ObjectBindingOrAssignmentPattern): ObjectLiteralExpression;
+    function convertToArrayAssignmentPattern(node: ArrayBindingOrAssignmentPattern): ArrayLiteralExpression;
+    function convertToAssignmentElementTarget(node: BindingOrAssignmentElementTarget): Expression;
+    interface ExternalModuleInfo {
+        externalImports: (ImportDeclaration | ImportEqualsDeclaration | ExportDeclaration)[];
+        externalHelpersImportDeclaration: ImportDeclaration | undefined;
+        exportSpecifiers: Map<ExportSpecifier[]>;
+        exportedBindings: Map<Identifier[]>;
+        exportedNames: Identifier[];
+        exportEquals: ExportAssignment | undefined;
+        hasExportStarsToExportValues: boolean;
+    }
+    function collectExternalModuleInfo(sourceFile: SourceFile, resolver: EmitResolver, compilerOptions: CompilerOptions): ExternalModuleInfo;
 }
 declare namespace ts {
     function createNode(kind: SyntaxKind, pos?: number, end?: number): Node;
@@ -9477,10 +9630,10 @@ declare namespace ts {
      *       `nodeEdgeTraversalMap` above will be visited.
      *
      * @param node The node containing the children to reduce.
-     * @param f The callback function
      * @param initial The initial value to supply to the reduction.
+     * @param f The callback function
      */
-    function reduceEachChild<T>(node: Node, f: (memo: T, node: Node) => T, initial: T): T;
+    function reduceEachChild<T>(node: Node, initial: T, cbNode: (memo: T, node: Node) => T, cbNodeArray?: (memo: T, nodes: Node[]) => T): T;
     /**
      * Visits a Node using the supplied visitor, possibly returning a new Node in its place.
      *
@@ -9504,13 +9657,41 @@ declare namespace ts {
     function visitNodes<T extends Node>(nodes: NodeArray<T>, visitor: (node: Node) => VisitResult<Node>, test: (node: Node) => boolean, start?: number, count?: number): NodeArray<T>;
     function visitNodes<T extends Node>(nodes: NodeArray<T>, visitor: (node: Node) => VisitResult<Node>, test: (node: Node) => boolean, start: number, count: number, parenthesize: (node: Node, parentNode: Node) => Node, parentNode: Node): NodeArray<T>;
     /**
+     * Starts a new lexical environment and visits a statement list, ending the lexical environment
+     * and merging hoisted declarations upon completion.
+     */
+    function visitLexicalEnvironment(statements: NodeArray<Statement>, visitor: (node: Node) => VisitResult<Node>, context: TransformationContext, start?: number, ensureUseStrict?: boolean): NodeArray<Statement>;
+    /**
+     * Starts a new lexical environment and visits a parameter list, suspending the lexical
+     * environment upon completion.
+     */
+    function visitParameterList(nodes: NodeArray<ParameterDeclaration>, visitor: (node: Node) => VisitResult<Node>, context: TransformationContext): NodeArray<ParameterDeclaration>;
+    /**
+     * Resumes a suspended lexical environment and visits a function body, ending the lexical
+     * environment and merging hoisted declarations upon completion.
+     */
+    function visitFunctionBody(node: FunctionBody, visitor: (node: Node) => VisitResult<Node>, context: TransformationContext): FunctionBody;
+    /**
+     * Resumes a suspended lexical environment and visits a concise body, ending the lexical
+     * environment and merging hoisted declarations upon completion.
+     */
+    function visitFunctionBody(node: ConciseBody, visitor: (node: Node) => VisitResult<Node>, context: TransformationContext): ConciseBody;
+    /**
      * Visits each child of a Node using the supplied visitor, possibly returning a new Node of the same kind in its place.
      *
      * @param node The Node whose children will be visited.
      * @param visitor The callback used to visit each child.
      * @param context A lexical environment context for the visitor.
      */
-    function visitEachChild<T extends Node>(node: T, visitor: (node: Node) => VisitResult<Node>, context: LexicalEnvironment): T;
+    function visitEachChild<T extends Node>(node: T, visitor: (node: Node) => VisitResult<Node>, context: TransformationContext): T;
+    /**
+     * Merges generated lexical declarations into a new statement list.
+     */
+    function mergeLexicalEnvironment(statements: NodeArray<Statement>, declarations: Statement[]): NodeArray<Statement>;
+    /**
+     * Appends generated lexical declarations to an array of statements.
+     */
+    function mergeLexicalEnvironment(statements: Statement[], declarations: Statement[]): Statement[];
     /**
      * Merges generated lexical declarations into the FunctionBody of a non-arrow function-like declaration.
      *
@@ -9538,55 +9719,52 @@ declare namespace ts {
     namespace Debug {
         const failNotOptional: typeof noop;
         const failBadSyntaxKind: (node: Node, message?: string) => void;
+        const assertEachNode: (nodes: Node[], test: (node: Node) => boolean, message?: string) => void;
         const assertNode: (node: Node, test: (node: Node) => boolean, message?: string) => void;
+        const assertOptionalNode: (node: Node, test: (node: Node) => boolean, message?: string) => void;
+        const assertOptionalToken: (node: Node, kind: SyntaxKind, message?: string) => void;
+        const assertMissingNode: (node: Node, message?: string) => void;
     }
 }
 declare namespace ts {
+    enum FlattenLevel {
+        All = 0,
+        ObjectRest = 1,
+    }
     /**
-     * Flattens a destructuring assignment expression.
+     * Flattens a DestructuringAssignment or a VariableDeclaration to an expression.
      *
-     * @param root The destructuring assignment expression.
-     * @param needsValue Indicates whether the value from the right-hand-side of the
-     *                   destructuring assignment is needed as part of a larger expression.
-     * @param recordTempVariable A callback used to record new temporary variables.
-     * @param visitor An optional visitor to use to visit expressions.
+     * @param node The node to flatten.
+     * @param visitor An optional visitor used to visit initializers.
+     * @param context The transformation context.
+     * @param level Indicates the extent to which flattening should occur.
+     * @param needsValue An optional value indicating whether the value from the right-hand-side of
+     * the destructuring assignment is needed as part of a larger expression.
+     * @param createAssignmentCallback An optional callback used to create the assignment expression.
      */
-    function flattenDestructuringAssignment(context: TransformationContext, node: BinaryExpression, needsValue: boolean, recordTempVariable: (node: Identifier) => void, visitor?: (node: Node) => VisitResult<Node>, transformRest?: boolean): Expression;
+    function flattenDestructuringAssignment(node: VariableDeclaration | DestructuringAssignment, visitor: ((node: Node) => VisitResult<Node>) | undefined, context: TransformationContext, level: FlattenLevel, needsValue?: boolean, createAssignmentCallback?: (name: Identifier, value: Expression, location?: TextRange) => Expression): Expression;
     /**
-     * Flattens binding patterns in a parameter declaration.
+     * Flattens a VariableDeclaration or ParameterDeclaration to one or more variable declarations.
      *
-     * @param node The ParameterDeclaration to flatten.
-     * @param value The rhs value for the binding pattern.
-     * @param visitor An optional visitor to use to visit expressions.
+     * @param node The node to flatten.
+     * @param visitor An optional visitor used to visit initializers.
+     * @param context The transformation context.
+     * @param boundValue The value bound to the declaration.
+     * @param skipInitializer A value indicating whether to ignore the initializer of `node`.
+     * @param hoistTempVariables Indicates whether temporary variables should not be recorded in-line.
+     * @param level Indicates the extent to which flattening should occur.
      */
-    function flattenParameterDestructuring(node: ParameterDeclaration, value: Expression, visitor?: (node: Node) => VisitResult<Node>, transformRest?: boolean): VariableDeclaration[];
-    /**
-     * Flattens binding patterns in a variable declaration.
-     *
-     * @param node The VariableDeclaration to flatten.
-     * @param value An optional rhs value for the binding pattern.
-     * @param visitor An optional visitor to use to visit expressions.
-     */
-    function flattenVariableDestructuring(node: VariableDeclaration, value?: Expression, visitor?: (node: Node) => VisitResult<Node>, recordTempVariable?: (node: Identifier) => void, transformRest?: boolean): VariableDeclaration[];
-    /**
-     * Flattens binding patterns in a variable declaration and transforms them into an expression.
-     *
-     * @param node The VariableDeclaration to flatten.
-     * @param recordTempVariable A callback used to record new temporary variables.
-     * @param createAssignmentCallback An optional callback used to create assignment expressions
-     * for non-temporary variables.
-     * @param visitor An optional visitor to use to visit expressions.
-     */
-    function flattenVariableDestructuringToExpression(node: VariableDeclaration, recordTempVariable: (name: Identifier) => void, createAssignmentCallback?: (name: Identifier, value: Expression, location?: TextRange) => Expression, visitor?: (node: Node) => VisitResult<Node>): Expression;
+    function flattenDestructuringBinding(node: VariableDeclaration | ParameterDeclaration, visitor: (node: Node) => VisitResult<Node>, context: TransformationContext, level: FlattenLevel, rval?: Expression, hoistTempVariables?: boolean, skipInitializer?: boolean): VariableDeclaration[];
 }
 declare namespace ts {
     function transformTypeScript(context: TransformationContext): (node: SourceFile) => SourceFile;
 }
 declare namespace ts {
-    function transformJsx(context: TransformationContext): (node: SourceFile) => SourceFile;
+    function transformESNext(context: TransformationContext): (node: SourceFile) => SourceFile;
+    function createAssignHelper(context: TransformationContext, attributesSegments: Expression[]): CallExpression;
 }
 declare namespace ts {
-    function transformESNext(context: TransformationContext): (node: SourceFile) => SourceFile;
+    function transformJsx(context: TransformationContext): (node: SourceFile) => SourceFile;
 }
 declare namespace ts {
     function transformES2017(context: TransformationContext): (node: SourceFile) => SourceFile;
@@ -9618,70 +9796,6 @@ declare namespace ts {
     function transformES2015Module(context: TransformationContext): (node: SourceFile) => SourceFile;
 }
 declare namespace ts {
-    interface TransformationResult {
-        /**
-         * Gets the transformed source files.
-         */
-        transformed: SourceFile[];
-        /**
-         * Emits the substitute for a node, if one is available; otherwise, emits the node.
-         *
-         * @param emitContext The current emit context.
-         * @param node The node to substitute.
-         * @param emitCallback A callback used to emit the node or its substitute.
-         */
-        emitNodeWithSubstitution(emitContext: EmitContext, node: Node, emitCallback: (emitContext: EmitContext, node: Node) => void): void;
-        /**
-         * Emits a node with possible notification.
-         *
-         * @param emitContext The current emit context.
-         * @param node The node to emit.
-         * @param emitCallback A callback used to emit the node.
-         */
-        emitNodeWithNotification(emitContext: EmitContext, node: Node, emitCallback: (emitContext: EmitContext, node: Node) => void): void;
-    }
-    interface TransformationContext extends LexicalEnvironment {
-        getCompilerOptions(): CompilerOptions;
-        getEmitResolver(): EmitResolver;
-        getEmitHost(): EmitHost;
-        /**
-         * Hoists a function declaration to the containing scope.
-         */
-        hoistFunctionDeclaration(node: FunctionDeclaration): void;
-        /**
-         * Hoists a variable declaration to the containing scope.
-         */
-        hoistVariableDeclaration(node: Identifier): void;
-        /**
-         * Enables expression substitutions in the pretty printer for the provided SyntaxKind.
-         */
-        enableSubstitution(kind: SyntaxKind): void;
-        /**
-         * Determines whether expression substitutions are enabled for the provided node.
-         */
-        isSubstitutionEnabled(node: Node): boolean;
-        /**
-         * Hook used by transformers to substitute expressions just before they
-         * are emitted by the pretty printer.
-         */
-        onSubstituteNode?: (emitContext: EmitContext, node: Node) => Node;
-        /**
-         * Enables before/after emit notifications in the pretty printer for the provided
-         * SyntaxKind.
-         */
-        enableEmitNotification(kind: SyntaxKind): void;
-        /**
-         * Determines whether before/after emit notifications should be raised in the pretty
-         * printer when it emits a node.
-         */
-        isEmitNotificationEnabled(node: Node): boolean;
-        /**
-         * Hook used to allow transformers to capture state before or after
-         * the printer emits a node.
-         */
-        onEmitNode?: (emitContext: EmitContext, node: Node, emitCallback: (emitContext: EmitContext, node: Node) => void) => void;
-    }
-    type Transformer = (context: TransformationContext) => (node: SourceFile) => SourceFile;
     function getTransformers(compilerOptions: CompilerOptions): Transformer[];
     /**
      * Transforms an array of SourceFiles by passing them through each transformer.
