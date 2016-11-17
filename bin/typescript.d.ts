@@ -1691,6 +1691,7 @@ declare namespace ts {
         getJsxIntrinsicTagNames(): Symbol[];
         isOptionalParameter(node: ParameterDeclaration): boolean;
         getAmbientModules(): Symbol[];
+        tryGetMemberInModuleExports(memberName: string, moduleSymbol: Symbol): Symbol | undefined;
         tryFindAmbientModuleWithoutAugmentations(moduleName: string): Symbol;
         getDiagnostics(sourceFile?: SourceFile, cancellationToken?: CancellationToken): Diagnostic[];
         getGlobalDiagnostics(): Diagnostic[];
@@ -2314,7 +2315,7 @@ declare namespace ts {
         target?: ScriptTarget;
         traceResolution?: boolean;
         types?: string[];
-        /** Paths used to used to compute primary types search locations */
+        /** Paths used to compute primary types search locations */
         typeRoots?: string[];
         version?: boolean;
         watch?: boolean;
@@ -3215,6 +3216,7 @@ declare namespace ts {
     function isExternalModuleNameRelative(moduleName: string): boolean;
     function getEmitScriptTarget(compilerOptions: CompilerOptions): ScriptTarget;
     function getEmitModuleKind(compilerOptions: CompilerOptions): ModuleKind;
+    function getEmitModuleResolutionKind(compilerOptions: CompilerOptions): ModuleResolutionKind;
     function hasZeroOrOneAsteriskCharacter(str: string): boolean;
     function isRootedDiskPath(path: string): boolean;
     function convertToRelativePath(absoluteOrRelativePath: string, basePath: string, getCanonicalFileName: (path: string) => string): string;
@@ -4006,7 +4008,7 @@ declare namespace ts {
      */
     function collapseTextChangeRangesAcrossMultipleVersions(changes: TextChangeRange[]): TextChangeRange;
     function getTypeParameterOwner(d: Declaration): Declaration;
-    function isParameterPropertyDeclaration(node: ParameterDeclaration): boolean;
+    function isParameterPropertyDeclaration(node: Node): boolean;
     function getCombinedModifierFlags(node: Node): ModifierFlags;
     function getCombinedNodeFlags(node: Node): NodeFlags;
 }
@@ -8794,6 +8796,24 @@ declare namespace ts {
             key: string;
             message: string;
         };
+        Import_0_from_1: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Change_0_to_1: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Add_0_to_existing_import_declaration_from_1: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
     };
 }
 declare namespace ts {
@@ -9453,6 +9473,7 @@ declare namespace ts {
 declare namespace ts {
     function trace(host: ModuleResolutionHost, message: DiagnosticMessage, ...args: any[]): void;
     function isTraceEnabled(compilerOptions: CompilerOptions, host: ModuleResolutionHost): boolean;
+    function moduleHasNonRelativeName(moduleName: string): boolean;
     function getEffectiveTypeRoots(options: CompilerOptions, host: {
         directoryExists?: (directoryName: string) => boolean;
         getCurrentDirectory?: () => string;
@@ -9886,6 +9907,7 @@ declare namespace ts {
         nameTable: Map<number>;
         getNamedDeclarations(): Map<Declaration[]>;
         getLineAndCharacterOfPosition(pos: number): LineAndCharacter;
+        getLineEndOfPosition(pos: number): number;
         getLineStarts(): number[];
         getPositionOfLineAndCharacter(line: number, character: number): number;
         update(newText: string, textChangeRange: TextChangeRange): SourceFile;
@@ -11256,12 +11278,16 @@ declare namespace ts {
         span: TextSpan;
         program: Program;
         newLineCharacter: string;
+        host: LanguageServiceHost;
+        cancellationToken: CancellationToken;
     }
     namespace codefix {
         function registerCodeFix(action: CodeFix): void;
         function getSupportedErrorCodes(): string[];
         function getFixes(context: CodeFixContext): CodeAction[];
     }
+}
+declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
 }
