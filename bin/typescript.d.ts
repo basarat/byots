@@ -2139,7 +2139,6 @@ declare namespace ts {
         mapper?: TypeMapper;
         resolvedApparentType: Type;
         resolvedIndexType: IndexType;
-        resolvedIndexedAccessTypes: IndexedAccessType[];
         isThisType?: boolean;
     }
     interface IndexType extends Type {
@@ -2147,7 +2146,7 @@ declare namespace ts {
     }
     interface IndexedAccessType extends Type {
         objectType: Type;
-        indexType: TypeParameter;
+        indexType: Type;
     }
     enum SignatureKind {
         Call = 0,
@@ -6612,7 +6611,7 @@ declare namespace ts {
             key: string;
             message: string;
         };
-        Type_0_is_not_constrained_to_keyof_1: {
+        Type_0_cannot_be_used_to_index_type_1: {
             code: number;
             category: DiagnosticCategory;
             key: string;
@@ -7423,6 +7422,12 @@ declare namespace ts {
             message: string;
         };
         Default_export_of_the_module_has_or_is_using_private_name_0: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Type_parameter_0_of_exported_type_alias_has_or_is_using_private_name_1: {
             code: number;
             category: DiagnosticCategory;
             key: string;
