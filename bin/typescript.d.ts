@@ -427,7 +427,8 @@ declare namespace ts {
         parent?: Node;
         original?: Node;
         startsOnNewLine?: boolean;
-        jsDocComments?: JSDoc[];
+        jsDoc?: JSDoc[];
+        jsDocCache?: (JSDoc | JSDocTag)[];
         symbol?: Symbol;
         locals?: SymbolTable;
         nextContainer?: Node;
@@ -3434,7 +3435,7 @@ declare namespace ts {
     function getEndLinePosition(line: number, sourceFile: SourceFile): number;
     function nodeIsMissing(node: Node): boolean;
     function nodeIsPresent(node: Node): boolean;
-    function getTokenPosOfNode(node: Node, sourceFile?: SourceFile, includeJsDocComment?: boolean): number;
+    function getTokenPosOfNode(node: Node, sourceFile?: SourceFile, includeJsDoc?: boolean): number;
     function isJSDocNode(node: Node): boolean;
     function isJSDocTag(node: Node): boolean;
     function getNonDecoratorTokenPosOfNode(node: Node, sourceFile?: SourceFile): number;
@@ -3473,8 +3474,7 @@ declare namespace ts {
     function isPrologueDirective(node: Node): node is PrologueDirective;
     function getLeadingCommentRangesOfNode(node: Node, sourceFileOfNode: SourceFile): CommentRange[];
     function getLeadingCommentRangesOfNodeFromText(node: Node, text: string): CommentRange[];
-    function getJsDocComments(node: Node, sourceFileOfNode: SourceFile): CommentRange[];
-    function getJsDocCommentsFromText(node: Node, text: string): CommentRange[];
+    function getJSDocCommentRanges(node: Node, text: string): CommentRange[];
     let fullTripleSlashReferencePathRegEx: RegExp;
     let fullTripleSlashReferenceTypeReferenceDirectiveRegEx: RegExp;
     let fullTripleSlashAMDReferencePathRegEx: RegExp;
@@ -3543,11 +3543,11 @@ declare namespace ts {
     function isDefaultImport(node: ImportDeclaration | ImportEqualsDeclaration | ExportDeclaration): boolean;
     function hasQuestionToken(node: Node): boolean;
     function isJSDocConstructSignature(node: Node): boolean;
-    function getJSDocComments(node: Node, checkParentVariableStatement: boolean): string[];
-    function getJSDocTypeTag(node: Node): JSDocTypeTag;
+    function getCommentsFromJSDoc(node: Node): string[];
+    function getJSDocParameterTags(param: Node): JSDocParameterTag[];
+    function getJSDocType(node: Node): JSDocType;
     function getJSDocReturnTag(node: Node): JSDocReturnTag;
     function getJSDocTemplateTag(node: Node): JSDocTemplateTag;
-    function getCorrespondingJSDocParameterTag(parameter: ParameterDeclaration): JSDocParameterTag;
     function hasRestParameter(s: SignatureDeclaration): boolean;
     function hasDeclaredRestParameter(s: SignatureDeclaration): boolean;
     function isRestParameter(node: ParameterDeclaration): boolean;
@@ -4010,6 +4010,16 @@ declare namespace ts {
     function isParameterPropertyDeclaration(node: Node): boolean;
     function getCombinedModifierFlags(node: Node): ModifierFlags;
     function getCombinedNodeFlags(node: Node): NodeFlags;
+    /**
+      * Checks to see if the locale is in the appropriate format,
+      * and if it is, attempts to set the appropriate language.
+      */
+    function validateLocaleAndSetLanguage(locale: string, sys: {
+        getExecutingFilePath(): string;
+        resolvePath(path: string): string;
+        fileExists(fileName: string): boolean;
+        readFile(fileName: string): string;
+    }, errors?: Diagnostic[]): void;
 }
 declare namespace ts {
     const Diagnostics: {
