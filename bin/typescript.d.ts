@@ -2326,8 +2326,9 @@ declare namespace ts {
         watch?: boolean;
         [option: string]: CompilerOptionsValue | undefined;
     }
-    interface TypingOptions {
+    interface TypeAcquisition {
         enableAutoDiscovery?: boolean;
+        enable?: boolean;
         include?: string[];
         exclude?: string[];
         [option: string]: string[] | boolean | undefined;
@@ -2337,7 +2338,7 @@ declare namespace ts {
         projectRootPath: string;
         safeListPath: string;
         packageNameToTypingLocation: Map<string>;
-        typingOptions: TypingOptions;
+        typeAcquisition: TypeAcquisition;
         compilerOptions: CompilerOptions;
         unresolvedImports: ReadonlyArray<string>;
     }
@@ -2389,7 +2390,7 @@ declare namespace ts {
     /** Either a parsed command line or a parsed tsconfig.json */
     interface ParsedCommandLine {
         options: CompilerOptions;
-        typingOptions?: TypingOptions;
+        typeAcquisition?: TypeAcquisition;
         fileNames: string[];
         raw?: any;
         errors: Diagnostic[];
@@ -7023,6 +7024,12 @@ declare namespace ts {
             key: string;
             message: string;
         };
+        _0_only_refers_to_a_type_but_is_being_used_as_a_namespace_here: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
         Import_declaration_0_is_using_private_name_1: {
             code: number;
             category: DiagnosticCategory;
@@ -8733,7 +8740,7 @@ declare namespace ts {
             key: string;
             message: string;
         };
-        Unknown_typing_option_0: {
+        Unknown_type_acquisition_option_0: {
             code: number;
             category: DiagnosticCategory;
             key: string;
@@ -9534,12 +9541,13 @@ declare namespace ts {
 declare namespace ts {
     const compileOnSaveCommandLineOption: CommandLineOption;
     const optionDeclarations: CommandLineOption[];
-    let typingOptionDeclarations: CommandLineOption[];
+    let typeAcquisitionDeclarations: CommandLineOption[];
     interface OptionNameMap {
         optionNameMap: Map<CommandLineOption>;
         shortOptionNames: Map<string>;
     }
     const defaultInitCompilerOptions: CompilerOptions;
+    function convertEnableAutoDiscoveryToEnable(typeAcquisition: TypeAcquisition): TypeAcquisition;
     function getOptionNameMap(): OptionNameMap;
     function createCompilerDiagnosticForInvalidCustomType(opt: CommandLineOptionOfCustomType): Diagnostic;
     function parseCustomTypeOption(opt: CommandLineOptionOfCustomType, value: string, errors: Diagnostic[]): string | number;
@@ -9583,8 +9591,8 @@ declare namespace ts {
         options: CompilerOptions;
         errors: Diagnostic[];
     };
-    function convertTypingOptionsFromJson(jsonOptions: any, basePath: string, configFileName?: string): {
-        options: TypingOptions;
+    function convertTypeAcquisitionFromJson(jsonOptions: any, basePath: string, configFileName?: string): {
+        options: TypeAcquisition;
         errors: Diagnostic[];
     };
 }
@@ -10794,10 +10802,10 @@ declare namespace ts.JsTyping {
      * @param projectRootPath is the path to the project root directory
      * @param safeListPath is the path used to retrieve the safe list
      * @param packageNameToTypingLocation is the map of package names to their cached typing locations
-     * @param typingOptions are used to customize the typing inference process
+     * @param typeAcquisition is used to customize the typing acquisition process
      * @param compilerOptions are used as a source for typing inference
      */
-    function discoverTypings(host: TypingResolutionHost, fileNames: string[], projectRootPath: Path, safeListPath: Path, packageNameToTypingLocation: Map<string>, typingOptions: TypingOptions, unresolvedImports: ReadonlyArray<string>): {
+    function discoverTypings(host: TypingResolutionHost, fileNames: string[], projectRootPath: Path, safeListPath: Path, packageNameToTypingLocation: Map<string>, typeAcquisition: TypeAcquisition, unresolvedImports: ReadonlyArray<string>): {
         cachedTypingPaths: string[];
         newTypingNames: string[];
         filesToWatch: string[];
