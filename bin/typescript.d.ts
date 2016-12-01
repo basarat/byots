@@ -7491,6 +7491,18 @@ declare namespace ts {
             key: string;
             message: string;
         };
+        Parameter_0_of_index_signature_from_exported_interface_has_or_is_using_name_1_from_private_module_2: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Parameter_0_of_index_signature_from_exported_interface_has_or_is_using_private_name_1: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
         The_current_host_does_not_support_the_0_option: {
             code: number;
             category: DiagnosticCategory;
