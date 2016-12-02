@@ -7749,7 +7749,7 @@ declare namespace ts {
             key: string;
             message: string;
         };
-        Specify_ECMAScript_target_version_Colon_ES3_default_ES5_or_ES2015: {
+        Specify_ECMAScript_target_version_Colon_ES3_default_ES5_ES2015_ES2016_ES2017_or_ESNEXT: {
             code: number;
             category: DiagnosticCategory;
             key: string;
