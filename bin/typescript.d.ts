@@ -2097,6 +2097,7 @@ declare namespace ts {
     interface UnionOrIntersectionType extends Type {
         types: Type[];
         resolvedProperties: SymbolTable;
+        resolvedIndexType: IndexType;
         couldContainTypeVariables: boolean;
     }
     interface UnionType extends UnionOrIntersectionType {
@@ -2149,7 +2150,7 @@ declare namespace ts {
         indexType: Type;
     }
     interface IndexType extends Type {
-        type: TypeVariable;
+        type: TypeVariable | UnionOrIntersectionType;
     }
     enum SignatureKind {
         Call = 0,
