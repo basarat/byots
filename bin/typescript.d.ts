@@ -1720,6 +1720,7 @@ declare namespace ts {
         writeSpace(text: string): void;
         writeStringLiteral(text: string): void;
         writeParameter(text: string): void;
+        writeProperty(text: string): void;
         writeSymbol(text: string, symbol: Symbol): void;
         writeLine(): void;
         increaseIndent(): void;
@@ -8786,6 +8787,12 @@ declare namespace ts {
             message: string;
         };
         Unknown_type_acquisition_option_0: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        super_must_be_called_before_accessing_a_property_of_super_in_the_constructor_of_a_derived_class: {
             code: number;
             category: DiagnosticCategory;
             key: string;
