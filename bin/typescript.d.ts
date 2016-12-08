@@ -3131,17 +3131,6 @@ declare namespace ts {
      */
     function reduceProperties<T, U>(map: Map<T>, callback: (aggregate: U, value: T, key: string) => U, initial: U): U;
     /**
-     * Reduce the properties defined on a map-like (but not from its prototype chain).
-     *
-     * NOTE: This is intended for use with MapLike<T> objects. For Map<T> objects, use
-     *       reduceProperties instead as it offers better performance.
-     *
-     * @param map The map-like to reduce
-     * @param callback An aggregation function that is called for each entry in the map
-     * @param initial The initial value for the reduction.
-     */
-    function reduceOwnProperties<T, U>(map: MapLike<T>, callback: (aggregate: U, value: T, key: string) => U, initial: U): U;
-    /**
      * Performs a shallow equality comparison of the contents of two map-likes.
      *
      * @param left A map-like whose properties should be compared.
@@ -3786,11 +3775,6 @@ declare namespace ts {
     function getLocalSymbolForExportDefault(symbol: Symbol): Symbol;
     /** Return ".ts", ".d.ts", or ".tsx", if that is the extension. */
     function tryExtractTypeScriptExtension(fileName: string): string | undefined;
-    /**
-     * Serialize an object graph into a JSON string. This is intended only for use on an acyclic graph
-     * as the fallback implementation does not check for circular references by default.
-     */
-    const stringify: (value: any) => string;
     /**
      * Converts a string to a base-64 encoded ASCII string.
      */
