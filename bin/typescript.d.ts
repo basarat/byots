@@ -2115,6 +2115,7 @@ declare namespace ts {
         typeParameter?: TypeParameter;
         constraintType?: Type;
         templateType?: Type;
+        modifiersType?: Type;
         mapper?: TypeMapper;
     }
     interface EvolvingArrayType extends ObjectType {
@@ -2137,18 +2138,19 @@ declare namespace ts {
         iteratorElementType?: Type;
     }
     interface TypeVariable extends Type {
+        resolvedApparentType: Type;
         resolvedIndexType: IndexType;
     }
     interface TypeParameter extends TypeVariable {
         constraint: Type;
         target?: TypeParameter;
         mapper?: TypeMapper;
-        resolvedApparentType: Type;
         isThisType?: boolean;
     }
     interface IndexedAccessType extends TypeVariable {
         objectType: Type;
         indexType: Type;
+        constraint?: Type;
     }
     interface IndexType extends Type {
         type: TypeVariable | UnionOrIntersectionType;
@@ -2209,6 +2211,11 @@ declare namespace ts {
         ModuleExports = 2,
         PrototypeProperty = 3,
         ThisProperty = 4,
+    }
+    interface FileExtensionInfo {
+        extension: string;
+        scriptKind: ScriptKind;
+        isMixedContent: boolean;
     }
     interface DiagnosticMessage {
         key: string;
@@ -3280,10 +3287,10 @@ declare namespace ts {
     /** Must have ".d.ts" first because if ".ts" goes first, that will be detected as the extension instead of ".d.ts". */
     const supportedTypescriptExtensionsForExtractExtension: string[];
     const supportedJavascriptExtensions: string[];
-    function getSupportedExtensions(options?: CompilerOptions): string[];
+    function getSupportedExtensions(options?: CompilerOptions, extraFileExtensions?: FileExtensionInfo[]): string[];
     function hasJavaScriptFileExtension(fileName: string): boolean;
     function hasTypeScriptFileExtension(fileName: string): boolean;
-    function isSupportedSourceFileName(fileName: string, compilerOptions?: CompilerOptions): boolean;
+    function isSupportedSourceFileName(fileName: string, compilerOptions?: CompilerOptions, extraFileExtensions?: FileExtensionInfo[]): boolean;
     /**
      * Extension boundaries by priority. Lower numbers indicate higher priorities, and are
      * aligned to the offset of the highest priority extension in the
@@ -9621,7 +9628,7 @@ declare namespace ts {
       * @param basePath A root directory to resolve relative path entries in the config
       *    file to. e.g. outDir
       */
-    function parseJsonConfigFileContent(json: any, host: ParseConfigHost, basePath: string, existingOptions?: CompilerOptions, configFileName?: string, resolutionStack?: Path[]): ParsedCommandLine;
+    function parseJsonConfigFileContent(json: any, host: ParseConfigHost, basePath: string, existingOptions?: CompilerOptions, configFileName?: string, resolutionStack?: Path[], extraFileExtensions?: FileExtensionInfo[]): ParsedCommandLine;
     function convertCompileOnSaveOptionFromJson(jsonOption: any, basePath: string, errors: Diagnostic[]): boolean;
     function convertCompilerOptionsFromJson(jsonOptions: any, basePath: string, configFileName?: string): {
         options: CompilerOptions;
