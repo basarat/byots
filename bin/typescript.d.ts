@@ -3499,6 +3499,13 @@ declare namespace ts {
     function isPartOfTypeNode(node: Node): boolean;
     function forEachReturnStatement<T>(body: Block, visitor: (stmt: ReturnStatement) => T): T;
     function forEachYieldExpression(body: Block, visitor: (expr: YieldExpression) => void): void;
+    /**
+     * Gets the most likely element type for a TypeNode. This is not an exhaustive test
+     * as it assumes a rest argument can only be an array type (either T[], or Array<T>).
+     *
+     * @param node The type node.
+     */
+    function getRestParameterElementType(node: TypeNode): TypeNode;
     function isVariableLike(node: Node): node is VariableLikeDeclaration;
     function isAccessor(node: Node): node is AccessorDeclaration;
     function isClassLike(node: Node): node is ClassLikeDeclaration;
