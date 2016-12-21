@@ -8071,6 +8071,12 @@ declare namespace ts {
             key: string;
             message: string;
         };
+        File_0_has_an_unsupported_extension_so_skipping_it: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
         Only_amd_and_system_modules_are_supported_alongside_0: {
             code: number;
             category: DiagnosticCategory;
@@ -10264,6 +10270,7 @@ declare namespace ts {
         InsertSpaceAfterCommaDelimiter: boolean;
         InsertSpaceAfterSemicolonInForStatements: boolean;
         InsertSpaceBeforeAndAfterBinaryOperators: boolean;
+        InsertSpaceAfterConstructor?: boolean;
         InsertSpaceAfterKeywordsInControlFlowStatements: boolean;
         InsertSpaceAfterFunctionKeywordForAnonymousFunctions: boolean;
         InsertSpaceAfterOpeningAndBeforeClosingNonemptyParenthesis: boolean;
@@ -10272,6 +10279,7 @@ declare namespace ts {
         InsertSpaceAfterOpeningAndBeforeClosingTemplateStringBraces: boolean;
         InsertSpaceAfterOpeningAndBeforeClosingJsxExpressionBraces?: boolean;
         InsertSpaceAfterTypeAssertion?: boolean;
+        InsertSpaceBeforeFunctionParenthesis?: boolean;
         PlaceOpenBraceOnNewLineForFunctions: boolean;
         PlaceOpenBraceOnNewLineForControlBlocks: boolean;
     }
@@ -10279,6 +10287,7 @@ declare namespace ts {
         insertSpaceAfterCommaDelimiter?: boolean;
         insertSpaceAfterSemicolonInForStatements?: boolean;
         insertSpaceBeforeAndAfterBinaryOperators?: boolean;
+        insertSpaceAfterConstructor?: boolean;
         insertSpaceAfterKeywordsInControlFlowStatements?: boolean;
         insertSpaceAfterFunctionKeywordForAnonymousFunctions?: boolean;
         insertSpaceAfterOpeningAndBeforeClosingNonemptyParenthesis?: boolean;
@@ -10287,6 +10296,7 @@ declare namespace ts {
         insertSpaceAfterOpeningAndBeforeClosingTemplateStringBraces?: boolean;
         insertSpaceAfterOpeningAndBeforeClosingJsxExpressionBraces?: boolean;
         insertSpaceAfterTypeAssertion?: boolean;
+        insertSpaceBeforeFunctionParenthesis?: boolean;
         placeOpenBraceOnNewLineForFunctions?: boolean;
         placeOpenBraceOnNewLineForControlBlocks?: boolean;
     }
@@ -11109,6 +11119,7 @@ declare namespace ts.formatting {
         SpaceAfterLetConstInVariableDeclaration: Rule;
         NoSpaceBeforeOpenParenInFuncCall: Rule;
         SpaceAfterFunctionInFuncDecl: Rule;
+        SpaceBeforeOpenParenInFuncDecl: Rule;
         NoSpaceBeforeOpenParenInFuncDecl: Rule;
         SpaceAfterVoidOperator: Rule;
         NoSpaceBetweenReturnAndSemicolon: Rule;
@@ -11117,6 +11128,7 @@ declare namespace ts.formatting {
         SpaceAfterGetSetInMember: Rule;
         SpaceBeforeBinaryKeywordOperator: Rule;
         SpaceAfterBinaryKeywordOperator: Rule;
+        SpaceAfterConstructor: Rule;
         NoSpaceAfterConstructor: Rule;
         NoSpaceAfterModuleImport: Rule;
         SpaceAfterCertainTypeScriptKeywords: Rule;
