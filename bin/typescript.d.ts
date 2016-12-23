@@ -1027,6 +1027,7 @@ declare namespace ts {
     }
     interface JsxExpression extends Expression {
         kind: SyntaxKind.JsxExpression;
+        dotDotDotToken?: Token<SyntaxKind.DotDotDotToken>;
         expression?: Expression;
     }
     interface JsxText extends Node {
@@ -3497,7 +3498,7 @@ declare namespace ts {
     let fullTripleSlashReferenceTypeReferenceDirectiveRegEx: RegExp;
     let fullTripleSlashAMDReferencePathRegEx: RegExp;
     function isPartOfTypeNode(node: Node): boolean;
-    function isChildOfLiteralType(node: Node): boolean;
+    function isChildOfNodeWithKind(node: Node, kind: SyntaxKind): boolean;
     function isPrefixUnaryExpression(node: Node): node is PrefixUnaryExpression;
     function forEachReturnStatement<T>(body: Block, visitor: (stmt: ReturnStatement) => T): T;
     function forEachYieldExpression(body: Block, visitor: (expr: YieldExpression) => void): void;
@@ -5331,6 +5332,12 @@ declare namespace ts {
             key: string;
             message: string;
         };
+        A_default_export_can_only_be_used_in_an_ECMAScript_style_module: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
         Duplicate_identifier_0: {
             code: number;
             category: DiagnosticCategory;
@@ -6754,6 +6761,12 @@ declare namespace ts {
             message: string;
         };
         The_global_type_JSX_0_may_not_have_more_than_one_property: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        JSX_spread_child_must_be_an_array_type: {
             code: number;
             category: DiagnosticCategory;
             key: string;
@@ -8913,6 +8926,12 @@ declare namespace ts {
             key: string;
             message: string;
         };
+        Octal_literals_are_not_allowed_in_enums_members_initializer_Use_the_syntax_0: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
     };
 }
 declare namespace ts {
@@ -9158,7 +9177,7 @@ declare namespace ts {
     function updateJsxAttribute(node: JsxAttribute, name: Identifier, initializer: StringLiteral | JsxExpression): JsxAttribute;
     function createJsxSpreadAttribute(expression: Expression, location?: TextRange): JsxSpreadAttribute;
     function updateJsxSpreadAttribute(node: JsxSpreadAttribute, expression: Expression): JsxSpreadAttribute;
-    function createJsxExpression(expression: Expression, location?: TextRange): JsxExpression;
+    function createJsxExpression(expression: Expression, dotDotDotToken: Token<SyntaxKind.DotDotDotToken>, location?: TextRange): JsxExpression;
     function updateJsxExpression(node: JsxExpression, expression: Expression): JsxExpression;
     function createHeritageClause(token: SyntaxKind, types: ExpressionWithTypeArguments[], location?: TextRange): HeritageClause;
     function updateHeritageClause(node: HeritageClause, types: ExpressionWithTypeArguments[]): HeritageClause;
@@ -11220,6 +11239,7 @@ declare namespace ts.formatting {
         static IsNotBinaryOpContext(context: FormattingContext): boolean;
         static IsConditionalOperatorContext(context: FormattingContext): boolean;
         static IsSameLineTokenOrBeforeMultilineBlockContext(context: FormattingContext): boolean;
+        static IsBraceWrappedContext(context: FormattingContext): boolean;
         static IsBeforeMultilineBlockContext(context: FormattingContext): boolean;
         static IsMultilineBlockContext(context: FormattingContext): boolean;
         static IsSingleLineBlockContext(context: FormattingContext): boolean;
