@@ -3516,6 +3516,7 @@ declare namespace ts {
     function isFunctionLikeKind(kind: SyntaxKind): boolean;
     function introducesArgumentsExoticObject(node: Node): boolean;
     function isIterationStatement(node: Node, lookInLabeledStatements: boolean): node is IterationStatement;
+    function unwrapInnermostStatmentOfLabel(node: LabeledStatement, beforeUnwrapLabelCallback?: (node: LabeledStatement) => void): Statement;
     function isFunctionBlock(node: Node): boolean;
     function isObjectLiteralMethod(node: Node): node is MethodDeclaration;
     function isObjectLiteralOrClassExpressionMethod(node: Node): node is MethodDeclaration;
@@ -9257,6 +9258,7 @@ declare namespace ts {
     function createLetDeclarationList(declarations: VariableDeclaration[], location?: TextRange): VariableDeclarationList;
     function createConstDeclarationList(declarations: VariableDeclaration[], location?: TextRange): VariableDeclarationList;
     function getHelperName(name: string): Identifier;
+    function restoreEnclosingLabel(node: Statement, outermostLabeledStatement: LabeledStatement, afterRestoreLabelCallback?: (node: LabeledStatement) => void): Statement;
     interface CallBinding {
         target: LeftHandSideExpression;
         thisArg: Expression;
