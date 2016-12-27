@@ -3589,6 +3589,7 @@ declare namespace ts {
     }
     function getAssignmentTargetKind(node: Node): AssignmentKind;
     function isAssignmentTarget(node: Node): boolean;
+    function isDeleteTarget(node: Node): boolean;
     function isNodeDescendantOf(node: Node, ancestor: Node): boolean;
     function isInAmbientContext(node: Node): boolean;
     function isDeclarationName(name: Node): boolean;
@@ -7074,6 +7075,18 @@ declare namespace ts {
             message: string;
         };
         _0_only_refers_to_a_type_but_is_being_used_as_a_namespace_here: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        The_operand_of_a_delete_operator_must_be_a_property_reference: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        The_operand_of_a_delete_operator_cannot_be_a_read_only_property: {
             code: number;
             category: DiagnosticCategory;
             key: string;
@@ -11234,6 +11247,7 @@ declare namespace ts.formatting {
         NoSpaceAfterEqualInJsxAttribute: Rule;
         NoSpaceAfterTypeAssertion: Rule;
         SpaceAfterTypeAssertion: Rule;
+        NoSpaceBeforeNonNullAssertionOperator: Rule;
         constructor();
         static IsForContext(context: FormattingContext): boolean;
         static IsNotForContext(context: FormattingContext): boolean;
@@ -11279,6 +11293,7 @@ declare namespace ts.formatting {
         static IsTypeAssertionContext(context: FormattingContext): boolean;
         static IsVoidOpContext(context: FormattingContext): boolean;
         static IsYieldOrYieldStarWithOperand(context: FormattingContext): boolean;
+        static IsNonNullAssertionContext(context: FormattingContext): boolean;
     }
 }
 declare namespace ts.formatting {
