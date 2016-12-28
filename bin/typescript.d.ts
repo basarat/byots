@@ -8184,7 +8184,7 @@ declare namespace ts {
             key: string;
             message: string;
         };
-        Loading_module_as_file_Slash_folder_candidate_module_location_0: {
+        Loading_module_as_file_Slash_folder_candidate_module_location_0_target_file_type_1: {
             code: number;
             category: DiagnosticCategory;
             key: string;
@@ -8202,7 +8202,7 @@ declare namespace ts {
             key: string;
             message: string;
         };
-        Loading_module_0_from_node_modules_folder: {
+        Loading_module_0_from_node_modules_folder_target_file_type_1: {
             code: number;
             category: DiagnosticCategory;
             key: string;
@@ -8497,6 +8497,12 @@ declare namespace ts {
             message: string;
         };
         Resolution_for_module_0_was_found_in_cache: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Directory_0_does_not_exist_skipping_all_lookups_in_it: {
             code: number;
             category: DiagnosticCategory;
             key: string;
