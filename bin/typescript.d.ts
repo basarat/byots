@@ -1656,6 +1656,7 @@ declare namespace ts {
         getDeclaredTypeOfSymbol(symbol: Symbol): Type;
         getPropertiesOfType(type: Type): Symbol[];
         getPropertyOfType(type: Type, propertyName: string): Symbol;
+        getIndexInfoOfType(type: Type, kind: IndexKind): IndexInfo;
         getSignaturesOfType(type: Type, kind: SignatureKind): Signature[];
         getIndexTypeOfType(type: Type, kind: IndexKind): Type;
         getBaseTypes(type: InterfaceType): ObjectType[];
@@ -1668,6 +1669,8 @@ declare namespace ts {
         getExportSpecifierLocalTargetSymbol(location: ExportSpecifier): Symbol;
         getPropertySymbolOfDestructuringAssignment(location: Identifier): Symbol;
         getTypeAtLocation(node: Node): Type;
+        getTypeFromTypeNode(node: TypeNode): Type;
+        signatureToString(signature: Signature, enclosingDeclaration?: Node, flags?: TypeFormatFlags, kind?: SignatureKind): string;
         typeToString(type: Type, enclosingDeclaration?: Node, flags?: TypeFormatFlags): string;
         symbolToString(symbol: Symbol, enclosingDeclaration?: Node, meaning?: SymbolFlags): string;
         getSymbolDisplayBuilder(): SymbolDisplayBuilder;
@@ -1690,6 +1693,7 @@ declare namespace ts {
         isOptionalParameter(node: ParameterDeclaration): boolean;
         getAmbientModules(): Symbol[];
         tryGetMemberInModuleExports(memberName: string, moduleSymbol: Symbol): Symbol | undefined;
+        getApparentType(type: Type): Type;
         tryFindAmbientModuleWithoutAugmentations(moduleName: string): Symbol;
         getDiagnostics(sourceFile?: SourceFile, cancellationToken?: CancellationToken): Diagnostic[];
         getGlobalDiagnostics(): Diagnostic[];
@@ -1703,6 +1707,7 @@ declare namespace ts {
         buildTypeDisplay(type: Type, writer: SymbolWriter, enclosingDeclaration?: Node, flags?: TypeFormatFlags): void;
         buildSymbolDisplay(symbol: Symbol, writer: SymbolWriter, enclosingDeclaration?: Node, meaning?: SymbolFlags, flags?: SymbolFormatFlags): void;
         buildSignatureDisplay(signatures: Signature, writer: SymbolWriter, enclosingDeclaration?: Node, flags?: TypeFormatFlags, kind?: SignatureKind): void;
+        buildIndexSignatureDisplay(info: IndexInfo, writer: SymbolWriter, kind: IndexKind, enclosingDeclaration?: Node, globalFlags?: TypeFormatFlags, symbolStack?: Symbol[]): void;
         buildParameterDisplay(parameter: Symbol, writer: SymbolWriter, enclosingDeclaration?: Node, flags?: TypeFormatFlags): void;
         buildTypeParameterDisplay(tp: TypeParameter, writer: SymbolWriter, enclosingDeclaration?: Node, flags?: TypeFormatFlags): void;
         buildTypePredicateDisplay(predicate: TypePredicate, writer: SymbolWriter, enclosingDeclaration?: Node, flags?: TypeFormatFlags): void;
@@ -1740,6 +1745,7 @@ declare namespace ts {
         InFirstTypeArgument = 256,
         InTypeAlias = 512,
         UseTypeAliasValue = 1024,
+        SuppressAnyReturnType = 2048,
     }
     enum SymbolFormatFlags {
         None = 0,
@@ -2072,6 +2078,7 @@ declare namespace ts {
     interface ObjectType extends Type {
         objectFlags: ObjectFlags;
     }
+    /** Class and interface types (TypeFlags.Class and TypeFlags.Interface). */
     interface InterfaceType extends ObjectType {
         typeParameters: TypeParameter[];
         outerTypeParameters: TypeParameter[];
@@ -2087,6 +2094,16 @@ declare namespace ts {
         declaredStringIndexInfo: IndexInfo;
         declaredNumberIndexInfo: IndexInfo;
     }
+    /**
+     * Type references (TypeFlags.Reference). When a class or interface has type parameters or
+     * a "this" type, references to the class or interface are made using type references. The
+     * typeArguments property specifies the types to substitute for the type parameters of the
+     * class or interface and optionally includes an extra element that specifies the type to
+     * substitute for "this" in the resulting instantiation. When no extra argument is present,
+     * the type reference itself is substituted for "this". The typeArguments property is undefined
+     * if the class or interface has no type parameters and the reference isn't specifying an
+     * explicit "this" argument.
+     */
     interface TypeReference extends ObjectType {
         target: GenericType;
         typeArguments: Type[];
@@ -3193,6 +3210,9 @@ declare namespace ts {
      * @param args The functions to compose.
      */
     function compose<T>(...args: ((t: T) => T)[]): (t: T) => T;
+    function formatStringFromArgs(text: string, args: {
+        [index: number]: string;
+    }, baseIndex?: number): string;
     let localizedDiagnosticMessages: Map<string>;
     function getLocaleSpecificMessage(message: DiagnosticMessage): string;
     function createFileDiagnostic(file: SourceFile, start: number, length: number, message: DiagnosticMessage, ...args: (string | number)[]): Diagnostic;
@@ -3601,7 +3621,7 @@ declare namespace ts {
     function getInterfaceBaseTypeNodes(node: InterfaceDeclaration): NodeArray<ExpressionWithTypeArguments>;
     function getHeritageClause(clauses: NodeArray<HeritageClause>, kind: SyntaxKind): HeritageClause;
     function tryResolveScriptReference(host: ScriptReferenceHost, sourceFile: SourceFile, reference: FileReference): SourceFile;
-    function getAncestor(node: Node, kind: SyntaxKind): Node;
+    function getAncestor(node: Node | undefined, kind: SyntaxKind): Node;
     function getFileReferenceFromReferencePath(comment: string, commentRange: CommentRange): ReferencePathMatchResult;
     function isKeyword(token: SyntaxKind): boolean;
     function isTrivia(token: SyntaxKind): boolean;
@@ -8915,13 +8935,7 @@ declare namespace ts {
             key: string;
             message: string;
         };
-        Implement_interface_on_reference: {
-            code: number;
-            category: DiagnosticCategory;
-            key: string;
-            message: string;
-        };
-        Implement_interface_on_class: {
+        Implement_interface_0: {
             code: number;
             category: DiagnosticCategory;
             key: string;
@@ -10816,6 +10830,7 @@ declare namespace ts {
         configJsonObject: any;
         diagnostics: Diagnostic[];
     };
+    function getOpenBraceEnd(constructor: ConstructorDeclaration, sourceFile: SourceFile): number;
 }
 declare namespace ts {
     function createClassifier(): Classifier;
@@ -11475,6 +11490,23 @@ declare namespace ts.codefix {
 declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
+}
+declare namespace ts.codefix {
+}
+declare namespace ts.codefix {
+}
+declare namespace ts.codefix {
+}
+declare namespace ts.codefix {
+}
+declare namespace ts.codefix {
+    /**
+     * Finds members of the resolved type that are missing in the class pointed to by class decl
+     * and generates source code for the missing members.
+     * @param possiblyMissingSymbols The collection of symbols to filter and then get insertions for.
+     * @returns Empty string iff there are no member insertions.
+     */
+    function getMissingMembersInsertion(classDeclaration: ClassLikeDeclaration, possiblyMissingSymbols: Symbol[], checker: TypeChecker, newlineChar: string): string;
 }
 declare namespace ts {
     /** The version of the language service API */
