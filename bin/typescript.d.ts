@@ -1067,7 +1067,7 @@ declare namespace ts {
         kind: SyntaxKind.MissingDeclaration;
         name?: Identifier;
     }
-    type BlockLike = SourceFile | Block | ModuleBlock | CaseClause;
+    type BlockLike = SourceFile | Block | ModuleBlock | CaseOrDefaultClause;
     interface Block extends Statement {
         kind: SyntaxKind.Block;
         statements: NodeArray<Statement>;
