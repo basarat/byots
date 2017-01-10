@@ -9644,6 +9644,10 @@ declare namespace ts {
 declare namespace ts {
     function trace(host: ModuleResolutionHost, message: DiagnosticMessage, ...args: any[]): void;
     function isTraceEnabled(compilerOptions: CompilerOptions, host: ModuleResolutionHost): boolean;
+    /** Array that is only intended to be pushed to, never read. */
+    interface Push<T> {
+        push(value: T): void;
+    }
     function moduleHasNonRelativeName(moduleName: string): boolean;
     function getEffectiveTypeRoots(options: CompilerOptions, host: {
         directoryExists?: (directoryName: string) => boolean;
@@ -10799,6 +10803,7 @@ declare namespace ts {
     function hasTrailingDirectorySeparator(path: string): boolean;
     function isInReferenceComment(sourceFile: SourceFile, position: number): boolean;
     function isInNonReferenceComment(sourceFile: SourceFile, position: number): boolean;
+    function createTextSpanFromNode(node: Node, sourceFile?: SourceFile): TextSpan;
 }
 declare namespace ts {
     function isFirstDeclarationOfSymbolParameter(symbol: Symbol): boolean;
@@ -10843,7 +10848,7 @@ declare namespace ts {
     function getEncodedSyntacticClassifications(cancellationToken: CancellationToken, sourceFile: SourceFile, span: TextSpan): Classifications;
 }
 declare namespace ts.Completions {
-    function getCompletionsAtPosition(host: LanguageServiceHost, typeChecker: TypeChecker, log: (message: string) => void, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number): CompletionInfo;
+    function getCompletionsAtPosition(host: LanguageServiceHost, typeChecker: TypeChecker, log: (message: string) => void, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number): CompletionInfo | undefined;
     function getCompletionEntryDetails(typeChecker: TypeChecker, log: (message: string) => void, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number, entryName: string): CompletionEntryDetails;
     function getCompletionEntrySymbol(typeChecker: TypeChecker, log: (message: string) => void, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number, entryName: string): Symbol;
 }
@@ -11030,6 +11035,11 @@ declare namespace ts.SignatureHelp {
         argumentCount: number;
     }
     function getSignatureHelpItems(program: Program, sourceFile: SourceFile, position: number, cancellationToken: CancellationToken): SignatureHelpItems;
+    /**
+     * Returns relevant information for the argument list and the current argument if we are
+     * in the argument of an invocation; returns undefined otherwise.
+     */
+    function getImmediatelyContainingArgumentInfo(node: Node, position: number, sourceFile: SourceFile): ArgumentListInfo;
     function getContainingArgumentInfo(node: Node, position: number, sourceFile: SourceFile): ArgumentListInfo;
 }
 declare namespace ts.SymbolDisplay {
