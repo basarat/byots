@@ -2034,7 +2034,7 @@ declare namespace ts {
         EnumLike = 272,
         UnionOrIntersection = 196608,
         StructuredType = 229376,
-        StructuredOrTypeParameter = 507904,
+        StructuredOrTypeVariable = 1032192,
         TypeVariable = 540672,
         Narrowable = 17810431,
         NotUnionOrUnit = 16810497,
@@ -7840,7 +7840,7 @@ declare namespace ts {
             key: string;
             message: string;
         };
-        Compile_the_project_in_the_given_directory: {
+        Compile_the_project_given_the_path_to_its_configuration_file_or_to_a_folder_with_a_tsconfig_json: {
             code: number;
             category: DiagnosticCategory;
             key: string;
@@ -7925,6 +7925,12 @@ declare namespace ts {
             message: string;
         };
         STRATEGY: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        FILE_OR_DIRECTORY: {
             code: number;
             category: DiagnosticCategory;
             key: string;
