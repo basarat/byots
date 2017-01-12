@@ -2118,6 +2118,7 @@ declare namespace ts {
         types: Type[];
         resolvedProperties: SymbolTable;
         resolvedIndexType: IndexType;
+        resolvedBaseConstraint: Type;
         couldContainTypeVariables: boolean;
     }
     interface UnionType extends UnionOrIntersectionType {
@@ -2157,7 +2158,7 @@ declare namespace ts {
         iteratorElementType?: Type;
     }
     interface TypeVariable extends Type {
-        resolvedApparentType: Type;
+        resolvedBaseConstraint: Type;
         resolvedIndexType: IndexType;
     }
     interface TypeParameter extends TypeVariable {
@@ -8938,7 +8939,7 @@ declare namespace ts {
             key: string;
             message: string;
         };
-        Remove_unused_identifiers: {
+        Remove_declaration_for_Colon_0: {
             code: number;
             category: DiagnosticCategory;
             key: string;
