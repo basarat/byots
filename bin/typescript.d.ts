@@ -1689,6 +1689,8 @@ declare namespace ts {
         isValidPropertyAccess(node: PropertyAccessExpression | QualifiedName, propertyName: string): boolean;
         getAliasedSymbol(symbol: Symbol): Symbol;
         getExportsOfModule(moduleSymbol: Symbol): Symbol[];
+        /** Unlike `getExportsOfModule`, this includes properties of an `export =` value. */
+        getExportsAndPropertiesOfModule(moduleSymbol: Symbol): Symbol[];
         getJsxElementAttributesType(elementNode: JsxOpeningLikeElement): Type;
         getJsxIntrinsicTagNames(): Symbol[];
         isOptionalParameter(node: ParameterDeclaration): boolean;
@@ -9063,8 +9065,8 @@ declare namespace ts {
     function forEachTrailingCommentRange<T, U>(text: string, pos: number, cb: (pos: number, end: number, kind: SyntaxKind, hasTrailingNewLine: boolean, state: T) => U, state?: T): U;
     function reduceEachLeadingCommentRange<T, U>(text: string, pos: number, cb: (pos: number, end: number, kind: SyntaxKind, hasTrailingNewLine: boolean, state: T, memo: U) => U, state: T, initial: U): U;
     function reduceEachTrailingCommentRange<T, U>(text: string, pos: number, cb: (pos: number, end: number, kind: SyntaxKind, hasTrailingNewLine: boolean, state: T, memo: U) => U, state: T, initial: U): U;
-    function getLeadingCommentRanges(text: string, pos: number): CommentRange[];
-    function getTrailingCommentRanges(text: string, pos: number): CommentRange[];
+    function getLeadingCommentRanges(text: string, pos: number): CommentRange[] | undefined;
+    function getTrailingCommentRanges(text: string, pos: number): CommentRange[] | undefined;
     /** Optionally, get the shebang */
     function getShebang(text: string): string;
     function isIdentifierStart(ch: number, languageVersion: ScriptTarget): boolean;
@@ -10760,7 +10762,7 @@ declare namespace ts {
     function isCompletedNode(n: Node, sourceFile: SourceFile): boolean;
     function findListItemInfo(node: Node): ListItemInfo;
     function hasChildOfKind(n: Node, kind: SyntaxKind, sourceFile?: SourceFile): boolean;
-    function findChildOfKind(n: Node, kind: SyntaxKind, sourceFile?: SourceFile): Node;
+    function findChildOfKind(n: Node, kind: SyntaxKind, sourceFile?: SourceFile): Node | undefined;
     function findContainingList(node: Node): Node;
     function getTouchingWord(sourceFile: SourceFile, position: number, includeJsDocComment?: boolean): Node;
     function getTouchingPropertyName(sourceFile: SourceFile, position: number, includeJsDocComment?: boolean): Node;
