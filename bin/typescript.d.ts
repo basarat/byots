@@ -1,9 +1,34 @@
 declare namespace ts {
+    /**
+     * Type of objects whose values are all of the same type.
+     * The `in` and `for-in` operators can *not* be safely used,
+     * since `Object.prototype` may be modified by outside code.
+     */
     interface MapLike<T> {
         [index: string]: T;
     }
-    interface Map<T> extends MapLike<T> {
-        __mapBrand: any;
+    /** ES6 Map interface. */
+    interface Map<T> {
+        get(key: string): T;
+        has(key: string): boolean;
+        set(key: string, value: T): this;
+        delete(key: string): boolean;
+        clear(): void;
+        forEach(action: (value: T, key: string) => void): void;
+        readonly size: number;
+        keys(): Iterator<string>;
+        values(): Iterator<T>;
+        entries(): Iterator<[string, T]>;
+    }
+    /** ES6 Iterator type. */
+    interface Iterator<T> {
+        next(): {
+            value: T;
+            done: false;
+        } | {
+            value: never;
+            done: true;
+        };
     }
     type Path = string & {
         __pathBrand: any;
@@ -348,7 +373,7 @@ declare namespace ts {
         LastBinaryOperator = 69,
         FirstNode = 142,
         FirstJSDocNode = 264,
-        LastJSDocNode = 290,
+        LastJSDocNode = 293,
         FirstJSDocTagNode = 280,
         LastJSDocTagNode = 293,
     }
@@ -1660,8 +1685,13 @@ declare namespace ts {
         getIndexInfoOfType(type: Type, kind: IndexKind): IndexInfo;
         getSignaturesOfType(type: Type, kind: SignatureKind): Signature[];
         getIndexTypeOfType(type: Type, kind: IndexKind): Type;
-        getBaseTypes(type: InterfaceType): ObjectType[];
+        getBaseTypes(type: InterfaceType): BaseType[];
         getReturnTypeOfSignature(signature: Signature): Type;
+        /**
+         * Gets the type of a parameter at a given position in a signature.
+         * Returns `any` if the index is not valid.
+         */
+        getParameterType(signature: Signature, parameterIndex: number): Type;
         getNonNullableType(type: Type): Type;
         getSymbolsInScope(location: Node, meaning: SymbolFlags): Symbol[];
         getSymbolAtLocation(node: Node): Symbol;
@@ -2061,7 +2091,7 @@ declare namespace ts {
         regularType?: LiteralType;
     }
     interface EnumType extends Type {
-        memberTypes: Map<EnumLiteralType>;
+        memberTypes: EnumLiteralType[];
     }
     interface EnumLiteralType extends LiteralType {
         baseType: EnumType & UnionType;
@@ -2090,8 +2120,9 @@ declare namespace ts {
         localTypeParameters: TypeParameter[];
         thisType: TypeParameter;
         resolvedBaseConstructorType?: Type;
-        resolvedBaseTypes: ObjectType[];
+        resolvedBaseTypes: BaseType[];
     }
+    type BaseType = ObjectType | IntersectionType;
     interface InterfaceTypeWithDeclaredMembers extends InterfaceType {
         declaredProperties: Symbol[];
         declaredCallSignatures: Signature[];
@@ -2118,7 +2149,8 @@ declare namespace ts {
     }
     interface UnionOrIntersectionType extends Type {
         types: Type[];
-        resolvedProperties: SymbolTable;
+        propertyCache: SymbolTable;
+        resolvedProperties: Symbol[];
         resolvedIndexType: IndexType;
         resolvedBaseConstraint: Type;
         couldContainTypeVariables: boolean;
@@ -2126,6 +2158,7 @@ declare namespace ts {
     interface UnionType extends UnionOrIntersectionType {
     }
     interface IntersectionType extends UnionOrIntersectionType {
+        resolvedApparentType: Type;
     }
     type StructuredType = ObjectType | UnionType | IntersectionType;
     interface AnonymousType extends ObjectType {
@@ -2721,7 +2754,7 @@ declare namespace ts {
         flags?: EmitFlags;
         commentRange?: TextRange;
         sourceMapRange?: TextRange;
-        tokenSourceMapRanges?: Map<TextRange>;
+        tokenSourceMapRanges?: TextRange[];
         constantValue?: number;
         externalHelpersModuleName?: Identifier;
         helpers?: EmitHelper[];
@@ -2956,7 +2989,10 @@ declare namespace ts {
     const collator: {
         compare(a: string, b: string): number;
     };
-    function createMap<T>(template?: MapLike<T>): Map<T>;
+    const localeCompareIsCorrect: boolean;
+    /** Create a new map. If a template object is provided, the map will copy entries from it. */
+    function createMap<T>(): Map<T>;
+    function createMapFromTemplate<T>(template?: MapLike<T>): Map<T>;
     function createFileMap<T>(keyMapper?: (key: string) => string): FileMap<T>;
     function toPath(fileName: string, basePath: string, getCanonicalFileName: (path: string) => string): Path;
     enum Comparison {
@@ -2964,6 +3000,7 @@ declare namespace ts {
         EqualTo = 0,
         GreaterThan = 1,
     }
+    function length(array: any[]): number;
     /**
      * Iterates through 'array' by index and performs the callback on each element of array until the callback
      * returns a truthy value, then returns that value.
@@ -3024,7 +3061,7 @@ declare namespace ts {
      * @param mapfn A callback used to map a contiguous chunk of values to a single value.
      */
     function spanMap<T, K, U>(array: T[], keyfn: (x: T, i: number) => K, mapfn: (chunk: T[], key: K, start: number, end: number) => U): U[];
-    function mapObject<T, U>(object: MapLike<T>, f: (key: string, x: T) => [string, U]): MapLike<U>;
+    function mapEntries<T, U>(map: Map<T>, f: (key: string, value: T) => [string, U]): Map<U>;
     function some<T>(array: T[], predicate?: (value: T) => boolean): boolean;
     function concatenate<T>(array1: T[], array2: T[]): T[];
     function deduplicate<T>(array: T[], areEqual?: (a: T, b: T) => boolean): T[];
@@ -3097,18 +3134,12 @@ declare namespace ts {
     /**
      * Indicates whether a map-like contains an own property with the specified key.
      *
-     * NOTE: This is intended for use only with MapLike<T> objects. For Map<T> objects, use
-     *       the 'in' operator.
-     *
      * @param map A map-like.
      * @param key A property key.
      */
     function hasProperty<T>(map: MapLike<T>, key: string): boolean;
     /**
      * Gets the value of an owned property in a map-like.
-     *
-     * NOTE: This is intended for use only with MapLike<T> objects. For Map<T> objects, use
-     *       an indexer.
      *
      * @param map A map-like.
      * @param key A property key.
@@ -3123,42 +3154,20 @@ declare namespace ts {
      * @param map A map-like.
      */
     function getOwnKeys<T>(map: MapLike<T>): string[];
+    /** Shims `Array.from`. */
+    function arrayFrom<T>(iterator: Iterator<T>): T[];
     /**
-     * Enumerates the properties of a Map<T>, invoking a callback and returning the first truthy result.
-     *
-     * @param map A map for which properties should be enumerated.
-     * @param callback A callback to invoke for each property.
+     * Calls `callback` for each entry in the map, returning the first truthy result.
+     * Use `map.forEach` instead for normal iteration.
      */
-    function forEachProperty<T, U>(map: Map<T>, callback: (value: T, key: string) => U): U;
-    /**
-     * Returns true if a Map<T> has some matching property.
-     *
-     * @param map A map whose properties should be tested.
-     * @param predicate An optional callback used to test each property.
-     */
-    function someProperties<T>(map: Map<T>, predicate?: (value: T, key: string) => boolean): boolean;
-    /**
-     * Performs a shallow copy of the properties from a source Map<T> to a target MapLike<T>
-     *
-     * @param source A map from which properties should be copied.
-     * @param target A map to which properties should be copied.
-     */
-    function copyProperties<T>(source: Map<T>, target: MapLike<T>): void;
-    function appendProperty<T>(map: Map<T>, key: string | number, value: T): Map<T>;
+    function forEachEntry<T, U>(map: Map<T>, callback: (value: T, key: string) => U | undefined): U | undefined;
+    /** `forEachEntry` for just keys. */
+    function forEachKey<T>(map: Map<{}>, callback: (key: string) => T | undefined): T | undefined;
+    /** Copy entries from `source` to `target`. */
+    function copyEntries<T>(source: Map<T>, target: Map<T>): void;
     function assign<T1 extends MapLike<{}>, T2, T3>(t: T1, arg1: T2, arg2: T3): T1 & T2 & T3;
     function assign<T1 extends MapLike<{}>, T2>(t: T1, arg1: T2): T1 & T2;
     function assign<T1 extends MapLike<{}>>(t: T1, ...args: any[]): any;
-    /**
-     * Reduce the properties of a map.
-     *
-     * NOTE: This is intended for use with Map<T> objects. For MapLike<T> objects, use
-     *       reduceOwnProperties instead as it offers better runtime safety.
-     *
-     * @param map The map to reduce
-     * @param callback An aggregation function that is called for each entry in the map
-     * @param initial The initial value for the reduction.
-     */
-    function reduceProperties<T, U>(map: Map<T>, callback: (aggregate: U, value: T, key: string) => U, initial: U): U;
     /**
      * Performs a shallow equality comparison of the contents of two map-likes.
      *
@@ -3178,21 +3187,23 @@ declare namespace ts {
      */
     function arrayToMap<T>(array: T[], makeKey: (value: T) => string): Map<T>;
     function arrayToMap<T, U>(array: T[], makeKey: (value: T) => string, makeValue: (value: T) => U): Map<U>;
-    function isEmpty<T>(map: Map<T>): boolean;
     function cloneMap<T>(map: Map<T>): Map<T>;
     function clone<T>(object: T): T;
     function extend<T1, T2>(first: T1, second: T2): T1 & T2;
-    /**
-     * Adds the value to an array of values associated with the key, and returns the array.
-     * Creates the array if it does not already exist.
-     */
-    function multiMapAdd<V>(map: Map<V[]>, key: string | number, value: V): V[];
-    /**
-     * Removes a value from an array of values associated with the key.
-     * Does not preserve the order of those values.
-     * Does nothing if `key` is not in `map`, or `value` is not in `map[key]`.
-     */
-    function multiMapRemove<V>(map: Map<V[]>, key: string, value: V): void;
+    interface MultiMap<T> extends Map<T[]> {
+        /**
+         * Adds the value to an array of values associated with the key, and returns the array.
+         * Creates the array if it does not already exist.
+         */
+        add(key: string, value: T): T[];
+        /**
+         * Removes a value from an array of values associated with the key.
+         * Does not preserve the order of those values.
+         * Does nothing if `key` is not in `map`, or `value` is not in `map[key]`.
+         */
+        remove(key: string, value: T): void;
+    }
+    function createMultiMap<T>(): MultiMap<T>;
     /**
      * Tests whether a value is an array.
      */
@@ -3219,7 +3230,7 @@ declare namespace ts {
     function formatStringFromArgs(text: string, args: {
         [index: number]: string;
     }, baseIndex?: number): string;
-    let localizedDiagnosticMessages: Map<string>;
+    let localizedDiagnosticMessages: MapLike<string>;
     function getLocaleSpecificMessage(message: DiagnosticMessage): string;
     function createFileDiagnostic(file: SourceFile, start: number, length: number, message: DiagnosticMessage, ...args: (string | number)[]): Diagnostic;
     function formatMessage(_dummy: any, message: DiagnosticMessage): string;
@@ -3396,6 +3407,8 @@ declare namespace ts {
     function extensionFromPath(path: string): Extension;
     function tryGetExtensionFromPath(path: string): Extension | undefined;
 }
+declare function setTimeout(handler: (...args: any[]) => void, timeout: number): any;
+declare function clearTimeout(handle: any): void;
 declare namespace ts {
     type FileWatcherCallback = (fileName: string, removed?: boolean) => void;
     type DirectoryWatcherCallback = (fileName: string) => void;
@@ -7099,6 +7112,12 @@ declare namespace ts {
             key: string;
             message: string;
         };
+        Static_property_0_conflicts_with_built_in_property_Function_0_of_constructor_function_1: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
         Rest_types_may_only_be_created_from_object_types: {
             code: number;
             category: DiagnosticCategory;
@@ -9603,7 +9622,7 @@ declare namespace ts {
         externalImports: (ImportDeclaration | ImportEqualsDeclaration | ExportDeclaration)[];
         externalHelpersImportDeclaration: ImportDeclaration | undefined;
         exportSpecifiers: Map<ExportSpecifier[]>;
-        exportedBindings: Map<Identifier[]>;
+        exportedBindings: Identifier[][];
         exportedNames: Identifier[];
         exportEquals: ExportAssignment | undefined;
         hasExportStarsToExportValues: boolean;
@@ -9751,7 +9770,7 @@ declare namespace ts {
      * @param fileNames array of filenames to be generated into tsconfig.json
      */
     function generateTSConfig(options: CompilerOptions, fileNames: string[]): {
-        compilerOptions: Map<CompilerOptionsValue>;
+        compilerOptions: MapLike<CompilerOptionsValue>;
     };
     /**
       * Parse the contents of a config file (tsconfig.json).
@@ -10095,7 +10114,7 @@ declare namespace ts {
         getConstructSignatures(): Signature[];
         getStringIndexType(): Type;
         getNumberIndexType(): Type;
-        getBaseTypes(): ObjectType[];
+        getBaseTypes(): BaseType[];
         getNonNullableType(): Type;
     }
     interface Signature {
@@ -10813,6 +10832,7 @@ declare namespace ts {
     function isInReferenceComment(sourceFile: SourceFile, position: number): boolean;
     function isInNonReferenceComment(sourceFile: SourceFile, position: number): boolean;
     function createTextSpanFromNode(node: Node, sourceFile?: SourceFile): TextSpan;
+    function isTypeKeyword(kind: SyntaxKind): boolean;
 }
 declare namespace ts {
     function isFirstDeclarationOfSymbolParameter(symbol: Symbol): boolean;
@@ -10857,7 +10877,8 @@ declare namespace ts {
     function getEncodedSyntacticClassifications(cancellationToken: CancellationToken, sourceFile: SourceFile, span: TextSpan): Classifications;
 }
 declare namespace ts.Completions {
-    function getCompletionsAtPosition(host: LanguageServiceHost, typeChecker: TypeChecker, log: (message: string) => void, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number): CompletionInfo | undefined;
+    type Log = (message: string) => void;
+    function getCompletionsAtPosition(host: LanguageServiceHost, typeChecker: TypeChecker, log: Log, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number): CompletionInfo | undefined;
     function getCompletionEntryDetails(typeChecker: TypeChecker, log: (message: string) => void, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number, entryName: string): CompletionEntryDetails;
     function getCompletionEntrySymbol(typeChecker: TypeChecker, log: (message: string) => void, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number, entryName: string): Symbol;
 }
@@ -10931,8 +10952,8 @@ declare namespace ts {
     function createDocumentRegistry(useCaseSensitiveFileNames?: boolean, currentDirectory?: string): DocumentRegistry;
 }
 declare namespace ts.FindAllReferences {
-    function findReferencedSymbols(typeChecker: TypeChecker, cancellationToken: CancellationToken, sourceFiles: SourceFile[], sourceFile: SourceFile, position: number, findInStrings: boolean, findInComments: boolean): ReferencedSymbol[];
-    function getReferencedSymbolsForNode(typeChecker: TypeChecker, cancellationToken: CancellationToken, node: Node, sourceFiles: SourceFile[], findInStrings: boolean, findInComments: boolean, implementations: boolean): ReferencedSymbol[];
+    function findReferencedSymbols(typeChecker: TypeChecker, cancellationToken: CancellationToken, sourceFiles: SourceFile[], sourceFile: SourceFile, position: number, findInStrings: boolean, findInComments: boolean): ReferencedSymbol[] | undefined;
+    function getReferencedSymbolsForNode(typeChecker: TypeChecker, cancellationToken: CancellationToken, node: Node, sourceFiles: SourceFile[], findInStrings: boolean, findInComments: boolean, implementations: boolean): ReferencedSymbol[] | undefined;
     function convertReferences(referenceSymbols: ReferencedSymbol[]): ReferenceEntry[];
     function getReferenceEntriesForShorthandPropertyAssignment(node: Node, typeChecker: TypeChecker, result: ReferenceEntry[]): void;
     function getReferenceEntryFromNode(node: Node): ReferenceEntry;
