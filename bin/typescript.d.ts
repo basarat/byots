@@ -3758,30 +3758,18 @@ declare namespace ts {
      * @param targetSourceFile An optional target source file to emit.
      */
     function getSourceFilesToEmit(host: EmitHost, targetSourceFile?: SourceFile): SourceFile[];
-    /** Don't call this for `--outFile`, just for `--outDir` or plain emit. */
-    function filterSourceFilesInDirectory(sourceFiles: SourceFile[], isSourceFileFromExternalLibrary: (file: SourceFile) => boolean): SourceFile[];
+    /** Don't call this for `--outFile`, just for `--outDir` or plain emit. `--outFile` needs additional checks. */
+    function sourceFileMayBeEmitted(sourceFile: SourceFile, options: CompilerOptions, isSourceFileFromExternalLibrary: (file: SourceFile) => boolean): boolean;
     /**
-     * Iterates over each source file to emit. The source files are expected to have been
-     * transformed for use by the pretty printer.
-     *
-     * Originally part of `forEachExpectedEmitFile`, this functionality was extracted to support
-     * transformations.
-     *
-     * @param host An EmitHost.
-     * @param sourceFiles The transformed source files to emit.
-     * @param action The action to execute.
-     */
-    function forEachTransformedEmitFile(host: EmitHost, sourceFiles: SourceFile[], action: (jsFilePath: string, sourceMapFilePath: string, declarationFilePath: string, sourceFiles: SourceFile[], isBundledEmit: boolean) => void, emitOnlyDtsFiles?: boolean): void;
-    /**
-     * Iterates over the source files that are expected to have an emit output. This function
-     * is used by the legacy emitter and the declaration emitter and should not be used by
-     * the tree transforming emitter.
+     * Iterates over the source files that are expected to have an emit output.
      *
      * @param host An EmitHost.
      * @param action The action to execute.
-     * @param targetSourceFile An optional target source file to emit.
+     * @param sourceFilesOrTargetSourceFile
+     *   If an array, the full list of source files to emit.
+     *   Else, calls `getSourceFilesToEmit` with the (optional) target source file to determine the list of source files to emit.
      */
-    function forEachExpectedEmitFile(host: EmitHost, action: (emitFileNames: EmitFileNames, sourceFiles: SourceFile[], isBundledEmit: boolean, emitOnlyDtsFiles: boolean) => void, targetSourceFile?: SourceFile, emitOnlyDtsFiles?: boolean): void;
+    function forEachEmittedFile(host: EmitHost, action: (emitFileNames: EmitFileNames, sourceFiles: SourceFile[], isBundledEmit: boolean, emitOnlyDtsFiles: boolean) => void, sourceFilesOrTargetSourceFile?: SourceFile[] | SourceFile, emitOnlyDtsFiles?: boolean): void;
     function getSourceFilePathInNewDir(sourceFile: SourceFile, host: EmitHost, newDirPath: string): string;
     function writeFile(host: EmitHost, diagnostics: DiagnosticCollection, fileName: string, data: string, writeByteOrderMark: boolean, sourceFiles?: SourceFile[]): void;
     function getLineOfLocalPosition(currentSourceFile: SourceFile, pos: number): number;
