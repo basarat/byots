@@ -1966,6 +1966,7 @@ declare namespace ts {
         containingType?: UnionOrIntersectionType;
         leftSpread?: Symbol;
         rightSpread?: Symbol;
+        mappedTypeOrigin?: Symbol;
         hasNonUniformType?: boolean;
         isPartial?: boolean;
         isDiscriminantProperty?: boolean;
@@ -2415,6 +2416,7 @@ declare namespace ts {
         None = 0,
         Preserve = 1,
         React = 2,
+        ReactNative = 3,
     }
     enum NewLineKind {
         CarriageReturnLineFeed = 0,
@@ -8144,7 +8146,7 @@ declare namespace ts {
             key: string;
             message: string;
         };
-        Specify_JSX_code_generation_Colon_preserve_or_react: {
+        Specify_JSX_code_generation_Colon_preserve_react_native_or_react: {
             code: number;
             category: DiagnosticCategory;
             key: string;
