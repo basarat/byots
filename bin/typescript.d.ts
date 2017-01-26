@@ -6814,6 +6814,12 @@ declare namespace ts {
             key: string;
             message: string;
         };
+        Cannot_augment_module_0_with_value_exports_because_it_resolves_to_a_non_module_entity: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
         Cannot_emit_namespaced_JSX_elements_in_React: {
             code: number;
             category: DiagnosticCategory;
