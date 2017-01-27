@@ -3018,6 +3018,8 @@ declare namespace ts {
     function every<T>(array: T[], callback: (element: T, index: number) => boolean): boolean;
     /** Works like Array.prototype.find, returning `undefined` if no element satisfying the predicate is found. */
     function find<T>(array: T[], predicate: (element: T, index: number) => boolean): T | undefined;
+    /** Works like Array.prototype.findIndex, returning `-1` if no element satisfying the predicate is found. */
+    function findIndex<T>(array: T[], predicate: (element: T, index: number) => boolean): number;
     /**
      * Returns the first truthy result of `callback`, or else fails.
      * This is like `forEach`, but never returns undefined.
@@ -3298,7 +3300,7 @@ declare namespace ts {
     function hasExtension(fileName: string): boolean;
     function fileExtensionIs(path: string, extension: string): boolean;
     function fileExtensionIsAny(path: string, extensions: string[]): boolean;
-    function getRegularExpressionForWildcard(specs: string[], basePath: string, usage: "files" | "directories" | "exclude"): string;
+    function getRegularExpressionForWildcard(specs: string[], basePath: string, usage: "files" | "directories" | "exclude"): string | undefined;
     /**
      * An "includes" path "foo" is implicitly a glob "foo/** /*" (without the space) if its last component has no extension,
      * and does not contain any glob characters itself.
@@ -3309,6 +3311,9 @@ declare namespace ts {
         directories: string[];
     }
     interface FileMatcherPatterns {
+        /** One pattern for each "include" spec. */
+        includeFilePatterns: string[];
+        /** One pattern matching one of any of the "include" specs. */
         includeFilePattern: string;
         includeDirectoryPattern: string;
         excludePattern: string;
@@ -3501,6 +3506,22 @@ declare namespace ts {
     function getTextOfNode(node: Node, includeTrivia?: boolean): string;
     function getLiteralText(node: LiteralLikeNode, sourceFile: SourceFile, languageVersion: ScriptTarget): string;
     function isBinaryOrOctalIntegerLiteral(node: LiteralLikeNode, text: string): boolean;
+    enum NumericLiteralFlags {
+        None = 0,
+        Hexadecimal = 1,
+        Binary = 2,
+        Octal = 4,
+        Scientific = 8,
+        BinaryOrOctal = 6,
+        BinaryOrOctalOrHexadecimal = 7,
+        All = 15,
+    }
+    /**
+     * Scans a numeric literal string to determine the form of the number.
+     * @param text Numeric literal text
+     * @param hint If `Scientific` or `All` is specified, performs a more expensive check to scan for scientific notation.
+     */
+    function getNumericLiteralFlags(text: string, hint?: NumericLiteralFlags): NumericLiteralFlags;
     function escapeIdentifier(identifier: string): string;
     function unescapeIdentifier(identifier: string): string;
     function makeIdentifierFromModuleName(moduleName: string): string;
@@ -3820,6 +3841,7 @@ declare namespace ts {
     function isRightSideOfQualifiedNameOrPropertyAccess(node: Node): boolean;
     function isEmptyObjectLiteralOrArrayLiteral(expression: Node): boolean;
     function getLocalSymbolForExportDefault(symbol: Symbol): Symbol;
+    function isExportDefaultSymbol(symbol: Symbol): boolean;
     /** Return ".ts", ".d.ts", or ".tsx", if that is the extension. */
     function tryExtractTypeScriptExtension(fileName: string): string | undefined;
     /**
@@ -10850,7 +10872,7 @@ declare namespace ts {
     function symbolToDisplayParts(typeChecker: TypeChecker, symbol: Symbol, enclosingDeclaration?: Node, meaning?: SymbolFlags, flags?: SymbolFormatFlags): SymbolDisplayPart[];
     function signatureToDisplayParts(typechecker: TypeChecker, signature: Signature, enclosingDeclaration?: Node, flags?: TypeFormatFlags): SymbolDisplayPart[];
     function getDeclaredName(typeChecker: TypeChecker, symbol: Symbol, location: Node): string;
-    function isImportOrExportSpecifierName(location: Node): boolean;
+    function isImportOrExportSpecifierName(location: Node): location is Identifier;
     /**
      * Strip off existed single quotes or double quotes from a given string
      *
@@ -10948,8 +10970,8 @@ declare namespace ts {
     function createDocumentRegistry(useCaseSensitiveFileNames?: boolean, currentDirectory?: string): DocumentRegistry;
 }
 declare namespace ts.FindAllReferences {
-    function findReferencedSymbols(typeChecker: TypeChecker, cancellationToken: CancellationToken, sourceFiles: SourceFile[], sourceFile: SourceFile, position: number, findInStrings: boolean, findInComments: boolean): ReferencedSymbol[] | undefined;
-    function getReferencedSymbolsForNode(typeChecker: TypeChecker, cancellationToken: CancellationToken, node: Node, sourceFiles: SourceFile[], findInStrings: boolean, findInComments: boolean, implementations: boolean): ReferencedSymbol[] | undefined;
+    function findReferencedSymbols(typeChecker: TypeChecker, cancellationToken: CancellationToken, sourceFiles: SourceFile[], sourceFile: SourceFile, position: number, findInStrings: boolean, findInComments: boolean, isForRename: boolean): ReferencedSymbol[] | undefined;
+    function getReferencedSymbolsForNode(typeChecker: TypeChecker, cancellationToken: CancellationToken, node: Node, sourceFiles: SourceFile[], findInStrings?: boolean, findInComments?: boolean, isForRename?: boolean, implementations?: boolean): ReferencedSymbol[] | undefined;
     function convertReferences(referenceSymbols: ReferencedSymbol[]): ReferenceEntry[];
     function getReferenceEntriesForShorthandPropertyAssignment(node: Node, typeChecker: TypeChecker, result: ReferenceEntry[]): void;
     function getReferenceEntryFromNode(node: Node): ReferenceEntry;
