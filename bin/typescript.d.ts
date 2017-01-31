@@ -6776,6 +6776,12 @@ declare namespace ts {
             key: string;
             message: string;
         };
+        A_mixin_class_must_have_a_constructor_with_a_single_rest_parameter_of_type_any: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
         JSX_element_attributes_type_0_may_not_be_a_union_type: {
             code: number;
             category: DiagnosticCategory;
@@ -8991,6 +8997,12 @@ declare namespace ts {
             message: string;
         };
         Implement_inherited_abstract_class: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Add_this_to_unresolved_variable: {
             code: number;
             category: DiagnosticCategory;
             key: string;
@@ -11545,6 +11557,8 @@ declare namespace ts {
         function getSupportedErrorCodes(): string[];
         function getFixes(context: CodeFixContext): CodeAction[];
     }
+}
+declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
 }
