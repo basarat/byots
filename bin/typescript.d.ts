@@ -3269,6 +3269,7 @@ declare namespace ts {
     function getOwnKeys<T>(map: MapLike<T>): string[];
     /** Shims `Array.from`. */
     function arrayFrom<T>(iterator: Iterator<T>): T[];
+    function convertToArray<T, U>(iterator: Iterator<T>, f: (value: T) => U): U[];
     /**
      * Calls `callback` for each entry in the map, returning the first truthy result.
      * Use `map.forEach` instead for normal iteration.
@@ -11981,11 +11982,3 @@ declare namespace TypeScript.Services {
     const TypeScriptServicesFactory: typeof ts.TypeScriptServicesFactory;
 }
 declare const toolsVersion = "2.2";
-declare namespace ts {
-    /**
-     * Transform one or more source files using the supplied transformers.
-     * @param source A `SourceFile` or an array of `SourceFiles`.
-     * @param transformers An array of `Transformer` callbacks used to process the transformation.
-     */
-    function transform(source: SourceFile | SourceFile[], transformers: Transformer[]): TransformationResult;
-}
