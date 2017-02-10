@@ -3744,6 +3744,7 @@ declare namespace ts {
     function hasQuestionToken(node: Node): boolean;
     function isJSDocConstructSignature(node: Node): boolean;
     function getCommentsFromJSDoc(node: Node): string[];
+    function hasJSDocParameterTags(node: FunctionLikeDeclaration | SignatureDeclaration): boolean;
     function getJSDocParameterTags(param: Node): JSDocParameterTag[];
     function getJSDocType(node: Node): JSDocType;
     function getJSDocAugmentsTag(node: Node): JSDocAugmentsTag;
@@ -9999,6 +10000,7 @@ declare namespace ts {
         emitNodeWithComments(hint: EmitHint, node: Node, emitCallback: (hint: EmitHint, node: Node) => void): void;
         emitBodyWithDetachedComments(node: Node, detachedRange: TextRange, emitCallback: (node: Node) => void): void;
         emitTrailingCommentsOfPosition(pos: number): void;
+        emitLeadingCommentsOfPosition(pos: number): void;
     }
     function createCommentWriter(printerOptions: PrinterOptions, emitPos: ((pos: number) => void) | undefined): CommentWriter;
 }
