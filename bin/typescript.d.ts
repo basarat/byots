@@ -1484,8 +1484,20 @@ declare namespace ts {
         ArrayMutation = 256,
         Referenced = 512,
         Shared = 1024,
+        PreFinally = 2048,
+        AfterFinally = 4096,
         Label = 12,
         Condition = 96,
+    }
+    interface FlowLock {
+        locked?: boolean;
+    }
+    interface AfterFinallyFlow extends FlowNode, FlowLock {
+        antecedent: FlowNode;
+    }
+    interface PreFinallyFlow extends FlowNode {
+        antecedent: FlowNode;
+        lock: FlowLock;
     }
     interface FlowNode {
         flags: FlowFlags;
@@ -1786,6 +1798,7 @@ declare namespace ts {
         InTypeAlias = 512,
         UseTypeAliasValue = 1024,
         SuppressAnyReturnType = 2048,
+        AddUndefined = 4096,
     }
     enum SymbolFormatFlags {
         None = 0,
@@ -1856,6 +1869,7 @@ declare namespace ts {
         isDeclarationVisible(node: Declaration): boolean;
         collectLinkedAliases(node: Identifier): Node[];
         isImplementationOfOverload(node: FunctionLikeDeclaration): boolean;
+        isRequiredInitializedParameter(node: ParameterDeclaration): boolean;
         writeTypeOfDeclaration(declaration: AccessorDeclaration | VariableLikeDeclaration, enclosingDeclaration: Node, flags: TypeFormatFlags, writer: SymbolWriter): void;
         writeReturnTypeOfSignatureDeclaration(signatureDeclaration: SignatureDeclaration, enclosingDeclaration: Node, flags: TypeFormatFlags, writer: SymbolWriter): void;
         writeTypeOfExpression(expr: Expression, enclosingDeclaration: Node, flags: TypeFormatFlags, writer: SymbolWriter): void;
@@ -1901,13 +1915,10 @@ declare namespace ts {
         ExportType = 2097152,
         ExportNamespace = 4194304,
         Alias = 8388608,
-        Instantiated = 16777216,
-        Merged = 33554432,
-        Transient = 67108864,
-        Prototype = 134217728,
-        SyntheticProperty = 268435456,
-        Optional = 536870912,
-        ExportStar = 1073741824,
+        Prototype = 16777216,
+        ExportStar = 33554432,
+        Optional = 67108864,
+        Transient = 134217728,
         Enum = 384,
         Variable = 3,
         Value = 107455,
@@ -1951,7 +1962,6 @@ declare namespace ts {
         members?: SymbolTable;
         exports?: SymbolTable;
         globalExports?: SymbolTable;
-        isReadonly?: boolean;
         id?: number;
         mergeId?: number;
         parent?: Symbol;
@@ -1974,8 +1984,6 @@ declare namespace ts {
         leftSpread?: Symbol;
         rightSpread?: Symbol;
         mappedTypeOrigin?: Symbol;
-        hasNonUniformType?: boolean;
-        isPartial?: boolean;
         isDiscriminantProperty?: boolean;
         resolvedExports?: SymbolTable;
         exportsChecked?: boolean;
@@ -1983,7 +1991,19 @@ declare namespace ts {
         bindingElement?: BindingElement;
         exportsSomeValue?: boolean;
     }
+    enum CheckFlags {
+        Instantiated = 1,
+        SyntheticProperty = 2,
+        Readonly = 4,
+        Partial = 8,
+        HasNonUniformType = 16,
+        ContainsPublic = 32,
+        ContainsProtected = 64,
+        ContainsPrivate = 128,
+        ContainsStatic = 256,
+    }
     interface TransientSymbol extends Symbol, SymbolLinks {
+        checkFlags: CheckFlags;
     }
     type SymbolTable = Map<Symbol>;
     /** Represents a "prefix*suffix" pattern. */
@@ -2275,9 +2295,8 @@ declare namespace ts {
         PrototypeProperty = 3,
         ThisProperty = 4,
     }
-    interface FileExtensionInfo {
+    interface JsFileExtensionInfo {
         extension: string;
-        scriptKind: ScriptKind;
         isMixedContent: boolean;
     }
     interface DiagnosticMessage {
@@ -3440,10 +3459,10 @@ declare namespace ts {
     /** Must have ".d.ts" first because if ".ts" goes first, that will be detected as the extension instead of ".d.ts". */
     const supportedTypescriptExtensionsForExtractExtension: string[];
     const supportedJavascriptExtensions: string[];
-    function getSupportedExtensions(options?: CompilerOptions, extraFileExtensions?: FileExtensionInfo[]): string[];
+    function getSupportedExtensions(options?: CompilerOptions, extraFileExtensions?: JsFileExtensionInfo[]): string[];
     function hasJavaScriptFileExtension(fileName: string): boolean;
     function hasTypeScriptFileExtension(fileName: string): boolean;
-    function isSupportedSourceFileName(fileName: string, compilerOptions?: CompilerOptions, extraFileExtensions?: FileExtensionInfo[]): boolean;
+    function isSupportedSourceFileName(fileName: string, compilerOptions?: CompilerOptions, extraFileExtensions?: JsFileExtensionInfo[]): boolean;
     /**
      * Extension boundaries by priority. Lower numbers indicate higher priorities, and are
      * aligned to the offset of the highest priority extension in the
@@ -3452,7 +3471,6 @@ declare namespace ts {
     enum ExtensionPriority {
         TypeScriptFiles = 0,
         DeclarationAndJavaScriptFiles = 2,
-        Limit = 5,
         Highest = 0,
         Lowest = 2,
     }
@@ -3460,11 +3478,11 @@ declare namespace ts {
     /**
      * Adjusts an extension priority to be the highest priority within the same range.
      */
-    function adjustExtensionPriority(extensionPriority: ExtensionPriority): ExtensionPriority;
+    function adjustExtensionPriority(extensionPriority: ExtensionPriority, supportedExtensions: string[]): ExtensionPriority;
     /**
      * Gets the next lowest extension priority for a given priority.
      */
-    function getNextLowestExtensionPriority(extensionPriority: ExtensionPriority): ExtensionPriority;
+    function getNextLowestExtensionPriority(extensionPriority: ExtensionPriority, supportedExtensions: string[]): ExtensionPriority;
     function removeFileExtension(path: string): string;
     function tryRemoveExtension(path: string, extension: string): string | undefined;
     function removeExtension(path: string, extension: string): string;
@@ -5208,6 +5226,12 @@ declare namespace ts {
             key: string;
             message: string;
         };
+        Identifier_expected_esModule_is_reserved_as_an_exported_marker_when_transforming_ECMAScript_modules: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
         Export_assignment_is_not_supported_when_module_flag_is_system: {
             code: number;
             category: DiagnosticCategory;
@@ -6882,6 +6906,12 @@ declare namespace ts {
             key: string;
             message: string;
         };
+        Property_0_has_conflicting_declarations_and_is_inaccessible_in_type_1: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
         JSX_element_attributes_type_0_may_not_be_a_union_type: {
             code: number;
             category: DiagnosticCategory;
@@ -8400,7 +8430,7 @@ declare namespace ts {
             key: string;
             message: string;
         };
-        package_json_does_not_have_a_types_or_main_field: {
+        package_json_does_not_have_a_0_field: {
             code: number;
             category: DiagnosticCategory;
             key: string;
@@ -8617,12 +8647,6 @@ declare namespace ts {
             message: string;
         };
         The_maximum_dependency_depth_to_search_under_node_modules_and_load_JavaScript_files: {
-            code: number;
-            category: DiagnosticCategory;
-            key: string;
-            message: string;
-        };
-        No_types_specified_in_package_json_so_returning_main_value_of_0: {
             code: number;
             category: DiagnosticCategory;
             key: string;
@@ -9920,7 +9944,7 @@ declare namespace ts {
       * @param basePath A root directory to resolve relative path entries in the config
       *    file to. e.g. outDir
       */
-    function parseJsonConfigFileContent(json: any, host: ParseConfigHost, basePath: string, existingOptions?: CompilerOptions, configFileName?: string, resolutionStack?: Path[], extraFileExtensions?: FileExtensionInfo[]): ParsedCommandLine;
+    function parseJsonConfigFileContent(json: any, host: ParseConfigHost, basePath: string, existingOptions?: CompilerOptions, configFileName?: string, resolutionStack?: Path[], extraFileExtensions?: JsFileExtensionInfo[]): ParsedCommandLine;
     function convertCompileOnSaveOptionFromJson(jsonOption: any, basePath: string, errors: Diagnostic[]): boolean;
     function convertCompilerOptionsFromJson(jsonOptions: any, basePath: string, configFileName?: string): {
         options: CompilerOptions;
