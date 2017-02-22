@@ -27,6 +27,6 @@
     "typescript": "2.2.0-dev.20170214"
   },
   "peerDependencies": {
-    "typescript": "> 2.3.0-dev"
+    "typescript": ">= 2.3.0-dev"
   }
 }
