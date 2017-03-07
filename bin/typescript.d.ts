@@ -455,6 +455,8 @@ declare namespace ts {
         localSymbol?: Symbol;
         flowNode?: FlowNode;
         emitNode?: EmitNode;
+        contextualType?: Type;
+        contextualMapper?: TypeMapper;
     }
     interface NodeArray<T extends Node> extends Array<T>, TextRange {
         hasTrailingComma?: boolean;
@@ -762,7 +764,6 @@ declare namespace ts {
     }
     interface Expression extends Node {
         _expressionBrand: any;
-        contextualType?: Type;
     }
     interface OmittedExpression extends Expression {
         kind: SyntaxKind.OmittedExpression;
@@ -2470,6 +2471,7 @@ declare namespace ts {
         skipDefaultLibCheck?: boolean;
         sourceMap?: boolean;
         sourceRoot?: string;
+        strict?: boolean;
         strictNullChecks?: boolean;
         stripInternal?: boolean;
         suppressExcessPropertyErrors?: boolean;
@@ -8897,6 +8899,12 @@ declare namespace ts {
             key: string;
             message: string;
         };
+        Enable_all_strict_type_checks: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
         Variable_0_implicitly_has_an_1_type: {
             code: number;
             category: DiagnosticCategory;
@@ -11274,6 +11282,10 @@ declare namespace ts {
     function getEncodedSemanticClassifications(typeChecker: TypeChecker, cancellationToken: CancellationToken, sourceFile: SourceFile, classifiableNames: Map<string>, span: TextSpan): Classifications;
     function getSyntacticClassifications(cancellationToken: CancellationToken, sourceFile: SourceFile, span: TextSpan): ClassifiedSpan[];
     function getEncodedSyntacticClassifications(cancellationToken: CancellationToken, sourceFile: SourceFile, span: TextSpan): Classifications;
+}
+declare namespace ts.Completions.PathCompletions {
+    function getStringLiteralCompletionEntriesFromModuleNames(node: StringLiteral, compilerOptions: CompilerOptions, host: LanguageServiceHost, typeChecker: TypeChecker): CompletionInfo;
+    function getTripleSlashReferenceCompletion(sourceFile: SourceFile, position: number, compilerOptions: CompilerOptions, host: LanguageServiceHost): CompletionInfo;
 }
 declare namespace ts.Completions {
     type Log = (message: string) => void;
