@@ -3849,6 +3849,9 @@ declare namespace ts {
      * This function does not test if the node is in a JavaScript file or not.
      */
     function isDeclarationOfFunctionOrClassExpression(s: Symbol): boolean;
+    function getRightMostAssignedExpression(node: Node): Node;
+    function isExportsIdentifier(node: Node): boolean;
+    function isModuleExportsPropertyAccessExpression(node: Node): boolean;
     function getSpecialPropertyAssignmentKind(expression: Node): SpecialPropertyAssignmentKind;
     function getExternalModuleName(node: Node): Expression;
     function getNamespaceDeclarationNode(node: ImportDeclaration | ImportEqualsDeclaration | ExportDeclaration): ImportEqualsDeclaration | NamespaceImport;
@@ -4035,7 +4038,8 @@ declare namespace ts {
     function isExpressionWithTypeArgumentsInClassImplementsClause(node: Node): node is ExpressionWithTypeArguments;
     function isEntityNameExpression(node: Expression): node is EntityNameExpression;
     function isRightSideOfQualifiedNameOrPropertyAccess(node: Node): boolean;
-    function isEmptyObjectLiteralOrArrayLiteral(expression: Node): boolean;
+    function isEmptyObjectLiteral(expression: Node): boolean;
+    function isEmptyArrayLiteral(expression: Node): boolean;
     function getLocalSymbolForExportDefault(symbol: Symbol): Symbol;
     function isExportDefaultSymbol(symbol: Symbol): boolean;
     /** Return ".ts", ".d.ts", or ".tsx", if that is the extension. */
