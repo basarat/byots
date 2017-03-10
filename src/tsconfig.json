@@ -8,6 +8,10 @@
     "sourceMap": true,
     "noResolve": false,
     "declaration": true,
+    "lib": [
+      "dom",
+      "es6"
+    ],
     "types": []
   },
   "include": [
