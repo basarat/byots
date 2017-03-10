@@ -2352,6 +2352,7 @@ declare namespace ts {
         inferredTypes: Type[];
         mapper?: TypeMapper;
         failedTypeParameterIndex?: number;
+        useAnyForNoInferences?: boolean;
     }
     enum SpecialPropertyAssignmentKind {
         None = 0,
