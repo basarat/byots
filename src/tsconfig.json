@@ -10,6 +10,7 @@
     "declaration": true,
     "lib": [
       "dom",
+      "scripthost",
       "es6"
     ],
     "types": []
