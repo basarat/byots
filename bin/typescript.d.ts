@@ -1581,6 +1581,13 @@ declare namespace ts {
         path: string;
         name: string;
     }
+    /**
+     * Subset of properties from SourceFile that are used in multiple utility functions
+     */
+    interface SourceFileLike {
+        readonly text: string;
+        lineMap: number[];
+    }
     interface SourceFile extends Declaration {
         kind: SyntaxKind.SourceFile;
         statements: NodeArray<Statement>;
@@ -3101,6 +3108,8 @@ declare namespace ts {
         onEmitSourceMapOfPosition?: (pos: number) => void;
         onEmitHelpers?: (node: Node, writeLines: (text: string) => void) => void;
         onSetSourceFile?: (node: SourceFile) => void;
+        onBeforeEmitNodeArray?: (nodes: NodeArray<any>) => void;
+        onAfterEmitNodeArray?: (nodes: NodeArray<any>) => void;
     }
     interface PrinterOptions {
         target?: ScriptTarget;
@@ -3714,17 +3723,18 @@ declare namespace ts {
     function containsParseError(node: Node): boolean;
     function getSourceFileOfNode(node: Node): SourceFile;
     function isStatementWithLocals(node: Node): boolean;
-    function getStartPositionOfLine(line: number, sourceFile: SourceFile): number;
+    function getStartPositionOfLine(line: number, sourceFile: SourceFileLike): number;
     function nodePosToString(node: Node): string;
     function getStartPosOfNode(node: Node): number;
     function isDefined(value: any): boolean;
-    function getEndLinePosition(line: number, sourceFile: SourceFile): number;
+    function getEndLinePosition(line: number, sourceFile: SourceFileLike): number;
     function nodeIsMissing(node: Node): boolean;
     function nodeIsPresent(node: Node): boolean;
-    function getTokenPosOfNode(node: Node, sourceFile?: SourceFile, includeJsDoc?: boolean): number;
+    function isToken(n: Node): boolean;
+    function getTokenPosOfNode(node: Node, sourceFile?: SourceFileLike, includeJsDoc?: boolean): number;
     function isJSDocNode(node: Node): boolean;
     function isJSDocTag(node: Node): boolean;
-    function getNonDecoratorTokenPosOfNode(node: Node, sourceFile?: SourceFile): number;
+    function getNonDecoratorTokenPosOfNode(node: Node, sourceFile?: SourceFileLike): number;
     function getSourceTextOfNodeFromSourceFile(sourceFile: SourceFile, node: Node, includeTrivia?: boolean): string;
     function getTextOfNodeFromSourceText(sourceText: string, node: Node): string;
     function getTextOfNode(node: Node, includeTrivia?: boolean): string;
@@ -3956,7 +3966,7 @@ declare namespace ts {
     function escapeNonAsciiCharacters(s: string): string;
     function getIndentString(level: number): string;
     function getIndentSize(): number;
-    function createTextWriter(newLine: String): EmitTextWriter;
+    function createTextWriter(newLine: string): EmitTextWriter;
     function getResolvedExternalModuleName(host: EmitHost, file: SourceFile): string;
     function getExternalModuleNameFromDeclaration(host: EmitHost, resolver: EmitResolver, declaration: ImportEqualsDeclaration | ImportDeclaration | ExportDeclaration | ModuleDeclaration): string;
     /**
@@ -9422,7 +9432,7 @@ declare namespace ts {
     function computeLineStarts(text: string): number[];
     function getPositionOfLineAndCharacter(sourceFile: SourceFile, line: number, character: number): number;
     function computePositionOfLineAndCharacter(lineStarts: number[], line: number, character: number): number;
-    function getLineStarts(sourceFile: SourceFile): number[];
+    function getLineStarts(sourceFile: SourceFileLike): number[];
     /**
      * We assume the first line starts at position 0 and 'position' is non-negative.
      */
@@ -9603,6 +9613,7 @@ declare namespace ts {
     function updateThrow(node: ThrowStatement, expression: Expression): ThrowStatement;
     function createTry(tryBlock: Block, catchClause: CatchClause | undefined, finallyBlock: Block | undefined): TryStatement;
     function updateTry(node: TryStatement, tryBlock: Block, catchClause: CatchClause | undefined, finallyBlock: Block | undefined): TryStatement;
+    function createKeywordTypeNode(kind: KeywordTypeNode["kind"]): KeywordTypeNode;
     function createFunctionDeclaration(decorators: Decorator[] | undefined, modifiers: Modifier[] | undefined, asteriskToken: AsteriskToken | undefined, name: string | Identifier | undefined, typeParameters: TypeParameterDeclaration[] | undefined, parameters: ParameterDeclaration[], type: TypeNode | undefined, body: Block | undefined): FunctionDeclaration;
     function updateFunctionDeclaration(node: FunctionDeclaration, decorators: Decorator[] | undefined, modifiers: Modifier[] | undefined, asteriskToken: AsteriskToken | undefined, name: Identifier | undefined, typeParameters: TypeParameterDeclaration[] | undefined, parameters: ParameterDeclaration[], type: TypeNode | undefined, body: Block | undefined): FunctionDeclaration;
     function createClassDeclaration(decorators: Decorator[] | undefined, modifiers: Modifier[] | undefined, name: string | Identifier | undefined, typeParameters: TypeParameterDeclaration[] | undefined, heritageClauses: HeritageClause[], members: ClassElement[]): ClassDeclaration;
@@ -10299,7 +10310,7 @@ declare namespace ts {
      * Starts a new lexical environment and visits a parameter list, suspending the lexical
      * environment upon completion.
      */
-    function visitParameterList(nodes: NodeArray<ParameterDeclaration>, visitor: Visitor, context: TransformationContext): NodeArray<ParameterDeclaration>;
+    function visitParameterList(nodes: NodeArray<ParameterDeclaration>, visitor: Visitor, context: TransformationContext, nodesVisitor?: typeof visitNodes): NodeArray<ParameterDeclaration>;
     /**
      * Resumes a suspended lexical environment and visits a function body, ending the lexical
      * environment and merging hoisted declarations upon completion.
@@ -10330,7 +10341,7 @@ declare namespace ts {
      * @param visitor The callback used to visit each child.
      * @param context A lexical environment context for the visitor.
      */
-    function visitEachChild<T extends Node>(node: T | undefined, visitor: Visitor, context: TransformationContext): T | undefined;
+    function visitEachChild<T extends Node>(node: T | undefined, visitor: Visitor, context: TransformationContext, nodesVisitor?: typeof visitNodes): T | undefined;
 }
 declare namespace ts {
     /**
@@ -10491,7 +10502,9 @@ declare namespace ts {
         getChildCount(sourceFile?: SourceFile): number;
         getChildAt(index: number, sourceFile?: SourceFile): Node;
         getChildren(sourceFile?: SourceFile): Node[];
+        getChildren(sourceFile?: SourceFileLike): Node[];
         getStart(sourceFile?: SourceFile, includeJsDocComment?: boolean): number;
+        getStart(sourceFile?: SourceFileLike, includeJsDocComment?: boolean): number;
         getFullStart(): number;
         getEnd(): number;
         getWidth(sourceFile?: SourceFile): number;
@@ -10538,6 +10551,9 @@ declare namespace ts {
         getLineStarts(): number[];
         getPositionOfLineAndCharacter(line: number, character: number): number;
         update(newText: string, textChangeRange: TextChangeRange): SourceFile;
+    }
+    interface SourceFileLike {
+        getLineAndCharacterOfPosition(pos: number): LineAndCharacter;
     }
     /**
      * Represents an immutable snapshot of a script at a specified time.Once acquired, the
@@ -10646,7 +10662,7 @@ declare namespace ts {
         getFormattingEditsAfterKeystroke(fileName: string, position: number, key: string, options: FormatCodeOptions | FormatCodeSettings): TextChange[];
         getDocCommentTemplateAtPosition(fileName: string, position: number): TextInsertion;
         isValidBraceCompletionAtPosition(fileName: string, position: number, openingBrace: number): boolean;
-        getCodeFixesAtPosition(fileName: string, start: number, end: number, errorCodes: number[]): CodeAction[];
+        getCodeFixesAtPosition(fileName: string, start: number, end: number, errorCodes: number[], formatOptions: FormatCodeSettings): CodeAction[];
         getEmitOutput(fileName: string, emitOnlyDtsFiles?: boolean): EmitOutput;
         getProgram(): Program;
         getNonBoundSourceFile(fileName: string): SourceFile;
@@ -11183,7 +11199,7 @@ declare namespace ts {
         listItemIndex: number;
         list: Node;
     }
-    function getLineStartPositionForPosition(position: number, sourceFile: SourceFile): number;
+    function getLineStartPositionForPosition(position: number, sourceFile: SourceFileLike): number;
     function rangeContainsRange(r1: TextRange, r2: TextRange): boolean;
     function startEndContainsRange(start: number, end: number, range: TextRange): boolean;
     function rangeContainsStartEnd(range: TextRange, start: number, end: number): boolean;
@@ -11193,7 +11209,7 @@ declare namespace ts {
     function isCompletedNode(n: Node, sourceFile: SourceFile): boolean;
     function findListItemInfo(node: Node): ListItemInfo;
     function hasChildOfKind(n: Node, kind: SyntaxKind, sourceFile?: SourceFile): boolean;
-    function findChildOfKind(n: Node, kind: SyntaxKind, sourceFile?: SourceFile): Node | undefined;
+    function findChildOfKind(n: Node, kind: SyntaxKind, sourceFile?: SourceFileLike): Node | undefined;
     function findContainingList(node: Node): Node;
     function getTouchingWord(sourceFile: SourceFile, position: number, includeJsDocComment?: boolean): Node;
     function getTouchingPropertyName(sourceFile: SourceFile, position: number, includeJsDocComment?: boolean): Node;
@@ -11231,7 +11247,6 @@ declare namespace ts {
     function getJsDocTagAtPosition(sourceFile: SourceFile, position: number): JSDocTag;
     function getNodeModifiers(node: Node): string;
     function getTypeArgumentOrTypeParameterList(node: Node): NodeArray<Node>;
-    function isToken(n: Node): boolean;
     function isWord(kind: SyntaxKind): boolean;
     function isComment(kind: SyntaxKind): boolean;
     function isStringOrRegularExpressionOrTemplateLiteral(kind: SyntaxKind): boolean;
@@ -11279,7 +11294,7 @@ declare namespace ts {
         configJsonObject: any;
         diagnostics: Diagnostic[];
     };
-    function getOpenBraceEnd(constructor: ConstructorDeclaration, sourceFile: SourceFile): number;
+    function getOpenBrace(constructor: ConstructorDeclaration, sourceFile: SourceFile): Node;
 }
 declare namespace ts {
     function createClassifier(): Classifier;
@@ -11527,11 +11542,11 @@ declare namespace ts.formatting {
         skipToEndOf(node: Node): void;
         close(): void;
     }
-    function getFormattingScanner(sourceFile: SourceFile, startPos: number, endPos: number): FormattingScanner;
+    function getFormattingScanner(text: string, languageVariant: LanguageVariant, startPos: number, endPos: number): FormattingScanner;
 }
 declare namespace ts.formatting {
     class FormattingContext {
-        sourceFile: SourceFile;
+        readonly sourceFile: SourceFileLike;
         formattingRequestKind: FormattingRequestKind;
         currentTokenSpan: TextRangeWithKind;
         nextTokenSpan: TextRangeWithKind;
@@ -11543,7 +11558,7 @@ declare namespace ts.formatting {
         private tokensAreOnSameLine;
         private contextNodeBlockIsOnOneLine;
         private nextNodeBlockIsOnOneLine;
-        constructor(sourceFile: SourceFile, formattingRequestKind: FormattingRequestKind);
+        constructor(sourceFile: SourceFileLike, formattingRequestKind: FormattingRequestKind);
         updateContext(currentRange: TextRangeWithKind, currentTokenParent: Node, nextRange: TextRangeWithKind, nextTokenParent: Node, commonParent: Node): void;
         ContextNodeAllOnSameLine(): boolean;
         NextNodeAllOnSameLine(): boolean;
@@ -11893,6 +11908,7 @@ declare namespace ts.formatting {
         getRuleName(rule: Rule): string;
         getRuleByName(name: string): Rule;
         getRulesMap(): RulesMap;
+        getFormatOptions(): Readonly<ts.FormatCodeSettings>;
         ensureUpToDate(options: ts.FormatCodeSettings): void;
         private createActiveRules(options);
     }
@@ -11911,22 +11927,119 @@ declare namespace ts.formatting {
     function formatOnClosingCurly(position: number, sourceFile: SourceFile, rulesProvider: RulesProvider, options: FormatCodeSettings): TextChange[];
     function formatDocument(sourceFile: SourceFile, rulesProvider: RulesProvider, options: FormatCodeSettings): TextChange[];
     function formatSelection(start: number, end: number, sourceFile: SourceFile, rulesProvider: RulesProvider, options: FormatCodeSettings): TextChange[];
+    function formatNode(node: Node, sourceFileLike: SourceFileLike, languageVariant: LanguageVariant, initialIndentation: number, delta: number, rulesProvider: RulesProvider): TextChange[];
     function getIndentationString(indentation: number, options: EditorSettings): string;
 }
 declare namespace ts.formatting {
     namespace SmartIndenter {
-        function getIndentation(position: number, sourceFile: SourceFile, options: EditorSettings): number;
+        /**
+         * Computed indentation for a given position in source file
+         * @param position - position in file
+         * @param sourceFile - target source file
+         * @param options - set of editor options that control indentation
+         * @param assumeNewLineBeforeCloseBrace - false when getIndentation is called on the text from the real source file.
+         * true - when we need to assume that position is on the newline. This is usefult for codefixes, i.e.
+         * function f() {
+         * |}
+         * when inserting some text after open brace we would like to get the value of indentation as if newline was already there.
+         * However by default indentation at position | will be 0 so 'assumeNewLineBeforeCloseBrace' allows to override this behavior,
+         */
+        function getIndentation(position: number, sourceFile: SourceFile, options: EditorSettings, assumeNewLineBeforeCloseBrace?: boolean): number;
         function getIndentationForNode(n: Node, ignoreActualIndentationRange: TextRange, sourceFile: SourceFile, options: EditorSettings): number;
         function getBaseIndentation(options: EditorSettings): number;
-        function childStartsOnTheSameLineWithElseInIfStatement(parent: Node, child: TextRangeWithKind, childStartLine: number, sourceFile: SourceFile): boolean;
-        function findFirstNonWhitespaceCharacterAndColumn(startPos: number, endPos: number, sourceFile: SourceFile, options: EditorSettings): {
+        function childStartsOnTheSameLineWithElseInIfStatement(parent: Node, child: TextRangeWithKind, childStartLine: number, sourceFile: SourceFileLike): boolean;
+        function getContainingList(node: Node, sourceFile: SourceFile): NodeArray<Node>;
+        function findFirstNonWhitespaceCharacterAndColumn(startPos: number, endPos: number, sourceFile: SourceFileLike, options: EditorSettings): {
             column: number;
             character: number;
         };
-        function findFirstNonWhitespaceColumn(startPos: number, endPos: number, sourceFile: SourceFile, options: EditorSettings): number;
+        function findFirstNonWhitespaceColumn(startPos: number, endPos: number, sourceFile: SourceFileLike, options: EditorSettings): number;
         function nodeWillIndentChild(parent: TextRangeWithKind, child: TextRangeWithKind, indentByDefault: boolean): boolean;
         function shouldIndentChildNode(parent: TextRangeWithKind, child?: TextRangeWithKind): boolean;
     }
+}
+declare namespace ts.textChanges {
+    interface ConfigurableStart {
+        useNonAdjustedStartPosition?: boolean;
+    }
+    interface ConfigurableEnd {
+        useNonAdjustedEndPosition?: boolean;
+    }
+    enum Position {
+        FullStart = 0,
+        Start = 1,
+    }
+    /**
+     * Usually node.pos points to a position immediately after the previous token.
+     * If this position is used as a beginning of the span to remove - it might lead to removing the trailing trivia of the previous node, i.e:
+     * const x; // this is x
+     *        ^ - pos for the next variable declaration will point here
+     * const y; // this is y
+     *        ^ - end for previous variable declaration
+     * Usually leading trivia of the variable declaration 'y' should not include trailing trivia (whitespace, comment 'this is x' and newline) from the preceding
+     * variable declaration and trailing trivia for 'y' should include (whitespace, comment 'this is y', newline).
+     * By default when removing nodes we adjust start and end positions to respect specification of the trivia above.
+     * If pos\end should be interpreted literally 'useNonAdjustedStartPosition' or 'useNonAdjustedEndPosition' should be set to true
+     */
+    type ConfigurableStartEnd = ConfigurableStart & ConfigurableEnd;
+    interface InsertNodeOptions {
+        /**
+         * Text to be inserted before the new node
+         */
+        prefix?: string;
+        /**
+         * Text to be inserted after the new node
+         */
+        suffix?: string;
+        /**
+         * Text of inserted node will be formatted with this indentation, otherwise indentation will be inferred from the old node
+         */
+        indentation?: number;
+        /**
+         * Text of inserted node will be formatted with this delta, otherwise delta will be inferred from the new node kind
+         */
+        delta?: number;
+    }
+    type ChangeNodeOptions = ConfigurableStartEnd & InsertNodeOptions;
+    function getSeparatorCharacter(separator: Token<SyntaxKind.CommaToken | SyntaxKind.SemicolonToken>): string;
+    function getAdjustedStartPosition(sourceFile: SourceFile, node: Node, options: ConfigurableStart, position: Position): number;
+    function getAdjustedEndPosition(sourceFile: SourceFile, node: Node, options: ConfigurableEnd): number;
+    class ChangeTracker {
+        private readonly newLine;
+        private readonly rulesProvider;
+        private readonly validator;
+        private changes;
+        private readonly newLineCharacter;
+        static fromCodeFixContext(context: CodeFixContext): ChangeTracker;
+        constructor(newLine: NewLineKind, rulesProvider: formatting.RulesProvider, validator?: (text: NonFormattedText) => void);
+        deleteNode(sourceFile: SourceFile, node: Node, options?: ConfigurableStartEnd): this;
+        deleteRange(sourceFile: SourceFile, range: TextRange): this;
+        deleteNodeRange(sourceFile: SourceFile, startNode: Node, endNode: Node, options?: ConfigurableStartEnd): this;
+        deleteNodeInList(sourceFile: SourceFile, node: Node): this;
+        replaceRange(sourceFile: SourceFile, range: TextRange, newNode: Node, options?: InsertNodeOptions): this;
+        replaceNode(sourceFile: SourceFile, oldNode: Node, newNode: Node, options?: ChangeNodeOptions): this;
+        replaceNodeRange(sourceFile: SourceFile, startNode: Node, endNode: Node, newNode: Node, options?: ChangeNodeOptions): this;
+        insertNodeAt(sourceFile: SourceFile, pos: number, newNode: Node, options?: InsertNodeOptions): this;
+        insertNodeBefore(sourceFile: SourceFile, before: Node, newNode: Node, options?: InsertNodeOptions & ConfigurableStart): this;
+        insertNodeAfter(sourceFile: SourceFile, after: Node, newNode: Node, options?: InsertNodeOptions & ConfigurableEnd): this;
+        /**
+         * This function should be used to insert nodes in lists when nodes  don't carry separators as the part of the node range,
+         * i.e. arguments in arguments lists, parameters in parameter lists etc. Statements or class elements are different in sense that
+         * for them separators are treated as the part of the node.
+         */
+        insertNodeInListAfter(sourceFile: SourceFile, after: Node, newNode: Node): this;
+        getChanges(): FileTextChanges[];
+        private computeSpan(change, _sourceFile);
+        private computeNewText(change, sourceFile);
+        private static normalize(changes);
+    }
+    interface NonFormattedText {
+        readonly text: string;
+        readonly node: Node;
+    }
+    function getNonformattedText(node: Node, sourceFile: SourceFile, newLine: NewLineKind): NonFormattedText;
+    function applyFormatting(nonFormattedText: NonFormattedText, sourceFile: SourceFile, initialIndentation: number, delta: number, rulesProvider: formatting.RulesProvider): string;
+    function applyChanges(text: string, changes: TextChange[]): string;
 }
 declare namespace ts {
     interface CodeFix {
@@ -11941,6 +12054,7 @@ declare namespace ts {
         newLineCharacter: string;
         host: LanguageServiceHost;
         cancellationToken: CancellationToken;
+        rulesProvider: formatting.RulesProvider;
     }
     namespace codefix {
         function registerCodeFix(action: CodeFix): void;
