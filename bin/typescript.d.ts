@@ -7966,12 +7966,6 @@ declare namespace ts {
             key: string;
             message: string;
         };
-        Unsupported_file_encoding: {
-            code: number;
-            category: DiagnosticCategory;
-            key: string;
-            message: string;
-        };
         Failed_to_parse_file_0_Colon_1: {
             code: number;
             category: DiagnosticCategory;
@@ -10744,19 +10738,20 @@ declare namespace ts {
         /** The position in newText the caret should point to after the insertion. */
         caretOffset: number;
     }
-    interface RenameLocation {
+    interface DocumentSpan {
         textSpan: TextSpan;
         fileName: string;
     }
-    interface ReferenceEntry {
-        textSpan: TextSpan;
-        fileName: string;
+    interface RenameLocation extends DocumentSpan {
+    }
+    interface ReferenceEntry extends DocumentSpan {
         isWriteAccess: boolean;
         isDefinition: boolean;
+        isInString?: true;
     }
-    interface ImplementationLocation {
-        textSpan: TextSpan;
-        fileName: string;
+    interface ImplementationLocation extends DocumentSpan {
+        kind: string;
+        displayParts: SymbolDisplayPart[];
     }
     interface DocumentHighlights {
         fileName: string;
@@ -10770,6 +10765,7 @@ declare namespace ts {
     }
     interface HighlightSpan {
         fileName?: string;
+        isInString?: true;
         textSpan: TextSpan;
         kind: string;
     }
@@ -10850,9 +10846,11 @@ declare namespace ts {
     interface ReferencedSymbolDefinitionInfo extends DefinitionInfo {
         displayParts: SymbolDisplayPart[];
     }
-    interface ReferencedSymbol {
+    interface ReferencedSymbolOf<T extends DocumentSpan> {
         definition: ReferencedSymbolDefinitionInfo;
-        references: ReferenceEntry[];
+        references: T[];
+    }
+    interface ReferencedSymbol extends ReferencedSymbolOf<ReferenceEntry> {
     }
     enum SymbolDisplayPartKind {
         aliasName = 0,
@@ -11383,10 +11381,30 @@ declare namespace ts {
     function createDocumentRegistry(useCaseSensitiveFileNames?: boolean, currentDirectory?: string): DocumentRegistry;
 }
 declare namespace ts.FindAllReferences {
+    interface FindReferencesContext<T extends DocumentSpan> {
+        readonly typeChecker: TypeChecker;
+        readonly cancellationToken: CancellationToken;
+        getReferenceEntryFromNode(node: Node, isInString?: boolean): T;
+        getReferenceEntryForSpanInFile(fileName: string, span: TextSpan): T;
+    }
+    class DefaultFindReferencesContext implements FindReferencesContext<ReferenceEntry> {
+        readonly typeChecker: TypeChecker;
+        readonly cancellationToken: CancellationToken;
+        constructor(typeChecker: TypeChecker, cancellationToken: CancellationToken);
+        getReferenceEntryFromNode(node: Node, isInString?: boolean): ReferenceEntry;
+        getReferenceEntryForSpanInFile(fileName: string, textSpan: TextSpan): ReferenceEntry;
+    }
+    class FindImplementationsContext implements FindReferencesContext<ImplementationLocation> {
+        readonly typeChecker: TypeChecker;
+        readonly cancellationToken: CancellationToken;
+        constructor(typeChecker: TypeChecker, cancellationToken: CancellationToken);
+        getReferenceEntryFromNode(node: Node): ImplementationLocation;
+        getReferenceEntryForSpanInFile(fileName: string, textSpan: TextSpan): ImplementationLocation;
+    }
     function findReferencedSymbols(typeChecker: TypeChecker, cancellationToken: CancellationToken, sourceFiles: SourceFile[], sourceFile: SourceFile, position: number, findInStrings: boolean, findInComments: boolean, isForRename: boolean): ReferencedSymbol[] | undefined;
     function convertReferences(referenceSymbols: ReferencedSymbol[]): ReferenceEntry[];
-    function getReferencedSymbolsForNode(typeChecker: TypeChecker, cancellationToken: CancellationToken, node: Node, sourceFiles: SourceFile[], findInStrings?: boolean, findInComments?: boolean, isForRename?: boolean, implementations?: boolean): ReferencedSymbol[] | undefined;
-    function getReferenceEntriesForShorthandPropertyAssignment(node: Node, typeChecker: TypeChecker, result: ReferenceEntry[]): void;
+    function getReferencedSymbolsForNode<T extends DocumentSpan>(context: FindReferencesContext<T>, node: Node, sourceFiles: SourceFile[], findInStrings?: boolean, findInComments?: boolean, isForRename?: boolean, implementations?: boolean): ReferencedSymbolOf<T>[] | undefined;
+    function getReferenceEntriesForShorthandPropertyAssignment<T extends DocumentSpan>(node: Node, context: FindReferencesContext<T>, result: T[]): void;
     function getReferenceEntryFromNode(node: Node): ReferenceEntry;
 }
 declare namespace ts.GoToDefinition {
