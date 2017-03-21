@@ -2060,13 +2060,15 @@ declare namespace ts {
     enum CheckFlags {
         Instantiated = 1,
         SyntheticProperty = 2,
-        Readonly = 4,
-        Partial = 8,
-        HasNonUniformType = 16,
-        ContainsPublic = 32,
-        ContainsProtected = 64,
-        ContainsPrivate = 128,
-        ContainsStatic = 256,
+        SyntheticMethod = 4,
+        Readonly = 8,
+        Partial = 16,
+        HasNonUniformType = 32,
+        ContainsPublic = 64,
+        ContainsProtected = 128,
+        ContainsPrivate = 256,
+        ContainsStatic = 512,
+        Synthetic = 6,
     }
     interface TransientSymbol extends Symbol, SymbolLinks {
         checkFlags: CheckFlags;
@@ -10512,6 +10514,7 @@ declare namespace ts {
         getText(sourceFile?: SourceFile): string;
         getFirstToken(sourceFile?: SourceFile): Node;
         getLastToken(sourceFile?: SourceFile): Node;
+        forEachChild<T>(cbNode: (node: Node) => T, cbNodeArray?: (nodes: Node[]) => T): T;
     }
     interface Symbol {
         getFlags(): SymbolFlags;
