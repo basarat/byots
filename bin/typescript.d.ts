@@ -688,13 +688,11 @@ declare namespace ts {
     interface ThisTypeNode extends TypeNode {
         kind: SyntaxKind.ThisType;
     }
-    interface FunctionOrConstructorTypeNode extends TypeNode, SignatureDeclaration {
-        kind: SyntaxKind.FunctionType | SyntaxKind.ConstructorType;
-    }
-    interface FunctionTypeNode extends FunctionOrConstructorTypeNode {
+    type FunctionOrConstructorTypeNode = FunctionTypeNode | ConstructorTypeNode;
+    interface FunctionTypeNode extends TypeNode, SignatureDeclaration {
         kind: SyntaxKind.FunctionType;
     }
-    interface ConstructorTypeNode extends FunctionOrConstructorTypeNode {
+    interface ConstructorTypeNode extends TypeNode, SignatureDeclaration {
         kind: SyntaxKind.ConstructorType;
     }
     interface TypeReferenceNode extends TypeNode {
@@ -723,15 +721,14 @@ declare namespace ts {
         kind: SyntaxKind.TupleType;
         elementTypes: NodeArray<TypeNode>;
     }
-    interface UnionOrIntersectionTypeNode extends TypeNode {
-        kind: SyntaxKind.UnionType | SyntaxKind.IntersectionType;
+    type UnionOrIntersectionTypeNode = UnionTypeNode | IntersectionTypeNode;
+    interface UnionTypeNode extends TypeNode {
+        kind: SyntaxKind.UnionType;
         types: NodeArray<TypeNode>;
     }
-    interface UnionTypeNode extends UnionOrIntersectionTypeNode {
-        kind: SyntaxKind.UnionType;
-    }
-    interface IntersectionTypeNode extends UnionOrIntersectionTypeNode {
+    interface IntersectionTypeNode extends TypeNode {
         kind: SyntaxKind.IntersectionType;
+        types: NodeArray<TypeNode>;
     }
     interface ParenthesizedTypeNode extends TypeNode {
         kind: SyntaxKind.ParenthesizedType;
@@ -1260,7 +1257,7 @@ declare namespace ts {
     interface HeritageClause extends Node {
         kind: SyntaxKind.HeritageClause;
         parent?: InterfaceDeclaration | ClassDeclaration | ClassExpression;
-        token: SyntaxKind;
+        token: SyntaxKind.ExtendsKeyword | SyntaxKind.ImplementsKeyword;
         types?: NodeArray<ExpressionWithTypeArguments>;
     }
     interface TypeAliasDeclaration extends DeclarationStatement {
@@ -6508,6 +6505,18 @@ declare namespace ts {
             key: string;
             message: string;
         };
+        Class_0_used_before_its_declaration: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Enum_0_used_before_its_declaration: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
         Cannot_redeclare_block_scoped_variable_0: {
             code: number;
             category: DiagnosticCategory;
@@ -7379,12 +7388,6 @@ declare namespace ts {
             message: string;
         };
         Cannot_extend_an_interface_0_Did_you_mean_implements: {
-            code: number;
-            category: DiagnosticCategory;
-            key: string;
-            message: string;
-        };
-        A_class_must_be_declared_after_its_base_class: {
             code: number;
             category: DiagnosticCategory;
             key: string;
@@ -9664,7 +9667,7 @@ declare namespace ts {
     function updateJsxSpreadAttribute(node: JsxSpreadAttribute, expression: Expression): JsxSpreadAttribute;
     function createJsxExpression(dotDotDotToken: DotDotDotToken | undefined, expression: Expression | undefined): JsxExpression;
     function updateJsxExpression(node: JsxExpression, expression: Expression | undefined): JsxExpression;
-    function createHeritageClause(token: SyntaxKind, types: ExpressionWithTypeArguments[]): HeritageClause;
+    function createHeritageClause(token: HeritageClause["token"], types: ExpressionWithTypeArguments[]): HeritageClause;
     function updateHeritageClause(node: HeritageClause, types: ExpressionWithTypeArguments[]): HeritageClause;
     function createCaseClause(expression: Expression, statements: Statement[]): CaseClause;
     function updateCaseClause(node: CaseClause, expression: Expression, statements: Statement[]): CaseClause;
