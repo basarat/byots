@@ -660,24 +660,29 @@ declare namespace ts {
     }
     interface ConstructorDeclaration extends FunctionLikeDeclaration, ClassElement {
         kind: SyntaxKind.Constructor;
+        parent?: ClassDeclaration | ClassExpression;
         body?: FunctionBody;
     }
     interface SemicolonClassElement extends ClassElement {
         kind: SyntaxKind.SemicolonClassElement;
+        parent?: ClassDeclaration | ClassExpression;
     }
     interface GetAccessorDeclaration extends FunctionLikeDeclaration, ClassElement, ObjectLiteralElement {
         kind: SyntaxKind.GetAccessor;
+        parent?: ClassDeclaration | ClassExpression | ObjectLiteralExpression;
         name: PropertyName;
         body: FunctionBody;
     }
     interface SetAccessorDeclaration extends FunctionLikeDeclaration, ClassElement, ObjectLiteralElement {
         kind: SyntaxKind.SetAccessor;
+        parent?: ClassDeclaration | ClassExpression | ObjectLiteralExpression;
         name: PropertyName;
         body: FunctionBody;
     }
     type AccessorDeclaration = GetAccessorDeclaration | SetAccessorDeclaration;
     interface IndexSignatureDeclaration extends SignatureDeclaration, ClassElement, TypeElement {
         kind: SyntaxKind.IndexSignature;
+        parent?: ClassDeclaration | ClassExpression | InterfaceDeclaration | TypeLiteralNode;
     }
     interface TypeNode extends Node {
         _typeNodeBrand: any;
@@ -746,6 +751,7 @@ declare namespace ts {
     }
     interface MappedTypeNode extends TypeNode, Declaration {
         kind: SyntaxKind.MappedType;
+        parent?: TypeAliasDeclaration;
         readonlyToken?: ReadonlyToken;
         typeParameter: TypeParameterDeclaration;
         questionToken?: QuestionToken;
@@ -1005,7 +1011,7 @@ declare namespace ts {
         kind: SyntaxKind.NewExpression;
         expression: LeftHandSideExpression;
         typeArguments?: NodeArray<TypeNode>;
-        arguments: NodeArray<Expression>;
+        arguments?: NodeArray<Expression>;
     }
     interface TaggedTemplateExpression extends MemberExpression {
         kind: SyntaxKind.TaggedTemplateExpression;
@@ -1043,6 +1049,7 @@ declare namespace ts {
     type JsxAttributeLike = JsxAttribute | JsxSpreadAttribute;
     type JsxTagNameExpression = PrimaryExpression | PropertyAccessExpression;
     interface JsxAttributes extends ObjectLiteralExpressionBase<JsxAttributeLike> {
+        parent?: JsxOpeningLikeElement;
     }
     interface JsxOpeningElement extends Expression {
         kind: SyntaxKind.JsxOpeningElement;
@@ -1057,13 +1064,13 @@ declare namespace ts {
     }
     interface JsxAttribute extends ObjectLiteralElement {
         kind: SyntaxKind.JsxAttribute;
-        parent?: JsxOpeningLikeElement;
+        parent?: JsxAttributes;
         name: Identifier;
         initializer?: StringLiteral | JsxExpression;
     }
     interface JsxSpreadAttribute extends ObjectLiteralElement {
         kind: SyntaxKind.JsxSpreadAttribute;
-        parent?: JsxOpeningLikeElement;
+        parent?: JsxAttributes;
         expression: Expression;
     }
     interface JsxClosingElement extends Node {
@@ -1258,7 +1265,7 @@ declare namespace ts {
         kind: SyntaxKind.HeritageClause;
         parent?: InterfaceDeclaration | ClassDeclaration | ClassExpression;
         token: SyntaxKind.ExtendsKeyword | SyntaxKind.ImplementsKeyword;
-        types?: NodeArray<ExpressionWithTypeArguments>;
+        types: NodeArray<ExpressionWithTypeArguments>;
     }
     interface TypeAliasDeclaration extends DeclarationStatement {
         kind: SyntaxKind.TypeAliasDeclaration;
@@ -2416,6 +2423,7 @@ declare namespace ts {
     }
     type CompilerOptionsValue = string | number | boolean | (string | number)[] | string[] | MapLike<string[]> | PluginImport[];
     interface CompilerOptions {
+        all?: boolean;
         allowJs?: boolean;
         allowNonTsExtensions?: boolean;
         allowSyntheticDefaultImports?: boolean;
@@ -2585,8 +2593,10 @@ declare namespace ts {
         shortName?: string;
         description?: DiagnosticMessage;
         paramType?: DiagnosticMessage;
-        experimental?: boolean;
         isTSConfigOnly?: boolean;
+        isCommandLineOnly?: boolean;
+        showInSimplifiedHelpView?: boolean;
+        category?: DiagnosticMessage;
     }
     interface CommandLineOptionOfPrimitiveType extends CommandLineOptionBase {
         type: "string" | "number" | "boolean";
@@ -8527,7 +8537,7 @@ declare namespace ts {
             key: string;
             message: string;
         };
-        Specify_the_object_invoked_for_createElement_and_spread_when_targeting_react_JSX_emit: {
+        Deprecated_Use_jsxFactory_instead_Specify_the_object_invoked_for_createElement_when_targeting_react_JSX_emit: {
             code: number;
             category: DiagnosticCategory;
             key: string;
@@ -8911,13 +8921,199 @@ declare namespace ts {
             key: string;
             message: string;
         };
-        Use_full_down_level_iteration_for_iterables_and_arrays_for_for_of_spread_and_destructuring_in_ES5_Slash3: {
+        Show_diagnostic_information: {
             code: number;
             category: DiagnosticCategory;
             key: string;
             message: string;
         };
-        Enable_all_strict_type_checks: {
+        Show_verbose_diagnostic_information: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Emit_a_single_file_with_source_maps_instead_of_having_a_separate_file: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Emit_the_source_alongside_the_sourcemaps_within_a_single_file_requires_inlineSourceMap_or_sourceMap_to_be_set: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Transpile_each_file_as_a_separate_module_similar_to_ts_transpileModule: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Print_names_of_generated_files_part_of_the_compilation: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Print_names_of_files_part_of_the_compilation: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        The_locale_used_when_displaying_messages_to_the_user_e_g_en_us: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Do_not_generate_custom_helper_functions_like_extends_in_compiled_output: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Do_not_include_the_default_library_file_lib_d_ts: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Do_not_add_triple_slash_references_or_imported_modules_to_the_list_of_compiled_files: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Deprecated_Use_skipLibCheck_instead_Skip_type_checking_of_default_library_declaration_files: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        List_of_folders_to_include_type_definitions_from: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Disable_size_limitations_on_JavaScript_projects: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        The_character_set_of_the_input_files: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Emit_a_UTF_8_Byte_Order_Mark_BOM_in_the_beginning_of_output_files: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Do_not_truncate_error_messages: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Output_directory_for_generated_declaration_files: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        A_series_of_entries_which_re_map_imports_to_lookup_locations_relative_to_the_baseUrl: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        List_of_root_folders_whose_combined_content_represents_the_structure_of_the_project_at_runtime: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Show_all_compiler_options: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Deprecated_Use_outFile_instead_Concatenate_and_emit_output_to_single_file: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Command_line_Options: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Basic_Options: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Strict_Type_Checking_Options: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Module_Resolution_Options: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Source_Map_Options: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Additional_Checks: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Experimental_Options: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Advanced_Options: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Provide_full_support_for_iterables_in_for_of_spread_and_destructuring_when_targeting_ES5_or_ES3: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Enable_all_strict_type_checking_options: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        List_of_language_service_plugins: {
             code: number;
             category: DiagnosticCategory;
             key: string;
@@ -10167,9 +10363,7 @@ declare namespace ts {
      * @param options commandlineOptions to be generated into tsconfig.json
      * @param fileNames array of filenames to be generated into tsconfig.json
      */
-    function generateTSConfig(options: CompilerOptions, fileNames: string[]): {
-        compilerOptions: MapLike<CompilerOptionsValue>;
-    };
+    function generateTSConfig(options: CompilerOptions, fileNames: string[]): string;
     /**
       * Parse the contents of a config file (tsconfig.json).
       * @param json The contents of the config file to parse
