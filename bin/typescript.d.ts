@@ -969,7 +969,7 @@ declare namespace ts {
         kind: SyntaxKind.ObjectLiteralExpression;
         multiLine?: boolean;
     }
-    type EntityNameExpression = Identifier | PropertyAccessEntityNameExpression;
+    type EntityNameExpression = Identifier | PropertyAccessEntityNameExpression | ParenthesizedExpression;
     type EntityNameOrEntityNameExpression = EntityName | EntityNameExpression;
     interface PropertyAccessExpression extends MemberExpression, Declaration {
         kind: SyntaxKind.PropertyAccessExpression;
