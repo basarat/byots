@@ -2096,6 +2096,7 @@ declare namespace ts {
     }
     interface TransientSymbol extends Symbol, SymbolLinks {
         checkFlags: CheckFlags;
+        isRestParameter?: boolean;
     }
     type SymbolTable = Map<Symbol>;
     /** Represents a "prefix*suffix" pattern. */
@@ -2140,6 +2141,7 @@ declare namespace ts {
         maybeTypePredicate?: boolean;
         enumMemberValue?: number;
         isVisible?: boolean;
+        containsArgumentsReference?: boolean;
         hasReportedStatementInAmbientContext?: boolean;
         jsxFlags?: JsxFlags;
         resolvedJsxElementAttributesType?: Type;
