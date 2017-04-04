@@ -3887,10 +3887,10 @@ declare namespace ts {
     function isInJavaScriptFile(node: Node): boolean;
     /**
      * Returns true if the node is a CallExpression to the identifier 'require' with
-     * exactly one argument.
+     * exactly one argument (of the form 'require("name")').
      * This function does not test if the node is in a JavaScript file or not.
-    */
-    function isRequireCall(expression: Node, checkArgumentIsStringLiteral: boolean): expression is CallExpression;
+     */
+    function isRequireCall(callExpression: Node, checkArgumentIsStringLiteral: boolean): callExpression is CallExpression;
     function isSingleOrDoubleQuote(charCode: number): boolean;
     /**
      * Returns true if the node is a variable declaration whose initializer is a function expression.
@@ -3908,6 +3908,7 @@ declare namespace ts {
     function isJSDocConstructSignature(node: Node): boolean;
     function getCommentsFromJSDoc(node: Node): string[];
     function hasJSDocParameterTags(node: FunctionLikeDeclaration | SignatureDeclaration): boolean;
+    function getJSDocs(node: Node): (JSDoc | JSDocTag)[];
     function getJSDocParameterTags(param: Node): JSDocParameterTag[];
     function getJSDocType(node: Node): JSDocType;
     function getJSDocAugmentsTag(node: Node): JSDocAugmentsTag;
@@ -10814,6 +10815,7 @@ declare namespace ts {
         getName(): string;
         getDeclarations(): Declaration[];
         getDocumentationComment(): SymbolDisplayPart[];
+        getJsDocTags(): JSDocTagInfo[];
     }
     interface Type {
         getFlags(): TypeFlags;
@@ -10834,6 +10836,7 @@ declare namespace ts {
         getParameters(): Symbol[];
         getReturnType(): Type;
         getDocumentationComment(): SymbolDisplayPart[];
+        getJsDocTags(): JSDocTagInfo[];
     }
     interface SourceFile {
         version: string;
@@ -11180,12 +11183,17 @@ declare namespace ts {
         text: string;
         kind: string;
     }
+    interface JSDocTagInfo {
+        name: string;
+        text?: string;
+    }
     interface QuickInfo {
         kind: string;
         kindModifiers: string;
         textSpan: TextSpan;
         displayParts: SymbolDisplayPart[];
         documentation: SymbolDisplayPart[];
+        tags: JSDocTagInfo[];
     }
     interface RenameInfo {
         canRename: boolean;
@@ -11216,6 +11224,7 @@ declare namespace ts {
         separatorDisplayParts: SymbolDisplayPart[];
         parameters: SignatureHelpParameter[];
         documentation: SymbolDisplayPart[];
+        tags: JSDocTagInfo[];
     }
     /**
      * Represents a set of signature help items, and the preferred item that should be selected.
@@ -11254,6 +11263,7 @@ declare namespace ts {
         kindModifiers: string;
         displayParts: SymbolDisplayPart[];
         documentation: SymbolDisplayPart[];
+        tags: JSDocTagInfo[];
     }
     interface OutliningSpan {
         /** The span of the document to actually collapse. */
@@ -11718,6 +11728,7 @@ declare namespace ts.GoToImplementation {
 }
 declare namespace ts.JsDoc {
     function getJsDocCommentsFromDeclarations(declarations: Declaration[]): SymbolDisplayPart[];
+    function getJsDocTagsFromDeclarations(declarations: Declaration[]): JSDocTagInfo[];
     function getJSDocTagNameCompletions(): CompletionEntry[];
     function getJSDocTagCompletions(): CompletionEntry[];
     /**
@@ -11832,6 +11843,7 @@ declare namespace ts.SymbolDisplay {
         displayParts: SymbolDisplayPart[];
         documentation: SymbolDisplayPart[];
         symbolKind: string;
+        tags: JSDocTagInfo[];
     };
 }
 declare namespace ts {
