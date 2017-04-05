@@ -7128,6 +7128,12 @@ declare namespace ts {
             key: string;
             message: string;
         };
+        Generic_type_instantiation_is_excessively_deep_and_possibly_infinite: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
         JSX_element_attributes_type_0_may_not_be_a_union_type: {
             code: number;
             category: DiagnosticCategory;
