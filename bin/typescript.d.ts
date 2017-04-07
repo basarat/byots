@@ -3787,8 +3787,8 @@ declare namespace ts {
     function isBlockOrCatchScoped(declaration: Declaration): boolean;
     function isCatchClauseVariableDeclarationOrBindingElement(declaration: Declaration): boolean;
     function isAmbientModule(node: Node): boolean;
-    /** Given a symbol for a module, checks that it is either an untyped import or a shorthand ambient module. */
-    function isUntypedOrShorthandAmbientModuleSymbol(moduleSymbol: Symbol): boolean;
+    /** Given a symbol for a module, checks that it is a shorthand ambient module. */
+    function isShorthandAmbientModuleSymbol(moduleSymbol: Symbol): boolean;
     function isBlockScopedContainerTopLevel(node: Node): boolean;
     function isGlobalScopeAugmentation(module: ModuleDeclaration): boolean;
     function isExternalModuleAugmentation(node: Node): boolean;
