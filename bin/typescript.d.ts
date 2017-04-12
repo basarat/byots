@@ -10458,7 +10458,7 @@ declare namespace ts {
      * @param options commandlineOptions to be generated into tsconfig.json
      * @param fileNames array of filenames to be generated into tsconfig.json
      */
-    function generateTSConfig(options: CompilerOptions, fileNames: string[]): string;
+    function generateTSConfig(options: CompilerOptions, fileNames: string[], newLine: string): string;
     /**
      * Parse the contents of a config file (tsconfig.json).
      * @param json The contents of the config file to parse
