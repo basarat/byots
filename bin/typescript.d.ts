@@ -2080,7 +2080,7 @@ declare namespace ts {
         containingType?: UnionOrIntersectionType;
         leftSpread?: Symbol;
         rightSpread?: Symbol;
-        mappedTypeOrigin?: Symbol;
+        syntheticOrigin?: Symbol;
         isDiscriminantProperty?: boolean;
         resolvedExports?: SymbolTable;
         exportsChecked?: boolean;
@@ -2939,6 +2939,7 @@ declare namespace ts {
         CustomPrologue = 524288,
         NoHoisting = 1048576,
         HasEndOfDeclarationMarker = 2097152,
+        Iterator = 4194304,
     }
     interface EmitHelper {
         readonly name: string;
