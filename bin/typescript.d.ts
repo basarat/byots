@@ -10202,7 +10202,21 @@ declare namespace ts {
      * @param ensureUseStrict: boolean determining whether the function need to add prologue-directives
      * @param visitor: Optional callback used to visit any custom prologue directives.
      */
-    function addPrologueDirectives(target: Statement[], source: Statement[], ensureUseStrict?: boolean, visitor?: (node: Node) => VisitResult<Node>): number;
+    function addPrologue(target: Statement[], source: Statement[], ensureUseStrict?: boolean, visitor?: (node: Node) => VisitResult<Node>): number;
+    /**
+     * Add just the standard (string-expression) prologue-directives into target statement-array.
+     * The function needs to be called during each transformation step.
+     * This function needs to be called whenever we transform the statement
+     * list of a source file, namespace, or function-like body.
+     */
+    function addStandardPrologue(target: Statement[], source: Statement[], ensureUseStrict?: boolean): number;
+    /**
+     * Add just the custom prologue-directives into target statement-array.
+     * The function needs to be called during each transformation step.
+     * This function needs to be called whenever we transform the statement
+     * list of a source file, namespace, or function-like body.
+     */
+    function addCustomPrologue(target: Statement[], source: Statement[], statementOffset: number, visitor?: (node: Node) => VisitResult<Node>): number;
     function startsWithUseStrict(statements: Statement[]): boolean;
     /**
      * Ensures "use strict" directive is added
