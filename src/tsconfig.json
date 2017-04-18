@@ -18,5 +18,8 @@
   "include": [
     "compiler/**/*.ts",
     "services/**/*.ts"
+  ],
+  "exclude": [
+    "services/goToImplementation.ts"
   ]
 }

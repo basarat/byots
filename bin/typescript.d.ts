@@ -1338,6 +1338,7 @@ declare namespace ts {
         kind: SyntaxKind.ImportDeclaration;
         parent?: SourceFile | ModuleBlock;
         importClause?: ImportClause;
+        /** If this is not a StringLiteral it will be a grammar error. */
         moduleSpecifier: Expression;
     }
     type NamedImportBindings = NamespaceImport | NamedImports;
@@ -1360,6 +1361,7 @@ declare namespace ts {
         kind: SyntaxKind.ExportDeclaration;
         parent?: SourceFile | ModuleBlock;
         exportClause?: NamedExports;
+        /** If this is not a StringLiteral it will be a grammar error. */
         moduleSpecifier?: Expression;
     }
     interface NamedImports extends Node {
@@ -1647,8 +1649,8 @@ declare namespace ts {
         classifiableNames?: Map<string>;
         resolvedModules: Map<ResolvedModuleFull>;
         resolvedTypeReferenceDirectiveNames: Map<ResolvedTypeReferenceDirective>;
-        imports: LiteralExpression[];
-        moduleAugmentations: LiteralExpression[];
+        imports: StringLiteral[];
+        moduleAugmentations: StringLiteral[];
         patternAmbientModules?: PatternAmbientModule[];
         ambientModuleNames: string[];
         checkJsDirective: CheckJsDirective | undefined;
@@ -1822,9 +1824,13 @@ declare namespace ts {
         isUndefinedSymbol(symbol: Symbol): boolean;
         isArgumentsSymbol(symbol: Symbol): boolean;
         isUnknownSymbol(symbol: Symbol): boolean;
+        getMergedSymbol(symbol: Symbol): Symbol;
         getConstantValue(node: EnumMember | PropertyAccessExpression | ElementAccessExpression): number;
         isValidPropertyAccess(node: PropertyAccessExpression | QualifiedName, propertyName: string): boolean;
+        /** Follow all aliases to get the original symbol. */
         getAliasedSymbol(symbol: Symbol): Symbol;
+        /** Follow a *single* alias to get the immediately aliased symbol. */
+        getImmediateAliasedSymbol(symbol: Symbol): Symbol;
         getExportsOfModule(moduleSymbol: Symbol): Symbol[];
         /** Unlike `getExportsOfModule`, this includes properties of an `export =` value. */
         getExportsAndPropertiesOfModule(moduleSymbol: Symbol): Symbol[];
@@ -2069,6 +2075,7 @@ declare namespace ts {
         isAssigned?: boolean;
     }
     interface SymbolLinks {
+        immediateTarget?: Symbol;
         target?: Symbol;
         type?: Type;
         declaredType?: Type;
@@ -3282,6 +3289,13 @@ declare namespace ts {
      * If no such value is found, the callback is applied to each element of array and undefined is returned.
      */
     function forEach<T, U>(array: T[] | undefined, callback: (element: T, index: number) => U | undefined): U | undefined;
+    /**
+     * Iterates through the parent chain of a node and performs the callback on each parent until the callback
+     * returns a truthy value, then returns that value.
+     * If no such value is found, it applies the callback until the parent pointer is undefined or the callback returns "quit"
+     * At that point findAncestor returns undefined.
+     */
+    function findAncestor(node: Node, callback: (element: Node) => boolean | "quit"): Node;
     function zipWith<T, U>(arrayA: T[], arrayB: U[], callback: (a: T, b: U, index: number) => void): void;
     /**
      * Iterates through `array` by index and performs the callback on each element of array until the callback
@@ -3432,6 +3446,7 @@ declare namespace ts {
      */
     function getOwnKeys<T>(map: MapLike<T>): string[];
     /** Shims `Array.from`. */
+    function arrayFrom<T, U>(iterator: Iterator<T>, map: (t: T) => U): U[];
     function arrayFrom<T>(iterator: Iterator<T>): T[];
     function convertToArray<T, U>(iterator: Iterator<T>, f: (value: T) => U): U[];
     /**
@@ -4082,7 +4097,6 @@ declare namespace ts {
     function isEmptyObjectLiteral(expression: Node): boolean;
     function isEmptyArrayLiteral(expression: Node): boolean;
     function getLocalSymbolForExportDefault(symbol: Symbol): Symbol;
-    function isExportDefaultSymbol(symbol: Symbol): boolean;
     /** Return ".ts", ".d.ts", or ".tsx", if that is the extension. */
     function tryExtractTypeScriptExtension(fileName: string): string | undefined;
     /**
@@ -4642,7 +4656,7 @@ declare namespace ts {
             key: string;
             message: string;
         };
-        Type_used_as_operand_to_await_or_the_return_type_of_an_async_function_must_either_be_a_valid_promise_or_must_not_contain_a_callable_then_member: {
+        The_return_type_of_an_async_function_must_either_be_a_valid_promise_or_must_not_contain_a_callable_then_member: {
             code: number;
             category: DiagnosticCategory;
             key: string;
@@ -5675,6 +5689,24 @@ declare namespace ts {
             message: string;
         };
         A_default_export_can_only_be_used_in_an_ECMAScript_style_module: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Type_of_await_operand_must_either_be_a_valid_promise_or_must_not_contain_a_callable_then_member: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Type_of_yield_operand_in_an_async_generator_must_either_be_a_valid_promise_or_must_not_contain_a_callable_then_member: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Type_of_iterated_elements_of_a_yield_Asterisk_operand_must_either_be_a_valid_promise_or_must_not_contain_a_callable_then_member: {
             code: number;
             category: DiagnosticCategory;
             key: string;
@@ -7528,6 +7560,18 @@ declare namespace ts {
             key: string;
             message: string;
         };
+        Cannot_use_namespace_0_as_a_value: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Cannot_use_namespace_0_as_a_type: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
         Import_declaration_0_is_using_private_name_1: {
             code: number;
             category: DiagnosticCategory;
@@ -9137,6 +9181,12 @@ declare namespace ts {
             message: string;
         };
         List_of_language_service_plugins: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Scoped_package_detected_looking_in_0: {
             code: number;
             category: DiagnosticCategory;
             key: string;
@@ -11162,11 +11212,9 @@ declare namespace ts {
     interface ReferencedSymbolDefinitionInfo extends DefinitionInfo {
         displayParts: SymbolDisplayPart[];
     }
-    interface ReferencedSymbolOf<T extends DocumentSpan> {
+    interface ReferencedSymbol {
         definition: ReferencedSymbolDefinitionInfo;
-        references: T[];
-    }
-    interface ReferencedSymbol extends ReferencedSymbolOf<ReferenceEntry> {
+        references: ReferenceEntry[];
     }
     enum SymbolDisplayPartKind {
         aliasName = 0,
@@ -11514,7 +11562,6 @@ declare namespace ts {
     function isInsideComment(sourceFile: SourceFile, token: Node, position: number): boolean;
     function getContainerNode(node: Node): Declaration;
     function getNodeKind(node: Node): string;
-    function getStringLiteralTypeForNode(node: StringLiteral | LiteralTypeNode, typeChecker: TypeChecker): LiteralType;
     function isThis(node: Node): boolean;
     interface ListItemInfo {
         listItemIndex: number;
@@ -11581,6 +11628,10 @@ declare namespace ts {
     function isInNonReferenceComment(sourceFile: SourceFile, position: number): boolean;
     function createTextSpanFromNode(node: Node, sourceFile?: SourceFile): TextSpan;
     function isTypeKeyword(kind: SyntaxKind): boolean;
+    /** True if the symbol is for an external module, as opposed to a namespace. */
+    function isExternalModuleSymbol(moduleSymbol: Symbol): boolean;
+    /** Returns `true` the first time it encounters a node and `false` afterwards. */
+    function nodeSeenTracker<T extends Node>(): (node: T) => boolean;
 }
 declare namespace ts {
     function isFirstDeclarationOfSymbolParameter(symbol: Symbol): boolean;
@@ -11706,38 +11757,114 @@ declare namespace ts {
     function createDocumentRegistry(useCaseSensitiveFileNames?: boolean, currentDirectory?: string): DocumentRegistry;
 }
 declare namespace ts.FindAllReferences {
-    interface FindReferencesContext<T extends DocumentSpan> {
-        readonly typeChecker: TypeChecker;
-        readonly cancellationToken: CancellationToken;
-        getReferenceEntryFromNode(node: Node, isInString?: boolean): T;
-        getReferenceEntryForSpanInFile(fileName: string, span: TextSpan): T;
+    interface ImportsResult {
+        /** For every import of the symbol, the location and local symbol for the import. */
+        importSearches: Array<[Identifier, Symbol]>;
+        /** For rename imports/exports `{ foo as bar }`, `foo` is not a local, so it may be added as a reference immediately without further searching. */
+        singleReferences: Identifier[];
+        /** List of source files that may (or may not) use the symbol via a namespace. (For UMD modules this is every file.) */
+        indirectUsers: SourceFile[];
     }
-    class DefaultFindReferencesContext implements FindReferencesContext<ReferenceEntry> {
-        readonly typeChecker: TypeChecker;
-        readonly cancellationToken: CancellationToken;
-        constructor(typeChecker: TypeChecker, cancellationToken: CancellationToken);
-        getReferenceEntryFromNode(node: Node, isInString?: boolean): ReferenceEntry;
-        getReferenceEntryForSpanInFile(fileName: string, textSpan: TextSpan): ReferenceEntry;
+    type ImportTracker = (exportSymbol: Symbol, exportInfo: ExportInfo, isForRename: boolean) => ImportsResult;
+    /** Creates the imports map and returns an ImportTracker that uses it. Call this lazily to avoid calling `getDirectImportsMap` unnecessarily.  */
+    function createImportTracker(sourceFiles: SourceFile[], checker: TypeChecker, cancellationToken: CancellationToken): ImportTracker;
+    /** Info about an exported symbol to perform recursive search on. */
+    interface ExportInfo {
+        exportingModuleSymbol: Symbol;
+        exportKind: ExportKind;
     }
-    class FindImplementationsContext implements FindReferencesContext<ImplementationLocation> {
-        readonly typeChecker: TypeChecker;
-        readonly cancellationToken: CancellationToken;
-        constructor(typeChecker: TypeChecker, cancellationToken: CancellationToken);
-        getReferenceEntryFromNode(node: Node): ImplementationLocation;
-        getReferenceEntryForSpanInFile(fileName: string, textSpan: TextSpan): ImplementationLocation;
+    enum ExportKind {
+        Named = 0,
+        Default = 1,
+        ExportEquals = 2,
     }
-    function findReferencedSymbols(typeChecker: TypeChecker, cancellationToken: CancellationToken, sourceFiles: SourceFile[], sourceFile: SourceFile, position: number, findInStrings: boolean, findInComments: boolean, isForRename: boolean): ReferencedSymbol[] | undefined;
-    function convertReferences(referenceSymbols: ReferencedSymbol[]): ReferenceEntry[];
-    function getReferencedSymbolsForNode<T extends DocumentSpan>(context: FindReferencesContext<T>, node: Node, sourceFiles: SourceFile[], findInStrings?: boolean, findInComments?: boolean, isForRename?: boolean, implementations?: boolean): ReferencedSymbolOf<T>[] | undefined;
-    function getReferenceEntriesForShorthandPropertyAssignment<T extends DocumentSpan>(node: Node, context: FindReferencesContext<T>, result: T[]): void;
-    function getReferenceEntryFromNode(node: Node): ReferenceEntry;
+    enum ImportExport {
+        Import = 0,
+        Export = 1,
+    }
+    interface ImportedSymbol {
+        kind: ImportExport.Import;
+        symbol: Symbol;
+        isNamedImport: boolean;
+    }
+    interface ExportedSymbol {
+        kind: ImportExport.Export;
+        symbol: Symbol;
+        exportInfo: ExportInfo;
+    }
+    /**
+     * Given a local reference, we might notice that it's an import/export and recursively search for references of that.
+     * If at an import, look locally for the symbol it imports.
+     * If an an export, look for all imports of it.
+     * This doesn't handle export specifiers; that is done in `getReferencesAtExportSpecifier`.
+     * @param comingFromExport If we are doing a search for all exports, don't bother looking backwards for the imported symbol, since that's the reason we're here.
+     */
+    function getImportOrExportSymbol(node: Node, symbol: Symbol, checker: TypeChecker, comingFromExport: boolean): ImportedSymbol | ExportedSymbol | undefined;
+    function getExportInfo(exportSymbol: Symbol, exportKind: ExportKind, checker: TypeChecker): ExportInfo | undefined;
+}
+declare namespace ts.FindAllReferences {
+    interface SymbolAndEntries {
+        definition: Definition | undefined;
+        references: Entry[];
+    }
+    type Definition = {
+        type: "symbol";
+        symbol: Symbol;
+        node: Node;
+    } | {
+        type: "label";
+        node: Identifier;
+    } | {
+        type: "keyword";
+        node: ts.Node;
+    } | {
+        type: "this";
+        node: ts.Node;
+    } | {
+        type: "string";
+        node: ts.StringLiteral;
+    };
+    type Entry = NodeEntry | SpanEntry;
+    interface NodeEntry {
+        type: "node";
+        node: Node;
+        isInString?: true;
+    }
+    interface SpanEntry {
+        type: "span";
+        fileName: string;
+        textSpan: TextSpan;
+    }
+    function nodeEntry(node: ts.Node, isInString?: true): NodeEntry;
+    interface Options {
+        readonly findInStrings?: boolean;
+        readonly findInComments?: boolean;
+        /**
+         * True if we are renaming the symbol.
+         * If so, we will find fewer references -- if it is referenced by several different names, we sill only find references for the original name.
+         */
+        readonly isForRename?: boolean;
+        /** True if we are searching for implementations. We will have a different method of adding references if so. */
+        readonly implementations?: boolean;
+    }
+    function findReferencedSymbols(checker: TypeChecker, cancellationToken: CancellationToken, sourceFiles: SourceFile[], sourceFile: SourceFile, position: number): ReferencedSymbol[] | undefined;
+    function getImplementationsAtPosition(checker: TypeChecker, cancellationToken: CancellationToken, sourceFiles: SourceFile[], sourceFile: SourceFile, position: number): ImplementationLocation[];
+    function findReferencedEntries(checker: TypeChecker, cancellationToken: CancellationToken, sourceFiles: SourceFile[], sourceFile: SourceFile, position: number, options?: Options): ReferenceEntry[] | undefined;
+    function getReferenceEntriesForNode(node: Node, sourceFiles: SourceFile[], checker: TypeChecker, cancellationToken: CancellationToken, options?: Options): Entry[] | undefined;
+    function toHighlightSpan(entry: FindAllReferences.Entry): {
+        fileName: string;
+        span: HighlightSpan;
+    };
+}
+/** Encapsulates the core find-all-references algorithm. */
+declare namespace ts.FindAllReferences.Core {
+    /** Core find-all-references algorithm. Handles special cases before delegating to `getReferencedSymbolsForSymbol`. */
+    function getReferencedSymbolsForNode(node: Node, sourceFiles: SourceFile[], checker: TypeChecker, cancellationToken: CancellationToken, options?: Options): SymbolAndEntries[] | undefined;
+    function getReferenceEntriesForShorthandPropertyAssignment(node: Node, checker: TypeChecker, addReference: (node: Node) => void): void;
 }
 declare namespace ts.GoToDefinition {
     function getDefinitionAtPosition(program: Program, sourceFile: SourceFile, position: number): DefinitionInfo[];
     function getTypeDefinitionAtPosition(typeChecker: TypeChecker, sourceFile: SourceFile, position: number): DefinitionInfo[];
-}
-declare namespace ts.GoToImplementation {
-    function getImplementationAtPosition(typeChecker: TypeChecker, cancellationToken: CancellationToken, sourceFiles: SourceFile[], node: Node): ImplementationLocation[];
 }
 declare namespace ts.JsDoc {
     function getJsDocCommentsFromDeclarations(declarations: Declaration[]): SymbolDisplayPart[];
@@ -12462,6 +12589,7 @@ declare namespace ts {
         throwIfCancellationRequested(): void;
     }
     function createLanguageService(host: LanguageServiceHost, documentRegistry?: DocumentRegistry): LanguageService;
+    /** Names in the name table are escaped, so an identifier `__foo` will have a name table entry `___foo`. */
     function getNameTable(sourceFile: SourceFile): Map<number>;
     /**
      * Returns the containing object literal property declaration given a possible name node, e.g. "a" in x = { "a": 1 }
@@ -12494,7 +12622,7 @@ declare namespace ts {
          *
          * Or undefined value if there was no change.
          */
-        getChangeRange(oldSnapshot: ScriptSnapshotShim): string;
+        getChangeRange(oldSnapshot: ScriptSnapshotShim): string | undefined;
         /** Releases all resources held by this script snapshot */
         dispose?(): void;
     }
