@@ -9357,6 +9357,12 @@ declare namespace ts {
             key: string;
             message: string;
         };
+        Try_npm_install_types_Slash_0_if_it_exists_or_add_a_new_declaration_d_ts_file_containing_declare_module_0: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
         You_cannot_rename_this_element: {
             code: number;
             category: DiagnosticCategory;
