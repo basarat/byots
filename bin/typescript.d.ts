@@ -3255,7 +3255,7 @@ declare namespace ts.performance {
 }
 declare namespace ts {
     /** The version of the TypeScript compiler release */
-    const version = "2.3.0";
+    const version = "2.4.0";
 }
 declare namespace ts {
     /**
@@ -12027,6 +12027,7 @@ declare namespace ts {
         reportDiagnostics?: boolean;
         moduleName?: string;
         renamedDependencies?: MapLike<string>;
+        transformers?: CustomTransformers;
     }
     interface TranspileOutput {
         outputText: string;
@@ -12904,7 +12905,7 @@ declare namespace ts {
 declare namespace TypeScript.Services {
     const TypeScriptServicesFactory: typeof ts.TypeScriptServicesFactory;
 }
-declare const toolsVersion = "2.3";
+declare const toolsVersion = "2.4";
 declare namespace ts {
     /**
      * Transform one or more nodes using the supplied transformers.
