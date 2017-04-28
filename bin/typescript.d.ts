@@ -12055,6 +12055,7 @@ declare namespace ts.formatting {
     class FormattingContext {
         readonly sourceFile: SourceFileLike;
         formattingRequestKind: FormattingRequestKind;
+        options: ts.FormatCodeSettings;
         currentTokenSpan: TextRangeWithKind;
         nextTokenSpan: TextRangeWithKind;
         contextNode: Node;
@@ -12065,7 +12066,7 @@ declare namespace ts.formatting {
         private tokensAreOnSameLine;
         private contextNodeBlockIsOnOneLine;
         private nextNodeBlockIsOnOneLine;
-        constructor(sourceFile: SourceFileLike, formattingRequestKind: FormattingRequestKind);
+        constructor(sourceFile: SourceFileLike, formattingRequestKind: FormattingRequestKind, options: ts.FormatCodeSettings);
         updateContext(currentRange: TextRangeWithKind, currentTokenParent: Node, nextRange: TextRangeWithKind, nextTokenParent: Node, commonParent: Node): void;
         ContextNodeAllOnSameLine(): boolean;
         NextNodeAllOnSameLine(): boolean;
@@ -12211,6 +12212,7 @@ declare namespace ts.formatting {
         NoSpaceAfterCloseAngularBracket: Rule;
         NoSpaceBetweenEmptyInterfaceBraceBrackets: Rule;
         HighPriorityCommonRules: Rule[];
+        UserConfigurableRules: Rule[];
         LowPriorityCommonRules: Rule[];
         SpaceAfterComma: Rule;
         NoSpaceAfterComma: Rule;
@@ -12270,6 +12272,10 @@ declare namespace ts.formatting {
         SpaceAfterTypeAssertion: Rule;
         NoSpaceBeforeNonNullAssertionOperator: Rule;
         constructor();
+        static IsOptionEnabled(optionName: keyof FormatCodeSettings): (context: FormattingContext) => boolean;
+        static IsOptionDisabled(optionName: keyof FormatCodeSettings): (context: FormattingContext) => boolean;
+        static IsOptionDisabledOrUndefined(optionName: keyof FormatCodeSettings): (context: FormattingContext) => boolean;
+        static IsOptionEnabledOrUndefined(optionName: keyof FormatCodeSettings): (context: FormattingContext) => boolean;
         static IsForContext(context: FormattingContext): boolean;
         static IsNotForContext(context: FormattingContext): boolean;
         static IsBinaryOpContext(context: FormattingContext): boolean;
@@ -12409,7 +12415,6 @@ declare namespace ts.formatting {
     class RulesProvider {
         private globalRules;
         private options;
-        private activeRules;
         private rulesMap;
         constructor();
         getRuleName(rule: Rule): string;
@@ -12417,7 +12422,6 @@ declare namespace ts.formatting {
         getRulesMap(): RulesMap;
         getFormatOptions(): Readonly<ts.FormatCodeSettings>;
         ensureUpToDate(options: ts.FormatCodeSettings): void;
-        private createActiveRules(options);
     }
 }
 declare namespace ts.formatting {
