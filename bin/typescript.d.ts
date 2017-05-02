@@ -1727,7 +1727,12 @@ declare namespace ts {
         getFileProcessingDiagnostics(): DiagnosticCollection;
         getResolvedTypeReferenceDirectives(): Map<ResolvedTypeReferenceDirective>;
         isSourceFileFromExternalLibrary(file: SourceFile): boolean;
-        structureIsReused?: boolean;
+        structureIsReused?: StructureIsReused;
+    }
+    enum StructureIsReused {
+        Not = 0,
+        SafeModules = 1,
+        Completely = 2,
     }
     interface CustomTransformers {
         /** Custom transformers to evaluate before built-in transformations. */
@@ -3301,6 +3306,7 @@ declare namespace ts {
      */
     function findAncestor(node: Node, callback: (element: Node) => boolean | "quit"): Node;
     function zipWith<T, U>(arrayA: T[], arrayB: U[], callback: (a: T, b: U, index: number) => void): void;
+    function zipToMap<T>(keys: string[], values: T[]): Map<T>;
     /**
      * Iterates through `array` by index and performs the callback on each element of array until the callback
      * returns a falsey value, then returns false.
@@ -9202,6 +9208,18 @@ declare namespace ts {
             key: string;
             message: string;
         };
+        Reusing_resolution_of_module_0_to_file_1_from_old_program: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Reusing_module_resolutions_originating_in_0_since_resolutions_are_unchanged_from_old_program: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
         Variable_0_implicitly_has_an_1_type: {
             code: number;
             category: DiagnosticCategory;
@@ -9981,6 +9999,10 @@ declare namespace ts {
     function updateFunctionDeclaration(node: FunctionDeclaration, decorators: Decorator[] | undefined, modifiers: Modifier[] | undefined, asteriskToken: AsteriskToken | undefined, name: Identifier | undefined, typeParameters: TypeParameterDeclaration[] | undefined, parameters: ParameterDeclaration[], type: TypeNode | undefined, body: Block | undefined): FunctionDeclaration;
     function createClassDeclaration(decorators: Decorator[] | undefined, modifiers: Modifier[] | undefined, name: string | Identifier | undefined, typeParameters: TypeParameterDeclaration[] | undefined, heritageClauses: HeritageClause[], members: ClassElement[]): ClassDeclaration;
     function updateClassDeclaration(node: ClassDeclaration, decorators: Decorator[] | undefined, modifiers: Modifier[] | undefined, name: Identifier | undefined, typeParameters: TypeParameterDeclaration[] | undefined, heritageClauses: HeritageClause[], members: ClassElement[]): ClassDeclaration;
+    function createInterfaceDeclaration(decorators: Decorator[] | undefined, modifiers: Modifier[] | undefined, name: string | Identifier, typeParameters: TypeParameterDeclaration[] | undefined, heritageClauses: HeritageClause[] | undefined, members: TypeElement[]): InterfaceDeclaration;
+    function updateInterfaceDeclaration(node: InterfaceDeclaration, decorators: Decorator[] | undefined, modifiers: Modifier[] | undefined, name: Identifier, typeParameters: TypeParameterDeclaration[] | undefined, heritageClauses: HeritageClause[] | undefined, members: TypeElement[]): InterfaceDeclaration;
+    function createTypeAliasDeclaration(name: string | Identifier, typeParameters: TypeParameterDeclaration[] | undefined, type: TypeNode): TypeAliasDeclaration;
+    function updateTypeAliasDeclaration(node: TypeAliasDeclaration, name: Identifier, typeParameters: TypeParameterDeclaration[] | undefined, type: TypeNode): TypeAliasDeclaration;
     function createEnumDeclaration(decorators: Decorator[] | undefined, modifiers: Modifier[] | undefined, name: string | Identifier, members: EnumMember[]): EnumDeclaration;
     function updateEnumDeclaration(node: EnumDeclaration, decorators: Decorator[] | undefined, modifiers: Modifier[] | undefined, name: Identifier, members: EnumMember[]): EnumDeclaration;
     function createModuleDeclaration(decorators: Decorator[] | undefined, modifiers: Modifier[] | undefined, name: ModuleName, body: ModuleBody | undefined, flags?: NodeFlags): ModuleDeclaration;
@@ -12183,6 +12205,7 @@ declare namespace ts.formatting {
         SpaceAfterSubtractWhenFollowedByPredecrement: Rule;
         NoSpaceBeforeComma: Rule;
         SpaceAfterCertainKeywords: Rule;
+        NoSpaceAfterNewKeywordOnConstructorSignature: Rule;
         SpaceAfterLetConstInVariableDeclaration: Rule;
         NoSpaceBeforeOpenParenInFuncCall: Rule;
         SpaceAfterFunctionInFuncDecl: Rule;
@@ -12315,6 +12338,7 @@ declare namespace ts.formatting {
         static IsNotFormatOnEnter(context: FormattingContext): boolean;
         static IsModuleDeclContext(context: FormattingContext): boolean;
         static IsObjectTypeContext(context: FormattingContext): boolean;
+        static IsConstructorSignatureContext(context: FormattingContext): boolean;
         static IsTypeArgumentOrParameterOrAssertion(token: TextRangeWithKind, parent: Node): boolean;
         static IsTypeArgumentOrParameterOrAssertionContext(context: FormattingContext): boolean;
         static IsTypeAssertionContext(context: FormattingContext): boolean;
