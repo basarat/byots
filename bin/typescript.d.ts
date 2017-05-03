@@ -12385,29 +12385,41 @@ declare namespace ts.formatting {
         interface ITokenAccess {
             GetTokens(): SyntaxKind[];
             Contains(token: SyntaxKind): boolean;
+            isSpecific(): boolean;
         }
         class TokenRangeAccess implements ITokenAccess {
             private tokens;
             constructor(from: SyntaxKind, to: SyntaxKind, except: SyntaxKind[]);
             GetTokens(): SyntaxKind[];
             Contains(token: SyntaxKind): boolean;
+            isSpecific(): boolean;
         }
         class TokenValuesAccess implements ITokenAccess {
             private tokens;
             constructor(tks: SyntaxKind[]);
             GetTokens(): SyntaxKind[];
             Contains(token: SyntaxKind): boolean;
+            isSpecific(): boolean;
         }
         class TokenSingleValueAccess implements ITokenAccess {
             token: SyntaxKind;
             constructor(token: SyntaxKind);
             GetTokens(): SyntaxKind[];
             Contains(tokenValue: SyntaxKind): boolean;
+            isSpecific(): boolean;
         }
         class TokenAllAccess implements ITokenAccess {
             GetTokens(): SyntaxKind[];
             Contains(): boolean;
             toString(): string;
+            isSpecific(): boolean;
+        }
+        class TokenAllExceptAccess implements ITokenAccess {
+            readonly except: SyntaxKind;
+            constructor(except: SyntaxKind);
+            GetTokens(): SyntaxKind[];
+            Contains(token: SyntaxKind): boolean;
+            isSpecific(): boolean;
         }
         class TokenRange {
             tokenAccess: ITokenAccess;
@@ -12415,10 +12427,11 @@ declare namespace ts.formatting {
             static FromToken(token: SyntaxKind): TokenRange;
             static FromTokens(tokens: SyntaxKind[]): TokenRange;
             static FromRange(f: SyntaxKind, to: SyntaxKind, except?: SyntaxKind[]): TokenRange;
-            static AllTokens(): TokenRange;
+            static AnyExcept(token: SyntaxKind): TokenRange;
             GetTokens(): SyntaxKind[];
             Contains(token: SyntaxKind): boolean;
             toString(): string;
+            isSpecific(): boolean;
             static Any: TokenRange;
             static AnyIncludingMultilineComments: TokenRange;
             static Keywords: TokenRange;
