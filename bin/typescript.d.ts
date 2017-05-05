@@ -2979,14 +2979,17 @@ declare namespace ts {
         Values = 256,
         Read = 512,
         Spread = 1024,
-        AsyncGenerator = 2048,
-        AsyncDelegator = 4096,
-        AsyncValues = 8192,
+        Await = 2048,
+        AsyncGenerator = 4096,
+        AsyncDelegator = 8192,
+        AsyncValues = 16384,
         ForOfIncludes = 256,
-        ForAwaitOfIncludes = 8192,
+        ForAwaitOfIncludes = 16384,
+        AsyncGeneratorIncludes = 6144,
+        AsyncDelegatorIncludes = 26624,
         SpreadIncludes = 1536,
         FirstEmitHelper = 1,
-        LastEmitHelper = 8192,
+        LastEmitHelper = 16384,
     }
     enum EmitHint {
         SourceFile = 0,
@@ -3888,6 +3891,7 @@ declare namespace ts {
     function isSuperProperty(node: Node): node is SuperProperty;
     function getEntityNameFromTypeNode(node: TypeNode): EntityNameOrEntityNameExpression;
     function isCallLikeExpression(node: Node): node is CallLikeExpression;
+    function isCallOrNewExpression(node: Node): node is CallExpression | NewExpression;
     function getInvokedExpression(node: CallLikeExpression): Expression;
     function nodeCanBeDecorated(node: Node): boolean;
     function nodeIsDecorated(node: Node): boolean;
@@ -3962,12 +3966,10 @@ declare namespace ts {
         Normal = 0,
         Generator = 1,
         Async = 2,
-        AsyncOrAsyncGenerator = 3,
         Invalid = 4,
-        InvalidAsyncOrAsyncGenerator = 7,
-        InvalidGenerator = 5,
+        AsyncGenerator = 3,
     }
-    function getFunctionFlags(node: FunctionLikeDeclaration): FunctionFlags;
+    function getFunctionFlags(node: FunctionLikeDeclaration | undefined): FunctionFlags;
     function isAsyncFunction(node: Node): boolean;
     function isNumericLiteral(node: Node): node is NumericLiteral;
     function isStringOrNumericLiteral(node: Node): node is StringLiteral | NumericLiteral;
@@ -4220,7 +4222,6 @@ declare namespace ts {
     function isTemplateHead(node: Node): node is TemplateHead;
     function isTemplateMiddleOrTemplateTail(node: Node): node is TemplateMiddle | TemplateTail;
     function isIdentifier(node: Node): node is Identifier;
-    function isVoidExpression(node: Node): node is VoidExpression;
     function isGeneratedIdentifier(node: Node): node is GeneratedIdentifier;
     function isModifier(node: Node): node is Modifier;
     function isQualifiedName(node: Node): node is QualifiedName;
