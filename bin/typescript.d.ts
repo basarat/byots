@@ -1983,7 +1983,6 @@ declare namespace ts {
         writeTypeOfDeclaration(declaration: AccessorDeclaration | VariableLikeDeclaration, enclosingDeclaration: Node, flags: TypeFormatFlags, writer: SymbolWriter): void;
         writeReturnTypeOfSignatureDeclaration(signatureDeclaration: SignatureDeclaration, enclosingDeclaration: Node, flags: TypeFormatFlags, writer: SymbolWriter): void;
         writeTypeOfExpression(expr: Expression, enclosingDeclaration: Node, flags: TypeFormatFlags, writer: SymbolWriter): void;
-        writeBaseConstructorTypeOfClass(node: ClassLikeDeclaration, enclosingDeclaration: Node, flags: TypeFormatFlags, writer: SymbolWriter): void;
         isSymbolAccessible(symbol: Symbol, enclosingDeclaration: Node, meaning: SymbolFlags, shouldComputeAliasToMarkVisible: boolean): SymbolAccessibilityResult;
         isEntityNameVisible(entityName: EntityNameOrEntityNameExpression, enclosingDeclaration: Node): SymbolVisibilityResult;
         getConstantValue(node: EnumMember | PropertyAccessExpression | ElementAccessExpression): number;
@@ -12383,69 +12382,29 @@ declare namespace ts.formatting {
 }
 declare namespace ts.formatting {
     namespace Shared {
-        interface ITokenAccess {
+        interface TokenRange {
             GetTokens(): SyntaxKind[];
             Contains(token: SyntaxKind): boolean;
             isSpecific(): boolean;
         }
-        class TokenRangeAccess implements ITokenAccess {
-            private tokens;
-            constructor(from: SyntaxKind, to: SyntaxKind, except: SyntaxKind[]);
-            GetTokens(): SyntaxKind[];
-            Contains(token: SyntaxKind): boolean;
-            isSpecific(): boolean;
-        }
-        class TokenValuesAccess implements ITokenAccess {
-            private tokens;
-            constructor(tks: SyntaxKind[]);
-            GetTokens(): SyntaxKind[];
-            Contains(token: SyntaxKind): boolean;
-            isSpecific(): boolean;
-        }
-        class TokenSingleValueAccess implements ITokenAccess {
-            token: SyntaxKind;
-            constructor(token: SyntaxKind);
-            GetTokens(): SyntaxKind[];
-            Contains(tokenValue: SyntaxKind): boolean;
-            isSpecific(): boolean;
-        }
-        class TokenAllAccess implements ITokenAccess {
-            GetTokens(): SyntaxKind[];
-            Contains(): boolean;
-            toString(): string;
-            isSpecific(): boolean;
-        }
-        class TokenAllExceptAccess implements ITokenAccess {
-            readonly except: SyntaxKind;
-            constructor(except: SyntaxKind);
-            GetTokens(): SyntaxKind[];
-            Contains(token: SyntaxKind): boolean;
-            isSpecific(): boolean;
-        }
-        class TokenRange {
-            tokenAccess: ITokenAccess;
-            constructor(tokenAccess: ITokenAccess);
-            static FromToken(token: SyntaxKind): TokenRange;
-            static FromTokens(tokens: SyntaxKind[]): TokenRange;
-            static FromRange(f: SyntaxKind, to: SyntaxKind, except?: SyntaxKind[]): TokenRange;
-            static AnyExcept(token: SyntaxKind): TokenRange;
-            GetTokens(): SyntaxKind[];
-            Contains(token: SyntaxKind): boolean;
-            toString(): string;
-            isSpecific(): boolean;
-            static Any: TokenRange;
-            static AnyIncludingMultilineComments: TokenRange;
-            static Keywords: TokenRange;
-            static BinaryOperators: TokenRange;
-            static BinaryKeywordOperators: TokenRange;
-            static UnaryPrefixOperators: TokenRange;
-            static UnaryPrefixExpressions: TokenRange;
-            static UnaryPreincrementExpressions: TokenRange;
-            static UnaryPostincrementExpressions: TokenRange;
-            static UnaryPredecrementExpressions: TokenRange;
-            static UnaryPostdecrementExpressions: TokenRange;
-            static Comments: TokenRange;
-            static TypeNames: TokenRange;
+        namespace TokenRange {
+            function FromToken(token: SyntaxKind): TokenRange;
+            function FromTokens(tokens: SyntaxKind[]): TokenRange;
+            function FromRange(from: SyntaxKind, to: SyntaxKind, except?: SyntaxKind[]): TokenRange;
+            function AnyExcept(token: SyntaxKind): TokenRange;
+            const Any: TokenRange;
+            const AnyIncludingMultilineComments: TokenRange;
+            const Keywords: TokenRange;
+            const BinaryOperators: TokenRange;
+            const BinaryKeywordOperators: TokenRange;
+            const UnaryPrefixOperators: TokenRange;
+            const UnaryPrefixExpressions: TokenRange;
+            const UnaryPreincrementExpressions: TokenRange;
+            const UnaryPostincrementExpressions: TokenRange;
+            const UnaryPredecrementExpressions: TokenRange;
+            const UnaryPostdecrementExpressions: TokenRange;
+            const Comments: TokenRange;
+            const TypeNames: TokenRange;
         }
     }
 }
