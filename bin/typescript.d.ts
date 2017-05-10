@@ -1847,6 +1847,8 @@ declare namespace ts {
         getAmbientModules(): Symbol[];
         tryGetMemberInModuleExports(memberName: string, moduleSymbol: Symbol): Symbol | undefined;
         getApparentType(type: Type): Type;
+        getSuggestionForNonexistentProperty(node: Identifier, containingType: Type): string | undefined;
+        getSuggestionForNonexistentSymbol(location: Node, name: string, meaning: SymbolFlags): string;
         getBaseConstraintOfType(type: Type): Type;
         tryFindAmbientModuleWithoutAugmentations(moduleName: string): Symbol;
         getDiagnostics(sourceFile?: SourceFile, cancellationToken?: CancellationToken): Diagnostic[];
@@ -4401,6 +4403,7 @@ declare namespace ts {
      * @returns The unescaped identifier text.
      */
     function unescapeIdentifier(identifier: string): string;
+    function levenshtein(s1: string, s2: string): number;
 }
 declare namespace ts {
     const Diagnostics: {
@@ -7170,6 +7173,18 @@ declare namespace ts {
             key: string;
             message: string;
         };
+        Property_0_does_not_exist_on_type_1_Did_you_mean_2: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Cannot_find_name_0_Did_you_mean_1: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
         JSX_element_attributes_type_0_may_not_be_a_union_type: {
             code: number;
             category: DiagnosticCategory;
@@ -9703,6 +9718,12 @@ declare namespace ts {
             message: string;
         };
         Initialize_static_property_0: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Change_spelling_to_0: {
             code: number;
             category: DiagnosticCategory;
             key: string;
@@ -12584,6 +12605,8 @@ declare namespace ts {
         function getSupportedErrorCodes(): string[];
         function getFixes(context: CodeFixContext): CodeAction[];
     }
+}
+declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
 }
