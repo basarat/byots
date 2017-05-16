@@ -4331,6 +4331,7 @@ declare namespace ts {
     function isImportSpecifier(node: Node): node is ImportSpecifier;
     function isNamedExports(node: Node): node is NamedExports;
     function isExportSpecifier(node: Node): node is ExportSpecifier;
+    function isExportAssignment(node: Node): node is ExportAssignment;
     function isModuleOrEnumDeclaration(node: Node): node is ModuleDeclaration | EnumDeclaration;
     function isDeclaration(node: Node): node is NamedDeclaration;
     function isDeclarationStatement(node: Node): node is DeclarationStatement;
