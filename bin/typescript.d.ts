@@ -497,6 +497,7 @@ declare namespace ts {
         autoGenerateKind?: GeneratedIdentifierKind;
         autoGenerateId?: number;
         isInJSDocNamespace?: boolean;
+        typeArguments?: NodeArray<TypeNode>;
     }
     interface TransientIdentifier extends Identifier {
         resolvedSymbol: Symbol;
@@ -1846,7 +1847,7 @@ declare namespace ts {
         isArgumentsSymbol(symbol: Symbol): boolean;
         isUnknownSymbol(symbol: Symbol): boolean;
         getMergedSymbol(symbol: Symbol): Symbol;
-        getConstantValue(node: EnumMember | PropertyAccessExpression | ElementAccessExpression): number | undefined;
+        getConstantValue(node: EnumMember | PropertyAccessExpression | ElementAccessExpression): string | number | undefined;
         isValidPropertyAccess(node: PropertyAccessExpression | QualifiedName, propertyName: string): boolean;
         /** Follow all aliases to get the original symbol. */
         getAliasedSymbol(symbol: Symbol): Symbol;
@@ -1875,22 +1876,31 @@ declare namespace ts {
         /**
          * For a union, will include a property if it's defined in *any* of the member types.
          * So for `{ a } | { b }`, this will include both `a` and `b`.
+         * Does not include properties of primitive types.
          */
         getAllPossiblePropertiesOfType(type: Type): Symbol[];
     }
     enum NodeBuilderFlags {
         None = 0,
-        allowThisInObjectLiteral = 1,
-        allowQualifedNameInPlaceOfIdentifier = 2,
-        allowTypeParameterInQualifiedName = 4,
-        allowAnonymousIdentifier = 8,
-        allowEmptyUnionOrIntersection = 16,
-        allowEmptyTuple = 32,
+        NoTruncation = 1,
+        WriteArrayAsGenericType = 2,
+        WriteTypeArgumentsOfSignature = 32,
+        UseFullyQualifiedType = 64,
+        SuppressAnyReturnType = 256,
+        WriteTypeParametersInQualifiedName = 512,
+        AllowThisInObjectLiteral = 1024,
+        AllowQualifedNameInPlaceOfIdentifier = 2048,
+        AllowAnonymousIdentifier = 8192,
+        AllowEmptyUnionOrIntersection = 16384,
+        AllowEmptyTuple = 32768,
+        IgnoreErrors = 60416,
+        InObjectTypeLiteral = 1048576,
+        InTypeAlias = 8388608,
     }
     interface SymbolDisplayBuilder {
         buildTypeDisplay(type: Type, writer: SymbolWriter, enclosingDeclaration?: Node, flags?: TypeFormatFlags): void;
         buildSymbolDisplay(symbol: Symbol, writer: SymbolWriter, enclosingDeclaration?: Node, meaning?: SymbolFlags, flags?: SymbolFormatFlags): void;
-        buildSignatureDisplay(signatures: Signature, writer: SymbolWriter, enclosingDeclaration?: Node, flags?: TypeFormatFlags, kind?: SignatureKind): void;
+        buildSignatureDisplay(signature: Signature, writer: SymbolWriter, enclosingDeclaration?: Node, flags?: TypeFormatFlags, kind?: SignatureKind): void;
         buildIndexSignatureDisplay(info: IndexInfo, writer: SymbolWriter, kind: IndexKind, enclosingDeclaration?: Node, globalFlags?: TypeFormatFlags, symbolStack?: Symbol[]): void;
         buildParameterDisplay(parameter: Symbol, writer: SymbolWriter, enclosingDeclaration?: Node, flags?: TypeFormatFlags): void;
         buildTypeParameterDisplay(tp: TypeParameter, writer: SymbolWriter, enclosingDeclaration?: Node, flags?: TypeFormatFlags): void;
@@ -2007,7 +2017,7 @@ declare namespace ts {
         writeTypeOfExpression(expr: Expression, enclosingDeclaration: Node, flags: TypeFormatFlags, writer: SymbolWriter): void;
         isSymbolAccessible(symbol: Symbol, enclosingDeclaration: Node, meaning: SymbolFlags, shouldComputeAliasToMarkVisible: boolean): SymbolAccessibilityResult;
         isEntityNameVisible(entityName: EntityNameOrEntityNameExpression, enclosingDeclaration: Node): SymbolVisibilityResult;
-        getConstantValue(node: EnumMember | PropertyAccessExpression | ElementAccessExpression): number;
+        getConstantValue(node: EnumMember | PropertyAccessExpression | ElementAccessExpression): string | number;
         getReferencedValueDeclaration(reference: Identifier): Declaration;
         getTypeReferenceSerializationKind(typeName: EntityName, location?: Node): TypeReferenceSerializationKind;
         isOptionalParameter(node: ParameterDeclaration): boolean;
@@ -2123,6 +2133,11 @@ declare namespace ts {
         isDeclarationWithCollidingName?: boolean;
         bindingElement?: BindingElement;
         exportsSomeValue?: boolean;
+        enumKind?: EnumKind;
+    }
+    enum EnumKind {
+        Numeric = 0,
+        Literal = 1,
     }
     enum CheckFlags {
         Instantiated = 1,
@@ -2182,7 +2197,7 @@ declare namespace ts {
         resolvedSymbol?: Symbol;
         resolvedIndexInfo?: IndexInfo;
         maybeTypePredicate?: boolean;
-        enumMemberValue?: number;
+        enumMemberValue?: string | number;
         isVisible?: boolean;
         containsArgumentsReference?: boolean;
         hasReportedStatementInAmbientContext?: boolean;
@@ -2220,21 +2235,21 @@ declare namespace ts {
         NonPrimitive = 16777216,
         JsxAttributes = 33554432,
         Nullable = 6144,
-        Literal = 480,
+        Literal = 224,
         StringOrNumberLiteral = 96,
         DefinitelyFalsy = 7392,
         PossiblyFalsy = 7406,
         Intrinsic = 16793231,
         Primitive = 8190,
         StringLike = 262178,
-        NumberLike = 340,
+        NumberLike = 84,
         BooleanLike = 136,
         EnumLike = 272,
         UnionOrIntersection = 196608,
         StructuredType = 229376,
         StructuredOrTypeVariable = 1032192,
         TypeVariable = 540672,
-        Narrowable = 17810431,
+        Narrowable = 17810175,
         NotUnionOrUnit = 16810497,
         RequiresWidening = 6291456,
         PropagatingFlags = 14680064,
@@ -2252,15 +2267,17 @@ declare namespace ts {
         intrinsicName: string;
     }
     interface LiteralType extends Type {
-        text: string;
+        value: string | number;
         freshType?: LiteralType;
         regularType?: LiteralType;
     }
-    interface EnumType extends Type {
-        memberTypes: EnumLiteralType[];
+    interface StringLiteralType extends LiteralType {
+        value: string;
     }
-    interface EnumLiteralType extends LiteralType {
-        baseType: EnumType & UnionType;
+    interface NumberLiteralType extends LiteralType {
+        value: number;
+    }
+    interface EnumType extends Type {
     }
     enum ObjectFlags {
         Class = 1,
@@ -2945,7 +2962,7 @@ declare namespace ts {
         commentRange?: TextRange;
         sourceMapRange?: TextRange;
         tokenSourceMapRanges?: TextRange[];
-        constantValue?: number;
+        constantValue?: string | number;
         externalHelpersModuleName?: Identifier;
         helpers?: EmitHelper[];
     }
@@ -2977,6 +2994,7 @@ declare namespace ts {
         NoHoisting = 2097152,
         HasEndOfDeclarationMarker = 4194304,
         Iterator = 8388608,
+        NoAsciiEscaping = 16777216,
     }
     interface EmitHelper {
         readonly name: string;
@@ -3141,7 +3159,7 @@ declare namespace ts {
          * Prints a bundle of source files as-is, without any emit transformations.
          */
         printBundle(bundle: Bundle): string;
-        writeNode(hint: EmitHint, node: Node, sourceFile: SourceFile, writer: EmitTextWriter): void;
+        writeNode(hint: EmitHint, node: Node, sourceFile: SourceFile | undefined, writer: EmitTextWriter): void;
         writeFile(sourceFile: SourceFile, writer: EmitTextWriter): void;
         writeBundle(bundle: Bundle, writer: EmitTextWriter): void;
     }
@@ -3841,6 +3859,7 @@ declare namespace ts {
     function getTextOfNodeFromSourceText(sourceText: string, node: Node): string;
     function getTextOfNode(node: Node, includeTrivia?: boolean): string;
     function getLiteralText(node: LiteralLikeNode, sourceFile: SourceFile): string;
+    function getTextOfConstantValue(value: string | number): string;
     function escapeIdentifier(identifier: string): string;
     function makeIdentifierFromModuleName(moduleName: string): string;
     function isBlockOrCatchScoped(declaration: Declaration): boolean;
@@ -3855,7 +3874,7 @@ declare namespace ts {
     function isBlockScope(node: Node, parentNode: Node): boolean;
     function getEnclosingBlockScopeContainer(node: Node): Node;
     function declarationNameToString(name: DeclarationName): string;
-    function getNameFromIndexInfo(info: IndexInfo): string;
+    function getNameFromIndexInfo(info: IndexInfo): string | undefined;
     function getTextOfPropertyName(name: PropertyName): string;
     function entityNameToString(name: EntityNameOrEntityNameExpression): string;
     function createDiagnosticForNode(node: Node, message: DiagnosticMessage, arg0?: string | number, arg1?: string | number, arg2?: string | number): Diagnostic;
@@ -3864,7 +3883,6 @@ declare namespace ts {
     function getSpanOfTokenAtPosition(sourceFile: SourceFile, pos: number): TextSpan;
     function getErrorSpanForNode(sourceFile: SourceFile, node: Node): TextSpan;
     function isExternalOrCommonJsModule(file: SourceFile): boolean;
-    function isDeclarationFile(file: SourceFile): boolean;
     function isConstEnumDeclaration(node: Node): boolean;
     function isConst(node: Node): boolean;
     function isLet(node: Node): boolean;
@@ -3893,6 +3911,7 @@ declare namespace ts {
     function isClassLike(node: Node): node is ClassLikeDeclaration;
     function isFunctionLike(node: Node): node is FunctionLikeDeclaration;
     function isFunctionLikeKind(kind: SyntaxKind): boolean;
+    function isFunctionOrConstructorTypeNode(node: Node): node is FunctionTypeNode | ConstructorTypeNode;
     function introducesArgumentsExoticObject(node: Node): boolean;
     function isIterationStatement(node: Node, lookInLabeledStatements: boolean): node is IterationStatement;
     function unwrapInnermostStatementOfLabel(node: LabeledStatement, beforeUnwrapLabelCallback?: (node: LabeledStatement) => void): Statement;
@@ -4051,7 +4070,7 @@ declare namespace ts {
      */
     function escapeString(s: string): string;
     function isIntrinsicJsxName(name: string): boolean;
-    function escapeNonAsciiCharacters(s: string): string;
+    function escapeNonAsciiString(s: string): string;
     function getIndentString(level: number): string;
     function getIndentSize(): number;
     function createTextWriter(newLine: string): EmitTextWriter;
@@ -7224,6 +7243,12 @@ declare namespace ts {
             key: string;
             message: string;
         };
+        Computed_values_are_not_permitted_in_an_enum_with_string_valued_members: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
         JSX_element_attributes_type_0_may_not_be_a_union_type: {
             code: number;
             category: DiagnosticCategory;
@@ -9878,6 +9903,8 @@ declare namespace ts {
     function createLiteral(value: string | number | boolean): PrimaryExpression;
     function createNumericLiteral(value: string): NumericLiteral;
     function createIdentifier(text: string): Identifier;
+    function createIdentifier(text: string, typeArguments: TypeNode[]): Identifier;
+    function updateIdentifier(node: Identifier, typeArguments: NodeArray<TypeNode> | undefined): Identifier;
     /** Create a unique temporary variable. */
     function createTempVariable(recordTempVariable: ((node: Identifier) => void) | undefined): Identifier;
     /** Create a unique temporary variable for use in a loop. */
@@ -9902,8 +9929,8 @@ declare namespace ts {
     function updateParameter(node: ParameterDeclaration, decorators: Decorator[] | undefined, modifiers: Modifier[] | undefined, dotDotDotToken: DotDotDotToken | undefined, name: string | BindingName, questionToken: QuestionToken | undefined, type: TypeNode | undefined, initializer: Expression | undefined): ParameterDeclaration;
     function createDecorator(expression: Expression): Decorator;
     function updateDecorator(node: Decorator, expression: Expression): Decorator;
-    function createPropertySignature(name: PropertyName | string, questionToken: QuestionToken | undefined, type: TypeNode | undefined, initializer: Expression | undefined): PropertySignature;
-    function updatePropertySignature(node: PropertySignature, name: PropertyName, questionToken: QuestionToken | undefined, type: TypeNode | undefined, initializer: Expression | undefined): PropertySignature;
+    function createPropertySignature(modifiers: Modifier[] | undefined, name: PropertyName | string, questionToken: QuestionToken | undefined, type: TypeNode | undefined, initializer: Expression | undefined): PropertySignature;
+    function updatePropertySignature(node: PropertySignature, modifiers: Modifier[] | undefined, name: PropertyName, questionToken: QuestionToken | undefined, type: TypeNode | undefined, initializer: Expression | undefined): PropertySignature;
     function createProperty(decorators: Decorator[] | undefined, modifiers: Modifier[] | undefined, name: string | PropertyName, questionToken: QuestionToken | undefined, type: TypeNode | undefined, initializer: Expression): PropertyDeclaration;
     function updateProperty(node: PropertyDeclaration, decorators: Decorator[] | undefined, modifiers: Modifier[] | undefined, name: PropertyName, type: TypeNode | undefined, initializer: Expression): PropertyDeclaration;
     function createMethodSignature(typeParameters: TypeParameterDeclaration[] | undefined, parameters: ParameterDeclaration[], type: TypeNode | undefined, name: string | PropertyName, questionToken: QuestionToken | undefined): MethodSignature;
@@ -10237,11 +10264,11 @@ declare namespace ts {
     /**
      * Gets the constant value to emit for an expression.
      */
-    function getConstantValue(node: PropertyAccessExpression | ElementAccessExpression): number;
+    function getConstantValue(node: PropertyAccessExpression | ElementAccessExpression): string | number;
     /**
      * Sets the constant value to emit for an expression.
      */
-    function setConstantValue(node: PropertyAccessExpression | ElementAccessExpression, value: number): PropertyAccessExpression | ElementAccessExpression;
+    function setConstantValue(node: PropertyAccessExpression | ElementAccessExpression, value: string | number): PropertyAccessExpression | ElementAccessExpression;
     /**
      * Adds an EmitHelper to a node.
      */
@@ -10266,6 +10293,7 @@ declare namespace ts {
     function setOriginalNode<T extends Node>(node: T, original: Node | undefined): T;
 }
 declare namespace ts {
+    const nullTransformationContext: TransformationContext;
     type TypeOfTag = "undefined" | "number" | "boolean" | "string" | "symbol" | "object" | "function";
     function createTypeCheck(value: Expression, tag: TypeOfTag): BinaryExpression;
     function createMemberAccessForPropertyName(target: Expression, memberName: PropertyName, location?: TextRange): MemberExpression;
@@ -10401,7 +10429,6 @@ declare namespace ts {
      * @param statements An array of statements
      */
     function ensureUseStrict(statements: NodeArray<Statement>): NodeArray<Statement>;
-    function parenthesizeConditionalHead(condition: Expression): Expression;
     /**
      * Wraps the operand to a BinaryExpression in parentheses if they are needed to preserve the intended
      * order of operations.
@@ -10433,6 +10460,9 @@ declare namespace ts {
     function parenthesizeListElements(elements: NodeArray<Expression>): NodeArray<Expression>;
     function parenthesizeExpressionForList(expression: Expression): Expression;
     function parenthesizeExpressionForExpressionStatement(expression: Expression): Expression;
+    function parenthesizeElementTypeMember(member: TypeNode): TypeNode;
+    function parenthesizeElementTypeMembers(members: TypeNode[]): NodeArray<TypeNode>;
+    function parenthesizeTypeParameters(typeParameters: TypeNode[]): NodeArray<TypeNode>;
     function parenthesizeConciseBody(body: ConciseBody): ConciseBody;
     enum OuterExpressionKinds {
         Parentheses = 1,
@@ -11692,8 +11722,6 @@ declare namespace ts {
     function isNameOfFunctionDeclaration(node: Node): boolean;
     function isLiteralNameOfPropertyDeclarationOrIndexAccess(node: Node): boolean;
     function isExpressionOfExternalModuleImportEqualsDeclaration(node: Node): boolean;
-    /** Returns true if the position is within a comment */
-    function isInsideComment(sourceFile: SourceFile, token: Node, position: number): boolean;
     function getContainerNode(node: Node): Declaration;
     function getNodeKind(node: Node): string;
     function isThis(node: Node): boolean;
@@ -11731,17 +11759,18 @@ declare namespace ts {
     function findNextToken(previousToken: Node, parent: Node): Node;
     function findPrecedingToken(position: number, sourceFile: SourceFile, startNode?: Node): Node;
     function isInString(sourceFile: SourceFile, position: number): boolean;
-    function isInComment(sourceFile: SourceFile, position: number): boolean;
     /**
      * returns true if the position is in between the open and close elements of an JSX expression.
      */
     function isInsideJsxElementOrAttribute(sourceFile: SourceFile, position: number): boolean;
     function isInTemplateString(sourceFile: SourceFile, position: number): boolean;
     /**
-     * Returns true if the cursor at position in sourceFile is within a comment that additionally
-     * satisfies predicate, and false otherwise.
+     * Returns true if the cursor at position in sourceFile is within a comment.
+     *
+     * @param tokenAtPosition Must equal `getTokenAtPosition(sourceFile, position)
+     * @param predicate Additional predicate to test on the comment range.
      */
-    function isInCommentHelper(sourceFile: SourceFile, position: number, predicate?: (c: CommentRange) => boolean): boolean;
+    function isInComment(sourceFile: SourceFile, position: number, tokenAtPosition?: Node, predicate?: (c: CommentRange) => boolean): boolean;
     function hasDocComment(sourceFile: SourceFile, position: number): boolean;
     /**
      * Get the corresponding JSDocTag node if the position is in a jsDoc comment
@@ -12623,7 +12652,7 @@ declare namespace ts.textChanges {
         readonly text: string;
         readonly node: Node;
     }
-    function getNonformattedText(node: Node, sourceFile: SourceFile, newLine: NewLineKind): NonFormattedText;
+    function getNonformattedText(node: Node, sourceFile: SourceFile | undefined, newLine: NewLineKind): NonFormattedText;
     function applyFormatting(nonFormattedText: NonFormattedText, sourceFile: SourceFile, initialIndentation: number, delta: number, rulesProvider: formatting.RulesProvider): string;
     function applyChanges(text: string, changes: TextChange[]): string;
 }
