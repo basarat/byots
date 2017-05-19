@@ -6061,7 +6061,7 @@ declare namespace ts {
             key: string;
             message: string;
         };
-        Supplied_parameters_do_not_match_any_signature_of_call_target: {
+        Call_target_does_not_contain_any_signatures: {
             code: number;
             category: DiagnosticCategory;
             key: string;
@@ -7244,6 +7244,36 @@ declare namespace ts {
             message: string;
         };
         Computed_values_are_not_permitted_in_an_enum_with_string_valued_members: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Expected_0_arguments_but_got_1: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Expected_at_least_0_arguments_but_got_1: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Expected_0_arguments_but_got_a_minimum_of_1: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Expected_at_least_0_arguments_but_got_a_minimum_of_1: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Expected_0_type_arguments_but_got_1: {
             code: number;
             category: DiagnosticCategory;
             key: string;
