@@ -1743,6 +1743,7 @@ declare namespace ts {
         getResolvedTypeReferenceDirectives(): Map<ResolvedTypeReferenceDirective>;
         isSourceFileFromExternalLibrary(file: SourceFile): boolean;
         structureIsReused?: StructureIsReused;
+        getSourceFileFromReference(referencingFile: SourceFile, ref: FileReference): SourceFile | undefined;
     }
     enum StructureIsReused {
         Not = 0,
@@ -3212,6 +3213,8 @@ declare namespace ts {
         onSetSourceFile?: (node: SourceFile) => void;
         onBeforeEmitNodeArray?: (nodes: NodeArray<any>) => void;
         onAfterEmitNodeArray?: (nodes: NodeArray<any>) => void;
+        onBeforeEmitToken?: (node: Node) => void;
+        onAfterEmitToken?: (node: Node) => void;
     }
     interface PrinterOptions {
         removeComments?: boolean;
@@ -3646,6 +3649,7 @@ declare namespace ts {
     function comparePaths(a: string, b: string, currentDirectory: string, ignoreCase?: boolean): Comparison;
     function containsPath(parent: string, child: string, currentDirectory: string, ignoreCase?: boolean): boolean;
     function startsWith(str: string, prefix: string): boolean;
+    function removePrefix(str: string, prefix: string): string;
     function endsWith(str: string, suffix: string): boolean;
     function hasExtension(fileName: string): boolean;
     function fileExtensionIs(path: string, extension: string): boolean;
@@ -9049,6 +9053,12 @@ declare namespace ts {
             key: string;
             message: string;
         };
+        Cannot_import_type_declaration_files_Consider_importing_0_instead_of_1: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
         Property_0_is_declared_but_never_used: {
             code: number;
             category: DiagnosticCategory;
@@ -9823,6 +9833,18 @@ declare namespace ts {
             key: string;
             message: string;
         };
+        Convert_function_to_an_ES2015_class: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Convert_function_0_to_class: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
         Octal_literal_types_must_use_ES2015_syntax_Use_the_syntax_0: {
             code: number;
             category: DiagnosticCategory;
@@ -10054,7 +10076,7 @@ declare namespace ts {
     function createPostfix(operand: Expression, operator: PostfixUnaryOperator): PostfixUnaryExpression;
     function updatePostfix(node: PostfixUnaryExpression, operand: Expression): PostfixUnaryExpression;
     function createBinary(left: Expression, operator: BinaryOperator | BinaryOperatorToken, right: Expression): BinaryExpression;
-    function updateBinary(node: BinaryExpression, left: Expression, right: Expression): BinaryExpression;
+    function updateBinary(node: BinaryExpression, left: Expression, right: Expression, operator?: BinaryOperator | BinaryOperatorToken): BinaryExpression;
     function createConditional(condition: Expression, whenTrue: Expression, whenFalse: Expression): ConditionalExpression;
     function createConditional(condition: Expression, questionToken: QuestionToken, whenTrue: Expression, colonToken: ColonToken, whenFalse: Expression): ConditionalExpression;
     function updateConditional(node: ConditionalExpression, condition: Expression, whenTrue: Expression, whenFalse: Expression): ConditionalExpression;
@@ -10125,8 +10147,8 @@ declare namespace ts {
     function updateClassDeclaration(node: ClassDeclaration, decorators: Decorator[] | undefined, modifiers: Modifier[] | undefined, name: Identifier | undefined, typeParameters: TypeParameterDeclaration[] | undefined, heritageClauses: HeritageClause[], members: ClassElement[]): ClassDeclaration;
     function createInterfaceDeclaration(decorators: Decorator[] | undefined, modifiers: Modifier[] | undefined, name: string | Identifier, typeParameters: TypeParameterDeclaration[] | undefined, heritageClauses: HeritageClause[] | undefined, members: TypeElement[]): InterfaceDeclaration;
     function updateInterfaceDeclaration(node: InterfaceDeclaration, decorators: Decorator[] | undefined, modifiers: Modifier[] | undefined, name: Identifier, typeParameters: TypeParameterDeclaration[] | undefined, heritageClauses: HeritageClause[] | undefined, members: TypeElement[]): InterfaceDeclaration;
-    function createTypeAliasDeclaration(name: string | Identifier, typeParameters: TypeParameterDeclaration[] | undefined, type: TypeNode): TypeAliasDeclaration;
-    function updateTypeAliasDeclaration(node: TypeAliasDeclaration, name: Identifier, typeParameters: TypeParameterDeclaration[] | undefined, type: TypeNode): TypeAliasDeclaration;
+    function createTypeAliasDeclaration(decorators: Decorator[] | undefined, modifiers: Modifier[] | undefined, name: string | Identifier, typeParameters: TypeParameterDeclaration[] | undefined, type: TypeNode): TypeAliasDeclaration;
+    function updateTypeAliasDeclaration(node: TypeAliasDeclaration, decorators: Decorator[] | undefined, modifiers: Modifier[] | undefined, name: Identifier, typeParameters: TypeParameterDeclaration[] | undefined, type: TypeNode): TypeAliasDeclaration;
     function createEnumDeclaration(decorators: Decorator[] | undefined, modifiers: Modifier[] | undefined, name: string | Identifier, members: EnumMember[]): EnumDeclaration;
     function updateEnumDeclaration(node: EnumDeclaration, decorators: Decorator[] | undefined, modifiers: Modifier[] | undefined, name: Identifier, members: EnumMember[]): EnumDeclaration;
     function createModuleDeclaration(decorators: Decorator[] | undefined, modifiers: Modifier[] | undefined, name: ModuleName, body: ModuleBody | undefined, flags?: NodeFlags): ModuleDeclaration;
@@ -11217,6 +11239,8 @@ declare namespace ts {
         getDocCommentTemplateAtPosition(fileName: string, position: number): TextInsertion;
         isValidBraceCompletionAtPosition(fileName: string, position: number, openingBrace: number): boolean;
         getCodeFixesAtPosition(fileName: string, start: number, end: number, errorCodes: number[], formatOptions: FormatCodeSettings): CodeAction[];
+        getApplicableRefactors(fileName: string, positionOrRaneg: number | TextRange): ApplicableRefactorInfo[];
+        getRefactorCodeActions(fileName: string, formatOptions: FormatCodeSettings, positionOrRange: number | TextRange, refactorName: string): CodeAction[] | undefined;
         getEmitOutput(fileName: string, emitOnlyDtsFiles?: boolean): EmitOutput;
         getProgram(): Program;
         getNonBoundSourceFile(fileName: string): SourceFile;
@@ -11292,6 +11316,10 @@ declare namespace ts {
         description: string;
         /** Text changes to apply to each file as part of the code action */
         changes: FileTextChanges[];
+    }
+    interface ApplicableRefactorInfo {
+        name: string;
+        description: string;
     }
     interface TextInsertion {
         newText: string;
@@ -11820,6 +11848,7 @@ declare namespace ts {
     function isInReferenceComment(sourceFile: SourceFile, position: number): boolean;
     function isInNonReferenceComment(sourceFile: SourceFile, position: number): boolean;
     function createTextSpanFromNode(node: Node, sourceFile?: SourceFile): TextSpan;
+    function createTextSpanFromRange(range: TextRange): TextSpan;
     function isTypeKeyword(kind: SyntaxKind): boolean;
     /** True if the symbol is for an external module, as opposed to a namespace. */
     function isExternalModuleSymbol(moduleSymbol: Symbol): boolean;
@@ -11881,7 +11910,7 @@ declare namespace ts.Completions {
     function getCompletionEntrySymbol(typeChecker: TypeChecker, log: (message: string) => void, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number, entryName: string): Symbol;
 }
 declare namespace ts.DocumentHighlights {
-    function getDocumentHighlights(typeChecker: TypeChecker, cancellationToken: CancellationToken, sourceFile: SourceFile, position: number, sourceFilesToSearch: SourceFile[]): DocumentHighlights[];
+    function getDocumentHighlights(program: Program, cancellationToken: CancellationToken, sourceFile: SourceFile, position: number, sourceFilesToSearch: SourceFile[]): DocumentHighlights[];
 }
 declare namespace ts {
     /**
@@ -11975,6 +12004,15 @@ declare namespace ts.FindAllReferences {
         Import = 0,
         Export = 1,
     }
+    type ModuleReference = {
+        kind: "import";
+        literal: StringLiteral;
+    } | {
+        kind: "reference";
+        referencingFile: SourceFile;
+        ref: FileReference;
+    };
+    function findModuleReferences(program: Program, sourceFiles: SourceFile[], searchModuleSymbol: Symbol): ModuleReference[];
     interface ImportedSymbol {
         kind: ImportExport.Import;
         symbol: Symbol;
@@ -12040,10 +12078,10 @@ declare namespace ts.FindAllReferences {
         /** True if we are searching for implementations. We will have a different method of adding references if so. */
         readonly implementations?: boolean;
     }
-    function findReferencedSymbols(checker: TypeChecker, cancellationToken: CancellationToken, sourceFiles: SourceFile[], sourceFile: SourceFile, position: number): ReferencedSymbol[] | undefined;
-    function getImplementationsAtPosition(checker: TypeChecker, cancellationToken: CancellationToken, sourceFiles: SourceFile[], sourceFile: SourceFile, position: number): ImplementationLocation[];
-    function findReferencedEntries(checker: TypeChecker, cancellationToken: CancellationToken, sourceFiles: SourceFile[], sourceFile: SourceFile, position: number, options?: Options): ReferenceEntry[] | undefined;
-    function getReferenceEntriesForNode(node: Node, sourceFiles: SourceFile[], checker: TypeChecker, cancellationToken: CancellationToken, options?: Options): Entry[] | undefined;
+    function findReferencedSymbols(program: Program, cancellationToken: CancellationToken, sourceFiles: SourceFile[], sourceFile: SourceFile, position: number): ReferencedSymbol[] | undefined;
+    function getImplementationsAtPosition(program: Program, cancellationToken: CancellationToken, sourceFiles: SourceFile[], sourceFile: SourceFile, position: number): ImplementationLocation[];
+    function findReferencedEntries(program: Program, cancellationToken: CancellationToken, sourceFiles: SourceFile[], sourceFile: SourceFile, position: number, options?: Options): ReferenceEntry[] | undefined;
+    function getReferenceEntriesForNode(node: Node, program: Program, sourceFiles: SourceFile[], cancellationToken: CancellationToken, options?: Options): Entry[] | undefined;
     function toHighlightSpan(entry: FindAllReferences.Entry): {
         fileName: string;
         span: HighlightSpan;
@@ -12052,7 +12090,7 @@ declare namespace ts.FindAllReferences {
 /** Encapsulates the core find-all-references algorithm. */
 declare namespace ts.FindAllReferences.Core {
     /** Core find-all-references algorithm. Handles special cases before delegating to `getReferencedSymbolsForSymbol`. */
-    function getReferencedSymbolsForNode(node: Node, sourceFiles: SourceFile[], checker: TypeChecker, cancellationToken: CancellationToken, options?: Options): SymbolAndEntries[] | undefined;
+    function getReferencedSymbolsForNode(node: Node, program: Program, sourceFiles: SourceFile[], cancellationToken: CancellationToken, options?: Options): SymbolAndEntries[] | undefined;
     function getReferenceEntriesForShorthandPropertyAssignment(node: Node, checker: TypeChecker, addReference: (node: Node) => void): void;
 }
 declare namespace ts.GoToDefinition {
@@ -12655,7 +12693,10 @@ declare namespace ts.textChanges {
         private readonly validator;
         private changes;
         private readonly newLineCharacter;
-        static fromCodeFixContext(context: CodeFixContext): ChangeTracker;
+        static fromCodeFixContext(context: {
+            newLineCharacter: string;
+            rulesProvider: formatting.RulesProvider;
+        }): ChangeTracker;
         constructor(newLine: NewLineKind, rulesProvider: formatting.RulesProvider, validator?: (text: NonFormattedText) => void);
         deleteNode(sourceFile: SourceFile, node: Node, options?: ConfigurableStartEnd): this;
         deleteRange(sourceFile: SourceFile, range: TextRange): this;
@@ -12702,9 +12743,35 @@ declare namespace ts {
         rulesProvider: formatting.RulesProvider;
     }
     namespace codefix {
-        function registerCodeFix(action: CodeFix): void;
+        function registerCodeFix(codeFix: CodeFix): void;
         function getSupportedErrorCodes(): string[];
         function getFixes(context: CodeFixContext): CodeAction[];
+    }
+}
+declare namespace ts {
+    interface Refactor {
+        /** An unique code associated with each refactor */
+        name: string;
+        /** Description of the refactor to display in the UI of the editor */
+        description: string;
+        /** Compute the associated code actions */
+        getCodeActions(context: RefactorContext): CodeAction[];
+        /** A fast syntactic check to see if the refactor is applicable at given position. */
+        isApplicable(context: RefactorContext): boolean;
+    }
+    interface RefactorContext {
+        file: SourceFile;
+        startPosition: number;
+        endPosition?: number;
+        program: Program;
+        newLineCharacter: string;
+        rulesProvider?: formatting.RulesProvider;
+        cancellationToken?: CancellationToken;
+    }
+    namespace refactor {
+        function registerRefactor(refactor: Refactor): void;
+        function getApplicableRefactors(context: RefactorContext): ApplicableRefactorInfo[] | undefined;
+        function getRefactorCodeActions(context: RefactorContext, refactorName: string): CodeAction[] | undefined;
     }
 }
 declare namespace ts.codefix {
@@ -12739,6 +12806,8 @@ declare namespace ts.codefix {
      */
     function createMissingMemberNodes(classDeclaration: ClassLikeDeclaration, possiblyMissingSymbols: Symbol[], checker: TypeChecker): Node[];
     function createStubbedMethod(modifiers: Modifier[], name: PropertyName, optional: boolean, typeParameters: TypeParameterDeclaration[] | undefined, parameters: ParameterDeclaration[], returnType: TypeNode | undefined): MethodDeclaration;
+}
+declare namespace ts.refactor {
 }
 declare namespace ts {
     /** The version of the language service API */
