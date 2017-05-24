@@ -1805,10 +1805,10 @@ declare namespace ts {
         getTypeOfSymbolAtLocation(symbol: Symbol, node: Node): Type;
         getDeclaredTypeOfSymbol(symbol: Symbol): Type;
         getPropertiesOfType(type: Type): Symbol[];
-        getPropertyOfType(type: Type, propertyName: string): Symbol;
-        getIndexInfoOfType(type: Type, kind: IndexKind): IndexInfo;
+        getPropertyOfType(type: Type, propertyName: string): Symbol | undefined;
+        getIndexInfoOfType(type: Type, kind: IndexKind): IndexInfo | undefined;
         getSignaturesOfType(type: Type, kind: SignatureKind): Signature[];
-        getIndexTypeOfType(type: Type, kind: IndexKind): Type;
+        getIndexTypeOfType(type: Type, kind: IndexKind): Type | undefined;
         getBaseTypes(type: InterfaceType): BaseType[];
         getBaseTypeOfLiteralType(type: Type): Type;
         getWidenedType(type: Type): Type;
@@ -4005,6 +4005,7 @@ declare namespace ts {
     function isNodeDescendantOf(node: Node, ancestor: Node): boolean;
     function isInAmbientContext(node: Node): boolean;
     function isDeclarationName(name: Node): boolean;
+    function isAnyDeclarationName(name: Node): boolean;
     function isLiteralComputedPropertyDeclarationName(node: Node): boolean;
     function isIdentifierName(node: Identifier): boolean;
     function isAliasSymbolDeclaration(node: Node): boolean;
@@ -11059,6 +11060,19 @@ declare namespace ts {
     function formatDiagnostics(diagnostics: Diagnostic[], host: FormatDiagnosticsHost): string;
     function formatDiagnosticsWithColorAndContext(diagnostics: Diagnostic[], host: FormatDiagnosticsHost): string;
     function flattenDiagnosticMessageText(messageText: string | DiagnosticMessageChain, newLine: string): string;
+    /**
+     * Create a new 'Program' instance. A Program is an immutable collection of 'SourceFile's and a 'CompilerOptions'
+     * that represent a compilation unit.
+     *
+     * Creating a program proceeds from a set of root files, expanding the set of inputs by following imports and
+     * triple-slash-reference-path directives transitively. '@types' and triple-slash-reference-types are also pulled in.
+     *
+     * @param rootNames - A set of root files.
+     * @param options - The compiler options which should be used.
+     * @param host - The host interacts with the underlying file system.
+     * @param oldProgram - Reuses an old program structure.
+     * @returns A 'Program' object.
+     */
     function createProgram(rootNames: string[], options: CompilerOptions, host?: CompilerHost, oldProgram?: Program): Program;
     /**
      * Returns a DiagnosticMessage if we won't include a resolved module due to its extension.
@@ -11091,31 +11105,31 @@ declare namespace ts {
         getText(sourceFile?: SourceFile): string;
         getFirstToken(sourceFile?: SourceFile): Node;
         getLastToken(sourceFile?: SourceFile): Node;
-        forEachChild<T>(cbNode: (node: Node) => T, cbNodeArray?: (nodes: Node[]) => T): T;
+        forEachChild<T>(cbNode: (node: Node) => T | undefined, cbNodeArray?: (nodes: NodeArray<Node>) => T | undefined): T | undefined;
     }
     interface Symbol {
         getFlags(): SymbolFlags;
         getName(): string;
-        getDeclarations(): Declaration[];
+        getDeclarations(): Declaration[] | undefined;
         getDocumentationComment(): SymbolDisplayPart[];
         getJsDocTags(): JSDocTagInfo[];
     }
     interface Type {
         getFlags(): TypeFlags;
-        getSymbol(): Symbol;
+        getSymbol(): Symbol | undefined;
         getProperties(): Symbol[];
-        getProperty(propertyName: string): Symbol;
+        getProperty(propertyName: string): Symbol | undefined;
         getApparentProperties(): Symbol[];
         getCallSignatures(): Signature[];
         getConstructSignatures(): Signature[];
-        getStringIndexType(): Type;
-        getNumberIndexType(): Type;
-        getBaseTypes(): BaseType[];
+        getStringIndexType(): Type | undefined;
+        getNumberIndexType(): Type | undefined;
+        getBaseTypes(): BaseType[] | undefined;
         getNonNullableType(): Type;
     }
     interface Signature {
         getDeclaration(): SignatureDeclaration;
-        getTypeParameters(): TypeParameter[];
+        getTypeParameters(): TypeParameter[] | undefined;
         getParameters(): Symbol[];
         getReturnType(): Type;
         getDocumentationComment(): SymbolDisplayPart[];
@@ -11261,7 +11275,7 @@ declare namespace ts {
     }
     interface ClassifiedSpan {
         textSpan: TextSpan;
-        classificationType: string;
+        classificationType: ClassificationTypeNames;
     }
     /**
      * Navigation bar interface designed for visual studio's dual-column layout.
@@ -11271,7 +11285,7 @@ declare namespace ts {
      */
     interface NavigationBarItem {
         text: string;
-        kind: string;
+        kind: ScriptElementKind;
         kindModifiers: string;
         spans: TextSpan[];
         childItems: NavigationBarItem[];
@@ -11286,8 +11300,7 @@ declare namespace ts {
     interface NavigationTree {
         /** Name of the declaration, or a short description, e.g. "<class>". */
         text: string;
-        /** A ScriptElementKind */
-        kind: string;
+        kind: ScriptElementKind;
         /** ScriptElementKindModifier separated by commas, e.g. "public,abstract" */
         kindModifiers: string;
         /**
@@ -11342,35 +11355,35 @@ declare namespace ts {
         isInString?: true;
     }
     interface ImplementationLocation extends DocumentSpan {
-        kind: string;
+        kind: ScriptElementKind;
         displayParts: SymbolDisplayPart[];
     }
     interface DocumentHighlights {
         fileName: string;
         highlightSpans: HighlightSpan[];
     }
-    namespace HighlightSpanKind {
-        const none = "none";
-        const definition = "definition";
-        const reference = "reference";
-        const writtenReference = "writtenReference";
+    enum HighlightSpanKind {
+        none = "none",
+        definition = "definition",
+        reference = "reference",
+        writtenReference = "writtenReference",
     }
     interface HighlightSpan {
         fileName?: string;
         isInString?: true;
         textSpan: TextSpan;
-        kind: string;
+        kind: HighlightSpanKind;
     }
     interface NavigateToItem {
         name: string;
-        kind: string;
+        kind: ScriptElementKind;
         kindModifiers: string;
         matchKind: string;
         isCaseSensitive: boolean;
         fileName: string;
         textSpan: TextSpan;
         containerName: string;
-        containerKind: string;
+        containerKind: ScriptElementKind;
     }
     enum IndentStyle {
         None = 0,
@@ -11430,9 +11443,9 @@ declare namespace ts {
     interface DefinitionInfo {
         fileName: string;
         textSpan: TextSpan;
-        kind: string;
+        kind: ScriptElementKind;
         name: string;
-        containerKind: string;
+        containerKind: ScriptElementKind;
         containerName: string;
     }
     interface ReferencedSymbolDefinitionInfo extends DefinitionInfo {
@@ -11475,7 +11488,7 @@ declare namespace ts {
         text?: string;
     }
     interface QuickInfo {
-        kind: string;
+        kind: ScriptElementKind;
         kindModifiers: string;
         textSpan: TextSpan;
         displayParts: SymbolDisplayPart[];
@@ -11487,7 +11500,7 @@ declare namespace ts {
         localizedErrorMessage: string;
         displayName: string;
         fullDisplayName: string;
-        kind: string;
+        kind: ScriptElementKind;
         kindModifiers: string;
         triggerSpan: TextSpan;
     }
@@ -11534,7 +11547,7 @@ declare namespace ts {
     }
     interface CompletionEntry {
         name: string;
-        kind: string;
+        kind: ScriptElementKind;
         kindModifiers: string;
         sortText: string;
         /**
@@ -11546,7 +11559,7 @@ declare namespace ts {
     }
     interface CompletionEntryDetails {
         name: string;
-        kind: string;
+        kind: ScriptElementKind;
         kindModifiers: string;
         displayParts: SymbolDisplayPart[];
         documentation: SymbolDisplayPart[];
@@ -11631,107 +11644,107 @@ declare namespace ts {
         getClassificationsForLine(text: string, lexState: EndOfLineState, syntacticClassifierAbsent: boolean): ClassificationResult;
         getEncodedLexicalClassifications(text: string, endOfLineState: EndOfLineState, syntacticClassifierAbsent: boolean): Classifications;
     }
-    namespace ScriptElementKind {
-        const unknown = "";
-        const warning = "warning";
+    enum ScriptElementKind {
+        unknown = "",
+        warning = "warning",
         /** predefined type (void) or keyword (class) */
-        const keyword = "keyword";
+        keyword = "keyword",
         /** top level script node */
-        const scriptElement = "script";
+        scriptElement = "script",
         /** module foo {} */
-        const moduleElement = "module";
+        moduleElement = "module",
         /** class X {} */
-        const classElement = "class";
+        classElement = "class",
         /** var x = class X {} */
-        const localClassElement = "local class";
+        localClassElement = "local class",
         /** interface Y {} */
-        const interfaceElement = "interface";
+        interfaceElement = "interface",
         /** type T = ... */
-        const typeElement = "type";
+        typeElement = "type",
         /** enum E */
-        const enumElement = "enum";
-        const enumMemberElement = "enum member";
+        enumElement = "enum",
+        enumMemberElement = "enum member",
         /**
          * Inside module and script only
          * const v = ..
          */
-        const variableElement = "var";
+        variableElement = "var",
         /** Inside function */
-        const localVariableElement = "local var";
+        localVariableElement = "local var",
         /**
          * Inside module and script only
          * function f() { }
          */
-        const functionElement = "function";
+        functionElement = "function",
         /** Inside function */
-        const localFunctionElement = "local function";
+        localFunctionElement = "local function",
         /** class X { [public|private]* foo() {} } */
-        const memberFunctionElement = "method";
+        memberFunctionElement = "method",
         /** class X { [public|private]* [get|set] foo:number; } */
-        const memberGetAccessorElement = "getter";
-        const memberSetAccessorElement = "setter";
+        memberGetAccessorElement = "getter",
+        memberSetAccessorElement = "setter",
         /**
          * class X { [public|private]* foo:number; }
          * interface Y { foo:number; }
          */
-        const memberVariableElement = "property";
+        memberVariableElement = "property",
         /** class X { constructor() { } } */
-        const constructorImplementationElement = "constructor";
+        constructorImplementationElement = "constructor",
         /** interface Y { ():number; } */
-        const callSignatureElement = "call";
+        callSignatureElement = "call",
         /** interface Y { []:number; } */
-        const indexSignatureElement = "index";
+        indexSignatureElement = "index",
         /** interface Y { new():Y; } */
-        const constructSignatureElement = "construct";
+        constructSignatureElement = "construct",
         /** function foo(*Y*: string) */
-        const parameterElement = "parameter";
-        const typeParameterElement = "type parameter";
-        const primitiveType = "primitive type";
-        const label = "label";
-        const alias = "alias";
-        const constElement = "const";
-        const letElement = "let";
-        const directory = "directory";
-        const externalModuleName = "external module name";
+        parameterElement = "parameter",
+        typeParameterElement = "type parameter",
+        primitiveType = "primitive type",
+        label = "label",
+        alias = "alias",
+        constElement = "const",
+        letElement = "let",
+        directory = "directory",
+        externalModuleName = "external module name",
         /**
          * <JsxTagName attribute1 attribute2={0} />
          */
-        const jsxAttribute = "JSX attribute";
+        jsxAttribute = "JSX attribute",
     }
-    namespace ScriptElementKindModifier {
-        const none = "";
-        const publicMemberModifier = "public";
-        const privateMemberModifier = "private";
-        const protectedMemberModifier = "protected";
-        const exportedModifier = "export";
-        const ambientModifier = "declare";
-        const staticModifier = "static";
-        const abstractModifier = "abstract";
+    enum ScriptElementKindModifier {
+        none = "",
+        publicMemberModifier = "public",
+        privateMemberModifier = "private",
+        protectedMemberModifier = "protected",
+        exportedModifier = "export",
+        ambientModifier = "declare",
+        staticModifier = "static",
+        abstractModifier = "abstract",
     }
-    class ClassificationTypeNames {
-        static comment: string;
-        static identifier: string;
-        static keyword: string;
-        static numericLiteral: string;
-        static operator: string;
-        static stringLiteral: string;
-        static whiteSpace: string;
-        static text: string;
-        static punctuation: string;
-        static className: string;
-        static enumName: string;
-        static interfaceName: string;
-        static moduleName: string;
-        static typeParameterName: string;
-        static typeAliasName: string;
-        static parameterName: string;
-        static docCommentTagName: string;
-        static jsxOpenTagName: string;
-        static jsxCloseTagName: string;
-        static jsxSelfClosingTagName: string;
-        static jsxAttribute: string;
-        static jsxText: string;
-        static jsxAttributeStringLiteralValue: string;
+    enum ClassificationTypeNames {
+        comment = "comment",
+        identifier = "identifier",
+        keyword = "keyword",
+        numericLiteral = "number",
+        operator = "operator",
+        stringLiteral = "string",
+        whiteSpace = "whitespace",
+        text = "text",
+        punctuation = "punctuation",
+        className = "class name",
+        enumName = "enum name",
+        interfaceName = "interface name",
+        moduleName = "module name",
+        typeParameterName = "type parameter name",
+        typeAliasName = "type alias name",
+        parameterName = "parameter name",
+        docCommentTagName = "doc comment tag name",
+        jsxOpenTagName = "jsx open tag name",
+        jsxCloseTagName = "jsx close tag name",
+        jsxSelfClosingTagName = "jsx self closing tag name",
+        jsxAttribute = "jsx attribute",
+        jsxText = "jsx text",
+        jsxAttributeStringLiteralValue = "jsx attribute string literal value",
     }
     enum ClassificationType {
         comment = 1,
@@ -11785,7 +11798,7 @@ declare namespace ts {
     function isLiteralNameOfPropertyDeclarationOrIndexAccess(node: Node): boolean;
     function isExpressionOfExternalModuleImportEqualsDeclaration(node: Node): boolean;
     function getContainerNode(node: Node): Declaration;
-    function getNodeKind(node: Node): string;
+    function getNodeKind(node: Node): ScriptElementKind;
     function isThis(node: Node): boolean;
     interface ListItemInfo {
         listItemIndex: number;
@@ -12102,8 +12115,8 @@ declare namespace ts.GoToDefinition {
     function getTypeDefinitionAtPosition(typeChecker: TypeChecker, sourceFile: SourceFile, position: number): DefinitionInfo[];
 }
 declare namespace ts.JsDoc {
-    function getJsDocCommentsFromDeclarations(declarations: Declaration[]): SymbolDisplayPart[];
-    function getJsDocTagsFromDeclarations(declarations: Declaration[]): JSDocTagInfo[];
+    function getJsDocCommentsFromDeclarations(declarations?: Declaration[]): SymbolDisplayPart[];
+    function getJsDocTagsFromDeclarations(declarations?: Declaration[]): JSDocTagInfo[];
     function getJSDocTagNameCompletions(): CompletionEntry[];
     function getJSDocTagCompletions(): CompletionEntry[];
     /**
@@ -12212,12 +12225,12 @@ declare namespace ts.SignatureHelp {
     function getContainingArgumentInfo(node: Node, position: number, sourceFile: SourceFile): ArgumentListInfo;
 }
 declare namespace ts.SymbolDisplay {
-    function getSymbolKind(typeChecker: TypeChecker, symbol: Symbol, location: Node): string;
+    function getSymbolKind(typeChecker: TypeChecker, symbol: Symbol, location: Node): ScriptElementKind;
     function getSymbolModifiers(symbol: Symbol): string;
     function getSymbolDisplayPartsDocumentationAndSymbolKind(typeChecker: TypeChecker, symbol: Symbol, sourceFile: SourceFile, enclosingDeclaration: Node, location: Node, semanticMeaning?: SemanticMeaning): {
         displayParts: SymbolDisplayPart[];
         documentation: SymbolDisplayPart[];
-        symbolKind: string;
+        symbolKind: ScriptElementKind;
         tags: JSDocTagInfo[];
     };
 }
