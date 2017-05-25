@@ -710,6 +710,7 @@ declare namespace ts {
     interface ConstructorTypeNode extends TypeNode, SignatureDeclaration {
         kind: SyntaxKind.ConstructorType;
     }
+    type TypeReferenceType = TypeReferenceNode | ExpressionWithTypeArguments | JSDocTypeReference;
     interface TypeReferenceNode extends TypeNode {
         kind: SyntaxKind.TypeReference;
         typeName: EntityName;
