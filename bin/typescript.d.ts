@@ -3405,6 +3405,7 @@ declare namespace ts {
      * @param mapfn The callback used to map the result into one or more values.
      */
     function sameFlatMap<T>(array: T[], mapfn: (x: T, i: number) => T | T[]): T[];
+    function mapDefined<T>(array: ReadonlyArray<T>, mapFn: (x: T, i: number) => T | undefined): ReadonlyArray<T>;
     /**
      * Computes the first matching span of elements and returns a tuple of the first span
      * and the remaining elements.
@@ -10716,7 +10717,6 @@ declare namespace ts {
     }
     const defaultInitCompilerOptions: CompilerOptions;
     function convertEnableAutoDiscoveryToEnable(typeAcquisition: TypeAcquisition): TypeAcquisition;
-    function getOptionNameMap(): OptionNameMap;
     function createCompilerDiagnosticForInvalidCustomType(opt: CommandLineOptionOfCustomType): Diagnostic;
     function parseCustomTypeOption(opt: CommandLineOptionOfCustomType, value: string, errors: Diagnostic[]): string | number;
     function parseListTypeOption(opt: CommandLineOptionOfListType, value: string, errors: Diagnostic[]): (string | number)[] | undefined;
@@ -10762,6 +10762,11 @@ declare namespace ts {
         options: TypeAcquisition;
         errors: Diagnostic[];
     };
+    /**
+     * Produces a cleaned version of compiler options with personally identifiying info (aka, paths) removed.
+     * Also converts enum values back to strings.
+     */
+    function convertCompilerOptionsForTelemetry(opts: ts.CompilerOptions): ts.CompilerOptions;
 }
 declare namespace ts {
     interface SourceMapWriter {
