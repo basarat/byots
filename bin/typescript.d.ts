@@ -1507,6 +1507,7 @@ declare namespace ts {
         comment: string | undefined;
     }
     interface JSDocTag extends Node {
+        parent: JSDoc;
         atToken: AtToken;
         tagName: Identifier;
         comment: string | undefined;
@@ -1531,6 +1532,7 @@ declare namespace ts {
         typeExpression: JSDocTypeExpression;
     }
     interface JSDocTypedefTag extends JSDocTag, NamedDeclaration {
+        parent: JSDoc;
         kind: SyntaxKind.JSDocTypedefTag;
         fullName?: JSDocNamespaceDeclaration | Identifier;
         name?: Identifier;
@@ -1538,9 +1540,11 @@ declare namespace ts {
         jsDocTypeLiteral?: JSDocTypeLiteral;
     }
     interface JSDocPropertyTag extends JSDocTag, TypeElement {
+        parent: JSDoc;
         kind: SyntaxKind.JSDocPropertyTag;
         name: Identifier;
         typeExpression: JSDocTypeExpression;
+        isBracketed: boolean;
     }
     interface JSDocTypeLiteral extends JSDocType {
         kind: SyntaxKind.JSDocTypeLiteral;
@@ -2438,22 +2442,30 @@ declare namespace ts {
         (t: TypeParameter): Type;
         mappedTypes?: Type[];
         instantiations?: Type[];
-        context?: InferenceContext;
     }
-    interface TypeInferences {
-        primary: Type[];
-        secondary: Type[];
+    enum InferencePriority {
+        NakedTypeVariable = 1,
+        MappedType = 2,
+        ReturnType = 4,
+    }
+    interface InferenceInfo {
+        typeParameter: TypeParameter;
+        candidates: Type[];
+        inferredType: Type;
+        priority: InferencePriority;
         topLevel: boolean;
         isFixed: boolean;
     }
-    interface InferenceContext {
+    enum InferenceFlags {
+        InferUnionTypes = 1,
+        NoDefault = 2,
+        AnyDefault = 4,
+    }
+    interface InferenceContext extends TypeMapper {
         signature: Signature;
-        inferUnionTypes: boolean;
-        inferences: TypeInferences[];
-        inferredTypes: Type[];
-        mapper?: TypeMapper;
+        inferences: InferenceInfo[];
+        flags: InferenceFlags;
         failedTypeParameterIndex?: number;
-        useAnyForNoInferences?: boolean;
     }
     enum SpecialPropertyAssignmentKind {
         None = 0,
@@ -3860,6 +3872,8 @@ declare namespace ts {
     function isToken(n: Node): boolean;
     function getTokenPosOfNode(node: Node, sourceFile?: SourceFileLike, includeJsDoc?: boolean): number;
     function isJSDocNode(node: Node): boolean;
+    function isJSDoc(node: Node): node is JSDoc;
+    function isJSDocTypedefTag(node: Node): node is JSDocTypedefTag;
     function isJSDocTag(node: Node): boolean;
     function getNonDecoratorTokenPosOfNode(node: Node, sourceFile?: SourceFileLike): number;
     function getSourceTextOfNodeFromSourceFile(sourceFile: SourceFile, node: Node, includeTrivia?: boolean): string;
@@ -9989,8 +10003,8 @@ declare namespace ts {
     function updateDecorator(node: Decorator, expression: Expression): Decorator;
     function createPropertySignature(modifiers: Modifier[] | undefined, name: PropertyName | string, questionToken: QuestionToken | undefined, type: TypeNode | undefined, initializer: Expression | undefined): PropertySignature;
     function updatePropertySignature(node: PropertySignature, modifiers: Modifier[] | undefined, name: PropertyName, questionToken: QuestionToken | undefined, type: TypeNode | undefined, initializer: Expression | undefined): PropertySignature;
-    function createProperty(decorators: Decorator[] | undefined, modifiers: Modifier[] | undefined, name: string | PropertyName, questionToken: QuestionToken | undefined, type: TypeNode | undefined, initializer: Expression): PropertyDeclaration;
-    function updateProperty(node: PropertyDeclaration, decorators: Decorator[] | undefined, modifiers: Modifier[] | undefined, name: PropertyName, type: TypeNode | undefined, initializer: Expression): PropertyDeclaration;
+    function createProperty(decorators: Decorator[] | undefined, modifiers: Modifier[] | undefined, name: string | PropertyName, questionToken: QuestionToken | undefined, type: TypeNode | undefined, initializer: Expression | undefined): PropertyDeclaration;
+    function updateProperty(node: PropertyDeclaration, decorators: Decorator[] | undefined, modifiers: Modifier[] | undefined, name: PropertyName, type: TypeNode | undefined, initializer: Expression | undefined): PropertyDeclaration;
     function createMethodSignature(typeParameters: TypeParameterDeclaration[] | undefined, parameters: ParameterDeclaration[], type: TypeNode | undefined, name: string | PropertyName, questionToken: QuestionToken | undefined): MethodSignature;
     function updateMethodSignature(node: MethodSignature, typeParameters: NodeArray<TypeParameterDeclaration> | undefined, parameters: NodeArray<ParameterDeclaration>, type: TypeNode | undefined, name: PropertyName, questionToken: QuestionToken | undefined): MethodSignature;
     function createMethod(decorators: Decorator[] | undefined, modifiers: Modifier[] | undefined, asteriskToken: AsteriskToken | undefined, name: string | PropertyName, questionToken: QuestionToken | undefined, typeParameters: TypeParameterDeclaration[] | undefined, parameters: ParameterDeclaration[], type: TypeNode | undefined, body: Block | undefined): MethodDeclaration;
