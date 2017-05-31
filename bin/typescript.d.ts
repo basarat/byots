@@ -1543,6 +1543,10 @@ declare namespace ts {
         parent: JSDoc;
         kind: SyntaxKind.JSDocPropertyTag;
         name: Identifier;
+        /** the parameter name, if provided *before* the type (TypeScript-style) */
+        preParameterName?: Identifier;
+        /** the parameter name, if provided *after* the type (JSDoc-standard) */
+        postParameterName?: Identifier;
         typeExpression: JSDocTypeExpression;
         isBracketed: boolean;
     }
@@ -1559,7 +1563,7 @@ declare namespace ts {
         /** the parameter name, if provided *after* the type (JSDoc-standard) */
         postParameterName?: Identifier;
         /** the parameter name, regardless of the location it was provided */
-        parameterName: Identifier;
+        name: Identifier;
         isBracketed: boolean;
     }
     enum FlowFlags {
