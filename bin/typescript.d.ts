@@ -7445,6 +7445,12 @@ declare namespace ts {
             key: string;
             message: string;
         };
+        Type_0_has_no_properties_in_common_with_type_1: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
         JSX_element_attributes_type_0_may_not_be_a_union_type: {
             code: number;
             category: DiagnosticCategory;
@@ -10065,7 +10071,7 @@ declare namespace ts {
         tryScan<T>(callback: () => T): T;
     }
     function isUnicodeIdentifierStart(code: number, languageVersion: ScriptTarget): boolean;
-    function tokenToString(t: SyntaxKind): string;
+    function tokenToString(t: SyntaxKind): string | undefined;
     function stringToToken(s: string): SyntaxKind;
     function computeLineStarts(text: string): number[];
     function getPositionOfLineAndCharacter(sourceFile: SourceFile, line: number, character: number): number;
