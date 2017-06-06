@@ -399,6 +399,7 @@ declare namespace ts {
         JavaScriptFile = 65536,
         ThisNodeOrAnySubNodesHasError = 131072,
         HasAggregatedChildData = 262144,
+        PossiblyContainDynamicImport = 524288,
         BlockScoped = 3,
         ReachabilityCheckFlags = 384,
         ReachabilityAndEmitFlags = 1408,
@@ -789,22 +790,24 @@ declare namespace ts {
     interface UnaryExpression extends Expression {
         _unaryExpressionBrand: any;
     }
-    interface IncrementExpression extends UnaryExpression {
-        _incrementExpressionBrand: any;
+    /** Deprecated, please use UpdateExpression */
+    type IncrementExpression = UpdateExpression;
+    interface UpdateExpression extends UnaryExpression {
+        _updateExpressionBrand: any;
     }
     type PrefixUnaryOperator = SyntaxKind.PlusPlusToken | SyntaxKind.MinusMinusToken | SyntaxKind.PlusToken | SyntaxKind.MinusToken | SyntaxKind.TildeToken | SyntaxKind.ExclamationToken;
-    interface PrefixUnaryExpression extends IncrementExpression {
+    interface PrefixUnaryExpression extends UpdateExpression {
         kind: SyntaxKind.PrefixUnaryExpression;
         operator: PrefixUnaryOperator;
         operand: UnaryExpression;
     }
     type PostfixUnaryOperator = SyntaxKind.PlusPlusToken | SyntaxKind.MinusMinusToken;
-    interface PostfixUnaryExpression extends IncrementExpression {
+    interface PostfixUnaryExpression extends UpdateExpression {
         kind: SyntaxKind.PostfixUnaryExpression;
         operand: LeftHandSideExpression;
         operator: PostfixUnaryOperator;
     }
-    interface LeftHandSideExpression extends IncrementExpression {
+    interface LeftHandSideExpression extends UpdateExpression {
         _leftHandSideExpressionBrand: any;
     }
     interface MemberExpression extends LeftHandSideExpression {
@@ -824,6 +827,9 @@ declare namespace ts {
     }
     interface SuperExpression extends PrimaryExpression {
         kind: SyntaxKind.SuperKeyword;
+    }
+    interface ImportExpression extends PrimaryExpression {
+        kind: SyntaxKind.ImportKeyword;
     }
     interface DeleteExpression extends UnaryExpression {
         kind: SyntaxKind.DeleteExpression;
@@ -1020,6 +1026,9 @@ declare namespace ts {
     }
     interface SuperCall extends CallExpression {
         expression: SuperExpression;
+    }
+    interface ImportCall extends CallExpression {
+        expression: ImportExpression;
     }
     interface ExpressionWithTypeArguments extends TypeNode {
         kind: SyntaxKind.ExpressionWithTypeArguments;
@@ -1890,6 +1899,8 @@ declare namespace ts {
          * Does not include properties of primitive types.
          */
         getAllPossiblePropertiesOfType(type: Type): Symbol[];
+        getJsxNamespace(): string;
+        resolveNameAtLocation(location: Node, name: string, meaning: SymbolFlags): Symbol | undefined;
     }
     enum NodeBuilderFlags {
         None = 0,
@@ -2632,6 +2643,7 @@ declare namespace ts {
         UMD = 3,
         System = 4,
         ES2015 = 5,
+        ESNext = 6,
     }
     enum JsxEmit {
         None = 0,
@@ -2949,6 +2961,7 @@ declare namespace ts {
         ContainsBindingPattern = 8388608,
         ContainsYield = 16777216,
         ContainsHoistedDeclarationOrCompletion = 33554432,
+        ContainsDynamicImport = 67108864,
         HasComputedFlags = 536870912,
         AssertTypeScript = 3,
         AssertJsx = 4,
@@ -3414,7 +3427,7 @@ declare namespace ts {
      * @param array The array to map.
      * @param mapfn The callback used to map the result into one or more values.
      */
-    function flatMap<T, U>(array: T[], mapfn: (x: T, i: number) => U | U[]): U[];
+    function flatMap<T, U>(array: T[] | undefined, mapfn: (x: T, i: number) => U | U[] | undefined): U[] | undefined;
     /**
      * Maps an array. If the mapped value is an array, it is spread into the result.
      * Avoids allocation if all elements map to themselves.
@@ -3921,6 +3934,7 @@ declare namespace ts {
     function isConst(node: Node): boolean;
     function isLet(node: Node): boolean;
     function isSuperCall(n: Node): n is SuperCall;
+    function isImportCall(n: Node): n is ImportCall;
     function isPrologueDirective(node: Node): node is PrologueDirective;
     function getLeadingCommentRangesOfNode(node: Node, sourceFileOfNode: SourceFile): CommentRange[];
     function getLeadingCommentRangesOfNodeFromText(node: Node, text: string): CommentRange[];
@@ -5951,6 +5965,30 @@ declare namespace ts {
             key: string;
             message: string;
         };
+        Dynamic_import_cannot_be_used_when_targeting_ECMAScript_2015_modules: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Dynamic_import_must_have_one_specifier_as_an_argument: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Specifier_of_dynamic_import_cannot_be_spread_element: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Dynamic_import_cannot_have_type_arguments: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
         Duplicate_identifier_0: {
             code: number;
             category: DiagnosticCategory;
@@ -7517,12 +7555,6 @@ declare namespace ts {
             key: string;
             message: string;
         };
-        Cannot_emit_namespaced_JSX_elements_in_React: {
-            code: number;
-            category: DiagnosticCategory;
-            key: string;
-            message: string;
-        };
         A_member_initializer_in_a_enum_declaration_cannot_reference_members_declared_after_it_including_members_defined_in_other_enums: {
             code: number;
             category: DiagnosticCategory;
@@ -7866,6 +7898,18 @@ declare namespace ts {
             message: string;
         };
         _0_are_specified_twice_The_attribute_named_0_will_be_overwritten: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        A_dynamic_import_call_returns_a_Promise_Make_sure_you_have_a_declaration_for_Promise_or_include_ES2015_in_your_lib_option: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        A_dynamic_import_call_in_ES5_SlashES3_requires_the_Promise_constructor_Make_sure_you_have_a_declaration_for_the_Promise_constructor_or_include_ES2015_in_your_lib_option: {
             code: number;
             category: DiagnosticCategory;
             key: string;
@@ -8567,7 +8611,7 @@ declare namespace ts {
             key: string;
             message: string;
         };
-        Specify_module_code_generation_Colon_commonjs_amd_system_umd_or_es2015: {
+        Specify_module_code_generation_Colon_commonjs_amd_system_umd_es2015_or_ESNext: {
             code: number;
             category: DiagnosticCategory;
             key: string;
@@ -9671,6 +9715,12 @@ declare namespace ts {
             key: string;
             message: string;
         };
+        Dynamic_import_s_specifier_must_be_of_type_string_but_here_has_type_0: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
         You_cannot_rename_this_element: {
             code: number;
             category: DiagnosticCategory;
@@ -9959,13 +10009,13 @@ declare namespace ts {
             key: string;
             message: string;
         };
-        Add_declaration_for_missing_property_0: {
+        Declare_property_0: {
             code: number;
             category: DiagnosticCategory;
             key: string;
             message: string;
         };
-        Add_index_signature_for_missing_property_0: {
+        Add_index_signature_for_property_0: {
             code: number;
             category: DiagnosticCategory;
             key: string;
@@ -9996,6 +10046,18 @@ declare namespace ts {
             message: string;
         };
         Change_spelling_to_0: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Declare_method_0: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Declare_static_method_0: {
             code: number;
             category: DiagnosticCategory;
             key: string;
@@ -10767,6 +10829,16 @@ declare namespace ts {
 }
 declare namespace ts {
     function createNode(kind: SyntaxKind, pos?: number, end?: number): Node;
+    /**
+     * Invokes a callback for each child of the given node. The 'cbNode' callback is invoked for all child nodes
+     * stored in properties. If a 'cbNodes' callback is specified, it is invoked for embedded arrays; otherwise,
+     * embedded arrays are flattened and the 'cbNode' callback is invoked for each element. If a callback returns
+     * a truthy value, iteration stops and that value is returned. Otherwise, undefined is returned.
+     *
+     * @param node a given node to visit its children
+     * @param cbNode a callback to be invoked for all child nodes
+     * @param cbNodeArray a callback to be invoked for embedded array
+     */
     function forEachChild<T>(node: Node, cbNode: (node: Node) => T | undefined, cbNodeArray?: (nodes: NodeArray<Node>) => T | undefined): T | undefined;
     function createSourceFile(fileName: string, sourceText: string, languageVersion: ScriptTarget, setParentNodes?: boolean, scriptKind?: ScriptKind): SourceFile;
     function parseIsolatedEntityName(text: string, languageVersion: ScriptTarget): EntityName;
@@ -12996,6 +13068,7 @@ declare namespace ts.codefix {
      * @returns Empty string iff there are no member insertions.
      */
     function createMissingMemberNodes(classDeclaration: ClassLikeDeclaration, possiblyMissingSymbols: Symbol[], checker: TypeChecker): Node[];
+    function createMethodFromCallExpression(callExpression: CallExpression, methodName: string, includeTypeScriptSyntax: boolean, makeStatic: boolean): MethodDeclaration;
     function createStubbedMethod(modifiers: Modifier[], name: PropertyName, optional: boolean, typeParameters: TypeParameterDeclaration[] | undefined, parameters: ParameterDeclaration[], returnType: TypeNode | undefined): MethodDeclaration;
 }
 declare namespace ts.refactor {
