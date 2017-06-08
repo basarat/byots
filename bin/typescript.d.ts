@@ -376,7 +376,7 @@ declare namespace ts {
         FirstNode = 143,
         FirstJSDocNode = 267,
         LastJSDocNode = 294,
-        FirstJSDocTagNode = 283,
+        FirstJSDocTagNode = 284,
         LastJSDocTagNode = 294,
     }
     enum NodeFlags {
@@ -3069,13 +3069,14 @@ declare namespace ts {
         AsyncGenerator = 4096,
         AsyncDelegator = 8192,
         AsyncValues = 16384,
+        ExportStar = 32768,
         ForOfIncludes = 256,
         ForAwaitOfIncludes = 16384,
         AsyncGeneratorIncludes = 6144,
         AsyncDelegatorIncludes = 26624,
         SpreadIncludes = 1536,
         FirstEmitHelper = 1,
-        LastEmitHelper = 16384,
+        LastEmitHelper = 32768,
     }
     enum EmitHint {
         SourceFile = 0,
@@ -3449,7 +3450,7 @@ declare namespace ts {
      * @param mapfn The callback used to map the result into one or more values.
      */
     function sameFlatMap<T>(array: T[], mapfn: (x: T, i: number) => T | T[]): T[];
-    function mapDefined<T>(array: ReadonlyArray<T>, mapFn: (x: T, i: number) => T | undefined): ReadonlyArray<T>;
+    function mapDefined<T, U>(array: ReadonlyArray<T>, mapFn: (x: T, i: number) => U | undefined): U[];
     /**
      * Computes the first matching span of elements and returns a tuple of the first span
      * and the remaining elements.
@@ -10220,7 +10221,7 @@ declare namespace ts {
     function updateQualifiedName(node: QualifiedName, left: EntityName, right: Identifier): QualifiedName;
     function createComputedPropertyName(expression: Expression): ComputedPropertyName;
     function updateComputedPropertyName(node: ComputedPropertyName, expression: Expression): ComputedPropertyName;
-    function createTypeParameterDeclaration(name: string | Identifier, constraint: TypeNode | undefined, defaultType: TypeNode | undefined): TypeParameterDeclaration;
+    function createTypeParameterDeclaration(name: string | Identifier, constraint?: TypeNode, defaultType?: TypeNode): TypeParameterDeclaration;
     function updateTypeParameterDeclaration(node: TypeParameterDeclaration, name: Identifier, constraint: TypeNode | undefined, defaultType: TypeNode | undefined): TypeParameterDeclaration;
     function createParameter(decorators: Decorator[] | undefined, modifiers: Modifier[] | undefined, dotDotDotToken: DotDotDotToken | undefined, name: string | BindingName, questionToken?: QuestionToken, type?: TypeNode, initializer?: Expression): ParameterDeclaration;
     function updateParameter(node: ParameterDeclaration, decorators: Decorator[] | undefined, modifiers: Modifier[] | undefined, dotDotDotToken: DotDotDotToken | undefined, name: string | BindingName, questionToken: QuestionToken | undefined, type: TypeNode | undefined, initializer: Expression | undefined): ParameterDeclaration;
@@ -10787,7 +10788,7 @@ declare namespace ts {
     function recreateOuterExpressions(outerExpression: Expression | undefined, innerExpression: Expression, kinds?: OuterExpressionKinds): Expression;
     function startOnNewLine<T extends Node>(node: T): T;
     function getExternalHelpersModuleName(node: SourceFile): Identifier;
-    function getOrCreateExternalHelpersModuleNameIfNeeded(node: SourceFile, compilerOptions: CompilerOptions): Identifier;
+    function getOrCreateExternalHelpersModuleNameIfNeeded(node: SourceFile, compilerOptions: CompilerOptions, hasExportStarsToExportValues?: boolean): Identifier;
     /**
      * Get the name of that target module from an import or export declaration
      */
@@ -11526,7 +11527,7 @@ declare namespace ts {
         isValidBraceCompletionAtPosition(fileName: string, position: number, openingBrace: number): boolean;
         getCodeFixesAtPosition(fileName: string, start: number, end: number, errorCodes: number[], formatOptions: FormatCodeSettings): CodeAction[];
         getApplicableRefactors(fileName: string, positionOrRaneg: number | TextRange): ApplicableRefactorInfo[];
-        getRefactorCodeActions(fileName: string, formatOptions: FormatCodeSettings, positionOrRange: number | TextRange, refactorName: string): CodeAction[] | undefined;
+        getEditsForRefactor(fileName: string, formatOptions: FormatCodeSettings, positionOrRange: number | TextRange, refactorName: string, actionName: string): RefactorEditInfo | undefined;
         getEmitOutput(fileName: string, emitOnlyDtsFiles?: boolean): EmitOutput;
         getProgram(): Program;
         getNonBoundSourceFile(fileName: string): SourceFile;
@@ -11602,10 +11603,54 @@ declare namespace ts {
         /** Text changes to apply to each file as part of the code action */
         changes: FileTextChanges[];
     }
+    /**
+     * A set of one or more available refactoring actions, grouped under a parent refactoring.
+     */
     interface ApplicableRefactorInfo {
+        /**
+         * The programmatic name of the refactoring
+         */
         name: string;
+        /**
+         * A description of this refactoring category to show to the user.
+         * If the refactoring gets inlined (see below), this text will not be visible.
+         */
         description: string;
+        /**
+         * Inlineable refactorings can have their actions hoisted out to the top level
+         * of a context menu. Non-inlineanable refactorings should always be shown inside
+         * their parent grouping.
+         *
+         * If not specified, this value is assumed to be 'true'
+         */
+        inlineable?: boolean;
+        actions: RefactorActionInfo[];
     }
+    /**
+     * Represents a single refactoring action - for example, the "Extract Method..." refactor might
+     * offer several actions, each corresponding to a surround class or closure to extract into.
+     */
+    type RefactorActionInfo = {
+        /**
+         * The programmatic name of the refactoring action
+         */
+        name: string;
+        /**
+         * A description of this refactoring action to show to the user.
+         * If the parent refactoring is inlined away, this will be the only text shown,
+         * so this description should make sense by itself if the parent is inlineable=true
+         */
+        description: string;
+    };
+    /**
+     * A set of edits to make in response to a refactor action, plus an optional
+     * location where renaming should be invoked from
+     */
+    type RefactorEditInfo = {
+        edits: FileTextChanges[];
+        renameFilename?: string;
+        renameLocation?: number;
+    };
     interface TextInsertion {
         newText: string;
         /** The position in newText the caret should point to after the insertion. */
@@ -12086,10 +12131,13 @@ declare namespace ts {
     function findContainingList(node: Node): Node;
     function getTouchingWord(sourceFile: SourceFile, position: number, includeJsDocComment: boolean): Node;
     function getTouchingPropertyName(sourceFile: SourceFile, position: number, includeJsDocComment: boolean): Node;
-    /** Returns the token if position is in [start, end) or if position === end and includeItemAtEndPosition(token) === true */
-    function getTouchingToken(sourceFile: SourceFile, position: number, includeJsDocComment: boolean, includeItemAtEndPosition?: (n: Node) => boolean): Node;
+    /**
+     * Returns the token if position is in [start, end).
+     * If position === end, returns the preceding token if includeItemAtEndPosition(previousToken) === true
+     */
+    function getTouchingToken(sourceFile: SourceFile, position: number, includeJsDocComment: boolean, includePrecedingTokenAtEndPosition?: (n: Node) => boolean): Node;
     /** Returns a token if position is in [start-of-leading-trivia, end) */
-    function getTokenAtPosition(sourceFile: SourceFile, position: number, includeJsDocComment: boolean): Node;
+    function getTokenAtPosition(sourceFile: SourceFile, position: number, includeJsDocComment: boolean, includeEndPosition?: boolean): Node;
     /**
      * The token on the left of the position is the token that strictly includes the position
      * or sits to the left of the cursor if it is on a boundary. For example
@@ -12115,10 +12163,6 @@ declare namespace ts {
      */
     function isInComment(sourceFile: SourceFile, position: number, tokenAtPosition?: Node, predicate?: (c: CommentRange) => boolean): boolean;
     function hasDocComment(sourceFile: SourceFile, position: number): boolean;
-    /**
-     * Get the corresponding JSDocTag node if the position is in a jsDoc comment
-     */
-    function getJsDocTagAtPosition(sourceFile: SourceFile, position: number): JSDocTag;
     function getNodeModifiers(node: Node): string;
     function getTypeArgumentOrTypeParameterList(node: Node): NodeArray<Node>;
     function isWord(kind: SyntaxKind): boolean;
@@ -12387,6 +12431,7 @@ declare namespace ts.JsDoc {
     function getJsDocTagsFromDeclarations(declarations?: Declaration[]): JSDocTagInfo[];
     function getJSDocTagNameCompletions(): CompletionEntry[];
     function getJSDocTagCompletions(): CompletionEntry[];
+    function getJSDocParameterNameCompletions(tag: JSDocParameterTag): CompletionEntry[];
     /**
      * Checks if position points to a valid position to add JSDoc comments, and if so,
      * returns the appropriate template. Otherwise returns an empty string.
@@ -13040,9 +13085,9 @@ declare namespace ts {
         /** Description of the refactor to display in the UI of the editor */
         description: string;
         /** Compute the associated code actions */
-        getCodeActions(context: RefactorContext): CodeAction[];
-        /** A fast syntactic check to see if the refactor is applicable at given position. */
-        isApplicable(context: RefactorContext): boolean;
+        getEditsForAction(context: RefactorContext, actionName: string): RefactorEditInfo | undefined;
+        /** Compute (quickly) which actions are available here */
+        getAvailableActions(context: RefactorContext): ApplicableRefactorInfo[] | undefined;
     }
     interface RefactorContext {
         file: SourceFile;
@@ -13056,7 +13101,7 @@ declare namespace ts {
     namespace refactor {
         function registerRefactor(refactor: Refactor): void;
         function getApplicableRefactors(context: RefactorContext): ApplicableRefactorInfo[] | undefined;
-        function getRefactorCodeActions(context: RefactorContext, refactorName: string): CodeAction[] | undefined;
+        function getEditsForRefactor(context: RefactorContext, refactorName: string, actionName: string): RefactorEditInfo | undefined;
     }
 }
 declare namespace ts.codefix {
