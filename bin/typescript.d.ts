@@ -4566,6 +4566,8 @@ declare namespace ts {
     function isJSDocLiteralType(node: Node): node is JSDocLiteralType;
 }
 declare namespace ts {
+    function isNode(node: Node): boolean;
+    function isNodeKind(kind: SyntaxKind): boolean;
     /**
      * True if node is of some token syntax kind.
      * For example, this is true for an IfKeyword but not for an IfStatement.
@@ -4651,6 +4653,8 @@ declare namespace ts {
     function isCaseOrDefaultClause(node: Node): node is CaseOrDefaultClause;
     /** True if node is of some JSDoc syntax kind. */
     function isJSDocNode(node: Node): boolean;
+    /** True if node is of a kind that may contain comment text. */
+    function isJSDocCommentContainingNode(node: Node): boolean;
     function isJSDocTag(node: Node): boolean;
 }
 declare namespace ts {
@@ -11221,6 +11225,10 @@ declare namespace ts {
         const assertOptionalNode: (node: Node, test: (node: Node) => boolean, message?: string) => void;
         const assertOptionalToken: (node: Node, kind: SyntaxKind, message?: string) => void;
         const assertMissingNode: (node: Node, message?: string) => void;
+        /**
+         * Injects debug information into frequently used types.
+         */
+        function enableDebugInfo(): void;
     }
 }
 declare namespace ts {
@@ -12148,7 +12156,7 @@ declare namespace ts {
      */
     function findTokenOnLeftOfPosition(file: SourceFile, position: number): Node;
     function findNextToken(previousToken: Node, parent: Node): Node;
-    function findPrecedingToken(position: number, sourceFile: SourceFile, startNode?: Node): Node;
+    function findPrecedingToken(position: number, sourceFile: SourceFile, startNode?: Node, includeJsDoc?: boolean): Node;
     function isInString(sourceFile: SourceFile, position: number): boolean;
     /**
      * returns true if the position is in between the open and close elements of an JSX expression.
