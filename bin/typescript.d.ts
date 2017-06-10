@@ -400,7 +400,7 @@ declare namespace ts {
         JavaScriptFile = 65536,
         ThisNodeOrAnySubNodesHasError = 131072,
         HasAggregatedChildData = 262144,
-        PossiblyContainDynamicImport = 524288,
+        PossiblyContainsDynamicImport = 524288,
         BlockScoped = 3,
         ReachabilityCheckFlags = 384,
         ReachabilityAndEmitFlags = 1408,
@@ -1269,7 +1269,7 @@ declare namespace ts {
         variableDeclaration: VariableDeclaration;
         block: Block;
     }
-    type DeclarationWithTypeParameters = SignatureDeclaration | ClassLikeDeclaration | InterfaceDeclaration | TypeAliasDeclaration;
+    type DeclarationWithTypeParameters = SignatureDeclaration | ClassLikeDeclaration | InterfaceDeclaration | TypeAliasDeclaration | JSDocTemplateTag;
     interface ClassLikeDeclaration extends NamedDeclaration {
         name?: Identifier;
         typeParameters?: NodeArray<TypeParameterDeclaration>;
@@ -2897,12 +2897,11 @@ declare namespace ts {
         extension: Extension;
     }
     enum Extension {
-        Ts = 0,
-        Tsx = 1,
-        Dts = 2,
-        Js = 3,
-        Jsx = 4,
-        LastTypeScriptExtension = 2,
+        Ts = ".ts",
+        Tsx = ".tsx",
+        Dts = ".d.ts",
+        Js = ".js",
+        Jsx = ".jsx",
     }
     interface ResolvedModuleWithFailedLookupLocations {
         resolvedModule: ResolvedModuleFull | undefined;
@@ -3737,10 +3736,10 @@ declare namespace ts {
     /**
      *  List of supported extensions in order of file resolution precedence.
      */
-    const supportedTypeScriptExtensions: string[];
+    const supportedTypeScriptExtensions: Extension[];
     /** Must have ".d.ts" first because if ".ts" goes first, that will be detected as the extension instead of ".d.ts". */
-    const supportedTypescriptExtensionsForExtractExtension: string[];
-    const supportedJavascriptExtensions: string[];
+    const supportedTypescriptExtensionsForExtractExtension: Extension[];
+    const supportedJavascriptExtensions: Extension[];
     function getSupportedExtensions(options?: CompilerOptions, extraFileExtensions?: JsFileExtensionInfo[]): string[];
     function hasJavaScriptFileExtension(fileName: string): boolean;
     function hasTypeScriptFileExtension(fileName: string): boolean;
@@ -3861,6 +3860,10 @@ declare namespace ts {
         getDirectories(path: string): string[];
         readDirectory(path: string, extensions?: string[], exclude?: string[], include?: string[]): string[];
         getModifiedTime?(path: string): Date;
+        /**
+         * This should be cryptographically secure.
+         * A good implementation is node.js' `crypto.createHash`. (https://nodejs.org/api/crypto.html#crypto_crypto_createhash_algorithm)
+         */
         createHash?(data: string): string;
         getMemoryUsage?(): number;
         exit(exitCode?: number): void;
@@ -4035,10 +4038,14 @@ declare namespace ts {
     function getJSDocParameterTags(param: ParameterDeclaration): JSDocParameterTag[];
     /** Does the opposite of `getJSDocParameterTags`: given a JSDoc parameter, finds the parameter corresponding to it. */
     function getParameterFromJSDoc(node: JSDocParameterTag): ParameterDeclaration | undefined;
+    function getTypeParameterFromJsDoc(node: TypeParameterDeclaration & {
+        parent: JSDocTemplateTag;
+    }): TypeParameterDeclaration | undefined;
     function getJSDocType(node: Node): JSDocType;
     function getJSDocAugmentsTag(node: Node): JSDocAugmentsTag;
     function getJSDocClassTag(node: Node): JSDocClassTag;
     function getJSDocReturnTag(node: Node): JSDocReturnTag;
+    function getJSDocReturnType(node: Node): JSDocType;
     function getJSDocTemplateTag(node: Node): JSDocTemplateTag;
     function hasRestParameter(s: SignatureDeclaration): boolean;
     function hasDeclaredRestParameter(s: SignatureDeclaration): boolean;
@@ -4169,7 +4176,7 @@ declare namespace ts {
     function getLineOfLocalPosition(currentSourceFile: SourceFile, pos: number): number;
     function getLineOfLocalPositionFromLineMap(lineMap: number[], pos: number): number;
     function getFirstConstructorWithBody(node: ClassLikeDeclaration): ConstructorDeclaration;
-    /** Get the type annotaion for the value parameter. */
+    /** Get the type annotation for the value parameter. */
     function getSetAccessorTypeAnnotationNode(accessor: SetAccessorDeclaration): TypeNode;
     function getThisParameter(signature: SignatureDeclaration): ParameterDeclaration | undefined;
     function parameterIsThisKeyword(parameter: ParameterDeclaration): boolean;
@@ -4182,6 +4189,21 @@ declare namespace ts {
         setAccessor: AccessorDeclaration;
     }
     function getAllAccessorDeclarations(declarations: NodeArray<Declaration>, accessor: AccessorDeclaration): AllAccessorDeclarations;
+    /**
+     * Gets the effective type annotation of a variable, parameter, or property. If the node was
+     * parsed in a JavaScript file, gets the type annotation from JSDoc.
+     */
+    function getEffectiveTypeAnnotationNode(node: VariableLikeDeclaration): TypeNode;
+    /**
+     * Gets the effective return type annotation of a signature. If the node was parsed in a
+     * JavaScript file, gets the return type annotation from JSDoc.
+     */
+    function getEffectiveReturnTypeNode(node: SignatureDeclaration): TypeNode;
+    /**
+     * Gets the effective type annotation of the value parameter of a set accessor. If the node
+     * was parsed in a JavaScript file, gets the type annotation from JSDoc.
+     */
+    function getEffectiveSetAccessorTypeAnnotationNode(node: SetAccessorDeclaration): TypeNode;
     function emitNewLineBeforeLeadingComments(lineMap: number[], writer: EmitTextWriter, node: TextRange, leadingComments: CommentRange[]): void;
     function emitNewLineBeforeLeadingCommentsOfPosition(lineMap: number[], writer: EmitTextWriter, pos: number, leadingComments: CommentRange[]): void;
     function emitNewLineBeforeLeadingCommentOfPosition(lineMap: number[], writer: EmitTextWriter, pos: number, commentPos: number): void;
