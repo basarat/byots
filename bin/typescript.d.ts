@@ -1196,6 +1196,7 @@ declare namespace ts {
         condition?: Expression;
         incrementor?: Expression;
     }
+    type ForInOrOfStatement = ForInStatement | ForOfStatement;
     interface ForInStatement extends IterationStatement {
         kind: SyntaxKind.ForInStatement;
         initializer: ForInitializer;
@@ -2587,6 +2588,7 @@ declare namespace ts {
         noImplicitAny?: boolean;
         noImplicitReturns?: boolean;
         noImplicitThis?: boolean;
+        noStrictGenericChecks?: boolean;
         noUnusedLocals?: boolean;
         noUnusedParameters?: boolean;
         noImplicitUseStrict?: boolean;
@@ -3351,7 +3353,7 @@ declare namespace ts.performance {
 }
 declare namespace ts {
     /** The version of the TypeScript compiler release */
-    const version = "2.4.0";
+    const version = "2.5.0";
 }
 declare namespace ts {
     /**
@@ -4200,6 +4202,11 @@ declare namespace ts {
      */
     function getEffectiveReturnTypeNode(node: SignatureDeclaration): TypeNode;
     /**
+     * Gets the effective type parameters. If the node was parsed in a
+     * JavaScript file, gets the type parameters from the `@template` tag from JSDoc.
+     */
+    function getEffectiveTypeParameterDeclarations(node: DeclarationWithTypeParameters): TypeParameterDeclaration[];
+    /**
      * Gets the effective type annotation of the value parameter of a set accessor. If the node
      * was parsed in a JavaScript file, gets the type annotation from JSDoc.
      */
@@ -4438,7 +4445,7 @@ declare namespace ts {
     function isIdentifier(node: Node): node is Identifier;
     function isQualifiedName(node: Node): node is QualifiedName;
     function isComputedPropertyName(node: Node): node is ComputedPropertyName;
-    function isTypeParameter(node: Node): node is TypeParameterDeclaration;
+    function isTypeParameterDeclaration(node: Node): node is TypeParameterDeclaration;
     function isParameter(node: Node): node is ParameterDeclaration;
     function isDecorator(node: Node): node is Decorator;
     function isPropertySignature(node: Node): node is PropertySignature;
@@ -4651,6 +4658,7 @@ declare namespace ts {
     function isNotEmittedStatement(node: Node): node is NotEmittedStatement;
     function isNotEmittedOrPartiallyEmittedNode(node: Node): node is NotEmittedStatement | PartiallyEmittedExpression;
     function isIterationStatement(node: Node, lookInLabeledStatements: boolean): node is IterationStatement;
+    function isForInOrOfStatement(node: Node): node is ForInOrOfStatement;
     function isConciseBody(node: Node): node is ConciseBody;
     function isFunctionBody(node: Node): node is FunctionBody;
     function isForInitializer(node: Node): node is ForInitializer;
@@ -9595,6 +9603,12 @@ declare namespace ts {
             key: string;
             message: string;
         };
+        Disable_strict_checking_of_generic_signatures_in_function_types: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
         Variable_0_implicitly_has_an_1_type: {
             code: number;
             category: DiagnosticCategory;
@@ -12269,7 +12283,7 @@ declare namespace ts.Completions {
     function getCompletionEntrySymbol(typeChecker: TypeChecker, log: (message: string) => void, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number, entryName: string): Symbol;
 }
 declare namespace ts.DocumentHighlights {
-    function getDocumentHighlights(program: Program, cancellationToken: CancellationToken, sourceFile: SourceFile, position: number, sourceFilesToSearch: SourceFile[]): DocumentHighlights[];
+    function getDocumentHighlights(program: Program, cancellationToken: CancellationToken, sourceFile: SourceFile, position: number, sourceFilesToSearch: SourceFile[]): DocumentHighlights[] | undefined;
 }
 declare namespace ts {
     /**
@@ -13475,7 +13489,7 @@ declare namespace ts {
 declare namespace TypeScript.Services {
     const TypeScriptServicesFactory: typeof ts.TypeScriptServicesFactory;
 }
-declare const toolsVersion = "2.4";
+declare const toolsVersion = "2.5";
 declare namespace ts {
     /**
      * Transform one or more nodes using the supplied transformers.
