@@ -2040,6 +2040,7 @@ declare namespace ts {
         collectLinkedAliases(node: Identifier): Node[];
         isImplementationOfOverload(node: FunctionLikeDeclaration): boolean | undefined;
         isRequiredInitializedParameter(node: ParameterDeclaration): boolean;
+        isOptionalUninitializedParameterProperty(node: ParameterDeclaration): boolean;
         writeTypeOfDeclaration(declaration: AccessorDeclaration | VariableLikeDeclaration, enclosingDeclaration: Node, flags: TypeFormatFlags, writer: SymbolWriter): void;
         writeReturnTypeOfSignatureDeclaration(signatureDeclaration: SignatureDeclaration, enclosingDeclaration: Node, flags: TypeFormatFlags, writer: SymbolWriter): void;
         writeTypeOfExpression(expr: Expression, enclosingDeclaration: Node, flags: TypeFormatFlags, writer: SymbolWriter): void;
@@ -2487,7 +2488,6 @@ declare namespace ts {
         signature: Signature;
         inferences: InferenceInfo[];
         flags: InferenceFlags;
-        failedTypeParameterIndex?: number;
     }
     enum SpecialPropertyAssignmentKind {
         None = 0,
@@ -10119,6 +10119,12 @@ declare namespace ts {
             key: string;
             message: string;
         };
+        Prefix_0_with_an_underscore: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
         Convert_function_to_an_ES2015_class: {
             code: number;
             category: DiagnosticCategory;
@@ -12142,6 +12148,7 @@ declare namespace ts {
     }
     function getMeaningFromDeclaration(node: Node): SemanticMeaning;
     function getMeaningFromLocation(node: Node): SemanticMeaning;
+    function isInRightSideOfInternalImportEqualsDeclaration(node: Node): boolean;
     function isCallExpressionTarget(node: Node): boolean;
     function isNewExpressionTarget(node: Node): boolean;
     function climbPastPropertyAccess(node: Node): Node;
