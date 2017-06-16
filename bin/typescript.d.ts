@@ -1700,6 +1700,10 @@ declare namespace ts {
         kind: SyntaxKind.Bundle;
         sourceFiles: SourceFile[];
     }
+    interface JsonSourceFile extends SourceFile {
+        jsonObject?: ObjectLiteralExpression;
+        extendedSourceFiles?: string[];
+    }
     interface ScriptReferenceHost {
         getCompilerOptions(): CompilerOptions;
         getSourceFile(fileName: string): SourceFile;
@@ -2553,6 +2557,7 @@ declare namespace ts {
         charset?: string;
         checkJs?: boolean;
         configFilePath?: string;
+        readonly configFile?: JsonSourceFile;
         declaration?: boolean;
         declarationDir?: string;
         diagnostics?: boolean;
@@ -2624,7 +2629,7 @@ declare namespace ts {
         typeRoots?: string[];
         version?: boolean;
         watch?: boolean;
-        [option: string]: CompilerOptionsValue | undefined;
+        [option: string]: CompilerOptionsValue | JsonSourceFile | undefined;
     }
     interface TypeAcquisition {
         enableAutoDiscovery?: boolean;
@@ -2672,6 +2677,7 @@ declare namespace ts {
         TS = 3,
         TSX = 4,
         External = 5,
+        JSON = 6,
     }
     enum ScriptTarget {
         ES3 = 0,
@@ -2728,6 +2734,8 @@ declare namespace ts {
     }
     interface TsConfigOnlyOption extends CommandLineOptionBase {
         type: "object";
+        elementOptions?: Map<CommandLineOption>;
+        extraKeyDiagnosticMessage?: DiagnosticMessage;
     }
     interface CommandLineOptionOfListType extends CommandLineOptionBase {
         type: "list";
@@ -3925,6 +3933,10 @@ declare namespace ts {
     function getSourceTextOfNodeFromSourceFile(sourceFile: SourceFile, node: Node, includeTrivia?: boolean): string;
     function getTextOfNodeFromSourceText(sourceText: string, node: Node): string;
     function getTextOfNode(node: Node, includeTrivia?: boolean): string;
+    /**
+     * Gets flags that control emit behavior of a node.
+     */
+    function getEmitFlags(node: Node): EmitFlags | undefined;
     function getLiteralText(node: LiteralLikeNode, sourceFile: SourceFile): string;
     function getTextOfConstantValue(value: string | number): string;
     function escapeIdentifier(identifier: string): string;
@@ -3981,6 +3993,7 @@ declare namespace ts {
     function isObjectLiteralOrClassExpressionMethod(node: Node): node is MethodDeclaration;
     function isIdentifierTypePredicate(predicate: TypePredicate): predicate is IdentifierTypePredicate;
     function isThisTypePredicate(predicate: TypePredicate): predicate is ThisTypePredicate;
+    function getPropertyAssignment(objectLiteral: ObjectLiteralExpression, key: string, key2?: string): PropertyAssignment[];
     function getContainingFunction(node: Node): FunctionLikeDeclaration;
     function getContainingClass(node: Node): ClassLikeDeclaration;
     function getThisContainer(node: Node, includeArrowFunctions: boolean): Node;
@@ -4007,7 +4020,6 @@ declare namespace ts {
     function childIsDecorated(node: Node): boolean;
     function isJSXTagName(node: Node): boolean;
     function isPartOfExpression(node: Node): boolean;
-    function isInstantiatedModule(node: ModuleDeclaration, preserveConstEnums: boolean): boolean;
     function isExternalModuleImportEqualsDeclaration(node: Node): boolean;
     function getExternalModuleImportEqualsDeclarationExpression(node: Node): Expression;
     function isInternalModuleImportEqualsDeclaration(node: Node): node is ImportEqualsDeclaration;
@@ -4114,9 +4126,8 @@ declare namespace ts {
     function getRootDeclaration(node: Node): Node;
     function nodeStartsNewLexicalEnvironment(node: Node): boolean;
     function nodeIsSynthesized(node: TextRange): boolean;
-    function getOriginalSourceFileOrBundle(sourceFileOrBundle: SourceFile | Bundle): SourceFile | Bundle;
+    function getOriginalSourceFile(sourceFile: SourceFile): SourceFile;
     function getOriginalSourceFiles(sourceFiles: SourceFile[]): SourceFile[];
-    function getOriginalNodeId(node: Node): number;
     enum Associativity {
         Left = 0,
         Right = 1,
@@ -4163,16 +4174,6 @@ declare namespace ts {
     function getSourceFilesToEmit(host: EmitHost, targetSourceFile?: SourceFile): SourceFile[];
     /** Don't call this for `--outFile`, just for `--outDir` or plain emit. `--outFile` needs additional checks. */
     function sourceFileMayBeEmitted(sourceFile: SourceFile, options: CompilerOptions, isSourceFileFromExternalLibrary: (file: SourceFile) => boolean): boolean;
-    /**
-     * Iterates over the source files that are expected to have an emit output.
-     *
-     * @param host An EmitHost.
-     * @param action The action to execute.
-     * @param sourceFilesOrTargetSourceFile
-     *   If an array, the full list of source files to emit.
-     *   Else, calls `getSourceFilesToEmit` with the (optional) target source file to determine the list of source files to emit.
-     */
-    function forEachEmittedFile(host: EmitHost, action: (emitFileNames: EmitFileNames, sourceFileOrBundle: SourceFile | Bundle, emitOnlyDtsFiles: boolean) => void, sourceFilesOrTargetSourceFile?: SourceFile[] | SourceFile, emitOnlyDtsFiles?: boolean): void;
     function getSourceFilePathInNewDir(sourceFile: SourceFile, host: EmitHost, newDirPath: string): string;
     function writeFile(host: EmitHost, diagnostics: DiagnosticCollection, fileName: string, data: string, writeByteOrderMark: boolean, sourceFiles?: SourceFile[]): void;
     function getLineOfLocalPosition(currentSourceFile: SourceFile, pos: number): number;
@@ -4486,6 +4487,8 @@ declare namespace ts {
     function isTaggedTemplateExpression(node: Node): node is TaggedTemplateExpression;
     function isTypeAssertion(node: Node): node is TypeAssertion;
     function isParenthesizedExpression(node: Node): node is ParenthesizedExpression;
+    function skipPartiallyEmittedExpressions(node: Expression): Expression;
+    function skipPartiallyEmittedExpressions(node: Node): Node;
     function isFunctionExpression(node: Node): node is FunctionExpression;
     function isArrowFunction(node: Node): node is ArrowFunction;
     function isDeleteExpression(node: Node): node is DeleteExpression;
@@ -6034,6 +6037,18 @@ declare namespace ts {
             message: string;
         };
         Dynamic_import_cannot_have_type_arguments: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        String_literal_with_double_quotes_expected: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Property_value_can_only_be_string_literal_numeric_literal_true_false_null_object_literal_or_array_literal: {
             code: number;
             category: DiagnosticCategory;
             key: string;
@@ -10230,6 +10245,287 @@ declare namespace ts {
     function createScanner(languageVersion: ScriptTarget, skipTrivia: boolean, languageVariant?: LanguageVariant, text?: string, onError?: ErrorCallback, start?: number, length?: number): Scanner;
 }
 declare namespace ts {
+    function createNode(kind: SyntaxKind, pos?: number, end?: number): Node;
+    /**
+     * Invokes a callback for each child of the given node. The 'cbNode' callback is invoked for all child nodes
+     * stored in properties. If a 'cbNodes' callback is specified, it is invoked for embedded arrays; otherwise,
+     * embedded arrays are flattened and the 'cbNode' callback is invoked for each element. If a callback returns
+     * a truthy value, iteration stops and that value is returned. Otherwise, undefined is returned.
+     *
+     * @param node a given node to visit its children
+     * @param cbNode a callback to be invoked for all child nodes
+     * @param cbNodeArray a callback to be invoked for embedded array
+     */
+    function forEachChild<T>(node: Node, cbNode: (node: Node) => T | undefined, cbNodeArray?: (nodes: NodeArray<Node>) => T | undefined): T | undefined;
+    function createSourceFile(fileName: string, sourceText: string, languageVersion: ScriptTarget, setParentNodes?: boolean, scriptKind?: ScriptKind): SourceFile;
+    function parseIsolatedEntityName(text: string, languageVersion: ScriptTarget): EntityName;
+    /**
+     * Parse json text into SyntaxTree and return node and parse errors if any
+     * @param fileName
+     * @param sourceText
+     */
+    function parseJsonText(fileName: string, sourceText: string): JsonSourceFile;
+    function isExternalModule(file: SourceFile): boolean;
+    function updateSourceFile(sourceFile: SourceFile, newText: string, textChangeRange: TextChangeRange, aggressiveChecks?: boolean): SourceFile;
+    function parseIsolatedJSDocComment(content: string, start?: number, length?: number): {
+        jsDoc: JSDoc;
+        diagnostics: Diagnostic[];
+    };
+    function parseJSDocTypeExpressionForTests(content: string, start?: number, length?: number): {
+        jsDocTypeExpression: JSDocTypeExpression;
+        diagnostics: Diagnostic[];
+    };
+}
+declare namespace ts {
+    enum ModuleInstanceState {
+        NonInstantiated = 0,
+        Instantiated = 1,
+        ConstEnumOnly = 2,
+    }
+    function getModuleInstanceState(node: Node): ModuleInstanceState;
+    function bindSourceFile(file: SourceFile, options: CompilerOptions): void;
+    /**
+     * Computes the transform flags for a node, given the transform flags of its subtree
+     *
+     * @param node The node to analyze
+     * @param subtreeFlags Transform flags computed for this node's subtree
+     */
+    function computeTransformFlagsForNode(node: Node, subtreeFlags: TransformFlags): TransformFlags;
+    /**
+     * Gets the transform flags to exclude when unioning the transform flags of a subtree.
+     *
+     * NOTE: This needs to be kept up-to-date with the exclusions used in `computeTransformFlagsForNode`.
+     *       For performance reasons, `computeTransformFlagsForNode` uses local constant values rather
+     *       than calling this function.
+     */
+    function getTransformFlagsSubtreeExclusions(kind: SyntaxKind): TransformFlags;
+}
+declare namespace ts {
+    function trace(host: ModuleResolutionHost, message: DiagnosticMessage, ...args: any[]): void;
+    function isTraceEnabled(compilerOptions: CompilerOptions, host: ModuleResolutionHost): boolean;
+    /** Array that is only intended to be pushed to, never read. */
+    interface Push<T> {
+        push(value: T): void;
+    }
+    function moduleHasNonRelativeName(moduleName: string): boolean;
+    function getEffectiveTypeRoots(options: CompilerOptions, host: {
+        directoryExists?: (directoryName: string) => boolean;
+        getCurrentDirectory?: () => string;
+    }): string[] | undefined;
+    /**
+     * @param {string | undefined} containingFile - file that contains type reference directive, can be undefined if containing file is unknown.
+     * This is possible in case if resolution is performed for directives specified via 'types' parameter. In this case initial path for secondary lookups
+     * is assumed to be the same as root directory of the project.
+     */
+    function resolveTypeReferenceDirective(typeReferenceDirectiveName: string, containingFile: string | undefined, options: CompilerOptions, host: ModuleResolutionHost): ResolvedTypeReferenceDirectiveWithFailedLookupLocations;
+    /**
+     * Given a set of options, returns the set of type directive names
+     *   that should be included for this program automatically.
+     * This list could either come from the config file,
+     *   or from enumerating the types root + initial secondary types lookup location.
+     * More type directives might appear in the program later as a result of loading actual source files;
+     *   this list is only the set of defaults that are implicitly included.
+     */
+    function getAutomaticTypeDirectiveNames(options: CompilerOptions, host: ModuleResolutionHost): string[];
+    /**
+     * Cached module resolutions per containing directory.
+     * This assumes that any module id will have the same resolution for sibling files located in the same folder.
+     */
+    interface ModuleResolutionCache extends NonRelativeModuleNameResolutionCache {
+        getOrCreateCacheForDirectory(directoryName: string): Map<ResolvedModuleWithFailedLookupLocations>;
+    }
+    /**
+     * Stored map from non-relative module name to a table: directory -> result of module lookup in this directory
+     * We support only non-relative module names because resolution of relative module names is usually more deterministic and thus less expensive.
+     */
+    interface NonRelativeModuleNameResolutionCache {
+        getOrCreateCacheForModuleName(nonRelativeModuleName: string): PerModuleNameCache;
+    }
+    interface PerModuleNameCache {
+        get(directory: string): ResolvedModuleWithFailedLookupLocations;
+        set(directory: string, result: ResolvedModuleWithFailedLookupLocations): void;
+    }
+    function createModuleResolutionCache(currentDirectory: string, getCanonicalFileName: (s: string) => string): ModuleResolutionCache;
+    function resolveModuleName(moduleName: string, containingFile: string, compilerOptions: CompilerOptions, host: ModuleResolutionHost, cache?: ModuleResolutionCache): ResolvedModuleWithFailedLookupLocations;
+    function nodeModuleNameResolver(moduleName: string, containingFile: string, compilerOptions: CompilerOptions, host: ModuleResolutionHost, cache?: ModuleResolutionCache): ResolvedModuleWithFailedLookupLocations;
+    /**
+     * Expose resolution logic to allow us to use Node module resolution logic from arbitrary locations.
+     * No way to do this with `require()`: https://github.com/nodejs/node/issues/5963
+     * Throws an error if the module can't be resolved.
+     */
+    function resolveJavaScriptModule(moduleName: string, initialDir: string, host: ModuleResolutionHost): string;
+    function directoryProbablyExists(directoryName: string, host: {
+        directoryExists?: (directoryName: string) => boolean;
+    }): boolean;
+    function getPackageNameFromAtTypesDirectory(mangledName: string): string;
+    function classicNameResolver(moduleName: string, containingFile: string, compilerOptions: CompilerOptions, host: ModuleResolutionHost, cache?: NonRelativeModuleNameResolutionCache): ResolvedModuleWithFailedLookupLocations;
+    /**
+     * LSHost may load a module from a global cache of typings.
+     * This is the minumum code needed to expose that functionality; the rest is in LSHost.
+     */
+    function loadModuleFromGlobalCache(moduleName: string, projectName: string, compilerOptions: CompilerOptions, host: ModuleResolutionHost, globalCache: string): ResolvedModuleWithFailedLookupLocations;
+}
+declare namespace ts {
+    function getNodeId(node: Node): number;
+    function getSymbolId(symbol: Symbol): number;
+    function isInstantiatedModule(node: ModuleDeclaration, preserveConstEnums: boolean): boolean;
+    function createTypeChecker(host: TypeCheckerHost, produceDiagnostics: boolean): TypeChecker;
+}
+declare namespace ts {
+    const compileOnSaveCommandLineOption: CommandLineOption;
+    const optionDeclarations: CommandLineOption[];
+    const typeAcquisitionDeclarations: CommandLineOption[];
+    interface OptionNameMap {
+        optionNameMap: Map<CommandLineOption>;
+        shortOptionNames: Map<string>;
+    }
+    const defaultInitCompilerOptions: CompilerOptions;
+    function convertEnableAutoDiscoveryToEnable(typeAcquisition: TypeAcquisition): TypeAcquisition;
+    function createCompilerDiagnosticForInvalidCustomType(opt: CommandLineOptionOfCustomType): Diagnostic;
+    function parseCustomTypeOption(opt: CommandLineOptionOfCustomType, value: string, errors: Diagnostic[]): string | number;
+    function parseListTypeOption(opt: CommandLineOptionOfListType, value: string, errors: Diagnostic[]): (string | number)[] | undefined;
+    function parseCommandLine(commandLine: string[], readFile?: (path: string) => string): ParsedCommandLine;
+    /**
+     * Read tsconfig.json file
+     * @param fileName The path to the config file
+     */
+    function readConfigFile(fileName: string, readFile: (path: string) => string): {
+        config?: any;
+        error?: Diagnostic;
+    };
+    /**
+     * Parse the text of the tsconfig.json file
+     * @param fileName The path to the config file
+     * @param jsonText The text of the config file
+     */
+    function parseConfigFileTextToJson(fileName: string, jsonText: string): {
+        config?: any;
+        error?: Diagnostic;
+    };
+    /**
+     * Read tsconfig.json file
+     * @param fileName The path to the config file
+     */
+    function readJsonConfigFile(fileName: string, readFile: (path: string) => string): JsonSourceFile;
+    /**
+     * Convert the json syntax tree into the json value
+     */
+    function convertToObject(sourceFile: JsonSourceFile, errors: Diagnostic[]): any;
+    /**
+     * Generate tsconfig configuration when running command line "--init"
+     * @param options commandlineOptions to be generated into tsconfig.json
+     * @param fileNames array of filenames to be generated into tsconfig.json
+     */
+    function generateTSConfig(options: CompilerOptions, fileNames: string[], newLine: string): string;
+    /**
+     * Parse the contents of a config file (tsconfig.json).
+     * @param json The contents of the config file to parse
+     * @param host Instance of ParseConfigHost used to enumerate files in folder.
+     * @param basePath A root directory to resolve relative path entries in the config
+     *    file to. e.g. outDir
+     */
+    function parseJsonConfigFileContent(json: any, host: ParseConfigHost, basePath: string, existingOptions?: CompilerOptions, configFileName?: string, resolutionStack?: Path[], extraFileExtensions?: JsFileExtensionInfo[]): ParsedCommandLine;
+    /**
+     * Parse the contents of a config file (tsconfig.json).
+     * @param jsonNode The contents of the config file to parse
+     * @param host Instance of ParseConfigHost used to enumerate files in folder.
+     * @param basePath A root directory to resolve relative path entries in the config
+     *    file to. e.g. outDir
+     */
+    function parseJsonSourceFileConfigFileContent(sourceFile: JsonSourceFile, host: ParseConfigHost, basePath: string, existingOptions?: CompilerOptions, configFileName?: string, resolutionStack?: Path[], extraFileExtensions?: JsFileExtensionInfo[]): ParsedCommandLine;
+    function setConfigFileInOptions(options: CompilerOptions, configFile: JsonSourceFile): void;
+    function convertCompilerOptionsFromJson(jsonOptions: any, basePath: string, configFileName?: string): {
+        options: CompilerOptions;
+        errors: Diagnostic[];
+    };
+    function convertTypeAcquisitionFromJson(jsonOptions: any, basePath: string, configFileName?: string): {
+        options: TypeAcquisition;
+        errors: Diagnostic[];
+    };
+    /**
+     * Produces a cleaned version of compiler options with personally identifiying info (aka, paths) removed.
+     * Also converts enum values back to strings.
+     */
+    function convertCompilerOptionsForTelemetry(opts: ts.CompilerOptions): ts.CompilerOptions;
+}
+declare namespace ts {
+    interface SourceMapWriter {
+        /**
+         * Initialize the SourceMapWriter for a new output file.
+         *
+         * @param filePath The path to the generated output file.
+         * @param sourceMapFilePath The path to the output source map file.
+         * @param sourceFileOrBundle The input source file or bundle for the program.
+         */
+        initialize(filePath: string, sourceMapFilePath: string, sourceFileOrBundle: SourceFile | Bundle): void;
+        /**
+         * Reset the SourceMapWriter to an empty state.
+         */
+        reset(): void;
+        /**
+         * Set the current source file.
+         *
+         * @param sourceFile The source file.
+         */
+        setSourceFile(sourceFile: SourceMapSource): void;
+        /**
+         * Emits a mapping.
+         *
+         * If the position is synthetic (undefined or a negative value), no mapping will be
+         * created.
+         *
+         * @param pos The position.
+         */
+        emitPos(pos: number): void;
+        /**
+         * Emits a node with possible leading and trailing source maps.
+         *
+         * @param hint The current emit context
+         * @param node The node to emit.
+         * @param emitCallback The callback used to emit the node.
+         */
+        emitNodeWithSourceMap(hint: EmitHint, node: Node, emitCallback: (hint: EmitHint, node: Node) => void): void;
+        /**
+         * Emits a token of a node node with possible leading and trailing source maps.
+         *
+         * @param node The node containing the token.
+         * @param token The token to emit.
+         * @param tokenStartPos The start pos of the token.
+         * @param emitCallback The callback used to emit the token.
+         */
+        emitTokenWithSourceMap(node: Node, token: SyntaxKind, tokenStartPos: number, emitCallback: (token: SyntaxKind, tokenStartPos: number) => number): number;
+        /**
+         * Gets the text for the source map.
+         */
+        getText(): string;
+        /**
+         * Gets the SourceMappingURL for the source map.
+         */
+        getSourceMappingURL(): string;
+        /**
+         * Gets test data for source maps.
+         */
+        getSourceMapData(): SourceMapData;
+    }
+    function createSourceMapWriter(host: EmitHost, writer: EmitTextWriter): SourceMapWriter;
+}
+declare namespace ts {
+    interface CommentWriter {
+        reset(): void;
+        setSourceFile(sourceFile: SourceFile): void;
+        setWriter(writer: EmitTextWriter): void;
+        emitNodeWithComments(hint: EmitHint, node: Node, emitCallback: (hint: EmitHint, node: Node) => void): void;
+        emitBodyWithDetachedComments(node: Node, detachedRange: TextRange, emitCallback: (node: Node) => void): void;
+        emitTrailingCommentsOfPosition(pos: number): void;
+        emitLeadingCommentsOfPosition(pos: number): void;
+    }
+    function createCommentWriter(printerOptions: PrinterOptions, emitPos: ((pos: number) => void) | undefined): CommentWriter;
+}
+declare namespace ts {
+    function getDeclarationDiagnostics(host: EmitHost, resolver: EmitResolver, targetSourceFile: SourceFile): Diagnostic[];
+    function writeDeclarationFile(declarationFilePath: string, sourceFileOrBundle: SourceFile | Bundle, host: EmitHost, resolver: EmitResolver, emitterDiagnostics: DiagnosticCollection, emitOnlyDtsFiles: boolean): boolean;
+}
+declare namespace ts {
     function updateNode<T extends Node>(updated: T, original: T): T;
     /**
      * Make `elements` into a `NodeArray<T>`. If `elements` is `undefined`, returns an empty `NodeArray<T>`.
@@ -10315,7 +10611,7 @@ declare namespace ts {
     function updateUnionTypeNode(node: UnionTypeNode, types: NodeArray<TypeNode>): UnionTypeNode;
     function createIntersectionTypeNode(types: TypeNode[]): IntersectionTypeNode;
     function updateIntersectionTypeNode(node: IntersectionTypeNode, types: NodeArray<TypeNode>): IntersectionTypeNode;
-    function createUnionOrIntersectionTypeNode(kind: SyntaxKind.UnionType | SyntaxKind.IntersectionType, types: TypeNode[]): UnionTypeNode | IntersectionTypeNode;
+    function createUnionOrIntersectionTypeNode(kind: SyntaxKind.UnionType | SyntaxKind.IntersectionType, types: TypeNode[]): UnionOrIntersectionTypeNode;
     function createParenthesizedType(type: TypeNode): ParenthesizedTypeNode;
     function updateParenthesizedType(node: ParenthesizedTypeNode, type: TypeNode): ParenthesizedTypeNode;
     function createThisTypeNode(): ThisTypeNode;
@@ -10569,10 +10865,6 @@ declare namespace ts {
      */
     function getOrCreateEmitNode(node: Node): EmitNode;
     function setTextRange<T extends TextRange>(range: T, location: TextRange | undefined): T;
-    /**
-     * Gets flags that control emit behavior of a node.
-     */
-    function getEmitFlags(node: Node): EmitFlags | undefined;
     /**
      * Sets flags that control emit behavior of a node.
      */
@@ -10829,8 +11121,6 @@ declare namespace ts {
     function skipParentheses(node: Node): Node;
     function skipAssertions(node: Expression): Expression;
     function skipAssertions(node: Node): Node;
-    function skipPartiallyEmittedExpressions(node: Expression): Expression;
-    function skipPartiallyEmittedExpressions(node: Node): Node;
     function recreateOuterExpressions(outerExpression: Expression | undefined, innerExpression: Expression, kinds?: OuterExpressionKinds): Expression;
     function startOnNewLine<T extends Node>(node: T): T;
     function getExternalHelpersModuleName(node: SourceFile): Identifier;
@@ -10882,274 +11172,6 @@ declare namespace ts {
     function convertToObjectAssignmentPattern(node: ObjectBindingOrAssignmentPattern): ObjectLiteralExpression;
     function convertToArrayAssignmentPattern(node: ArrayBindingOrAssignmentPattern): ArrayLiteralExpression;
     function convertToAssignmentElementTarget(node: BindingOrAssignmentElementTarget): Expression;
-    interface ExternalModuleInfo {
-        externalImports: (ImportDeclaration | ImportEqualsDeclaration | ExportDeclaration)[];
-        externalHelpersImportDeclaration: ImportDeclaration | undefined;
-        exportSpecifiers: Map<ExportSpecifier[]>;
-        exportedBindings: Identifier[][];
-        exportedNames: Identifier[];
-        exportEquals: ExportAssignment | undefined;
-        hasExportStarsToExportValues: boolean;
-    }
-    function collectExternalModuleInfo(sourceFile: SourceFile, resolver: EmitResolver, compilerOptions: CompilerOptions): ExternalModuleInfo;
-}
-declare namespace ts {
-    function createNode(kind: SyntaxKind, pos?: number, end?: number): Node;
-    /**
-     * Invokes a callback for each child of the given node. The 'cbNode' callback is invoked for all child nodes
-     * stored in properties. If a 'cbNodes' callback is specified, it is invoked for embedded arrays; otherwise,
-     * embedded arrays are flattened and the 'cbNode' callback is invoked for each element. If a callback returns
-     * a truthy value, iteration stops and that value is returned. Otherwise, undefined is returned.
-     *
-     * @param node a given node to visit its children
-     * @param cbNode a callback to be invoked for all child nodes
-     * @param cbNodeArray a callback to be invoked for embedded array
-     */
-    function forEachChild<T>(node: Node, cbNode: (node: Node) => T | undefined, cbNodeArray?: (nodes: NodeArray<Node>) => T | undefined): T | undefined;
-    function createSourceFile(fileName: string, sourceText: string, languageVersion: ScriptTarget, setParentNodes?: boolean, scriptKind?: ScriptKind): SourceFile;
-    function parseIsolatedEntityName(text: string, languageVersion: ScriptTarget): EntityName;
-    function isExternalModule(file: SourceFile): boolean;
-    function updateSourceFile(sourceFile: SourceFile, newText: string, textChangeRange: TextChangeRange, aggressiveChecks?: boolean): SourceFile;
-    function parseIsolatedJSDocComment(content: string, start?: number, length?: number): {
-        jsDoc: JSDoc;
-        diagnostics: Diagnostic[];
-    };
-    function parseJSDocTypeExpressionForTests(content: string, start?: number, length?: number): {
-        jsDocTypeExpression: JSDocTypeExpression;
-        diagnostics: Diagnostic[];
-    };
-}
-declare namespace ts {
-    enum ModuleInstanceState {
-        NonInstantiated = 0,
-        Instantiated = 1,
-        ConstEnumOnly = 2,
-    }
-    function getModuleInstanceState(node: Node): ModuleInstanceState;
-    function bindSourceFile(file: SourceFile, options: CompilerOptions): void;
-    /**
-     * Computes the transform flags for a node, given the transform flags of its subtree
-     *
-     * @param node The node to analyze
-     * @param subtreeFlags Transform flags computed for this node's subtree
-     */
-    function computeTransformFlagsForNode(node: Node, subtreeFlags: TransformFlags): TransformFlags;
-    /**
-     * Gets the transform flags to exclude when unioning the transform flags of a subtree.
-     *
-     * NOTE: This needs to be kept up-to-date with the exclusions used in `computeTransformFlagsForNode`.
-     *       For performance reasons, `computeTransformFlagsForNode` uses local constant values rather
-     *       than calling this function.
-     */
-    function getTransformFlagsSubtreeExclusions(kind: SyntaxKind): TransformFlags;
-}
-declare namespace ts {
-    function trace(host: ModuleResolutionHost, message: DiagnosticMessage, ...args: any[]): void;
-    function isTraceEnabled(compilerOptions: CompilerOptions, host: ModuleResolutionHost): boolean;
-    /** Array that is only intended to be pushed to, never read. */
-    interface Push<T> {
-        push(value: T): void;
-    }
-    function moduleHasNonRelativeName(moduleName: string): boolean;
-    function getEffectiveTypeRoots(options: CompilerOptions, host: {
-        directoryExists?: (directoryName: string) => boolean;
-        getCurrentDirectory?: () => string;
-    }): string[] | undefined;
-    /**
-     * @param {string | undefined} containingFile - file that contains type reference directive, can be undefined if containing file is unknown.
-     * This is possible in case if resolution is performed for directives specified via 'types' parameter. In this case initial path for secondary lookups
-     * is assumed to be the same as root directory of the project.
-     */
-    function resolveTypeReferenceDirective(typeReferenceDirectiveName: string, containingFile: string | undefined, options: CompilerOptions, host: ModuleResolutionHost): ResolvedTypeReferenceDirectiveWithFailedLookupLocations;
-    /**
-     * Given a set of options, returns the set of type directive names
-     *   that should be included for this program automatically.
-     * This list could either come from the config file,
-     *   or from enumerating the types root + initial secondary types lookup location.
-     * More type directives might appear in the program later as a result of loading actual source files;
-     *   this list is only the set of defaults that are implicitly included.
-     */
-    function getAutomaticTypeDirectiveNames(options: CompilerOptions, host: ModuleResolutionHost): string[];
-    /**
-     * Cached module resolutions per containing directory.
-     * This assumes that any module id will have the same resolution for sibling files located in the same folder.
-     */
-    interface ModuleResolutionCache extends NonRelativeModuleNameResolutionCache {
-        getOrCreateCacheForDirectory(directoryName: string): Map<ResolvedModuleWithFailedLookupLocations>;
-    }
-    /**
-     * Stored map from non-relative module name to a table: directory -> result of module lookup in this directory
-     * We support only non-relative module names because resolution of relative module names is usually more deterministic and thus less expensive.
-     */
-    interface NonRelativeModuleNameResolutionCache {
-        getOrCreateCacheForModuleName(nonRelativeModuleName: string): PerModuleNameCache;
-    }
-    interface PerModuleNameCache {
-        get(directory: string): ResolvedModuleWithFailedLookupLocations;
-        set(directory: string, result: ResolvedModuleWithFailedLookupLocations): void;
-    }
-    function createModuleResolutionCache(currentDirectory: string, getCanonicalFileName: (s: string) => string): ModuleResolutionCache;
-    function resolveModuleName(moduleName: string, containingFile: string, compilerOptions: CompilerOptions, host: ModuleResolutionHost, cache?: ModuleResolutionCache): ResolvedModuleWithFailedLookupLocations;
-    function nodeModuleNameResolver(moduleName: string, containingFile: string, compilerOptions: CompilerOptions, host: ModuleResolutionHost, cache?: ModuleResolutionCache): ResolvedModuleWithFailedLookupLocations;
-    /**
-     * Expose resolution logic to allow us to use Node module resolution logic from arbitrary locations.
-     * No way to do this with `require()`: https://github.com/nodejs/node/issues/5963
-     * Throws an error if the module can't be resolved.
-     */
-    function resolveJavaScriptModule(moduleName: string, initialDir: string, host: ModuleResolutionHost): string;
-    function directoryProbablyExists(directoryName: string, host: {
-        directoryExists?: (directoryName: string) => boolean;
-    }): boolean;
-    function getPackageNameFromAtTypesDirectory(mangledName: string): string;
-    function classicNameResolver(moduleName: string, containingFile: string, compilerOptions: CompilerOptions, host: ModuleResolutionHost, cache?: NonRelativeModuleNameResolutionCache): ResolvedModuleWithFailedLookupLocations;
-    /**
-     * LSHost may load a module from a global cache of typings.
-     * This is the minumum code needed to expose that functionality; the rest is in LSHost.
-     */
-    function loadModuleFromGlobalCache(moduleName: string, projectName: string, compilerOptions: CompilerOptions, host: ModuleResolutionHost, globalCache: string): ResolvedModuleWithFailedLookupLocations;
-}
-declare namespace ts {
-    function getNodeId(node: Node): number;
-    function getSymbolId(symbol: Symbol): number;
-    function createTypeChecker(host: TypeCheckerHost, produceDiagnostics: boolean): TypeChecker;
-}
-declare namespace ts {
-    const compileOnSaveCommandLineOption: CommandLineOption;
-    const optionDeclarations: CommandLineOption[];
-    let typeAcquisitionDeclarations: CommandLineOption[];
-    interface OptionNameMap {
-        optionNameMap: Map<CommandLineOption>;
-        shortOptionNames: Map<string>;
-    }
-    const defaultInitCompilerOptions: CompilerOptions;
-    function convertEnableAutoDiscoveryToEnable(typeAcquisition: TypeAcquisition): TypeAcquisition;
-    function createCompilerDiagnosticForInvalidCustomType(opt: CommandLineOptionOfCustomType): Diagnostic;
-    function parseCustomTypeOption(opt: CommandLineOptionOfCustomType, value: string, errors: Diagnostic[]): string | number;
-    function parseListTypeOption(opt: CommandLineOptionOfListType, value: string, errors: Diagnostic[]): (string | number)[] | undefined;
-    function parseCommandLine(commandLine: string[], readFile?: (path: string) => string): ParsedCommandLine;
-    /**
-     * Read tsconfig.json file
-     * @param fileName The path to the config file
-     */
-    function readConfigFile(fileName: string, readFile: (path: string) => string): {
-        config?: any;
-        error?: Diagnostic;
-    };
-    /**
-     * Parse the text of the tsconfig.json file
-     * @param fileName The path to the config file
-     * @param jsonText The text of the config file
-     */
-    function parseConfigFileTextToJson(fileName: string, jsonText: string, stripComments?: boolean): {
-        config?: any;
-        error?: Diagnostic;
-    };
-    /**
-     * Generate tsconfig configuration when running command line "--init"
-     * @param options commandlineOptions to be generated into tsconfig.json
-     * @param fileNames array of filenames to be generated into tsconfig.json
-     */
-    function generateTSConfig(options: CompilerOptions, fileNames: string[], newLine: string): string;
-    /**
-     * Parse the contents of a config file (tsconfig.json).
-     * @param json The contents of the config file to parse
-     * @param host Instance of ParseConfigHost used to enumerate files in folder.
-     * @param basePath A root directory to resolve relative path entries in the config
-     *    file to. e.g. outDir
-     * @param resolutionStack Only present for backwards-compatibility. Should be empty.
-     */
-    function parseJsonConfigFileContent(json: any, host: ParseConfigHost, basePath: string, existingOptions?: CompilerOptions, configFileName?: string, resolutionStack?: Path[], extraFileExtensions?: JsFileExtensionInfo[]): ParsedCommandLine;
-    function convertCompileOnSaveOptionFromJson(jsonOption: any, basePath: string, errors: Diagnostic[]): boolean;
-    function convertCompilerOptionsFromJson(jsonOptions: any, basePath: string, configFileName?: string): {
-        options: CompilerOptions;
-        errors: Diagnostic[];
-    };
-    function convertTypeAcquisitionFromJson(jsonOptions: any, basePath: string, configFileName?: string): {
-        options: TypeAcquisition;
-        errors: Diagnostic[];
-    };
-    /**
-     * Produces a cleaned version of compiler options with personally identifiying info (aka, paths) removed.
-     * Also converts enum values back to strings.
-     */
-    function convertCompilerOptionsForTelemetry(opts: ts.CompilerOptions): ts.CompilerOptions;
-}
-declare namespace ts {
-    interface SourceMapWriter {
-        /**
-         * Initialize the SourceMapWriter for a new output file.
-         *
-         * @param filePath The path to the generated output file.
-         * @param sourceMapFilePath The path to the output source map file.
-         * @param sourceFileOrBundle The input source file or bundle for the program.
-         */
-        initialize(filePath: string, sourceMapFilePath: string, sourceFileOrBundle: SourceFile | Bundle): void;
-        /**
-         * Reset the SourceMapWriter to an empty state.
-         */
-        reset(): void;
-        /**
-         * Set the current source file.
-         *
-         * @param sourceFile The source file.
-         */
-        setSourceFile(sourceFile: SourceMapSource): void;
-        /**
-         * Emits a mapping.
-         *
-         * If the position is synthetic (undefined or a negative value), no mapping will be
-         * created.
-         *
-         * @param pos The position.
-         */
-        emitPos(pos: number): void;
-        /**
-         * Emits a node with possible leading and trailing source maps.
-         *
-         * @param hint The current emit context
-         * @param node The node to emit.
-         * @param emitCallback The callback used to emit the node.
-         */
-        emitNodeWithSourceMap(hint: EmitHint, node: Node, emitCallback: (hint: EmitHint, node: Node) => void): void;
-        /**
-         * Emits a token of a node node with possible leading and trailing source maps.
-         *
-         * @param node The node containing the token.
-         * @param token The token to emit.
-         * @param tokenStartPos The start pos of the token.
-         * @param emitCallback The callback used to emit the token.
-         */
-        emitTokenWithSourceMap(node: Node, token: SyntaxKind, tokenStartPos: number, emitCallback: (token: SyntaxKind, tokenStartPos: number) => number): number;
-        /**
-         * Gets the text for the source map.
-         */
-        getText(): string;
-        /**
-         * Gets the SourceMappingURL for the source map.
-         */
-        getSourceMappingURL(): string;
-        /**
-         * Gets test data for source maps.
-         */
-        getSourceMapData(): SourceMapData;
-    }
-    function createSourceMapWriter(host: EmitHost, writer: EmitTextWriter): SourceMapWriter;
-}
-declare namespace ts {
-    interface CommentWriter {
-        reset(): void;
-        setSourceFile(sourceFile: SourceFile): void;
-        setWriter(writer: EmitTextWriter): void;
-        emitNodeWithComments(hint: EmitHint, node: Node, emitCallback: (hint: EmitHint, node: Node) => void): void;
-        emitBodyWithDetachedComments(node: Node, detachedRange: TextRange, emitCallback: (node: Node) => void): void;
-        emitTrailingCommentsOfPosition(pos: number): void;
-        emitLeadingCommentsOfPosition(pos: number): void;
-    }
-    function createCommentWriter(printerOptions: PrinterOptions, emitPos: ((pos: number) => void) | undefined): CommentWriter;
-}
-declare namespace ts {
-    function getDeclarationDiagnostics(host: EmitHost, resolver: EmitResolver, targetSourceFile: SourceFile): Diagnostic[];
-    function writeDeclarationFile(declarationFilePath: string, sourceFileOrBundle: SourceFile | Bundle, host: EmitHost, resolver: EmitResolver, emitterDiagnostics: DiagnosticCollection, emitOnlyDtsFiles: boolean): boolean;
 }
 declare namespace ts {
     /**
@@ -11274,6 +11296,19 @@ declare namespace ts {
     }
 }
 declare namespace ts {
+    function getOriginalNodeId(node: Node): number;
+    interface ExternalModuleInfo {
+        externalImports: (ImportDeclaration | ImportEqualsDeclaration | ExportDeclaration)[];
+        externalHelpersImportDeclaration: ImportDeclaration | undefined;
+        exportSpecifiers: Map<ExportSpecifier[]>;
+        exportedBindings: Identifier[][];
+        exportedNames: Identifier[];
+        exportEquals: ExportAssignment | undefined;
+        hasExportStarsToExportValues: boolean;
+    }
+    function collectExternalModuleInfo(sourceFile: SourceFile, resolver: EmitResolver, compilerOptions: CompilerOptions): ExternalModuleInfo;
+}
+declare namespace ts {
     enum FlattenLevel {
         All = 0,
         ObjectRest = 1,
@@ -11359,6 +11394,16 @@ declare namespace ts {
     function transformNodes<T extends Node>(resolver: EmitResolver, host: EmitHost, options: CompilerOptions, nodes: T[], transformers: TransformerFactory<T>[], allowDtsFiles: boolean): TransformationResult<T>;
 }
 declare namespace ts {
+    /**
+     * Iterates over the source files that are expected to have an emit output.
+     *
+     * @param host An EmitHost.
+     * @param action The action to execute.
+     * @param sourceFilesOrTargetSourceFile
+     *   If an array, the full list of source files to emit.
+     *   Else, calls `getSourceFilesToEmit` with the (optional) target source file to determine the list of source files to emit.
+     */
+    function forEachEmittedFile(host: EmitHost, action: (emitFileNames: EmitFileNames, sourceFileOrBundle: SourceFile | Bundle, emitOnlyDtsFiles: boolean) => void, sourceFilesOrTargetSourceFile?: SourceFile[] | SourceFile, emitOnlyDtsFiles?: boolean): void;
     function emitFiles(resolver: EmitResolver, host: EmitHost, targetSourceFile: SourceFile, emitOnlyDtsFiles?: boolean, transformers?: TransformerFactory<SourceFile>[]): EmitResult;
     function createPrinter(printerOptions?: PrinterOptions, handlers?: PrintHandlers): Printer;
 }
@@ -12222,6 +12267,7 @@ declare namespace ts {
     function isPunctuation(kind: SyntaxKind): boolean;
     function isInsideTemplateLiteral(node: LiteralExpression, position: number): boolean;
     function isAccessibilityModifier(kind: SyntaxKind): boolean;
+    function cloneCompilerOptions(options: CompilerOptions): CompilerOptions;
     function compareDataObjects(dst: any, src: any): boolean;
     function isArrayLiteralOrObjectLiteralDestructuringPattern(node: Node): boolean;
     function hasTrailingDirectorySeparator(path: string): boolean;
@@ -12264,10 +12310,6 @@ declare namespace ts {
     function stripQuotes(name: string): string;
     function scriptKindIs(fileName: string, host: LanguageServiceHost, ...scriptKinds: ScriptKind[]): boolean;
     function getScriptKind(fileName: string, host?: LanguageServiceHost): ScriptKind;
-    function sanitizeConfigFile(configFileName: string, content: string): {
-        configJsonObject: any;
-        diagnostics: Diagnostic[];
-    };
     function getFirstNonSpaceCharacterPosition(text: string, position: number): number;
     function getOpenBrace(constructor: ConstructorDeclaration, sourceFile: SourceFile): Node;
     function getOpenBraceOfClassLike(declaration: ClassLikeDeclaration, sourceFile: SourceFile): Node;
