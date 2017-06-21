@@ -3556,7 +3556,7 @@ declare namespace ts {
      * @param map A map-like.
      * @param key A property key.
      */
-    function hasProperty<T>(map: MapLike<T>, key: string): boolean;
+    function hasProperty(map: MapLike<any>, key: string): boolean;
     /**
      * Gets the value of an owned property in a map-like.
      *
