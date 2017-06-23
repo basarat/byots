@@ -4196,12 +4196,12 @@ declare namespace ts {
      * Gets the effective type annotation of a variable, parameter, or property. If the node was
      * parsed in a JavaScript file, gets the type annotation from JSDoc.
      */
-    function getEffectiveTypeAnnotationNode(node: VariableLikeDeclaration): TypeNode;
+    function getEffectiveTypeAnnotationNode(node: VariableLikeDeclaration): TypeNode | undefined;
     /**
      * Gets the effective return type annotation of a signature. If the node was parsed in a
      * JavaScript file, gets the return type annotation from JSDoc.
      */
-    function getEffectiveReturnTypeNode(node: SignatureDeclaration): TypeNode;
+    function getEffectiveReturnTypeNode(node: SignatureDeclaration): TypeNode | undefined;
     /**
      * Gets the effective type parameters. If the node was parsed in a
      * JavaScript file, gets the type parameters from the `@template` tag from JSDoc.
