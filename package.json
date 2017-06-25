@@ -1,6 +1,6 @@
 {
   "name": "byots",
-  "version": "2.5.0-dev.20170623.4.11",
+  "version": "2.5.0-dev.20170624.4.13",
   "description": "Bring your own TypeScript",
   "main": "bin/byots.js",
   "typings": "bin/byots.d.ts",
@@ -27,6 +27,6 @@
     "typescript": "*"
   },
   "devDependencies": {
-    "typescript": "2.5.0-dev.20170623"
+    "typescript": "2.5.0-dev.20170624"
   }
 }
