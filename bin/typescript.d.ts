@@ -1869,7 +1869,11 @@ declare namespace ts {
         getAugmentedPropertiesOfType(type: Type): Symbol[];
         getRootSymbols(symbol: Symbol): Symbol[];
         getContextualType(node: Expression): Type | undefined;
-        getResolvedSignature(node: CallLikeExpression, candidatesOutArray?: Signature[]): Signature | undefined;
+        /**
+         * returns unknownSignature in the case of an error. Don't know when it returns undefined.
+         * @param argumentCount Apparent number of arguments, passed in case of a possibly incomplete call. This should come from an ArgumentListInfo. See `signatureHelp.ts`.
+         */
+        getResolvedSignature(node: CallLikeExpression, candidatesOutArray?: Signature[], argumentCount?: number): Signature | undefined;
         getSignatureFromDeclaration(declaration: SignatureDeclaration): Signature | undefined;
         isImplementationOfOverload(node: FunctionLikeDeclaration): boolean | undefined;
         isUndefinedSymbol(symbol: Symbol): boolean;
@@ -2467,7 +2471,7 @@ declare namespace ts {
     }
     interface TypeMapper {
         (t: TypeParameter): Type;
-        mappedTypes?: Type[];
+        mappedTypes?: TypeParameter[];
         instantiations?: Type[];
     }
     enum InferencePriority {
@@ -4598,6 +4602,7 @@ declare namespace ts {
     function isJSDocLiteralType(node: Node): node is JSDocLiteralType;
 }
 declare namespace ts {
+    function isSyntaxList(n: Node): n is SyntaxList;
     function isNode(node: Node): boolean;
     function isNodeKind(kind: SyntaxKind): boolean;
     /**
@@ -12224,7 +12229,7 @@ declare namespace ts {
     function findListItemInfo(node: Node): ListItemInfo;
     function hasChildOfKind(n: Node, kind: SyntaxKind, sourceFile?: SourceFile): boolean;
     function findChildOfKind(n: Node, kind: SyntaxKind, sourceFile?: SourceFileLike): Node | undefined;
-    function findContainingList(node: Node): Node;
+    function findContainingList(node: Node): SyntaxList | undefined;
     function getTouchingWord(sourceFile: SourceFile, position: number, includeJsDocComment: boolean): Node;
     function getTouchingPropertyName(sourceFile: SourceFile, position: number, includeJsDocComment: boolean): Node;
     /**
@@ -12620,6 +12625,7 @@ declare namespace ts.SignatureHelp {
         invocation: CallLikeExpression;
         argumentsSpan: TextSpan;
         argumentIndex?: number;
+        /** argumentCount is the *apparent* number of arguments. */
         argumentCount: number;
     }
     function getSignatureHelpItems(program: Program, sourceFile: SourceFile, position: number, cancellationToken: CancellationToken): SignatureHelpItems;
