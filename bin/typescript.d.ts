@@ -3389,7 +3389,7 @@ declare namespace ts {
     /** Create a new map. If a template object is provided, the map will copy entries from it. */
     function createMap<T>(): Map<T>;
     function createMapFromTemplate<T>(template?: MapLike<T>): Map<T>;
-    function createFileMap<T>(keyMapper?: (key: string) => string): FileMap<T>;
+    function createFileMap<T>(keyMapper: (key: string) => string): FileMap<T>;
     function toPath(fileName: string, basePath: string, getCanonicalFileName: (path: string) => string): Path;
     enum Comparison {
         LessThan = -1,
@@ -3745,7 +3745,7 @@ declare namespace ts {
     }
     function getFileMatcherPatterns(path: string, excludes: string[], includes: string[], useCaseSensitiveFileNames: boolean, currentDirectory: string): FileMatcherPatterns;
     function matchFiles(path: string, extensions: string[], excludes: string[], includes: string[], useCaseSensitiveFileNames: boolean, currentDirectory: string, getFileSystemEntries: (path: string) => FileSystemEntries): string[];
-    function ensureScriptKind(fileName: string, scriptKind?: ScriptKind): ScriptKind;
+    function ensureScriptKind(fileName: string, scriptKind: ScriptKind | undefined): ScriptKind;
     function getScriptKindFromFileName(fileName: string): ScriptKind;
     /**
      *  List of supported extensions in order of file resolution precedence.
@@ -4615,6 +4615,7 @@ declare namespace ts {
     function isLiteralExpression(node: Node): node is LiteralExpression;
     function isTemplateLiteralKind(kind: SyntaxKind): boolean;
     function isTemplateMiddleOrTemplateTail(node: Node): node is TemplateMiddle | TemplateTail;
+    function isStringTextContainingNode(node: Node): boolean;
     function isGeneratedIdentifier(node: Node): node is GeneratedIdentifier;
     function isModifierKind(token: SyntaxKind): boolean;
     function isModifier(node: Node): node is Modifier;
@@ -5759,7 +5760,7 @@ declare namespace ts {
             key: string;
             message: string;
         };
-        Signature_0_must_have_a_type_predicate: {
+        Signature_0_must_be_a_type_predicate: {
             code: number;
             category: DiagnosticCategory;
             key: string;
