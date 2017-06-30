@@ -1712,7 +1712,7 @@ declare namespace ts {
     }
     interface ParseConfigHost {
         useCaseSensitiveFileNames: boolean;
-        readDirectory(rootDir: string, extensions: string[], excludes: string[], includes: string[]): string[];
+        readDirectory(rootDir: string, extensions: string[], excludes: string[], includes: string[], depth: number): string[];
         /**
          * Gets a value indicating whether the specified path exists and is a file.
          * @param path The path to test.
@@ -1739,6 +1739,11 @@ declare namespace ts {
          * Get a list of files in the program
          */
         getSourceFiles(): SourceFile[];
+        /**
+         * Get a list of file names that were passed to 'createProgram' or referenced in a
+         * program source file but could not be located.
+         */
+        getMissingFilePaths(): Path[];
         /**
          * Emits the JavaScript and declaration files.  If targetSourceFile is not specified, then
          * the JavaScript and declaration files will be produced for all the files in this program.
@@ -2333,7 +2338,7 @@ declare namespace ts {
     interface ObjectType extends Type {
         objectFlags: ObjectFlags;
     }
-    /** Class and interface types (TypeFlags.Class and TypeFlags.Interface). */
+    /** Class and interface types (ObjectFlags.Class and ObjectFlags.Interface). */
     interface InterfaceType extends ObjectType {
         typeParameters: TypeParameter[];
         outerTypeParameters: TypeParameter[];
@@ -2351,7 +2356,7 @@ declare namespace ts {
         declaredNumberIndexInfo: IndexInfo;
     }
     /**
-     * Type references (TypeFlags.Reference). When a class or interface has type parameters or
+     * Type references (ObjectFlags.Reference). When a class or interface has type parameters or
      * a "this" type, references to the class or interface are made using type references. The
      * typeArguments property specifies the types to substitute for the type parameters of the
      * class or interface and optionally includes an extra element that specifies the type to
@@ -3364,8 +3369,9 @@ declare namespace ts.performance {
     function disable(): void;
 }
 declare namespace ts {
+    const versionMajorMinor = "2.5";
     /** The version of the TypeScript compiler release */
-    const version = "2.5.0";
+    const version: string;
 }
 declare namespace ts {
     /**
@@ -3612,6 +3618,12 @@ declare namespace ts {
      */
     function arrayToMap<T>(array: T[], makeKey: (value: T) => string): Map<T>;
     function arrayToMap<T, U>(array: T[], makeKey: (value: T) => string, makeValue: (value: T) => U): Map<U>;
+    /**
+     * Creates a set from the elements of an array.
+     *
+     * @param array the array of input elements.
+     */
+    function arrayToSet<T>(array: T[], makeKey: (value: T) => string): Map<true>;
     function cloneMap<T>(map: Map<T>): Map<T>;
     function clone<T>(object: T): T;
     function extend<T1, T2>(first: T1, second: T2): T1 & T2;
@@ -3744,7 +3756,7 @@ declare namespace ts {
         basePaths: string[];
     }
     function getFileMatcherPatterns(path: string, excludes: string[], includes: string[], useCaseSensitiveFileNames: boolean, currentDirectory: string): FileMatcherPatterns;
-    function matchFiles(path: string, extensions: string[], excludes: string[], includes: string[], useCaseSensitiveFileNames: boolean, currentDirectory: string, getFileSystemEntries: (path: string) => FileSystemEntries): string[];
+    function matchFiles(path: string, extensions: string[], excludes: string[], includes: string[], useCaseSensitiveFileNames: boolean, currentDirectory: string, depth: number | undefined, getFileSystemEntries: (path: string) => FileSystemEntries): string[];
     function ensureScriptKind(fileName: string, scriptKind: ScriptKind | undefined): ScriptKind;
     function getScriptKindFromFileName(fileName: string): ScriptKind;
     /**
@@ -3844,7 +3856,12 @@ declare namespace ts {
 declare function setTimeout(handler: (...args: any[]) => void, timeout: number): any;
 declare function clearTimeout(handle: any): void;
 declare namespace ts {
-    type FileWatcherCallback = (fileName: string, removed?: boolean) => void;
+    enum FileWatcherEventKind {
+        Created = 0,
+        Changed = 1,
+        Deleted = 2,
+    }
+    type FileWatcherCallback = (fileName: string, eventKind: FileWatcherEventKind) => void;
     type DirectoryWatcherCallback = (fileName: string) => void;
     interface WatchedFile {
         fileName: string;
@@ -3872,7 +3889,7 @@ declare namespace ts {
         getExecutingFilePath(): string;
         getCurrentDirectory(): string;
         getDirectories(path: string): string[];
-        readDirectory(path: string, extensions?: string[], exclude?: string[], include?: string[]): string[];
+        readDirectory(path: string, extensions?: string[], exclude?: string[], include?: string[], depth?: number): string[];
         getModifiedTime?(path: string): Date;
         /**
          * This should be cryptographically secure.
@@ -11569,7 +11586,7 @@ declare namespace ts {
         trace?(s: string): void;
         error?(s: string): void;
         useCaseSensitiveFileNames?(): boolean;
-        readDirectory?(path: string, extensions?: string[], exclude?: string[], include?: string[]): string[];
+        readDirectory?(path: string, extensions?: string[], exclude?: string[], include?: string[], depth?: number): string[];
         readFile?(path: string, encoding?: string): string;
         fileExists?(path: string): boolean;
         getTypeRootsVersion?(): number;
@@ -13511,7 +13528,7 @@ declare namespace ts {
         readFile(path: string, encoding?: string): string;
         fileExists(path: string): boolean;
     }
-    class CoreServicesShimHostAdapter implements ParseConfigHost, ModuleResolutionHost {
+    class CoreServicesShimHostAdapter implements ParseConfigHost, ModuleResolutionHost, JsTyping.TypingResolutionHost {
         private shimHost;
         directoryExists: (directoryName: string) => boolean;
         realpath: (path: string) => string;
@@ -13520,7 +13537,6 @@ declare namespace ts {
         readDirectory(rootDir: string, extensions: string[], exclude: string[], include: string[], depth?: number): string[];
         fileExists(fileName: string): boolean;
         readFile(fileName: string): string;
-        private readDirectoryFallback(rootDir, extension, exclude);
         getDirectories(path: string): string[];
     }
     function realizeDiagnostics(diagnostics: Diagnostic[], newLine: string): {
