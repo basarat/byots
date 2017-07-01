@@ -3586,7 +3586,6 @@ declare namespace ts {
     /** Shims `Array.from`. */
     function arrayFrom<T, U>(iterator: Iterator<T>, map: (t: T) => U): U[];
     function arrayFrom<T>(iterator: Iterator<T>): T[];
-    function convertToArray<T, U>(iterator: Iterator<T>, f: (value: T) => U): U[];
     /**
      * Calls `callback` for each entry in the map, returning the first truthy result.
      * Use `map.forEach` instead for normal iteration.
@@ -12727,7 +12726,8 @@ declare namespace ts.formatting {
         FormatSelection = 1,
         FormatOnEnter = 2,
         FormatOnSemicolon = 3,
-        FormatOnClosingCurlyBrace = 4,
+        FormatOnOpeningCurlyBrace = 4,
+        FormatOnClosingCurlyBrace = 5,
     }
 }
 declare namespace ts.formatting {
@@ -12920,13 +12920,14 @@ declare namespace ts.formatting {
         static IsOptionEnabled(optionName: keyof FormatCodeSettings): (context: FormattingContext) => boolean;
         static IsOptionDisabled(optionName: keyof FormatCodeSettings): (context: FormattingContext) => boolean;
         static IsOptionDisabledOrUndefined(optionName: keyof FormatCodeSettings): (context: FormattingContext) => boolean;
+        static isOptionDisabledOrUndefinedOrTokensOnSameLine(optionName: keyof FormatCodeSettings): (context: FormattingContext) => boolean;
         static IsOptionEnabledOrUndefined(optionName: keyof FormatCodeSettings): (context: FormattingContext) => boolean;
         static IsForContext(context: FormattingContext): boolean;
         static IsNotForContext(context: FormattingContext): boolean;
         static IsBinaryOpContext(context: FormattingContext): boolean;
         static IsNotBinaryOpContext(context: FormattingContext): boolean;
         static IsConditionalOperatorContext(context: FormattingContext): boolean;
-        static IsSameLineTokenOrBeforeMultilineBlockContext(context: FormattingContext): boolean;
+        static IsSameLineTokenOrBeforeBlockContext(context: FormattingContext): boolean;
         static IsBraceWrappedContext(context: FormattingContext): boolean;
         static IsBeforeMultilineBlockContext(context: FormattingContext): boolean;
         static IsMultilineBlockContext(context: FormattingContext): boolean;
@@ -13054,10 +13055,11 @@ declare namespace ts.formatting {
     }
     function formatOnEnter(position: number, sourceFile: SourceFile, rulesProvider: RulesProvider, options: FormatCodeSettings): TextChange[];
     function formatOnSemicolon(position: number, sourceFile: SourceFile, rulesProvider: RulesProvider, options: FormatCodeSettings): TextChange[];
+    function formatOnOpeningCurly(position: number, sourceFile: SourceFile, rulesProvider: RulesProvider, options: FormatCodeSettings): TextChange[];
     function formatOnClosingCurly(position: number, sourceFile: SourceFile, rulesProvider: RulesProvider, options: FormatCodeSettings): TextChange[];
     function formatDocument(sourceFile: SourceFile, rulesProvider: RulesProvider, options: FormatCodeSettings): TextChange[];
     function formatSelection(start: number, end: number, sourceFile: SourceFile, rulesProvider: RulesProvider, options: FormatCodeSettings): TextChange[];
-    function formatNode(node: Node, sourceFileLike: SourceFileLike, languageVariant: LanguageVariant, initialIndentation: number, delta: number, rulesProvider: RulesProvider): TextChange[];
+    function formatNodeGivenIndentation(node: Node, sourceFileLike: SourceFileLike, languageVariant: LanguageVariant, initialIndentation: number, delta: number, rulesProvider: RulesProvider): TextChange[];
     function getIndentationString(indentation: number, options: EditorSettings): string;
 }
 declare namespace ts.formatting {
