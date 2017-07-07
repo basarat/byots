@@ -494,7 +494,7 @@ declare namespace ts {
          * Text of identifier (with escapes converted to characters).
          * If the identifier begins with two underscores, this will begin with three.
          */
-        text: string;
+        text: __String;
         originalKeywordKind?: SyntaxKind;
         autoGenerateKind?: GeneratedIdentifierKind;
         autoGenerateId?: number;
@@ -582,13 +582,21 @@ declare namespace ts {
         name: BindingName;
         initializer?: Expression;
     }
-    interface PropertySignature extends TypeElement {
-        kind: SyntaxKind.PropertySignature | SyntaxKind.JSDocRecordMember;
+    interface TSPropertySignature extends TypeElement {
+        kind: SyntaxKind.PropertySignature;
         name: PropertyName;
         questionToken?: QuestionToken;
         type?: TypeNode;
         initializer?: Expression;
     }
+    interface JSDocPropertySignature extends TypeElement {
+        kind: SyntaxKind.JSDocRecordMember;
+        name: PropertyName;
+        questionToken?: QuestionToken;
+        type?: TypeNode;
+        initializer?: Expression;
+    }
+    type PropertySignature = TSPropertySignature | JSDocPropertySignature;
     interface PropertyDeclaration extends ClassElement {
         kind: SyntaxKind.PropertyDeclaration;
         questionToken?: QuestionToken;
@@ -643,19 +651,21 @@ declare namespace ts {
     type ArrayBindingElement = BindingElement | OmittedExpression;
     /**
      * Several node kinds share function-like features such as a signature,
-     * a name, and a body. These nodes should extend FunctionLikeDeclaration.
+     * a name, and a body. These nodes should extend FunctionLikeDeclarationBase.
      * Examples:
      * - FunctionDeclaration
      * - MethodDeclaration
      * - AccessorDeclaration
      */
-    interface FunctionLikeDeclaration extends SignatureDeclaration {
+    interface FunctionLikeDeclarationBase extends SignatureDeclaration {
         _functionLikeDeclarationBrand: any;
         asteriskToken?: AsteriskToken;
         questionToken?: QuestionToken;
         body?: Block | Expression;
     }
-    interface FunctionDeclaration extends FunctionLikeDeclaration, DeclarationStatement {
+    type FunctionLikeDeclaration = FunctionDeclaration | MethodDeclaration | ConstructorDeclaration | GetAccessorDeclaration | SetAccessorDeclaration | FunctionExpression | ArrowFunction;
+    type FunctionLike = FunctionLikeDeclaration | FunctionTypeNode | ConstructorTypeNode | IndexSignatureDeclaration | MethodSignature | ConstructSignatureDeclaration | CallSignatureDeclaration;
+    interface FunctionDeclaration extends FunctionLikeDeclarationBase, DeclarationStatement {
         kind: SyntaxKind.FunctionDeclaration;
         name?: Identifier;
         body?: FunctionBody;
@@ -664,12 +674,12 @@ declare namespace ts {
         kind: SyntaxKind.MethodSignature;
         name: PropertyName;
     }
-    interface MethodDeclaration extends FunctionLikeDeclaration, ClassElement, ObjectLiteralElement {
+    interface MethodDeclaration extends FunctionLikeDeclarationBase, ClassElement, ObjectLiteralElement {
         kind: SyntaxKind.MethodDeclaration;
         name: PropertyName;
         body?: FunctionBody;
     }
-    interface ConstructorDeclaration extends FunctionLikeDeclaration, ClassElement {
+    interface ConstructorDeclaration extends FunctionLikeDeclarationBase, ClassElement {
         kind: SyntaxKind.Constructor;
         parent?: ClassDeclaration | ClassExpression;
         body?: FunctionBody;
@@ -679,13 +689,13 @@ declare namespace ts {
         kind: SyntaxKind.SemicolonClassElement;
         parent?: ClassDeclaration | ClassExpression;
     }
-    interface GetAccessorDeclaration extends FunctionLikeDeclaration, ClassElement, ObjectLiteralElement {
+    interface GetAccessorDeclaration extends FunctionLikeDeclarationBase, ClassElement, ObjectLiteralElement {
         kind: SyntaxKind.GetAccessor;
         parent?: ClassDeclaration | ClassExpression | ObjectLiteralExpression;
         name: PropertyName;
         body: FunctionBody;
     }
-    interface SetAccessorDeclaration extends FunctionLikeDeclaration, ClassElement, ObjectLiteralElement {
+    interface SetAccessorDeclaration extends FunctionLikeDeclarationBase, ClassElement, ObjectLiteralElement {
         kind: SyntaxKind.SetAccessor;
         parent?: ClassDeclaration | ClassExpression | ObjectLiteralExpression;
         name: PropertyName;
@@ -908,12 +918,12 @@ declare namespace ts {
     }
     type FunctionBody = Block;
     type ConciseBody = FunctionBody | Expression;
-    interface FunctionExpression extends PrimaryExpression, FunctionLikeDeclaration {
+    interface FunctionExpression extends PrimaryExpression, FunctionLikeDeclarationBase {
         kind: SyntaxKind.FunctionExpression;
         name?: Identifier;
         body: FunctionBody;
     }
-    interface ArrowFunction extends Expression, FunctionLikeDeclaration {
+    interface ArrowFunction extends Expression, FunctionLikeDeclarationBase {
         kind: SyntaxKind.ArrowFunction;
         equalsGreaterThanToken: EqualsGreaterThanToken;
         body: ConciseBody;
@@ -1507,7 +1517,7 @@ declare namespace ts {
         literal: LiteralTypeNode;
     }
     type JSDocTypeReferencingNode = JSDocThisType | JSDocConstructorType | JSDocVariadicType | JSDocOptionalType | JSDocNullableType | JSDocNonNullableType;
-    interface JSDocRecordMember extends PropertySignature {
+    interface JSDocRecordMember extends JSDocPropertySignature {
         kind: SyntaxKind.JSDocRecordMember;
         name: Identifier | StringLiteral | NumericLiteral;
         type?: JSDocType;
@@ -1687,7 +1697,7 @@ declare namespace ts {
         jsDocDiagnostics?: Diagnostic[];
         additionalSyntacticDiagnostics?: Diagnostic[];
         lineMap: number[];
-        classifiableNames?: Map<string>;
+        classifiableNames?: UnderscoreEscapedMap<__String>;
         resolvedModules: Map<ResolvedModuleFull>;
         resolvedTypeReferenceDirectiveNames: Map<ResolvedTypeReferenceDirective>;
         imports: StringLiteral[];
@@ -1767,7 +1777,7 @@ declare namespace ts {
         getCommonSourceDirectory(): string;
         getDiagnosticsProducingTypeChecker(): TypeChecker;
         dropDiagnosticsProducingTypeChecker(): void;
-        getClassifiableNames(): Map<string>;
+        getClassifiableNames(): UnderscoreEscapedMap<__String>;
         getNodeCount(): number;
         getIdentifierCount(): number;
         getSymbolCount(): number;
@@ -1880,7 +1890,7 @@ declare namespace ts {
          */
         getResolvedSignature(node: CallLikeExpression, candidatesOutArray?: Signature[], argumentCount?: number): Signature | undefined;
         getSignatureFromDeclaration(declaration: SignatureDeclaration): Signature | undefined;
-        isImplementationOfOverload(node: FunctionLikeDeclaration): boolean | undefined;
+        isImplementationOfOverload(node: FunctionLike): boolean | undefined;
         isUndefinedSymbol(symbol: Symbol): boolean;
         isArgumentsSymbol(symbol: Symbol): boolean;
         isUnknownSymbol(symbol: Symbol): boolean;
@@ -2139,7 +2149,7 @@ declare namespace ts {
     }
     interface Symbol {
         flags: SymbolFlags;
-        name: string;
+        name: __String;
         declarations?: Declaration[];
         valueDeclaration?: Declaration;
         members?: SymbolTable;
@@ -2198,7 +2208,52 @@ declare namespace ts {
         checkFlags: CheckFlags;
         isRestParameter?: boolean;
     }
-    type SymbolTable = Map<Symbol>;
+    enum InternalSymbolName {
+        Call = "__call",
+        Constructor = "__constructor",
+        New = "__new",
+        Index = "__index",
+        ExportStar = "__export",
+        Global = "__global",
+        Missing = "__missing",
+        Type = "__type",
+        Object = "__object",
+        JSXAttributes = "__jsxAttributes",
+        Class = "__class",
+        Function = "__function",
+        Computed = "__computed",
+        Resolving = "__resolving__",
+        ExportEquals = "export=",
+        Default = "default",
+    }
+    /**
+     * This represents a string whose leading underscore have been escaped by adding extra leading underscores.
+     * The shape of this brand is rather unique compared to others we've used.
+     * Instead of just an intersection of a string and an object, it is that union-ed
+     * with an intersection of void and an object. This makes it wholly incompatible
+     * with a normal string (which is good, it cannot be misused on assignment or on usage),
+     * while still being comparable with a normal string via === (also good) and castable from a string.
+     */
+    type __String = (string & {
+        __escapedIdentifier: void;
+    }) | (void & {
+        __escapedIdentifier: void;
+    }) | InternalSymbolName;
+    /** EscapedStringMap based on ES6 Map interface. */
+    interface UnderscoreEscapedMap<T> {
+        get(key: __String): T | undefined;
+        has(key: __String): boolean;
+        set(key: __String, value: T): this;
+        delete(key: __String): boolean;
+        clear(): void;
+        forEach(action: (value: T, key: __String) => void): void;
+        readonly size: number;
+        keys(): Iterator<__String>;
+        values(): Iterator<T>;
+        entries(): Iterator<[__String, T]>;
+    }
+    /** SymbolTable based on ES6 Map interface. */
+    type SymbolTable = UnderscoreEscapedMap<Symbol>;
     /** Represents a "prefix*suffix" pattern. */
     interface Pattern {
         prefix: string;
@@ -3394,6 +3449,9 @@ declare namespace ts {
     const localeCompareIsCorrect: boolean;
     /** Create a new map. If a template object is provided, the map will copy entries from it. */
     function createMap<T>(): Map<T>;
+    /** Create a new escaped identifier map. */
+    function createUnderscoreEscapedMap<T>(): UnderscoreEscapedMap<T>;
+    function createSymbolTable(symbols?: Symbol[]): SymbolTable;
     function createMapFromTemplate<T>(template?: MapLike<T>): Map<T>;
     function createFileMap<T>(keyMapper: (key: string) => string): FileMap<T>;
     function toPath(fileName: string, basePath: string, getCanonicalFileName: (path: string) => string): Path;
@@ -3590,10 +3648,13 @@ declare namespace ts {
      * Calls `callback` for each entry in the map, returning the first truthy result.
      * Use `map.forEach` instead for normal iteration.
      */
+    function forEachEntry<T, U>(map: UnderscoreEscapedMap<T>, callback: (value: T, key: __String) => U | undefined): U | undefined;
     function forEachEntry<T, U>(map: Map<T>, callback: (value: T, key: string) => U | undefined): U | undefined;
     /** `forEachEntry` for just keys. */
+    function forEachKey<T>(map: UnderscoreEscapedMap<{}>, callback: (key: __String) => T | undefined): T | undefined;
     function forEachKey<T>(map: Map<{}>, callback: (key: string) => T | undefined): T | undefined;
     /** Copy entries from `source` to `target`. */
+    function copyEntries<T>(source: UnderscoreEscapedMap<T>, target: UnderscoreEscapedMap<T>): void;
     function copyEntries<T>(source: Map<T>, target: Map<T>): void;
     function assign<T1 extends MapLike<{}>, T2, T3>(t: T1, arg1: T2, arg2: T3): T1 & T2 & T3;
     function assign<T1 extends MapLike<{}>, T2>(t: T1, arg1: T2): T1 & T2;
@@ -3623,6 +3684,7 @@ declare namespace ts {
      * @param array the array of input elements.
      */
     function arrayToSet<T>(array: T[], makeKey: (value: T) => string): Map<true>;
+    function cloneMap(map: SymbolTable): SymbolTable;
     function cloneMap<T>(map: Map<T>): Map<T>;
     function clone<T>(object: T): T;
     function extend<T1, T2>(first: T1, second: T2): T1 & T2;
@@ -3798,7 +3860,7 @@ declare namespace ts {
         getTokenConstructor(): new <TKind extends SyntaxKind>(kind: TKind, pos?: number, end?: number) => Token<TKind>;
         getIdentifierConstructor(): new (kind: SyntaxKind.Identifier, pos?: number, end?: number) => Identifier;
         getSourceFileConstructor(): new (kind: SyntaxKind.SourceFile, pos?: number, end?: number) => SourceFile;
-        getSymbolConstructor(): new (flags: SymbolFlags, name: string) => Symbol;
+        getSymbolConstructor(): new (flags: SymbolFlags, name: __String) => Symbol;
         getTypeConstructor(): new (checker: TypeChecker, flags: TypeFlags) => Type;
         getSignatureConstructor(): new (checker: TypeChecker) => Signature;
         getSourceMapSourceConstructor(): new (fileName: string, text: string, skipTrivia?: (pos: number) => number) => SourceMapSource;
@@ -3959,6 +4021,11 @@ declare namespace ts {
     function getEmitFlags(node: Node): EmitFlags | undefined;
     function getLiteralText(node: LiteralLikeNode, sourceFile: SourceFile): string;
     function getTextOfConstantValue(value: string | number): string;
+    function escapeLeadingUnderscores(identifier: string): __String;
+    /**
+     * @deprecated
+     * @param identifier The identifier to escape
+     */
     function escapeIdentifier(identifier: string): string;
     function makeIdentifierFromModuleName(moduleName: string): string;
     function isBlockOrCatchScoped(declaration: Declaration): boolean;
@@ -3974,7 +4041,7 @@ declare namespace ts {
     function getEnclosingBlockScopeContainer(node: Node): Node;
     function declarationNameToString(name: DeclarationName): string;
     function getNameFromIndexInfo(info: IndexInfo): string | undefined;
-    function getTextOfPropertyName(name: PropertyName): string;
+    function getTextOfPropertyName(name: PropertyName): __String;
     function entityNameToString(name: EntityNameOrEntityNameExpression): string;
     function createDiagnosticForNode(node: Node, message: DiagnosticMessage, arg0?: string | number, arg1?: string | number, arg2?: string | number): Diagnostic;
     function createDiagnosticForNodeInSourceFile(sourceFile: SourceFile, node: Node, message: DiagnosticMessage, arg0?: string | number, arg1?: string | number, arg2?: string | number): Diagnostic;
@@ -4014,7 +4081,7 @@ declare namespace ts {
     function isIdentifierTypePredicate(predicate: TypePredicate): predicate is IdentifierTypePredicate;
     function isThisTypePredicate(predicate: TypePredicate): predicate is ThisTypePredicate;
     function getPropertyAssignment(objectLiteral: ObjectLiteralExpression, key: string, key2?: string): PropertyAssignment[];
-    function getContainingFunction(node: Node): FunctionLikeDeclaration;
+    function getContainingFunction(node: Node): FunctionLike;
     function getContainingClass(node: Node): ClassLikeDeclaration;
     function getThisContainer(node: Node, includeArrowFunctions: boolean): Node;
     function getNewTargetContainer(node: Node): Node;
@@ -4117,7 +4184,7 @@ declare namespace ts {
         Invalid = 4,
         AsyncGenerator = 3,
     }
-    function getFunctionFlags(node: FunctionLikeDeclaration | undefined): FunctionFlags;
+    function getFunctionFlags(node: FunctionLike | undefined): FunctionFlags;
     function isAsyncFunction(node: Node): boolean;
     function isStringOrNumericLiteral(node: Node): node is StringLiteral | NumericLiteral;
     /**
@@ -4135,8 +4202,10 @@ declare namespace ts {
      * where Symbol is literally the word "Symbol", and name is any identifierName
      */
     function isWellKnownSymbolSyntactically(node: Expression): boolean;
-    function getPropertyNameForPropertyNameNode(name: DeclarationName | ParameterDeclaration): string;
-    function getPropertyNameForKnownSymbolName(symbolName: string): string;
+    function getPropertyNameForPropertyNameNode(name: DeclarationName): __String;
+    function getTextOfIdentifierOrLiteral(node: Identifier | LiteralLikeNode): string;
+    function getEscapedTextOfIdentifierOrLiteral(node: Identifier | LiteralLikeNode): __String;
+    function getPropertyNameForKnownSymbolName(symbolName: string): __String;
     /**
      * Includes the word "Symbol" with unicode escapes
      */
@@ -4164,7 +4233,7 @@ declare namespace ts {
      * Note that this doesn't actually wrap the input in double quotes.
      */
     function escapeString(s: string): string;
-    function isIntrinsicJsxName(name: string): boolean;
+    function isIntrinsicJsxName(name: __String | string): boolean;
     function escapeNonAsciiString(s: string): string;
     function getIndentString(level: number): string;
     function getIndentSize(): number;
@@ -4451,7 +4520,14 @@ declare namespace ts {
      * @param identifier The escaped identifier text.
      * @returns The unescaped identifier text.
      */
-    function unescapeIdentifier(identifier: string): string;
+    function unescapeLeadingUnderscores(identifier: __String): string;
+    /**
+     * Remove extra underscore from escaped identifier text content.
+     * @deprecated
+     * @param identifier The escaped identifier text.
+     * @returns The unescaped identifier text.
+     */
+    function unescapeIdentifier(id: string): string;
     function getNameOfDeclaration(declaration: Declaration): DeclarationName | undefined;
 }
 declare namespace ts {
@@ -4638,7 +4714,7 @@ declare namespace ts {
     function isEntityName(node: Node): node is EntityName;
     function isPropertyName(node: Node): node is PropertyName;
     function isBindingName(node: Node): node is BindingName;
-    function isFunctionLike(node: Node): node is FunctionLikeDeclaration;
+    function isFunctionLike(node: Node): node is FunctionLike;
     function isFunctionLikeKind(kind: SyntaxKind): boolean;
     function isClassElement(node: Node): node is ClassElement;
     function isClassLike(node: Node): node is ClassLikeDeclaration;
@@ -10594,7 +10670,7 @@ declare namespace ts {
     function createPropertySignature(modifiers: Modifier[] | undefined, name: PropertyName | string, questionToken: QuestionToken | undefined, type: TypeNode | undefined, initializer: Expression | undefined): PropertySignature;
     function updatePropertySignature(node: PropertySignature, modifiers: Modifier[] | undefined, name: PropertyName, questionToken: QuestionToken | undefined, type: TypeNode | undefined, initializer: Expression | undefined): PropertySignature;
     function createProperty(decorators: Decorator[] | undefined, modifiers: Modifier[] | undefined, name: string | PropertyName, questionToken: QuestionToken | undefined, type: TypeNode | undefined, initializer: Expression | undefined): PropertyDeclaration;
-    function updateProperty(node: PropertyDeclaration, decorators: Decorator[] | undefined, modifiers: Modifier[] | undefined, name: PropertyName, type: TypeNode | undefined, initializer: Expression | undefined): PropertyDeclaration;
+    function updateProperty(node: PropertyDeclaration, decorators: Decorator[] | undefined, modifiers: Modifier[] | undefined, name: string | PropertyName, questionToken: QuestionToken | undefined, type: TypeNode | undefined, initializer: Expression | undefined): PropertyDeclaration;
     function createMethodSignature(typeParameters: TypeParameterDeclaration[] | undefined, parameters: ParameterDeclaration[], type: TypeNode | undefined, name: string | PropertyName, questionToken: QuestionToken | undefined): MethodSignature;
     function updateMethodSignature(node: MethodSignature, typeParameters: NodeArray<TypeParameterDeclaration> | undefined, parameters: NodeArray<ParameterDeclaration>, type: TypeNode | undefined, name: PropertyName, questionToken: QuestionToken | undefined): MethodSignature;
     function createMethod(decorators: Decorator[] | undefined, modifiers: Modifier[] | undefined, asteriskToken: AsteriskToken | undefined, name: string | PropertyName, questionToken: QuestionToken | undefined, typeParameters: TypeParameterDeclaration[] | undefined, parameters: ParameterDeclaration[], type: TypeNode | undefined, body: Block | undefined): MethodDeclaration;
@@ -11492,7 +11568,8 @@ declare namespace ts {
     }
     interface Symbol {
         getFlags(): SymbolFlags;
-        getName(): string;
+        getName(): __String;
+        getUnescapedName(): string;
         getDeclarations(): Declaration[] | undefined;
         getDocumentationComment(): SymbolDisplayPart[];
         getJsDocTags(): JSDocTagInfo[];
@@ -11521,7 +11598,7 @@ declare namespace ts {
     interface SourceFile {
         version: string;
         scriptSnapshot: IScriptSnapshot;
-        nameTable: Map<number>;
+        nameTable: UnderscoreEscapedMap<number>;
         getNamedDeclarations(): Map<Declaration[]>;
         getLineAndCharacterOfPosition(pos: number): LineAndCharacter;
         getLineEndOfPosition(pos: number): number;
@@ -12338,8 +12415,8 @@ declare namespace ts {
 }
 declare namespace ts {
     function createClassifier(): Classifier;
-    function getSemanticClassifications(typeChecker: TypeChecker, cancellationToken: CancellationToken, sourceFile: SourceFile, classifiableNames: Map<string>, span: TextSpan): ClassifiedSpan[];
-    function getEncodedSemanticClassifications(typeChecker: TypeChecker, cancellationToken: CancellationToken, sourceFile: SourceFile, classifiableNames: Map<string>, span: TextSpan): Classifications;
+    function getSemanticClassifications(typeChecker: TypeChecker, cancellationToken: CancellationToken, sourceFile: SourceFile, classifiableNames: UnderscoreEscapedMap<__String>, span: TextSpan): ClassifiedSpan[];
+    function getEncodedSemanticClassifications(typeChecker: TypeChecker, cancellationToken: CancellationToken, sourceFile: SourceFile, classifiableNames: UnderscoreEscapedMap<__String>, span: TextSpan): Classifications;
     function getSyntacticClassifications(cancellationToken: CancellationToken, sourceFile: SourceFile, span: TextSpan): ClassifiedSpan[];
     function getEncodedSyntacticClassifications(cancellationToken: CancellationToken, sourceFile: SourceFile, span: TextSpan): Classifications;
 }
@@ -13284,7 +13361,7 @@ declare namespace ts {
     }
     function createLanguageService(host: LanguageServiceHost, documentRegistry?: DocumentRegistry): LanguageService;
     /** Names in the name table are escaped, so an identifier `__foo` will have a name table entry `___foo`. */
-    function getNameTable(sourceFile: SourceFile): Map<number>;
+    function getNameTable(sourceFile: SourceFile): UnderscoreEscapedMap<number>;
     /**
      * Returns the containing object literal property declaration given a possible name node, e.g. "a" in x = { "a": 1 }
      */
