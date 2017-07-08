@@ -1697,7 +1697,7 @@ declare namespace ts {
         jsDocDiagnostics?: Diagnostic[];
         additionalSyntacticDiagnostics?: Diagnostic[];
         lineMap: number[];
-        classifiableNames?: UnderscoreEscapedMap<__String>;
+        classifiableNames?: UnderscoreEscapedMap<true>;
         resolvedModules: Map<ResolvedModuleFull>;
         resolvedTypeReferenceDirectiveNames: Map<ResolvedTypeReferenceDirective>;
         imports: StringLiteral[];
@@ -1777,7 +1777,7 @@ declare namespace ts {
         getCommonSourceDirectory(): string;
         getDiagnosticsProducingTypeChecker(): TypeChecker;
         dropDiagnosticsProducingTypeChecker(): void;
-        getClassifiableNames(): UnderscoreEscapedMap<__String>;
+        getClassifiableNames(): UnderscoreEscapedMap<true>;
         getNodeCount(): number;
         getIdentifierCount(): number;
         getSymbolCount(): number;
@@ -3683,6 +3683,7 @@ declare namespace ts {
      *
      * @param array the array of input elements.
      */
+    function arrayToSet(array: string[]): Map<true>;
     function arrayToSet<T>(array: T[], makeKey: (value: T) => string): Map<true>;
     function cloneMap(map: SymbolTable): SymbolTable;
     function cloneMap<T>(map: Map<T>): Map<T>;
@@ -10352,9 +10353,9 @@ declare namespace ts {
      *
      * @param node a given node to visit its children
      * @param cbNode a callback to be invoked for all child nodes
-     * @param cbNodeArray a callback to be invoked for embedded array
+     * @param cbNodes a callback to be invoked for embedded array
      */
-    function forEachChild<T>(node: Node, cbNode: (node: Node) => T | undefined, cbNodeArray?: (nodes: NodeArray<Node>) => T | undefined): T | undefined;
+    function forEachChild<T>(node: Node, cbNode: (node: Node) => T | undefined, cbNodes?: (nodes: NodeArray<Node>) => T | undefined): T | undefined;
     function createSourceFile(fileName: string, sourceText: string, languageVersion: ScriptTarget, setParentNodes?: boolean, scriptKind?: ScriptKind): SourceFile;
     function parseIsolatedEntityName(text: string, languageVersion: ScriptTarget): EntityName;
     /**
@@ -12415,8 +12416,8 @@ declare namespace ts {
 }
 declare namespace ts {
     function createClassifier(): Classifier;
-    function getSemanticClassifications(typeChecker: TypeChecker, cancellationToken: CancellationToken, sourceFile: SourceFile, classifiableNames: UnderscoreEscapedMap<__String>, span: TextSpan): ClassifiedSpan[];
-    function getEncodedSemanticClassifications(typeChecker: TypeChecker, cancellationToken: CancellationToken, sourceFile: SourceFile, classifiableNames: UnderscoreEscapedMap<__String>, span: TextSpan): Classifications;
+    function getSemanticClassifications(typeChecker: TypeChecker, cancellationToken: CancellationToken, sourceFile: SourceFile, classifiableNames: UnderscoreEscapedMap<true>, span: TextSpan): ClassifiedSpan[];
+    function getEncodedSemanticClassifications(typeChecker: TypeChecker, cancellationToken: CancellationToken, sourceFile: SourceFile, classifiableNames: UnderscoreEscapedMap<true>, span: TextSpan): Classifications;
     function getSyntacticClassifications(cancellationToken: CancellationToken, sourceFile: SourceFile, span: TextSpan): ClassifiedSpan[];
     function getEncodedSyntacticClassifications(cancellationToken: CancellationToken, sourceFile: SourceFile, span: TextSpan): Classifications;
 }
