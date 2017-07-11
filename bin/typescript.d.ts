@@ -33,15 +33,6 @@ declare namespace ts {
     type Path = string & {
         __pathBrand: any;
     };
-    interface FileMap<T> {
-        get(fileName: Path): T;
-        set(fileName: Path, value: T): void;
-        contains(fileName: Path): boolean;
-        remove(fileName: Path): void;
-        forEachValue(f: (key: Path, v: T) => void): void;
-        getKeys(): Path[];
-        clear(): void;
-    }
     interface TextRange {
         pos: number;
         end: number;
@@ -452,7 +443,7 @@ declare namespace ts {
         original?: Node;
         startsOnNewLine?: boolean;
         jsDoc?: JSDoc[];
-        jsDocCache?: (JSDoc | JSDocTag)[];
+        jsDocCache?: JSDocTag[];
         symbol?: Symbol;
         locals?: SymbolTable;
         nextContainer?: Node;
@@ -3256,7 +3247,7 @@ declare namespace ts {
      * A function that accepts and possibly transforms a node.
      */
     type Visitor = (node: Node) => VisitResult<Node>;
-    type VisitResult<T extends Node> = T | T[];
+    type VisitResult<T extends Node> = T | T[] | undefined;
     interface Printer {
         /**
          * Print a node and its subtree as-is, without any emit transformations.
@@ -3453,7 +3444,6 @@ declare namespace ts {
     function createUnderscoreEscapedMap<T>(): UnderscoreEscapedMap<T>;
     function createSymbolTable(symbols?: Symbol[]): SymbolTable;
     function createMapFromTemplate<T>(template?: MapLike<T>): Map<T>;
-    function createFileMap<T>(keyMapper: (key: string) => string): FileMap<T>;
     function toPath(fileName: string, basePath: string, getCanonicalFileName: (path: string) => string): Path;
     enum Comparison {
         LessThan = -1,
@@ -3557,7 +3547,9 @@ declare namespace ts {
      * based on the provided comparer.
      */
     function relativeComplement<T>(arrayA: T[] | undefined, arrayB: T[] | undefined, comparer?: (x: T, y: T) => Comparison, offsetA?: number, offsetB?: number): T[] | undefined;
-    function sum(array: any[], prop: string): number;
+    function sum<K extends string>(array: {
+        [x in K]: number;
+    }[], prop: K): number;
     /**
      * Appends a value to an array, returning the array.
      *
@@ -3978,6 +3970,7 @@ declare namespace ts {
     let sys: System;
 }
 declare namespace ts {
+    const emptyArray: never[];
     const externalHelpersModuleNameText = "tslib";
     interface ReferencePathMatchResult {
         fileReference?: FileReference;
@@ -4134,10 +4127,10 @@ declare namespace ts {
     function isDefaultImport(node: ImportDeclaration | ImportEqualsDeclaration | ExportDeclaration): boolean;
     function hasQuestionToken(node: Node): boolean;
     function isJSDocConstructSignature(node: Node): boolean;
-    function getCommentsFromJSDoc(node: Node): string[];
     function hasJSDocParameterTags(node: FunctionLikeDeclaration | SignatureDeclaration): boolean;
-    function getJSDocs(node: Node): (JSDoc | JSDocTag)[];
-    function getJSDocParameterTags(param: ParameterDeclaration): JSDocParameterTag[];
+    function getAllJSDocs(node: Node): (JSDoc | JSDocTag)[];
+    function getJSDocTags(node: Node): JSDocTag[] | undefined;
+    function getJSDocParameterTags(param: ParameterDeclaration): JSDocParameterTag[] | undefined;
     /** Does the opposite of `getJSDocParameterTags`: given a JSDoc parameter, finds the parameter corresponding to it. */
     function getParameterFromJSDoc(node: JSDocParameterTag): ParameterDeclaration | undefined;
     function getTypeParameterFromJsDoc(node: TypeParameterDeclaration & {
@@ -8775,7 +8768,7 @@ declare namespace ts {
             key: string;
             message: string;
         };
-        Specify_module_code_generation_Colon_commonjs_amd_system_umd_es2015_or_ESNext: {
+        Specify_module_code_generation_Colon_none_commonjs_amd_system_umd_es2015_or_ESNext: {
             code: number;
             category: DiagnosticCategory;
             key: string;
@@ -12283,7 +12276,6 @@ declare namespace ts {
 }
 declare namespace ts {
     const scanner: Scanner;
-    const emptyArray: any[];
     enum SemanticMeaning {
         None = 0,
         Value = 1,
