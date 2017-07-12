@@ -1713,7 +1713,7 @@ declare namespace ts {
     }
     interface ParseConfigHost {
         useCaseSensitiveFileNames: boolean;
-        readDirectory(rootDir: string, extensions: string[], excludes: string[], includes: string[], depth: number): string[];
+        readDirectory(rootDir: string, extensions: ReadonlyArray<string>, excludes: ReadonlyArray<string>, includes: ReadonlyArray<string>, depth: number): string[];
         /**
          * Gets a value indicating whether the specified path exists and is a file.
          * @param path The path to test.
@@ -3442,7 +3442,7 @@ declare namespace ts {
     function createMap<T>(): Map<T>;
     /** Create a new escaped identifier map. */
     function createUnderscoreEscapedMap<T>(): UnderscoreEscapedMap<T>;
-    function createSymbolTable(symbols?: Symbol[]): SymbolTable;
+    function createSymbolTable(symbols?: ReadonlyArray<Symbol>): SymbolTable;
     function createMapFromTemplate<T>(template?: MapLike<T>): Map<T>;
     function toPath(fileName: string, basePath: string, getCanonicalFileName: (path: string) => string): Path;
     enum Comparison {
@@ -3450,13 +3450,13 @@ declare namespace ts {
         EqualTo = 0,
         GreaterThan = 1,
     }
-    function length(array: any[]): number;
+    function length(array: ReadonlyArray<any>): number;
     /**
      * Iterates through 'array' by index and performs the callback on each element of array until the callback
      * returns a truthy value, then returns that value.
      * If no such value is found, the callback is applied to each element of array and undefined is returned.
      */
-    function forEach<T, U>(array: T[] | undefined, callback: (element: T, index: number) => U | undefined): U | undefined;
+    function forEach<T, U>(array: ReadonlyArray<T> | undefined, callback: (element: T, index: number) => U | undefined): U | undefined;
     /**
      * Iterates through the parent chain of a node and performs the callback on each parent until the callback
      * returns a truthy value, then returns that value.
@@ -3465,50 +3465,53 @@ declare namespace ts {
      */
     function findAncestor<T extends Node>(node: Node, callback: (element: Node) => element is T): T | undefined;
     function findAncestor(node: Node, callback: (element: Node) => boolean | "quit"): Node | undefined;
-    function zipWith<T, U>(arrayA: T[], arrayB: U[], callback: (a: T, b: U, index: number) => void): void;
-    function zipToMap<T>(keys: string[], values: T[]): Map<T>;
+    function zipWith<T, U>(arrayA: ReadonlyArray<T>, arrayB: ReadonlyArray<U>, callback: (a: T, b: U, index: number) => void): void;
+    function zipToMap<T>(keys: ReadonlyArray<string>, values: ReadonlyArray<T>): Map<T>;
     /**
      * Iterates through `array` by index and performs the callback on each element of array until the callback
      * returns a falsey value, then returns false.
      * If no such value is found, the callback is applied to each element of array and `true` is returned.
      */
-    function every<T>(array: T[], callback: (element: T, index: number) => boolean): boolean;
+    function every<T>(array: ReadonlyArray<T>, callback: (element: T, index: number) => boolean): boolean;
     /** Works like Array.prototype.find, returning `undefined` if no element satisfying the predicate is found. */
-    function find<T>(array: T[], predicate: (element: T, index: number) => boolean): T | undefined;
+    function find<T>(array: ReadonlyArray<T>, predicate: (element: T, index: number) => boolean): T | undefined;
     /** Works like Array.prototype.findIndex, returning `-1` if no element satisfying the predicate is found. */
-    function findIndex<T>(array: T[], predicate: (element: T, index: number) => boolean): number;
+    function findIndex<T>(array: ReadonlyArray<T>, predicate: (element: T, index: number) => boolean): number;
     /**
      * Returns the first truthy result of `callback`, or else fails.
      * This is like `forEach`, but never returns undefined.
      */
-    function findMap<T, U>(array: T[], callback: (element: T, index: number) => U | undefined): U;
-    function contains<T>(array: T[], value: T): boolean;
-    function indexOf<T>(array: T[], value: T): number;
-    function indexOfAnyCharCode(text: string, charCodes: number[], start?: number): number;
-    function countWhere<T>(array: T[], predicate: (x: T, i: number) => boolean): number;
+    function findMap<T, U>(array: ReadonlyArray<T>, callback: (element: T, index: number) => U | undefined): U;
+    function contains<T>(array: ReadonlyArray<T>, value: T): boolean;
+    function indexOf<T>(array: ReadonlyArray<T>, value: T): number;
+    function indexOfAnyCharCode(text: string, charCodes: ReadonlyArray<number>, start?: number): number;
+    function countWhere<T>(array: ReadonlyArray<T>, predicate: (x: T, i: number) => boolean): number;
     /**
      * Filters an array by a predicate function. Returns the same array instance if the predicate is
      * true for all elements, otherwise returns a new array instance containing the filtered subset.
      */
     function filter<T, U extends T>(array: T[], f: (x: T) => x is U): U[];
     function filter<T>(array: T[], f: (x: T) => boolean): T[];
+    function filter<T, U extends T>(array: ReadonlyArray<T>, f: (x: T) => x is U): ReadonlyArray<U>;
+    function filter<T, U extends T>(array: ReadonlyArray<T>, f: (x: T) => boolean): ReadonlyArray<T>;
     function removeWhere<T>(array: T[], f: (x: T) => boolean): boolean;
     function filterMutate<T>(array: T[], f: (x: T) => boolean): void;
-    function map<T, U>(array: T[], f: (x: T, i: number) => U): U[];
+    function map<T, U>(array: ReadonlyArray<T>, f: (x: T, i: number) => U): U[];
     function sameMap<T>(array: T[], f: (x: T, i: number) => T): T[];
+    function sameMap<T>(array: ReadonlyArray<T>, f: (x: T, i: number) => T): ReadonlyArray<T>;
     /**
      * Flattens an array containing a mix of array or non-array elements.
      *
      * @param array The array to flatten.
      */
-    function flatten<T>(array: (T | T[])[]): T[];
+    function flatten<T>(array: ReadonlyArray<T | ReadonlyArray<T>>): T[];
     /**
      * Maps an array. If the mapped value is an array, it is spread into the result.
      *
      * @param array The array to map.
      * @param mapfn The callback used to map the result into one or more values.
      */
-    function flatMap<T, U>(array: T[] | undefined, mapfn: (x: T, i: number) => U | U[] | undefined): U[] | undefined;
+    function flatMap<T, U>(array: ReadonlyArray<T> | undefined, mapfn: (x: T, i: number) => U | ReadonlyArray<U> | undefined): U[] | undefined;
     /**
      * Maps an array. If the mapped value is an array, it is spread into the result.
      * Avoids allocation if all elements map to themselves.
@@ -3516,13 +3519,14 @@ declare namespace ts {
      * @param array The array to map.
      * @param mapfn The callback used to map the result into one or more values.
      */
-    function sameFlatMap<T>(array: T[], mapfn: (x: T, i: number) => T | T[]): T[];
+    function sameFlatMap<T>(array: T[], mapfn: (x: T, i: number) => T | ReadonlyArray<T>): T[];
+    function sameFlatMap<T>(array: ReadonlyArray<T>, mapfn: (x: T, i: number) => T | ReadonlyArray<T>): ReadonlyArray<T>;
     function mapDefined<T, U>(array: ReadonlyArray<T>, mapFn: (x: T, i: number) => U | undefined): U[];
     /**
      * Computes the first matching span of elements and returns a tuple of the first span
      * and the remaining elements.
      */
-    function span<T>(array: T[], f: (x: T, i: number) => boolean): [T[], T[]];
+    function span<T>(array: ReadonlyArray<T>, f: (x: T, i: number) => boolean): [T[], T[]];
     /**
      * Maps contiguous spans of values with the same key.
      *
@@ -3530,17 +3534,19 @@ declare namespace ts {
      * @param keyfn A callback used to select the key for an element.
      * @param mapfn A callback used to map a contiguous chunk of values to a single value.
      */
-    function spanMap<T, K, U>(array: T[], keyfn: (x: T, i: number) => K, mapfn: (chunk: T[], key: K, start: number, end: number) => U): U[];
+    function spanMap<T, K, U>(array: ReadonlyArray<T>, keyfn: (x: T, i: number) => K, mapfn: (chunk: T[], key: K, start: number, end: number) => U): U[];
     function mapEntries<T, U>(map: Map<T>, f: (key: string, value: T) => [string, U]): Map<U>;
-    function some<T>(array: T[], predicate?: (value: T) => boolean): boolean;
+    function some<T>(array: ReadonlyArray<T>, predicate?: (value: T) => boolean): boolean;
     function concatenate<T>(array1: T[], array2: T[]): T[];
-    function deduplicate<T>(array: T[], areEqual?: (a: T, b: T) => boolean): T[];
+    function concatenate<T>(array1: ReadonlyArray<T>, array2: ReadonlyArray<T>): ReadonlyArray<T>;
+    function deduplicate<T>(array: ReadonlyArray<T>, areEqual?: (a: T, b: T) => boolean): T[];
     function arrayIsEqualTo<T>(array1: ReadonlyArray<T>, array2: ReadonlyArray<T>, equaler?: (a: T, b: T) => boolean): boolean;
     function changesAffectModuleResolution(oldOptions: CompilerOptions, newOptions: CompilerOptions): boolean;
     /**
      * Compacts an array, removing any falsey elements.
      */
     function compact<T>(array: T[]): T[];
+    function compact<T>(array: ReadonlyArray<T>): ReadonlyArray<T>;
     /**
      * Gets the relative complement of `arrayA` with respect to `b`, returning the elements that
      * are not present in `arrayA` but are present in `arrayB`. Assumes both arrays are sorted
@@ -3569,35 +3575,36 @@ declare namespace ts {
      * @param start The offset in `from` at which to start copying values.
      * @param end The offset in `from` at which to stop copying values (non-inclusive).
      */
-    function addRange<T>(to: T[] | undefined, from: T[] | undefined, start?: number, end?: number): T[] | undefined;
+    function addRange<T>(to: T[] | undefined, from: ReadonlyArray<T> | undefined, start?: number, end?: number): T[] | undefined;
     /**
      * Stable sort of an array. Elements equal to each other maintain their relative position in the array.
      */
-    function stableSort<T>(array: T[], comparer?: (x: T, y: T) => Comparison): T[];
-    function rangeEquals<T>(array1: T[], array2: T[], pos: number, end: number): boolean;
+    function stableSort<T>(array: ReadonlyArray<T>, comparer?: (x: T, y: T) => Comparison): T[];
+    function rangeEquals<T>(array1: ReadonlyArray<T>, array2: ReadonlyArray<T>, pos: number, end: number): boolean;
     /**
      * Returns the element at a specific offset in an array if non-empty, `undefined` otherwise.
      * A negative offset indicates the element should be retrieved from the end of the array.
      */
-    function elementAt<T>(array: T[] | undefined, offset: number): T | undefined;
+    function elementAt<T>(array: ReadonlyArray<T> | undefined, offset: number): T | undefined;
     /**
      * Returns the first element of an array if non-empty, `undefined` otherwise.
      */
-    function firstOrUndefined<T>(array: T[]): T | undefined;
+    function firstOrUndefined<T>(array: ReadonlyArray<T>): T | undefined;
     /**
      * Returns the last element of an array if non-empty, `undefined` otherwise.
      */
-    function lastOrUndefined<T>(array: T[]): T | undefined;
+    function lastOrUndefined<T>(array: ReadonlyArray<T>): T | undefined;
     /**
      * Returns the only element of an array if it contains only one element, `undefined` otherwise.
      */
-    function singleOrUndefined<T>(array: T[]): T | undefined;
+    function singleOrUndefined<T>(array: ReadonlyArray<T>): T | undefined;
     /**
      * Returns the only element of an array if it contains only one element; otheriwse, returns the
      * array.
      */
     function singleOrMany<T>(array: T[]): T | T[];
-    function replaceElement<T>(array: T[], index: number, value: T): T[];
+    function singleOrMany<T>(array: ReadonlyArray<T>): T | ReadonlyArray<T>;
+    function replaceElement<T>(array: ReadonlyArray<T>, index: number, value: T): T[];
     /**
      * Performs a binary search, finding the index at which 'value' occurs in 'array'.
      * If no such index is found, returns the 2's-complement of first index at which
@@ -3605,11 +3612,11 @@ declare namespace ts {
      * @param array A sorted array whose first element must be no larger than number
      * @param number The value to be searched for in the array.
      */
-    function binarySearch<T>(array: T[], value: T, comparer?: (v1: T, v2: T) => number, offset?: number): number;
-    function reduceLeft<T, U>(array: T[], f: (memo: U, value: T, i: number) => U, initial: U, start?: number, count?: number): U;
-    function reduceLeft<T>(array: T[], f: (memo: T, value: T, i: number) => T): T;
-    function reduceRight<T, U>(array: T[], f: (memo: U, value: T, i: number) => U, initial: U, start?: number, count?: number): U;
-    function reduceRight<T>(array: T[], f: (memo: T, value: T, i: number) => T): T;
+    function binarySearch<T>(array: ReadonlyArray<T>, value: T, comparer?: (v1: T, v2: T) => number, offset?: number): number;
+    function reduceLeft<T, U>(array: ReadonlyArray<T>, f: (memo: U, value: T, i: number) => U, initial: U, start?: number, count?: number): U;
+    function reduceLeft<T>(array: ReadonlyArray<T>, f: (memo: T, value: T, i: number) => T): T;
+    function reduceRight<T, U>(array: ReadonlyArray<T>, f: (memo: U, value: T, i: number) => U, initial: U, start?: number, count?: number): U;
+    function reduceRight<T>(array: ReadonlyArray<T>, f: (memo: T, value: T, i: number) => T): T;
     /**
      * Indicates whether a map-like contains an own property with the specified key.
      *
@@ -3668,15 +3675,15 @@ declare namespace ts {
      * the same key with the given 'makeKey' function, then the element with the higher
      * index in the array will be the one associated with the produced key.
      */
-    function arrayToMap<T>(array: T[], makeKey: (value: T) => string): Map<T>;
-    function arrayToMap<T, U>(array: T[], makeKey: (value: T) => string, makeValue: (value: T) => U): Map<U>;
+    function arrayToMap<T>(array: ReadonlyArray<T>, makeKey: (value: T) => string): Map<T>;
+    function arrayToMap<T, U>(array: ReadonlyArray<T>, makeKey: (value: T) => string, makeValue: (value: T) => U): Map<U>;
     /**
      * Creates a set from the elements of an array.
      *
      * @param array the array of input elements.
      */
-    function arrayToSet(array: string[]): Map<true>;
-    function arrayToSet<T>(array: T[], makeKey: (value: T) => string): Map<true>;
+    function arrayToSet(array: ReadonlyArray<string>): Map<true>;
+    function arrayToSet<T>(array: ReadonlyArray<T>, makeKey: (value: T) => string): Map<true>;
     function cloneMap(map: SymbolTable): SymbolTable;
     function cloneMap<T>(map: Map<T>): Map<T>;
     function clone<T>(object: T): T;
@@ -3698,7 +3705,7 @@ declare namespace ts {
     /**
      * Tests whether a value is an array.
      */
-    function isArray(value: any): value is any[];
+    function isArray(value: any): value is ReadonlyArray<any>;
     function tryCast<TOut extends TIn, TIn = any>(value: TIn | undefined, test: (value: TIn) => value is TOut): TOut | undefined;
     function cast<TOut extends TIn, TIn = any>(value: TIn | undefined, test: (value: TIn) => value is TOut): TOut;
     /** Does nothing. */
@@ -3768,7 +3775,7 @@ declare namespace ts {
     function convertToRelativePath(absoluteOrRelativePath: string, basePath: string, getCanonicalFileName: (path: string) => string): string;
     function getNormalizedPathComponents(path: string, currentDirectory: string): string[];
     function getNormalizedAbsolutePath(fileName: string, currentDirectory: string): string;
-    function getNormalizedPathFromPathComponents(pathComponents: string[]): string;
+    function getNormalizedPathFromPathComponents(pathComponents: ReadonlyArray<string>): string;
     function getRelativePathToDirectoryOrUrl(directoryPathOrUrl: string, relativeOrAbsolutePath: string, currentDirectory: string, getCanonicalFileName: (fileName: string) => string, isAbsolutePathAnUrl: boolean): string;
     function getBaseFileName(path: string): string;
     function combinePaths(path1: string, path2: string): string;
@@ -3789,41 +3796,41 @@ declare namespace ts {
     function endsWith(str: string, suffix: string): boolean;
     function hasExtension(fileName: string): boolean;
     function fileExtensionIs(path: string, extension: string): boolean;
-    function fileExtensionIsOneOf(path: string, extensions: string[]): boolean;
-    function getRegularExpressionForWildcard(specs: string[], basePath: string, usage: "files" | "directories" | "exclude"): string | undefined;
+    function fileExtensionIsOneOf(path: string, extensions: ReadonlyArray<string>): boolean;
+    function getRegularExpressionForWildcard(specs: ReadonlyArray<string>, basePath: string, usage: "files" | "directories" | "exclude"): string | undefined;
     /**
      * An "includes" path "foo" is implicitly a glob "foo/** /*" (without the space) if its last component has no extension,
      * and does not contain any glob characters itself.
      */
     function isImplicitGlob(lastPathComponent: string): boolean;
     interface FileSystemEntries {
-        files: string[];
-        directories: string[];
+        files: ReadonlyArray<string>;
+        directories: ReadonlyArray<string>;
     }
     interface FileMatcherPatterns {
         /** One pattern for each "include" spec. */
-        includeFilePatterns: string[];
+        includeFilePatterns: ReadonlyArray<string>;
         /** One pattern matching one of any of the "include" specs. */
         includeFilePattern: string;
         includeDirectoryPattern: string;
         excludePattern: string;
-        basePaths: string[];
+        basePaths: ReadonlyArray<string>;
     }
-    function getFileMatcherPatterns(path: string, excludes: string[], includes: string[], useCaseSensitiveFileNames: boolean, currentDirectory: string): FileMatcherPatterns;
-    function matchFiles(path: string, extensions: string[], excludes: string[], includes: string[], useCaseSensitiveFileNames: boolean, currentDirectory: string, depth: number | undefined, getFileSystemEntries: (path: string) => FileSystemEntries): string[];
+    function getFileMatcherPatterns(path: string, excludes: ReadonlyArray<string>, includes: ReadonlyArray<string>, useCaseSensitiveFileNames: boolean, currentDirectory: string): FileMatcherPatterns;
+    function matchFiles(path: string, extensions: ReadonlyArray<string>, excludes: ReadonlyArray<string>, includes: ReadonlyArray<string>, useCaseSensitiveFileNames: boolean, currentDirectory: string, depth: number | undefined, getFileSystemEntries: (path: string) => FileSystemEntries): string[];
     function ensureScriptKind(fileName: string, scriptKind: ScriptKind | undefined): ScriptKind;
     function getScriptKindFromFileName(fileName: string): ScriptKind;
     /**
      *  List of supported extensions in order of file resolution precedence.
      */
-    const supportedTypeScriptExtensions: Extension[];
+    const supportedTypeScriptExtensions: ReadonlyArray<Extension>;
     /** Must have ".d.ts" first because if ".ts" goes first, that will be detected as the extension instead of ".d.ts". */
-    const supportedTypescriptExtensionsForExtractExtension: Extension[];
-    const supportedJavascriptExtensions: Extension[];
-    function getSupportedExtensions(options?: CompilerOptions, extraFileExtensions?: JsFileExtensionInfo[]): string[];
+    const supportedTypescriptExtensionsForExtractExtension: ReadonlyArray<Extension>;
+    const supportedJavascriptExtensions: ReadonlyArray<Extension>;
+    function getSupportedExtensions(options?: CompilerOptions, extraFileExtensions?: ReadonlyArray<JsFileExtensionInfo>): ReadonlyArray<string>;
     function hasJavaScriptFileExtension(fileName: string): boolean;
     function hasTypeScriptFileExtension(fileName: string): boolean;
-    function isSupportedSourceFileName(fileName: string, compilerOptions?: CompilerOptions, extraFileExtensions?: JsFileExtensionInfo[]): boolean;
+    function isSupportedSourceFileName(fileName: string, compilerOptions?: CompilerOptions, extraFileExtensions?: ReadonlyArray<JsFileExtensionInfo>): boolean;
     /**
      * Extension boundaries by priority. Lower numbers indicate higher priorities, and are
      * aligned to the offset of the highest priority extension in the
@@ -3835,15 +3842,15 @@ declare namespace ts {
         Highest = 0,
         Lowest = 2,
     }
-    function getExtensionPriority(path: string, supportedExtensions: string[]): ExtensionPriority;
+    function getExtensionPriority(path: string, supportedExtensions: ReadonlyArray<string>): ExtensionPriority;
     /**
      * Adjusts an extension priority to be the highest priority within the same range.
      */
-    function adjustExtensionPriority(extensionPriority: ExtensionPriority, supportedExtensions: string[]): ExtensionPriority;
+    function adjustExtensionPriority(extensionPriority: ExtensionPriority, supportedExtensions: ReadonlyArray<string>): ExtensionPriority;
     /**
      * Gets the next lowest extension priority for a given priority.
      */
-    function getNextLowestExtensionPriority(extensionPriority: ExtensionPriority, supportedExtensions: string[]): ExtensionPriority;
+    function getNextLowestExtensionPriority(extensionPriority: ExtensionPriority, supportedExtensions: ReadonlyArray<string>): ExtensionPriority;
     function removeFileExtension(path: string): string;
     function tryRemoveExtension(path: string, extension: string): string | undefined;
     function removeExtension(path: string, extension: string): string;
@@ -3886,7 +3893,7 @@ declare namespace ts {
      * Return an exact match if possible, or a pattern match, or undefined.
      * (These are verified by verifyCompilerOptions to have 0 or 1 "*" characters.)
      */
-    function matchPatternOrExact(patternStrings: string[], candidate: string): string | Pattern | undefined;
+    function matchPatternOrExact(patternStrings: ReadonlyArray<string>, candidate: string): string | Pattern | undefined;
     function patternText({prefix, suffix}: Pattern): string;
     /**
      * Given that candidate matches pattern, returns the text matching the '*'.
@@ -3894,7 +3901,7 @@ declare namespace ts {
      */
     function matchedText(pattern: Pattern, candidate: string): string;
     /** Return the object corresponding to the best pattern to match `candidate`. */
-    function findBestPatternMatch<T>(values: T[], getPattern: (value: T) => Pattern, candidate: string): T | undefined;
+    function findBestPatternMatch<T>(values: ReadonlyArray<T>, getPattern: (value: T) => Pattern, candidate: string): T | undefined;
     function tryParsePattern(pattern: string): Pattern | undefined;
     function positionIsSynthesized(pos: number): boolean;
     /** True if an extension is one of the supported TypeScript extensions. */
@@ -3943,7 +3950,7 @@ declare namespace ts {
         getExecutingFilePath(): string;
         getCurrentDirectory(): string;
         getDirectories(path: string): string[];
-        readDirectory(path: string, extensions?: string[], exclude?: string[], include?: string[], depth?: number): string[];
+        readDirectory(path: string, extensions?: ReadonlyArray<string>, exclude?: ReadonlyArray<string>, include?: ReadonlyArray<string>, depth?: number): string[];
         getModifiedTime?(path: string): Date;
         /**
          * This should be cryptographically secure.
@@ -4442,6 +4449,8 @@ declare namespace ts {
     function getCheckFlags(symbol: Symbol): CheckFlags;
     function getDeclarationModifierFlagsFromSymbol(s: Symbol): ModifierFlags;
     function levenshtein(s1: string, s2: string): number;
+    /** See comment on `declareModuleMember` in `binder.ts`. */
+    function getCombinedLocalAndExportSymbolFlags(symbol: Symbol): SymbolFlags;
 }
 declare namespace ts {
     function getDefaultLibFileName(options: CompilerOptions): string;
@@ -11656,7 +11665,7 @@ declare namespace ts {
         trace?(s: string): void;
         error?(s: string): void;
         useCaseSensitiveFileNames?(): boolean;
-        readDirectory?(path: string, extensions?: string[], exclude?: string[], include?: string[], depth?: number): string[];
+        readDirectory?(path: string, extensions?: ReadonlyArray<string>, exclude?: ReadonlyArray<string>, include?: ReadonlyArray<string>, depth?: number): string[];
         readFile?(path: string, encoding?: string): string;
         fileExists?(path: string): boolean;
         getTypeRootsVersion?(): number;
@@ -12421,7 +12430,7 @@ declare namespace ts.Completions {
     type Log = (message: string) => void;
     function getCompletionsAtPosition(host: LanguageServiceHost, typeChecker: TypeChecker, log: Log, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number): CompletionInfo | undefined;
     function getCompletionEntryDetails(typeChecker: TypeChecker, log: (message: string) => void, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number, entryName: string): CompletionEntryDetails;
-    function getCompletionEntrySymbol(typeChecker: TypeChecker, log: (message: string) => void, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number, entryName: string): Symbol;
+    function getCompletionEntrySymbol(typeChecker: TypeChecker, log: (message: string) => void, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number, entryName: string): Symbol | undefined;
 }
 declare namespace ts.DocumentHighlights {
     function getDocumentHighlights(program: Program, cancellationToken: CancellationToken, sourceFile: SourceFile, position: number, sourceFilesToSearch: SourceFile[]): DocumentHighlights[] | undefined;
@@ -12644,7 +12653,7 @@ declare namespace ts.JsTyping {
         directoryExists: (path: string) => boolean;
         fileExists: (fileName: string) => boolean;
         readFile: (path: string, encoding?: string) => string;
-        readDirectory: (rootDir: string, extensions: string[], excludes: string[], includes: string[], depth?: number) => string[];
+        readDirectory: (rootDir: string, extensions: ReadonlyArray<string>, excludes: ReadonlyArray<string>, includes: ReadonlyArray<string>, depth?: number) => string[];
     }
     const nodeCoreModuleList: ReadonlyArray<string>;
     /**
@@ -13596,7 +13605,7 @@ declare namespace ts {
         getCurrentDirectory(): string;
         getDirectories(path: string): string[];
         getDefaultLibFileName(options: CompilerOptions): string;
-        readDirectory(path: string, extensions?: string[], exclude?: string[], include?: string[], depth?: number): string[];
+        readDirectory(path: string, extensions?: ReadonlyArray<string>, exclude?: string[], include?: string[], depth?: number): string[];
         readFile(path: string, encoding?: string): string;
         fileExists(path: string): boolean;
     }
@@ -13606,7 +13615,7 @@ declare namespace ts {
         realpath: (path: string) => string;
         useCaseSensitiveFileNames: boolean;
         constructor(shimHost: CoreServicesShimHost);
-        readDirectory(rootDir: string, extensions: string[], exclude: string[], include: string[], depth?: number): string[];
+        readDirectory(rootDir: string, extensions: ReadonlyArray<string>, exclude: ReadonlyArray<string>, include: ReadonlyArray<string>, depth?: number): string[];
         fileExists(fileName: string): boolean;
         readFile(fileName: string): string;
         getDirectories(path: string): string[];
