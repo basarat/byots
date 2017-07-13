@@ -3553,9 +3553,7 @@ declare namespace ts {
      * based on the provided comparer.
      */
     function relativeComplement<T>(arrayA: T[] | undefined, arrayB: T[] | undefined, comparer?: (x: T, y: T) => Comparison, offsetA?: number, offsetB?: number): T[] | undefined;
-    function sum<K extends string>(array: {
-        [x in K]: number;
-    }[], prop: K): number;
+    function sum<T extends Record<K, number>, K extends string>(array: T[], prop: K): number;
     /**
      * Appends a value to an array, returning the array.
      *
