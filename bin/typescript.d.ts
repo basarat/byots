@@ -2096,13 +2096,11 @@ declare namespace ts {
         TypeParameter = 262144,
         TypeAlias = 524288,
         ExportValue = 1048576,
-        ExportType = 2097152,
-        ExportNamespace = 4194304,
-        Alias = 8388608,
-        Prototype = 16777216,
-        ExportStar = 33554432,
-        Optional = 67108864,
-        Transient = 134217728,
+        Alias = 2097152,
+        Prototype = 4194304,
+        ExportStar = 8388608,
+        Optional = 16777216,
+        Transient = 33554432,
         Enum = 384,
         Variable = 3,
         Value = 107455,
@@ -2127,14 +2125,13 @@ declare namespace ts {
         SetAccessorExcludes = 74687,
         TypeParameterExcludes = 530920,
         TypeAliasExcludes = 793064,
-        AliasExcludes = 8388608,
-        ModuleMember = 8914931,
+        AliasExcludes = 2097152,
+        ModuleMember = 2623475,
         ExportHasLocal = 944,
         HasExports = 1952,
         HasMembers = 6240,
         BlockScoped = 418,
         PropertyOrAccessor = 98308,
-        Export = 7340032,
         ClassMember = 106500,
         Classifiable = 788448,
     }
@@ -3512,6 +3509,7 @@ declare namespace ts {
      * @param mapfn The callback used to map the result into one or more values.
      */
     function flatMap<T, U>(array: ReadonlyArray<T> | undefined, mapfn: (x: T, i: number) => U | ReadonlyArray<U> | undefined): U[] | undefined;
+    function flatMapIter<T, U>(iter: Iterator<T>, mapfn: (x: T) => U[] | undefined): U[];
     /**
      * Maps an array. If the mapped value is an array, it is spread into the result.
      * Avoids allocation if all elements map to themselves.
@@ -3764,7 +3762,10 @@ declare namespace ts {
     function getDirectoryPath(path: Path): Path;
     function getDirectoryPath(path: string): string;
     function isUrl(path: string): boolean;
+    function pathIsRelative(path: string): boolean;
     function isExternalModuleNameRelative(moduleName: string): boolean;
+    /** @deprecated Use `!isExternalModuleNameRelative(moduleName)` instead. */
+    function moduleHasNonRelativeName(moduleName: string): boolean;
     function getEmitScriptTarget(compilerOptions: CompilerOptions): ScriptTarget;
     function getEmitModuleKind(compilerOptions: CompilerOptions): ModuleKind;
     function getEmitModuleResolutionKind(compilerOptions: CompilerOptions): ModuleResolutionKind;
@@ -3989,8 +3990,7 @@ declare namespace ts {
     interface StringSymbolWriter extends SymbolWriter {
         string(): string;
     }
-    function getSingleLineStringWriter(): StringSymbolWriter;
-    function releaseStringWriter(writer: StringSymbolWriter): void;
+    function usingSingleLineStringWriter(action: (writer: StringSymbolWriter) => void): string;
     function getFullWidth(node: Node): number;
     function hasResolvedModule(sourceFile: SourceFile, moduleNameText: string): boolean;
     function getResolvedModule(sourceFile: SourceFile, moduleNameText: string): ResolvedModuleFull;
@@ -4447,6 +4447,7 @@ declare namespace ts {
     function getCheckFlags(symbol: Symbol): CheckFlags;
     function getDeclarationModifierFlagsFromSymbol(s: Symbol): ModifierFlags;
     function levenshtein(s1: string, s2: string): number;
+    function skipAlias(symbol: Symbol, checker: TypeChecker): Symbol;
     /** See comment on `declareModuleMember` in `binder.ts`. */
     function getCombinedLocalAndExportSymbolFlags(symbol: Symbol): SymbolFlags;
 }
@@ -10313,7 +10314,7 @@ declare namespace ts {
     function stringToToken(s: string): SyntaxKind;
     function computeLineStarts(text: string): number[];
     function getPositionOfLineAndCharacter(sourceFile: SourceFile, line: number, character: number): number;
-    function computePositionOfLineAndCharacter(lineStarts: number[], line: number, character: number): number;
+    function computePositionOfLineAndCharacter(lineStarts: number[], line: number, character: number, debugText?: string): number;
     function getLineStarts(sourceFile: SourceFileLike): number[];
     /**
      * We assume the first line starts at position 0 and 'position' is non-negative.
@@ -10406,7 +10407,6 @@ declare namespace ts {
     interface Push<T> {
         push(value: T): void;
     }
-    function moduleHasNonRelativeName(moduleName: string): boolean;
     function getEffectiveTypeRoots(options: CompilerOptions, host: {
         directoryExists?: (directoryName: string) => boolean;
         getCurrentDirectory?: () => string;
@@ -12663,7 +12663,7 @@ declare namespace ts.JsTyping {
      * @param typeAcquisition is used to customize the typing acquisition process
      * @param compilerOptions are used as a source for typing inference
      */
-    function discoverTypings(host: TypingResolutionHost, fileNames: string[], projectRootPath: Path, safeListPath: Path, packageNameToTypingLocation: Map<string>, typeAcquisition: TypeAcquisition, unresolvedImports: ReadonlyArray<string>): {
+    function discoverTypings(host: TypingResolutionHost, log: ((message: string) => void) | undefined, fileNames: string[], projectRootPath: Path, safeListPath: Path, packageNameToTypingLocation: Map<string>, typeAcquisition: TypeAcquisition, unresolvedImports: ReadonlyArray<string>): {
         cachedTypingPaths: string[];
         newTypingNames: string[];
         filesToWatch: string[];
@@ -13296,7 +13296,7 @@ declare namespace ts {
     }
     namespace refactor {
         function registerRefactor(refactor: Refactor): void;
-        function getApplicableRefactors(context: RefactorContext): ApplicableRefactorInfo[] | undefined;
+        function getApplicableRefactors(context: RefactorContext): ApplicableRefactorInfo[];
         function getEditsForRefactor(context: RefactorContext, refactorName: string, actionName: string): RefactorEditInfo | undefined;
     }
 }
