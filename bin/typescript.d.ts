@@ -1641,10 +1641,10 @@ declare namespace ts {
         classifiableNames?: UnderscoreEscapedMap<true>;
         resolvedModules: Map<ResolvedModuleFull>;
         resolvedTypeReferenceDirectiveNames: Map<ResolvedTypeReferenceDirective>;
-        imports: StringLiteral[];
-        moduleAugmentations: StringLiteral[];
+        imports: ReadonlyArray<StringLiteral>;
+        moduleAugmentations: ReadonlyArray<StringLiteral>;
         patternAmbientModules?: PatternAmbientModule[];
-        ambientModuleNames: string[];
+        ambientModuleNames: ReadonlyArray<string>;
         checkJsDirective: CheckJsDirective | undefined;
     }
     interface Bundle extends Node {
@@ -12808,11 +12808,11 @@ declare namespace ts.formatting {
 }
 declare namespace ts.formatting {
     class RuleOperationContext {
-        private customContextChecks;
+        private readonly customContextChecks;
         constructor(...funcs: {
             (context: FormattingContext): boolean;
         }[]);
-        static Any: RuleOperationContext;
+        static readonly Any: RuleOperationContext;
         IsAny(): boolean;
         InContext(context: FormattingContext): boolean;
     }
