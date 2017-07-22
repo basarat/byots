@@ -33,6 +33,10 @@ declare namespace ts {
             done: true;
         };
     }
+    /** Array that is only intended to be pushed to, never read. */
+    interface Push<T> {
+        push(...values: T[]): void;
+    }
     type Path = string & {
         __pathBrand: any;
     };
@@ -10358,10 +10362,6 @@ declare namespace ts {
 declare namespace ts {
     function trace(host: ModuleResolutionHost, message: DiagnosticMessage, ...args: any[]): void;
     function isTraceEnabled(compilerOptions: CompilerOptions, host: ModuleResolutionHost): boolean;
-    /** Array that is only intended to be pushed to, never read. */
-    interface Push<T> {
-        push(value: T): void;
-    }
     function getEffectiveTypeRoots(options: CompilerOptions, host: {
         directoryExists?: (directoryName: string) => boolean;
         getCurrentDirectory?: () => string;
@@ -10436,9 +10436,9 @@ declare namespace ts {
     const defaultInitCompilerOptions: CompilerOptions;
     function convertEnableAutoDiscoveryToEnable(typeAcquisition: TypeAcquisition): TypeAcquisition;
     function createCompilerDiagnosticForInvalidCustomType(opt: CommandLineOptionOfCustomType): Diagnostic;
-    function parseCustomTypeOption(opt: CommandLineOptionOfCustomType, value: string, errors: Diagnostic[]): string | number;
-    function parseListTypeOption(opt: CommandLineOptionOfListType, value: string, errors: Diagnostic[]): (string | number)[] | undefined;
-    function parseCommandLine(commandLine: string[], readFile?: (path: string) => string | undefined): ParsedCommandLine;
+    function parseCustomTypeOption(opt: CommandLineOptionOfCustomType, value: string, errors: Push<Diagnostic>): string | number;
+    function parseListTypeOption(opt: CommandLineOptionOfListType, value: string, errors: Push<Diagnostic>): (string | number)[] | undefined;
+    function parseCommandLine(commandLine: ReadonlyArray<string>, readFile?: (path: string) => string | undefined): ParsedCommandLine;
     /**
      * Read tsconfig.json file
      * @param fileName The path to the config file
@@ -10464,13 +10464,13 @@ declare namespace ts {
     /**
      * Convert the json syntax tree into the json value
      */
-    function convertToObject(sourceFile: JsonSourceFile, errors: Diagnostic[]): any;
+    function convertToObject(sourceFile: JsonSourceFile, errors: Push<Diagnostic>): any;
     /**
      * Generate tsconfig configuration when running command line "--init"
      * @param options commandlineOptions to be generated into tsconfig.json
      * @param fileNames array of filenames to be generated into tsconfig.json
      */
-    function generateTSConfig(options: CompilerOptions, fileNames: string[], newLine: string): string;
+    function generateTSConfig(options: CompilerOptions, fileNames: ReadonlyArray<string>, newLine: string): string;
     /**
      * Parse the contents of a config file (tsconfig.json).
      * @param json The contents of the config file to parse
@@ -10478,7 +10478,7 @@ declare namespace ts {
      * @param basePath A root directory to resolve relative path entries in the config
      *    file to. e.g. outDir
      */
-    function parseJsonConfigFileContent(json: any, host: ParseConfigHost, basePath: string, existingOptions?: CompilerOptions, configFileName?: string, resolutionStack?: Path[], extraFileExtensions?: JsFileExtensionInfo[]): ParsedCommandLine;
+    function parseJsonConfigFileContent(json: any, host: ParseConfigHost, basePath: string, existingOptions?: CompilerOptions, configFileName?: string, resolutionStack?: Path[], extraFileExtensions?: ReadonlyArray<JsFileExtensionInfo>): ParsedCommandLine;
     /**
      * Parse the contents of a config file (tsconfig.json).
      * @param jsonNode The contents of the config file to parse
@@ -10486,7 +10486,7 @@ declare namespace ts {
      * @param basePath A root directory to resolve relative path entries in the config
      *    file to. e.g. outDir
      */
-    function parseJsonSourceFileConfigFileContent(sourceFile: JsonSourceFile, host: ParseConfigHost, basePath: string, existingOptions?: CompilerOptions, configFileName?: string, resolutionStack?: Path[], extraFileExtensions?: JsFileExtensionInfo[]): ParsedCommandLine;
+    function parseJsonSourceFileConfigFileContent(sourceFile: JsonSourceFile, host: ParseConfigHost, basePath: string, existingOptions?: CompilerOptions, configFileName?: string, resolutionStack?: Path[], extraFileExtensions?: ReadonlyArray<JsFileExtensionInfo>): ParsedCommandLine;
     function setConfigFileInOptions(options: CompilerOptions, configFile: JsonSourceFile): void;
     function convertCompilerOptionsFromJson(jsonOptions: any, basePath: string, configFileName?: string): {
         options: CompilerOptions;
