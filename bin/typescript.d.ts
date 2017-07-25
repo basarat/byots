@@ -3953,8 +3953,7 @@ declare namespace ts {
     }
     function usingSingleLineStringWriter(action: (writer: StringSymbolWriter) => void): string;
     function getFullWidth(node: Node): number;
-    function hasResolvedModule(sourceFile: SourceFile, moduleNameText: string): boolean;
-    function getResolvedModule(sourceFile: SourceFile, moduleNameText: string): ResolvedModuleFull;
+    function getResolvedModule(sourceFile: SourceFile, moduleNameText: string): ResolvedModuleFull | undefined;
     function setResolvedModule(sourceFile: SourceFile, moduleNameText: string, resolvedModule: ResolvedModuleFull): void;
     function setResolvedTypeReferenceDirective(sourceFile: SourceFile, typeReferenceDirectiveName: string, resolvedTypeReferenceDirective: ResolvedTypeReferenceDirective): void;
     function moduleResolutionIsEqualTo(oldResolution: ResolvedModuleFull, newResolution: ResolvedModuleFull): boolean;
