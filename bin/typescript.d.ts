@@ -442,7 +442,7 @@ declare namespace ts {
         original?: Node;
         startsOnNewLine?: boolean;
         jsDoc?: JSDoc[];
-        jsDocCache?: JSDocTag[];
+        jsDocCache?: ReadonlyArray<JSDocTag>;
         symbol?: Symbol;
         locals?: SymbolTable;
         nextContainer?: Node;
@@ -482,10 +482,10 @@ declare namespace ts {
     interface Identifier extends PrimaryExpression {
         kind: SyntaxKind.Identifier;
         /**
-         * Text of identifier (with escapes converted to characters).
-         * If the identifier begins with two underscores, this will begin with three.
+         * Prefer to use `id.unescapedText`. (Note: This is available only in services, not internally to the TypeScript compiler.)
+         * Text of identifier, but if the identifier begins with two underscores, this will begin with three.
          */
-        text: __String;
+        escapedText: __String;
         originalKeywordKind?: SyntaxKind;
         autoGenerateKind?: GeneratedIdentifierKind;
         autoGenerateId?: number;
@@ -562,7 +562,7 @@ declare namespace ts {
         kind: SyntaxKind.Parameter;
         parent?: SignatureDeclaration;
         dotDotDotToken?: DotDotDotToken;
-        name?: BindingName;
+        name: BindingName;
         questionToken?: QuestionToken;
         type?: TypeNode;
         initializer?: Expression;
@@ -1676,7 +1676,7 @@ declare namespace ts {
         readFile(path: string): string | undefined;
     }
     interface WriteFileCallback {
-        (fileName: string, data: string, writeByteOrderMark: boolean, onError?: (message: string) => void, sourceFiles?: SourceFile[]): void;
+        (fileName: string, data: string, writeByteOrderMark: boolean, onError?: (message: string) => void, sourceFiles?: ReadonlyArray<SourceFile>): void;
     }
     class OperationCanceledException {
     }
@@ -2093,7 +2093,7 @@ declare namespace ts {
     }
     interface Symbol {
         flags: SymbolFlags;
-        name: __String;
+        escapedName: __String;
         declarations?: Declaration[];
         valueDeclaration?: Declaration;
         members?: SymbolTable;
@@ -3958,7 +3958,7 @@ declare namespace ts {
     function setResolvedTypeReferenceDirective(sourceFile: SourceFile, typeReferenceDirectiveName: string, resolvedTypeReferenceDirective: ResolvedTypeReferenceDirective): void;
     function moduleResolutionIsEqualTo(oldResolution: ResolvedModuleFull, newResolution: ResolvedModuleFull): boolean;
     function typeDirectiveIsEqualTo(oldResolution: ResolvedTypeReferenceDirective, newResolution: ResolvedTypeReferenceDirective): boolean;
-    function hasChangesInResolutions<T>(names: string[], newResolutions: T[], oldResolutions: Map<T>, comparer: (oldResolution: T, newResolution: T) => boolean): boolean;
+    function hasChangesInResolutions<T>(names: ReadonlyArray<string>, newResolutions: ReadonlyArray<T>, oldResolutions: ReadonlyMap<T>, comparer: (oldResolution: T, newResolution: T) => boolean): boolean;
     function containsParseError(node: Node): boolean;
     function getSourceFileOfNode(node: Node): SourceFile;
     function isStatementWithLocals(node: Node): boolean;
@@ -3982,7 +3982,7 @@ declare namespace ts {
     function getTextOfConstantValue(value: string | number): string;
     function escapeLeadingUnderscores(identifier: string): __String;
     /**
-     * @deprecated
+     * @deprecated Use `id.escapedText` to get the escaped text of an Identifier.
      * @param identifier The identifier to escape
      */
     function escapeIdentifier(identifier: string): string;
@@ -3990,6 +3990,9 @@ declare namespace ts {
     function isBlockOrCatchScoped(declaration: Declaration): boolean;
     function isCatchClauseVariableDeclarationOrBindingElement(declaration: Declaration): boolean;
     function isAmbientModule(node: Node): boolean;
+    function isNonGlobalAmbientModule(node: Node): node is ModuleDeclaration & {
+        name: StringLiteral;
+    };
     /** Given a symbol for a module, checks that it is a shorthand ambient module. */
     function isShorthandAmbientModuleSymbol(moduleSymbol: Symbol): boolean;
     function isBlockScopedContainerTopLevel(node: Node): boolean;
@@ -4039,7 +4042,7 @@ declare namespace ts {
     function isObjectLiteralOrClassExpressionMethod(node: Node): node is MethodDeclaration;
     function isIdentifierTypePredicate(predicate: TypePredicate): predicate is IdentifierTypePredicate;
     function isThisTypePredicate(predicate: TypePredicate): predicate is ThisTypePredicate;
-    function getPropertyAssignment(objectLiteral: ObjectLiteralExpression, key: string, key2?: string): PropertyAssignment[];
+    function getPropertyAssignment(objectLiteral: ObjectLiteralExpression, key: string, key2?: string): ReadonlyArray<PropertyAssignment>;
     function getContainingFunction(node: Node): FunctionLike;
     function getContainingClass(node: Node): ClassLikeDeclaration;
     function getThisContainer(node: Node, includeArrowFunctions: boolean): Node;
@@ -4095,7 +4098,7 @@ declare namespace ts {
     function isJSDocConstructSignature(node: Node): boolean;
     function hasJSDocParameterTags(node: FunctionLikeDeclaration | SignatureDeclaration): boolean;
     function getAllJSDocs(node: Node): (JSDoc | JSDocTag)[];
-    function getJSDocTags(node: Node): JSDocTag[] | undefined;
+    function getJSDocTags(node: Node): ReadonlyArray<JSDocTag> | undefined;
     function getJSDocParameterTags(param: ParameterDeclaration): JSDocParameterTag[] | undefined;
     /** Does the opposite of `getJSDocParameterTags`: given a JSDoc parameter, finds the parameter corresponding to it. */
     function getParameterFromJSDoc(node: JSDocParameterTag): ParameterDeclaration | undefined;
@@ -4176,7 +4179,7 @@ declare namespace ts {
     function nodeStartsNewLexicalEnvironment(node: Node): boolean;
     function nodeIsSynthesized(node: TextRange): boolean;
     function getOriginalSourceFile(sourceFile: SourceFile): SourceFile;
-    function getOriginalSourceFiles(sourceFiles: SourceFile[]): SourceFile[];
+    function getOriginalSourceFiles(sourceFiles: ReadonlyArray<SourceFile>): ReadonlyArray<SourceFile>;
     enum Associativity {
         Left = 0,
         Right = 1,
@@ -4224,9 +4227,9 @@ declare namespace ts {
     /** Don't call this for `--outFile`, just for `--outDir` or plain emit. `--outFile` needs additional checks. */
     function sourceFileMayBeEmitted(sourceFile: SourceFile, options: CompilerOptions, isSourceFileFromExternalLibrary: (file: SourceFile) => boolean): boolean;
     function getSourceFilePathInNewDir(sourceFile: SourceFile, host: EmitHost, newDirPath: string): string;
-    function writeFile(host: EmitHost, diagnostics: DiagnosticCollection, fileName: string, data: string, writeByteOrderMark: boolean, sourceFiles?: SourceFile[]): void;
+    function writeFile(host: EmitHost, diagnostics: DiagnosticCollection, fileName: string, data: string, writeByteOrderMark: boolean, sourceFiles?: ReadonlyArray<SourceFile>): void;
     function getLineOfLocalPosition(currentSourceFile: SourceFile, pos: number): number;
-    function getLineOfLocalPositionFromLineMap(lineMap: number[], pos: number): number;
+    function getLineOfLocalPositionFromLineMap(lineMap: ReadonlyArray<number>, pos: number): number;
     function getFirstConstructorWithBody(node: ClassLikeDeclaration): ConstructorDeclaration;
     /** Get the type annotation for the value parameter. */
     function getSetAccessorTypeAnnotationNode(accessor: SetAccessorDeclaration): TypeNode;
@@ -4261,19 +4264,19 @@ declare namespace ts {
      * was parsed in a JavaScript file, gets the type annotation from JSDoc.
      */
     function getEffectiveSetAccessorTypeAnnotationNode(node: SetAccessorDeclaration): TypeNode;
-    function emitNewLineBeforeLeadingComments(lineMap: number[], writer: EmitTextWriter, node: TextRange, leadingComments: CommentRange[]): void;
-    function emitNewLineBeforeLeadingCommentsOfPosition(lineMap: number[], writer: EmitTextWriter, pos: number, leadingComments: CommentRange[]): void;
-    function emitNewLineBeforeLeadingCommentOfPosition(lineMap: number[], writer: EmitTextWriter, pos: number, commentPos: number): void;
-    function emitComments(text: string, lineMap: number[], writer: EmitTextWriter, comments: CommentRange[], leadingSeparator: boolean, trailingSeparator: boolean, newLine: string, writeComment: (text: string, lineMap: number[], writer: EmitTextWriter, commentPos: number, commentEnd: number, newLine: string) => void): void;
+    function emitNewLineBeforeLeadingComments(lineMap: ReadonlyArray<number>, writer: EmitTextWriter, node: TextRange, leadingComments: ReadonlyArray<CommentRange>): void;
+    function emitNewLineBeforeLeadingCommentsOfPosition(lineMap: ReadonlyArray<number>, writer: EmitTextWriter, pos: number, leadingComments: ReadonlyArray<CommentRange>): void;
+    function emitNewLineBeforeLeadingCommentOfPosition(lineMap: ReadonlyArray<number>, writer: EmitTextWriter, pos: number, commentPos: number): void;
+    function emitComments(text: string, lineMap: ReadonlyArray<number>, writer: EmitTextWriter, comments: ReadonlyArray<CommentRange>, leadingSeparator: boolean, trailingSeparator: boolean, newLine: string, writeComment: (text: string, lineMap: ReadonlyArray<number>, writer: EmitTextWriter, commentPos: number, commentEnd: number, newLine: string) => void): void;
     /**
      * Detached comment is a comment at the top of file or function body that is separated from
      * the next statement by space.
      */
-    function emitDetachedComments(text: string, lineMap: number[], writer: EmitTextWriter, writeComment: (text: string, lineMap: number[], writer: EmitTextWriter, commentPos: number, commentEnd: number, newLine: string) => void, node: TextRange, newLine: string, removeComments: boolean): {
+    function emitDetachedComments(text: string, lineMap: ReadonlyArray<number>, writer: EmitTextWriter, writeComment: (text: string, lineMap: ReadonlyArray<number>, writer: EmitTextWriter, commentPos: number, commentEnd: number, newLine: string) => void, node: TextRange, newLine: string, removeComments: boolean): {
         nodePos: number;
         detachedCommentEndPos: number;
     };
-    function writeCommentRange(text: string, lineMap: number[], writer: EmitTextWriter, commentPos: number, commentEnd: number, newLine: string): void;
+    function writeCommentRange(text: string, lineMap: ReadonlyArray<number>, writer: EmitTextWriter, commentPos: number, commentEnd: number, newLine: string): void;
     function hasModifiers(node: Node): boolean;
     function hasModifier(node: Node, flags: ModifierFlags): boolean;
     function getModifierFlags(node: Node): ModifierFlags;
@@ -4439,7 +4442,7 @@ declare namespace ts {
      * This function will then merge those changes into a single change range valid between V1 and
      * Vn.
      */
-    function collapseTextChangeRangesAcrossMultipleVersions(changes: TextChangeRange[]): TextChangeRange;
+    function collapseTextChangeRangesAcrossMultipleVersions(changes: ReadonlyArray<TextChangeRange>): TextChangeRange;
     function getTypeParameterOwner(d: Declaration): Declaration;
     function isParameterPropertyDeclaration(node: Node): boolean;
     function getCombinedModifierFlags(node: Node): ModifierFlags;
@@ -4453,7 +4456,7 @@ declare namespace ts {
         resolvePath(path: string): string;
         fileExists(fileName: string): boolean;
         readFile(fileName: string): string | undefined;
-    }, errors?: Diagnostic[]): void;
+    }, errors?: Push<Diagnostic>): void;
     function getOriginalNode(node: Node): Node;
     function getOriginalNode<T extends Node>(node: Node, nodeTest: (node: Node) => node is T): T;
     /**
@@ -4486,7 +4489,7 @@ declare namespace ts {
     function unescapeLeadingUnderscores(identifier: __String): string;
     /**
      * Remove extra underscore from escaped identifier text content.
-     * @deprecated
+     * @deprecated Use `id.text` for the unescaped text.
      * @param identifier The escaped identifier text.
      * @returns The unescaped identifier text.
      */
@@ -10272,12 +10275,12 @@ declare namespace ts {
     function stringToToken(s: string): SyntaxKind;
     function computeLineStarts(text: string): number[];
     function getPositionOfLineAndCharacter(sourceFile: SourceFile, line: number, character: number): number;
-    function computePositionOfLineAndCharacter(lineStarts: number[], line: number, character: number, debugText?: string): number;
+    function computePositionOfLineAndCharacter(lineStarts: ReadonlyArray<number>, line: number, character: number, debugText?: string): number;
     function getLineStarts(sourceFile: SourceFileLike): number[];
     /**
      * We assume the first line starts at position 0 and 'position' is non-negative.
      */
-    function computeLineAndCharacterOfPosition(lineStarts: number[], position: number): {
+    function computeLineAndCharacterOfPosition(lineStarts: ReadonlyArray<number>, position: number): {
         line: number;
         character: number;
     };
@@ -11520,10 +11523,14 @@ declare namespace ts {
         getLastToken(sourceFile?: SourceFile): Node;
         forEachChild<T>(cbNode: (node: Node) => T | undefined, cbNodeArray?: (nodes: NodeArray<Node>) => T | undefined): T | undefined;
     }
+    interface Identifier {
+        readonly text: string;
+    }
     interface Symbol {
+        readonly name: string;
         getFlags(): SymbolFlags;
-        getName(): __String;
-        getUnescapedName(): string;
+        getEscapedName(): __String;
+        getName(): string;
         getDeclarations(): Declaration[] | undefined;
         getDocumentationComment(): SymbolDisplayPart[];
         getJsDocTags(): JSDocTagInfo[];
