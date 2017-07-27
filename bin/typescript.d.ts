@@ -1434,7 +1434,7 @@ declare namespace ts {
         pos: -1;
         end: -1;
     }
-    interface JSDocTypeExpression extends Node {
+    interface JSDocTypeExpression extends TypeNode {
         kind: SyntaxKind.JSDocTypeExpression;
         type: TypeNode;
     }
@@ -1505,35 +1505,28 @@ declare namespace ts {
         kind: SyntaxKind.JSDocTypedefTag;
         fullName?: JSDocNamespaceDeclaration | Identifier;
         name?: Identifier;
-        typeExpression?: JSDocTypeExpression;
-        jsDocTypeLiteral?: JSDocTypeLiteral;
+        typeExpression?: JSDocTypeExpression | JSDocTypeLiteral;
     }
-    interface JSDocPropertyTag extends JSDocTag, TypeElement {
+    interface JSDocPropertyLikeTag extends JSDocTag, Declaration {
         parent: JSDoc;
-        kind: SyntaxKind.JSDocPropertyTag;
-        name: Identifier;
-        /** the parameter name, if provided *before* the type (TypeScript-style) */
-        preParameterName?: Identifier;
-        /** the parameter name, if provided *after* the type (JSDoc-standard) */
-        postParameterName?: Identifier;
+        name: EntityName;
         typeExpression: JSDocTypeExpression;
+        /** Whether the property name came before the type -- non-standard for JSDoc, but Typescript-like */
+        isNameFirst: boolean;
         isBracketed: boolean;
+    }
+    interface JSDocPropertyTag extends JSDocPropertyLikeTag {
+        kind: SyntaxKind.JSDocPropertyTag;
+    }
+    interface JSDocParameterTag extends JSDocPropertyLikeTag {
+        kind: SyntaxKind.JSDocParameterTag;
     }
     interface JSDocTypeLiteral extends JSDocType {
         kind: SyntaxKind.JSDocTypeLiteral;
-        jsDocPropertyTags?: NodeArray<JSDocPropertyTag>;
+        jsDocPropertyTags?: ReadonlyArray<JSDocPropertyLikeTag>;
         jsDocTypeTag?: JSDocTypeTag;
-    }
-    interface JSDocParameterTag extends JSDocTag {
-        kind: SyntaxKind.JSDocParameterTag;
-        /** the parameter name, if provided *before* the type (TypeScript-style) */
-        preParameterName?: Identifier;
-        typeExpression?: JSDocTypeExpression;
-        /** the parameter name, if provided *after* the type (JSDoc-standard) */
-        postParameterName?: Identifier;
-        /** the parameter name, regardless of the location it was provided */
-        name: Identifier;
-        isBracketed: boolean;
+        /** If true, then this type literal represents an *array* of its type. */
+        isArrayType?: boolean;
     }
     enum FlowFlags {
         Unreachable = 1,
@@ -1855,6 +1848,8 @@ declare namespace ts {
         isOptionalParameter(node: ParameterDeclaration): boolean;
         getAmbientModules(): Symbol[];
         tryGetMemberInModuleExports(memberName: string, moduleSymbol: Symbol): Symbol | undefined;
+        /** Unlike `tryGetMemberInModuleExports`, this includes properties of an `export =` value. */
+        tryGetMemberInModuleExportsAndProperties(memberName: string, moduleSymbol: Symbol): Symbol | undefined;
         getApparentType(type: Type): Type;
         getSuggestionForNonexistentProperty(node: Identifier, containingType: Type): string | undefined;
         getSuggestionForNonexistentSymbol(location: Node, name: string, meaning: SymbolFlags): string | undefined;
@@ -4101,7 +4096,7 @@ declare namespace ts {
     function getJSDocTags(node: Node): ReadonlyArray<JSDocTag> | undefined;
     function getJSDocParameterTags(param: ParameterDeclaration): JSDocParameterTag[] | undefined;
     /** Does the opposite of `getJSDocParameterTags`: given a JSDoc parameter, finds the parameter corresponding to it. */
-    function getParameterFromJSDoc(node: JSDocParameterTag): ParameterDeclaration | undefined;
+    function getParameterSymbolFromJSDoc(node: JSDocParameterTag): Symbol | undefined;
     function getTypeParameterFromJsDoc(node: TypeParameterDeclaration & {
         parent: JSDocTemplateTag;
     }): TypeParameterDeclaration | undefined;
@@ -4648,6 +4643,7 @@ declare namespace ts {
     function isJSDocTemplateTag(node: Node): node is JSDocTemplateTag;
     function isJSDocTypedefTag(node: Node): node is JSDocTypedefTag;
     function isJSDocPropertyTag(node: Node): node is JSDocPropertyTag;
+    function isJSDocPropertyLikeTag(node: Node): node is JSDocPropertyLikeTag;
     function isJSDocTypeLiteral(node: Node): node is JSDocTypeLiteral;
 }
 declare namespace ts {
@@ -10316,6 +10312,9 @@ declare namespace ts {
      * @param node a given node to visit its children
      * @param cbNode a callback to be invoked for all child nodes
      * @param cbNodes a callback to be invoked for embedded array
+     *
+     * @remarks `forEachChild` must visit the children of a node in the order
+     * that they appear in the source code. The language service depends on this property to locate nodes by position.
      */
     function forEachChild<T>(node: Node, cbNode: (node: Node) => T | undefined, cbNodes?: (nodes: NodeArray<Node>) => T | undefined): T | undefined;
     function createSourceFile(fileName: string, sourceText: string, languageVersion: ScriptTarget, setParentNodes?: boolean, scriptKind?: ScriptKind): SourceFile;
