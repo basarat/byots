@@ -3505,7 +3505,7 @@ declare namespace ts {
      * are not present in `arrayA` but are present in `arrayB`. Assumes both arrays are sorted
      * based on the provided comparer.
      */
-    function relativeComplement<T>(arrayA: T[] | undefined, arrayB: T[] | undefined, comparer?: (x: T, y: T) => Comparison, offsetA?: number, offsetB?: number): T[] | undefined;
+    function relativeComplement<T>(arrayA: T[] | undefined, arrayB: T[] | undefined, comparer?: Comparer<T>, offsetA?: number, offsetB?: number): T[] | undefined;
     function sum<T extends Record<K, number>, K extends string>(array: T[], prop: K): number;
     /**
      * Appends a value to an array, returning the array.
@@ -3933,6 +3933,7 @@ declare namespace ts {
 }
 declare namespace ts {
     const emptyArray: never[];
+    const emptyMap: ReadonlyMap<never>;
     const externalHelpersModuleNameText = "tslib";
     interface ReferencePathMatchResult {
         fileReference?: FileReference;
@@ -8031,6 +8032,12 @@ declare namespace ts {
             key: string;
             message: string;
         };
+        Cannot_access_0_1_because_0_is_a_type_but_not_a_namespace_Did_you_mean_to_retrieve_the_type_of_the_property_1_in_0_with_0_1: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
         Import_declaration_0_is_using_private_name_1: {
             code: number;
             category: DiagnosticCategory;
@@ -10210,6 +10217,12 @@ declare namespace ts {
             message: string;
         };
         Prefix_0_with_an_underscore: {
+            code: number;
+            category: DiagnosticCategory;
+            key: string;
+            message: string;
+        };
+        Rewrite_as_the_indexed_access_type_0: {
             code: number;
             category: DiagnosticCategory;
             key: string;
@@ -12614,6 +12627,11 @@ declare namespace ts.JsTyping {
     }
     const nodeCoreModuleList: ReadonlyArray<string>;
     /**
+     * A map of loose file names to library names that we are confident require typings
+     */
+    type SafeList = ReadonlyMap<string>;
+    function loadSafeList(host: TypingResolutionHost, safeListPath: Path): SafeList;
+    /**
      * @param host is the object providing I/O related operations.
      * @param fileNames are the file names that belong to the same project
      * @param projectRootPath is the path to the project root directory
@@ -12622,7 +12640,7 @@ declare namespace ts.JsTyping {
      * @param typeAcquisition is used to customize the typing acquisition process
      * @param compilerOptions are used as a source for typing inference
      */
-    function discoverTypings(host: TypingResolutionHost, log: ((message: string) => void) | undefined, fileNames: string[], projectRootPath: Path, safeListPath: Path, packageNameToTypingLocation: Map<string>, typeAcquisition: TypeAcquisition, unresolvedImports: ReadonlyArray<string>): {
+    function discoverTypings(host: TypingResolutionHost, log: ((message: string) => void) | undefined, fileNames: string[], projectRootPath: Path, safeList: SafeList, packageNameToTypingLocation: ReadonlyMap<string>, typeAcquisition: TypeAcquisition, unresolvedImports: ReadonlyArray<string>): {
         cachedTypingPaths: string[];
         newTypingNames: string[];
         filesToWatch: string[];
@@ -13258,6 +13276,8 @@ declare namespace ts {
         function getApplicableRefactors(context: RefactorContext): ApplicableRefactorInfo[];
         function getEditsForRefactor(context: RefactorContext, refactorName: string, actionName: string): RefactorEditInfo | undefined;
     }
+}
+declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
 }
