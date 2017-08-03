@@ -3872,6 +3872,12 @@ declare namespace ts {
 declare function setTimeout(handler: (...args: any[]) => void, timeout: number): any;
 declare function clearTimeout(handle: any): void;
 declare namespace ts {
+    /**
+     * Set a high stack trace limit to provide more information in case of an error.
+     * Called for command-line and server use cases.
+     * Not called if TypeScript is used as a library.
+     */
+    function setStackTraceLimit(): void;
     enum FileWatcherEventKind {
         Created = 0,
         Changed = 1,
