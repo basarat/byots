@@ -2494,10 +2494,26 @@ declare namespace ts {
         NoDefault = 2,
         AnyDefault = 4,
     }
+    /**
+     * Ternary values are defined such that
+     * x & y is False if either x or y is False.
+     * x & y is Maybe if either x or y is Maybe, but neither x or y is False.
+     * x & y is True if both x and y are True.
+     * x | y is False if both x and y are False.
+     * x | y is Maybe if either x or y is Maybe, but neither x or y is True.
+     * x | y is True if either x or y is True.
+     */
+    enum Ternary {
+        False = 0,
+        Maybe = 1,
+        True = -1,
+    }
+    type TypeComparer = (s: Type, t: Type, reportErrors?: boolean) => Ternary;
     interface InferenceContext extends TypeMapper {
         signature: Signature;
         inferences: InferenceInfo[];
         flags: InferenceFlags;
+        compareTypes: TypeComparer;
     }
     enum SpecialPropertyAssignmentKind {
         None = 0,
@@ -3371,20 +3387,6 @@ declare namespace ts {
     const version: string;
 }
 declare namespace ts {
-    /**
-     * Ternary values are defined such that
-     * x & y is False if either x or y is False.
-     * x & y is Maybe if either x or y is Maybe, but neither x or y is False.
-     * x & y is True if both x and y are True.
-     * x | y is False if both x and y are False.
-     * x | y is Maybe if either x or y is Maybe, but neither x or y is True.
-     * x | y is True if either x or y is True.
-     */
-    enum Ternary {
-        False = 0,
-        Maybe = 1,
-        True = -1,
-    }
     const collator: {
         compare(a: string, b: string): number;
     };
@@ -3752,6 +3754,7 @@ declare namespace ts {
     function hasExtension(fileName: string): boolean;
     function fileExtensionIs(path: string, extension: string): boolean;
     function fileExtensionIsOneOf(path: string, extensions: ReadonlyArray<string>): boolean;
+    const commonPackageFolders: ReadonlyArray<string>;
     function getRegularExpressionForWildcard(specs: ReadonlyArray<string>, basePath: string, usage: "files" | "directories" | "exclude"): string | undefined;
     /**
      * An "includes" path "foo" is implicitly a glob "foo/** /*" (without the space) if its last component has no extension,
