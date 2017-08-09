@@ -1262,7 +1262,7 @@ declare namespace ts {
     interface CatchClause extends Node {
         kind: SyntaxKind.CatchClause;
         parent?: TryStatement;
-        variableDeclaration: VariableDeclaration;
+        variableDeclaration?: VariableDeclaration;
         block: Block;
     }
     type DeclarationWithTypeParameters = SignatureDeclaration | ClassLikeDeclaration | InterfaceDeclaration | TypeAliasDeclaration | JSDocTemplateTag;
@@ -2242,6 +2242,7 @@ declare namespace ts {
         hasReportedStatementInAmbientContext?: boolean;
         jsxFlags?: JsxFlags;
         resolvedJsxElementAttributesType?: Type;
+        resolvedJsxElementAllAttributesType?: Type;
         hasSuperCall?: boolean;
         superCall?: ExpressionStatement;
         switchTypes?: Type[];
@@ -2420,6 +2421,9 @@ declare namespace ts {
         promiseTypeOfPromiseConstructor?: Type;
         promisedTypeOfPromise?: Type;
         awaitedTypeOfType?: Type;
+    }
+    interface SyntheticDefaultModuleType extends Type {
+        syntheticType?: Type;
     }
     interface TypeVariable extends Type {
         resolvedBaseConstraint: Type;
@@ -3448,7 +3452,7 @@ declare namespace ts {
     function filter<T, U extends T>(array: ReadonlyArray<T>, f: (x: T) => x is U): ReadonlyArray<U>;
     function filter<T, U extends T>(array: ReadonlyArray<T>, f: (x: T) => boolean): ReadonlyArray<T>;
     function removeWhere<T>(array: T[], f: (x: T) => boolean): boolean;
-    function filterMutate<T>(array: T[], f: (x: T) => boolean): void;
+    function filterMutate<T>(array: T[], f: (x: T, i: number, array: T[]) => boolean): void;
     function clear(array: {}[]): void;
     function map<T, U>(array: ReadonlyArray<T>, f: (x: T, i: number) => U): U[];
     function sameMap<T>(array: T[], f: (x: T, i: number) => T): T[];
@@ -3834,7 +3838,11 @@ declare namespace ts {
         let currentAssertionLevel: AssertionLevel;
         let isDebugging: boolean;
         function shouldAssert(level: AssertionLevel): boolean;
-        function assert(expression: boolean, message?: string, verboseDebugInfo?: () => string, stackCrawlMark?: Function): void;
+        function assert(expression: boolean, message?: string, verboseDebugInfo?: string | (() => string), stackCrawlMark?: Function): void;
+        function assertEqual<T>(a: T, b: T, msg?: string, msg2?: string): void;
+        function assertLessThan(a: number, b: number, msg?: string): void;
+        function assertLessThanOrEqual(a: number, b: number): void;
+        function assertGreaterThanOrEqual(a: number, b: number): void;
         function fail(message?: string, stackCrawlMark?: Function): void;
         function getFunctionName(func: Function): any;
     }
@@ -5230,6 +5238,7 @@ declare namespace ts {
         Expected_at_least_0_arguments_but_got_a_minimum_of_1: DiagnosticMessage;
         Expected_0_type_arguments_but_got_1: DiagnosticMessage;
         Type_0_has_no_properties_in_common_with_type_1: DiagnosticMessage;
+        Value_of_type_0_has_no_properties_in_common_with_type_1_Did_you_mean_to_call_it: DiagnosticMessage;
         JSX_element_attributes_type_0_may_not_be_a_union_type: DiagnosticMessage;
         The_return_type_of_a_JSX_element_constructor_must_return_an_object_type: DiagnosticMessage;
         JSX_element_implicitly_has_type_any_because_the_global_type_JSX_Element_does_not_exist: DiagnosticMessage;
@@ -6014,7 +6023,7 @@ declare namespace ts {
         setWriter(writer: EmitTextWriter): void;
         emitNodeWithComments(hint: EmitHint, node: Node, emitCallback: (hint: EmitHint, node: Node) => void): void;
         emitBodyWithDetachedComments(node: Node, detachedRange: TextRange, emitCallback: (node: Node) => void): void;
-        emitTrailingCommentsOfPosition(pos: number): void;
+        emitTrailingCommentsOfPosition(pos: number, prefixSpace?: boolean): void;
         emitLeadingCommentsOfPosition(pos: number): void;
     }
     function createCommentWriter(printerOptions: PrinterOptions, emitPos: ((pos: number) => void) | undefined): CommentWriter;
@@ -6287,8 +6296,8 @@ declare namespace ts {
     function updateDefaultClause(node: DefaultClause, statements: ReadonlyArray<Statement>): DefaultClause;
     function createHeritageClause(token: HeritageClause["token"], types: ReadonlyArray<ExpressionWithTypeArguments>): HeritageClause;
     function updateHeritageClause(node: HeritageClause, types: ReadonlyArray<ExpressionWithTypeArguments>): HeritageClause;
-    function createCatchClause(variableDeclaration: string | VariableDeclaration, block: Block): CatchClause;
-    function updateCatchClause(node: CatchClause, variableDeclaration: VariableDeclaration, block: Block): CatchClause;
+    function createCatchClause(variableDeclaration: string | VariableDeclaration | undefined, block: Block): CatchClause;
+    function updateCatchClause(node: CatchClause, variableDeclaration: VariableDeclaration | undefined, block: Block): CatchClause;
     function createPropertyAssignment(name: string | PropertyName, initializer: Expression): PropertyAssignment;
     function updatePropertyAssignment(node: PropertyAssignment, name: PropertyName, initializer: Expression): PropertyAssignment;
     function createShorthandPropertyAssignment(name: string | Identifier, objectAssignmentInitializer?: Expression): ShorthandPropertyAssignment;
@@ -8364,6 +8373,7 @@ declare namespace ts.formatting {
         NoSpaceAfterSemicolonInFor: Rule;
         SpaceAfterOpenParen: Rule;
         SpaceBeforeCloseParen: Rule;
+        SpaceBetweenOpenParens: Rule;
         NoSpaceBetweenParens: Rule;
         NoSpaceAfterOpenParen: Rule;
         NoSpaceBeforeCloseParen: Rule;
