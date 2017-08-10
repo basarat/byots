@@ -1599,6 +1599,15 @@ declare namespace ts {
         readonly text: string;
         lineMap: number[];
     }
+    interface RedirectInfo {
+        /** Source file this redirects to. */
+        readonly redirectTarget: SourceFile;
+        /**
+         * Source file for the duplicate package. This will not be used by the Program,
+         * but we need to keep this around so we can watch for changes in underlying.
+         */
+        readonly unredirected: SourceFile;
+    }
     interface SourceFile extends Declaration {
         kind: SyntaxKind.SourceFile;
         statements: NodeArray<Statement>;
@@ -1606,6 +1615,12 @@ declare namespace ts {
         fileName: string;
         path: Path;
         text: string;
+        /**
+         * If two source files are for the same version of the same package, one will redirect to the other.
+         * (See `createRedirectSourceFile` in program.ts.)
+         * The redirect will have this set. The other will not have anything set, but see Program#sourceFileIsRedirectedTo.
+         */
+        redirectInfo?: RedirectInfo | undefined;
         amdDependencies: AmdDependency[];
         moduleName: string;
         referencedFiles: FileReference[];
@@ -1725,6 +1740,10 @@ declare namespace ts {
         isSourceFileFromExternalLibrary(file: SourceFile): boolean;
         structureIsReused?: StructureIsReused;
         getSourceFileFromReference(referencingFile: SourceFile, ref: FileReference): SourceFile | undefined;
+        /** Given a source file, get the name of the package it was imported from. */
+        sourceFileToPackageName: Map<string>;
+        /** Set of all source files that some other source file redirects to. */
+        redirectTargetsSet: Map<true>;
     }
     enum StructureIsReused {
         Not = 0,
@@ -2924,6 +2943,7 @@ declare namespace ts {
     /**
      * ResolvedModule with an explicitly provided `extension` property.
      * Prefer this over `ResolvedModule`.
+     * If changing this, remember to change `moduleResolutionIsEqualTo`.
      */
     interface ResolvedModuleFull extends ResolvedModule {
         /**
@@ -2931,6 +2951,21 @@ declare namespace ts {
          * This is optional for backwards-compatibility, but will be added if not provided.
          */
         extension: Extension;
+        packageId?: PackageId;
+    }
+    /**
+     * Unique identifier with a package name and version.
+     * If changing this, remember to change `packageIdIsEqual`.
+     */
+    interface PackageId {
+        /**
+         * Name of the package.
+         * Should not include `@types`.
+         * If accessing a non-index file, this should include its name e.g. "foo/bar".
+         */
+        name: string;
+        /** Version of the package, e.g. "1.2.3" */
+        version: string;
     }
     enum Extension {
         Ts = ".ts",
@@ -3480,7 +3515,7 @@ declare namespace ts {
      */
     function sameFlatMap<T>(array: T[], mapfn: (x: T, i: number) => T | ReadonlyArray<T>): T[];
     function sameFlatMap<T>(array: ReadonlyArray<T>, mapfn: (x: T, i: number) => T | ReadonlyArray<T>): ReadonlyArray<T>;
-    function mapDefined<T, U>(array: ReadonlyArray<T>, mapFn: (x: T, i: number) => U | undefined): U[];
+    function mapDefined<T, U>(array: ReadonlyArray<T> | undefined, mapFn: (x: T, i: number) => U | undefined): U[];
     /**
      * Computes the first matching span of elements and returns a tuple of the first span
      * and the remaining elements.
@@ -3877,6 +3912,7 @@ declare namespace ts {
      * Path must have a valid extension.
      */
     function extensionFromPath(path: string): Extension;
+    function isAnySupportedFileExtension(path: string): boolean;
     function tryGetExtensionFromPath(path: string): Extension | undefined;
     function isCheckJsEnabledForFile(sourceFile: SourceFile, compilerOptions: CompilerOptions): boolean;
 }
@@ -3959,8 +3995,6 @@ declare namespace ts {
         isTypeReferenceDirective?: boolean;
     }
     function getDeclarationOfKind<T extends Declaration>(symbol: Symbol, kind: T["kind"]): T;
-    function findDeclaration<T extends Declaration>(symbol: Symbol, predicate: (node: Declaration) => node is T): T | undefined;
-    function findDeclaration(symbol: Symbol, predicate: (node: Declaration) => boolean): Declaration | undefined;
     interface StringSymbolWriter extends SymbolWriter {
         string(): string;
     }
@@ -3977,11 +4011,16 @@ declare namespace ts {
     function isStatementWithLocals(node: Node): boolean;
     function getStartPositionOfLine(line: number, sourceFile: SourceFileLike): number;
     function nodePosToString(node: Node): string;
-    function getStartPosOfNode(node: Node): number;
-    function isDefined(value: any): boolean;
     function getEndLinePosition(line: number, sourceFile: SourceFileLike): number;
     function nodeIsMissing(node: Node): boolean;
     function nodeIsPresent(node: Node): boolean;
+    /**
+     * Determine if the given comment is a triple-slash
+     *
+     * @return true if the comment is a triple-slash comment else false
+     */
+    function isRecognizedTripleSlashComment(text: string, commentPos: number, commentEnd: number): boolean;
+    function isPinnedComment(text: string, comment: CommentRange): boolean;
     function getTokenPosOfNode(node: Node, sourceFile?: SourceFileLike, includeJsDoc?: boolean): number;
     function getNonDecoratorTokenPosOfNode(node: Node, sourceFile?: SourceFileLike): number;
     function getSourceTextOfNodeFromSourceFile(sourceFile: SourceFile, node: Node, includeTrivia?: boolean): string;
@@ -4012,7 +4051,6 @@ declare namespace ts {
     function isGlobalScopeAugmentation(module: ModuleDeclaration): boolean;
     function isExternalModuleAugmentation(node: Node): boolean;
     function isEffectiveExternalModule(node: SourceFile, compilerOptions: CompilerOptions): boolean;
-    function isBlockScope(node: Node, parentNode: Node): boolean;
     function getEnclosingBlockScopeContainer(node: Node): Node;
     function declarationNameToString(name: DeclarationName): string;
     function getNameFromIndexInfo(info: IndexInfo): string | undefined;
@@ -4031,11 +4069,9 @@ declare namespace ts {
     function isImportCall(n: Node): n is ImportCall;
     function isPrologueDirective(node: Node): node is PrologueDirective;
     function getLeadingCommentRangesOfNode(node: Node, sourceFileOfNode: SourceFile): CommentRange[];
-    function getLeadingCommentRangesOfNodeFromText(node: Node, text: string): CommentRange[];
     function getJSDocCommentRanges(node: Node, text: string): CommentRange[];
-    let fullTripleSlashReferencePathRegEx: RegExp;
-    let fullTripleSlashReferenceTypeReferenceDirectiveRegEx: RegExp;
-    let fullTripleSlashAMDReferencePathRegEx: RegExp;
+    const fullTripleSlashReferencePathRegEx: RegExp;
+    const fullTripleSlashAMDReferencePathRegEx: RegExp;
     function isPartOfTypeNode(node: Node): boolean;
     function isChildOfNodeWithKind(node: Node, kind: SyntaxKind): boolean;
     function forEachReturnStatement<T>(body: Block, visitor: (stmt: ReturnStatement) => T): T;
@@ -4192,7 +4228,6 @@ declare namespace ts {
     function nodeStartsNewLexicalEnvironment(node: Node): boolean;
     function nodeIsSynthesized(node: TextRange): boolean;
     function getOriginalSourceFile(sourceFile: SourceFile): SourceFile;
-    function getOriginalSourceFiles(sourceFiles: ReadonlyArray<SourceFile>): ReadonlyArray<SourceFile>;
     enum Associativity {
         Left = 0,
         Right = 1,
@@ -4302,7 +4337,6 @@ declare namespace ts {
     function isAssignmentExpression(node: Node, excludeCompoundAssignment: true): node is AssignmentExpression<EqualsToken>;
     function isAssignmentExpression(node: Node, excludeCompoundAssignment?: false): node is AssignmentExpression<AssignmentOperatorToken>;
     function isDestructuringAssignment(node: Node): node is DestructuringAssignment;
-    function isSupportedExpressionWithTypeArguments(node: ExpressionWithTypeArguments): boolean;
     function isExpressionWithTypeArgumentsInClassExtendsClause(node: Node): boolean;
     function isExpressionWithTypeArgumentsInClassImplementsClause(node: Node): node is ExpressionWithTypeArguments;
     function isEntityNameExpression(node: Expression): node is EntityNameExpression;
@@ -4317,13 +4351,6 @@ declare namespace ts {
      */
     function convertToBase64(input: string): string;
     function getNewLineCharacter(options: CompilerOptions | PrinterOptions): string;
-    /**
-     * Tests whether a node and its subtree is simple enough to have its position
-     * information ignored when emitting source maps in a destructuring assignment.
-     *
-     * @param node The expression to test.
-     */
-    function isSimpleExpression(node: Expression): boolean;
     function formatSyntaxKind(kind: SyntaxKind): string;
     function formatModifierFlags(flags: ModifierFlags): string;
     function formatTransformFlags(flags: TransformFlags): string;
@@ -4331,15 +4358,6 @@ declare namespace ts {
     function formatSymbolFlags(flags: SymbolFlags): string;
     function formatTypeFlags(flags: TypeFlags): string;
     function formatObjectFlags(flags: ObjectFlags): string;
-    function getRangePos(range: TextRange | undefined): number;
-    function getRangeEnd(range: TextRange | undefined): number;
-    /**
-     * Increases (or decreases) a position by the provided amount.
-     *
-     * @param pos The position.
-     * @param value The delta.
-     */
-    function movePos(pos: number, value: number): number;
     /**
      * Creates a new TextRange from the provided pos and end.
      *
@@ -4376,20 +4394,6 @@ declare namespace ts {
      */
     function isCollapsedRange(range: TextRange): boolean;
     /**
-     * Creates a new TextRange from a provided range with its end position collapsed to its
-     * start position.
-     *
-     * @param range A TextRange.
-     */
-    function collapseRangeToStart(range: TextRange): TextRange;
-    /**
-     * Creates a new TextRange from a provided range with its start position collapsed to its
-     * end position.
-     *
-     * @param range A TextRange.
-     */
-    function collapseRangeToEnd(range: TextRange): TextRange;
-    /**
      * Creates a new TextRange for a token at the provides start position.
      *
      * @param pos The start position.
@@ -4409,17 +4413,6 @@ declare namespace ts {
      */
     function isDeclarationNameOfEnumOrNamespace(node: Identifier): boolean;
     function getInitializedVariables(node: VariableDeclarationList): ReadonlyArray<VariableDeclaration>;
-    /**
-     * Gets a value indicating whether a node is merged with a class declaration in the same scope.
-     */
-    function isMergedWithClass(node: Node): boolean;
-    /**
-     * Gets a value indicating whether a node is the first declaration of its kind.
-     *
-     * @param node A Declaration node.
-     * @param kind The SyntaxKind to find among related declarations.
-     */
-    function isFirstDeclarationOfKind(node: Node, kind: SyntaxKind): boolean;
     function isWatchSet(options: CompilerOptions): boolean;
     function getCheckFlags(symbol: Symbol): CheckFlags;
     function getDeclarationModifierFlagsFromSymbol(s: Symbol): ModifierFlags;
@@ -4458,6 +4451,8 @@ declare namespace ts {
     function collapseTextChangeRangesAcrossMultipleVersions(changes: ReadonlyArray<TextChangeRange>): TextChangeRange;
     function getTypeParameterOwner(d: Declaration): Declaration;
     function isParameterPropertyDeclaration(node: Node): boolean;
+    function isEmptyBindingPattern(node: BindingName): node is BindingPattern;
+    function isEmptyBindingElement(node: BindingElement): boolean;
     function getCombinedModifierFlags(node: Node): ModifierFlags;
     function getCombinedNodeFlags(node: Node): NodeFlags;
     /**
@@ -5815,6 +5810,10 @@ declare namespace ts {
 declare namespace ts {
     function trace(host: ModuleResolutionHost, message: DiagnosticMessage, ...args: any[]): void;
     function isTraceEnabled(compilerOptions: CompilerOptions, host: ModuleResolutionHost): boolean;
+    /** Array that is only intended to be pushed to, never read. */
+    interface Push<T> {
+        push(value: T): void;
+    }
     function getEffectiveTypeRoots(options: CompilerOptions, host: {
         directoryExists?: (directoryName: string) => boolean;
         getCurrentDirectory?: () => string;
