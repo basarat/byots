@@ -20,6 +20,9 @@ git reset --hard origin/master
 # Install everything
 npm install
 
+# Some pre build fixes
+node ../scripts/preBuild.js
+
 # Run a jake task to get the `diagnosticInformationMap.generated.ts` file
 npm run build:compiler
 

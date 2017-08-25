@@ -27,6 +27,6 @@
     "typescript": "*"
   },
   "devDependencies": {
-    "typescript": "2.5.0-dev.20170808"
+    "typescript": "2.6.0-dev.20170824"
   }
 }

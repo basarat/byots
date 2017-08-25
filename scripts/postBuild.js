@@ -1,4 +1,5 @@
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 var fs = require('fs');
 var EOL = require('os').EOL;
 function readFile(filePath) {
