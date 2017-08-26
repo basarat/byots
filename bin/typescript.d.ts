@@ -1656,7 +1656,7 @@ declare namespace ts {
         resolvedModules: Map<ResolvedModuleFull>;
         resolvedTypeReferenceDirectiveNames: Map<ResolvedTypeReferenceDirective>;
         imports: ReadonlyArray<StringLiteral>;
-        moduleAugmentations: ReadonlyArray<StringLiteral>;
+        moduleAugmentations: ReadonlyArray<StringLiteral | Identifier>;
         patternAmbientModules?: PatternAmbientModule[];
         ambientModuleNames: ReadonlyArray<string>;
         checkJsDirective: CheckJsDirective | undefined;
@@ -4762,6 +4762,10 @@ declare namespace ts {
     function isLeftHandSideExpression(node: Node): node is LeftHandSideExpression;
     function isUnaryExpression(node: Node): node is UnaryExpression;
     function isUnaryExpressionWithWrite(expr: Node): expr is PrefixUnaryExpression | PostfixUnaryExpression;
+    /**
+     * Determines whether a node is an expression based only on its kind.
+     * Use `isPartOfExpression` if not in transforms.
+     */
     function isExpression(node: Node): node is Expression;
     function isAssertionExpression(node: Node): node is AssertionExpression;
     function isPartiallyEmittedExpression(node: Node): node is PartiallyEmittedExpression;
