@@ -534,6 +534,7 @@ declare namespace ts {
         expression?: Expression;
     }
     interface SignatureDeclaration extends NamedDeclaration {
+        kind: SyntaxKind.CallSignature | SyntaxKind.ConstructSignature | SyntaxKind.MethodSignature | SyntaxKind.IndexSignature | SyntaxKind.FunctionType | SyntaxKind.ConstructorType | SyntaxKind.JSDocFunctionType | SyntaxKind.FunctionDeclaration | SyntaxKind.MethodDeclaration | SyntaxKind.Constructor | SyntaxKind.GetAccessor | SyntaxKind.SetAccessor | SyntaxKind.FunctionExpression | SyntaxKind.ArrowFunction;
         name?: PropertyName;
         typeParameters?: NodeArray<TypeParameterDeclaration>;
         parameters: NodeArray<ParameterDeclaration>;
@@ -1268,6 +1269,7 @@ declare namespace ts {
     }
     type DeclarationWithTypeParameters = SignatureDeclaration | ClassLikeDeclaration | InterfaceDeclaration | TypeAliasDeclaration | JSDocTemplateTag;
     interface ClassLikeDeclaration extends NamedDeclaration {
+        kind: SyntaxKind.ClassDeclaration | SyntaxKind.ClassExpression;
         name?: Identifier;
         typeParameters?: NodeArray<TypeParameterDeclaration>;
         heritageClauses?: NodeArray<HeritageClause>;
@@ -4092,6 +4094,7 @@ declare namespace ts {
     function isExternalModuleAugmentation(node: Node): boolean;
     function isEffectiveExternalModule(node: SourceFile, compilerOptions: CompilerOptions): boolean;
     function isBlockScope(node: Node, parentNode: Node): boolean;
+    function isDeclarationWithTypeParameters(node: Node): node is DeclarationWithTypeParameters;
     function getEnclosingBlockScopeContainer(node: Node): Node;
     function declarationNameToString(name: DeclarationName): string;
     function getNameFromIndexInfo(info: IndexInfo): string | undefined;
@@ -8908,7 +8911,7 @@ declare namespace ts.refactor.extractMethod {
      * or an error explaining why we can't extract into that scope.
      */
     function getPossibleExtractions(targetRange: TargetRange, context: RefactorContext, requestedChangesIndex?: number): ReadonlyArray<ExtractResultForScope> | undefined;
-    function extractFunctionInScope(node: Statement | Expression | Block, scope: Scope, {usages: usagesInScope, substitutions}: ScopeUsages, range: TargetRange, context: RefactorContext): ExtractResultForScope;
+    function extractFunctionInScope(node: Statement | Expression | Block, scope: Scope, {usages: usagesInScope, typeParameterUsages, substitutions}: ScopeUsages, range: TargetRange, context: RefactorContext): ExtractResultForScope;
     enum Usage {
         Read = 1,
         Write = 2,
@@ -8920,6 +8923,7 @@ declare namespace ts.refactor.extractMethod {
     }
     interface ScopeUsages {
         usages: Map<UsageEntry>;
+        typeParameterUsages: Map<TypeParameter>;
         substitutions: Map<Node>;
     }
 }
