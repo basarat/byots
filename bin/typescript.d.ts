@@ -7775,7 +7775,7 @@ declare namespace ts {
     function isRightSideOfPropertyAccess(node: Node): boolean;
     function isNameOfModuleDeclaration(node: Node): boolean;
     function isNameOfFunctionDeclaration(node: Node): boolean;
-    function isLiteralNameOfPropertyDeclarationOrIndexAccess(node: Node): boolean;
+    function isLiteralNameOfPropertyDeclarationOrIndexAccess(node: StringLiteral | NumericLiteral): boolean;
     function isExpressionOfExternalModuleImportEqualsDeclaration(node: Node): boolean;
     function getContainerNode(node: Node): Declaration;
     function getNodeKind(node: Node): ScriptElementKind;
