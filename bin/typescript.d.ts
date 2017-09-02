@@ -538,7 +538,7 @@ declare namespace ts {
         name?: PropertyName;
         typeParameters?: NodeArray<TypeParameterDeclaration>;
         parameters: NodeArray<ParameterDeclaration>;
-        type?: TypeNode;
+        type: TypeNode | undefined;
     }
     interface CallSignatureDeclaration extends SignatureDeclaration, TypeElement {
         kind: SyntaxKind.CallSignature;
