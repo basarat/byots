@@ -2434,13 +2434,12 @@ declare namespace ts {
         target?: AnonymousType;
         mapper?: TypeMapper;
     }
-    interface MappedType extends ObjectType {
+    interface MappedType extends AnonymousType {
         declaration: MappedTypeNode;
         typeParameter?: TypeParameter;
         constraintType?: Type;
         templateType?: Type;
         modifiersType?: Type;
-        mapper?: TypeMapper;
     }
     interface EvolvingArrayType extends ObjectType {
         elementType: Type;
@@ -2524,8 +2523,6 @@ declare namespace ts {
     }
     interface TypeMapper {
         (t: TypeParameter): Type;
-        mappedTypes?: TypeParameter[];
-        instantiations?: Type[];
     }
     enum InferencePriority {
         NakedTypeVariable = 1,
