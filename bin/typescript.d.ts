@@ -2508,6 +2508,7 @@ declare namespace ts {
         mapper?: TypeMapper;
         unionSignatures?: Signature[];
         erasedSignatureCache?: Signature;
+        canonicalSignatureCache?: Signature;
         isolatedSignatureType?: ObjectType;
         typePredicate?: TypePredicate;
         instantiations?: Map<Signature>;
@@ -8289,11 +8290,11 @@ declare namespace ts.formatting {
 }
 declare namespace ts.formatting {
     class Rule {
-        Descriptor: RuleDescriptor;
-        Operation: RuleOperation;
-        Flag: RuleFlags;
+        readonly Descriptor: RuleDescriptor;
+        readonly Operation: RuleOperation;
+        readonly Flag: RuleFlags;
+        debugName?: string;
         constructor(Descriptor: RuleDescriptor, Operation: RuleOperation, Flag?: RuleFlags);
-        toString(): string;
     }
 }
 declare namespace ts.formatting {
@@ -8345,8 +8346,6 @@ declare namespace ts.formatting {
 }
 declare namespace ts.formatting {
     class Rules {
-        getRuleName(rule: Rule): string;
-        [name: string]: any;
         IgnoreBeforeComment: Rule;
         IgnoreAfterLineComment: Rule;
         NoSpaceBeforeSemicolon: Rule;
@@ -8595,8 +8594,6 @@ declare namespace ts.formatting {
         private options;
         private rulesMap;
         constructor();
-        getRuleName(rule: Rule): string;
-        getRuleByName(name: string): Rule;
         getRulesMap(): RulesMap;
         getFormatOptions(): Readonly<ts.FormatCodeSettings>;
         ensureUpToDate(options: ts.FormatCodeSettings): void;
