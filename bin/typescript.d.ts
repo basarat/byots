@@ -441,8 +441,6 @@ declare namespace ts {
         parent?: Node;
         original?: Node;
         startsOnNewLine?: boolean;
-        jsDoc?: JSDoc[];
-        jsDocCache?: ReadonlyArray<JSDocTag>;
         symbol?: Symbol;
         locals?: SymbolTable;
         nextContainer?: Node;
@@ -452,6 +450,11 @@ declare namespace ts {
         contextualType?: Type;
         contextualMapper?: TypeMapper;
     }
+    interface JSDocContainer {
+        jsDoc?: JSDoc[];
+        jsDocCache?: ReadonlyArray<JSDocTag>;
+    }
+    type HasJSDoc = ParameterDeclaration | CallSignatureDeclaration | ConstructSignatureDeclaration | MethodSignature | PropertySignature | ArrowFunction | ParenthesizedExpression | SpreadAssignment | ShorthandPropertyAssignment | PropertyAssignment | FunctionExpression | LabeledStatement | ExpressionStatement | VariableStatement | FunctionDeclaration | ConstructorDeclaration | MethodDeclaration | PropertyDeclaration | AccessorDeclaration | ClassLikeDeclaration | InterfaceDeclaration | TypeAliasDeclaration | EnumMember | EnumDeclaration | ModuleDeclaration | ImportEqualsDeclaration | IndexSignatureDeclaration | FunctionTypeNode | ConstructorTypeNode | JSDocFunctionType | EndOfFileToken;
     type MutableNodeArray<T extends Node> = NodeArray<T> & T[];
     interface NodeArray<T extends Node> extends ReadonlyArray<T>, TextRange {
         hasTrailingComma?: boolean;
@@ -466,7 +469,7 @@ declare namespace ts {
     type EqualsToken = Token<SyntaxKind.EqualsToken>;
     type AsteriskToken = Token<SyntaxKind.AsteriskToken>;
     type EqualsGreaterThanToken = Token<SyntaxKind.EqualsGreaterThanToken>;
-    type EndOfFileToken = Token<SyntaxKind.EndOfFileToken>;
+    type EndOfFileToken = Token<SyntaxKind.EndOfFileToken> & JSDocContainer;
     type AtToken = Token<SyntaxKind.AtToken>;
     type ReadonlyToken = Token<SyntaxKind.ReadonlyKeyword>;
     type AwaitKeywordToken = Token<SyntaxKind.AwaitKeyword>;
@@ -523,6 +526,7 @@ declare namespace ts {
     }
     interface Decorator extends Node {
         kind: SyntaxKind.Decorator;
+        parent?: NamedDeclaration;
         expression: LeftHandSideExpression;
     }
     interface TypeParameterDeclaration extends NamedDeclaration {
@@ -533,17 +537,18 @@ declare namespace ts {
         default?: TypeNode;
         expression?: Expression;
     }
-    interface SignatureDeclaration extends NamedDeclaration {
-        kind: SyntaxKind.CallSignature | SyntaxKind.ConstructSignature | SyntaxKind.MethodSignature | SyntaxKind.IndexSignature | SyntaxKind.FunctionType | SyntaxKind.ConstructorType | SyntaxKind.JSDocFunctionType | SyntaxKind.FunctionDeclaration | SyntaxKind.MethodDeclaration | SyntaxKind.Constructor | SyntaxKind.GetAccessor | SyntaxKind.SetAccessor | SyntaxKind.FunctionExpression | SyntaxKind.ArrowFunction;
+    interface SignatureDeclarationBase extends NamedDeclaration, JSDocContainer {
+        kind: SignatureDeclaration["kind"];
         name?: PropertyName;
         typeParameters?: NodeArray<TypeParameterDeclaration>;
         parameters: NodeArray<ParameterDeclaration>;
         type: TypeNode | undefined;
     }
-    interface CallSignatureDeclaration extends SignatureDeclaration, TypeElement {
+    type SignatureDeclaration = CallSignatureDeclaration | ConstructSignatureDeclaration | MethodSignature | IndexSignatureDeclaration | FunctionTypeNode | ConstructorTypeNode | JSDocFunctionType | FunctionDeclaration | MethodDeclaration | ConstructorDeclaration | AccessorDeclaration | FunctionExpression | ArrowFunction;
+    interface CallSignatureDeclaration extends SignatureDeclarationBase, TypeElement {
         kind: SyntaxKind.CallSignature;
     }
-    interface ConstructSignatureDeclaration extends SignatureDeclaration, TypeElement {
+    interface ConstructSignatureDeclaration extends SignatureDeclarationBase, TypeElement {
         kind: SyntaxKind.ConstructSignature;
     }
     type BindingName = Identifier | BindingPattern;
@@ -559,7 +564,7 @@ declare namespace ts {
         parent?: VariableStatement | ForStatement | ForOfStatement | ForInStatement;
         declarations: NodeArray<VariableDeclaration>;
     }
-    interface ParameterDeclaration extends NamedDeclaration {
+    interface ParameterDeclaration extends NamedDeclaration, JSDocContainer {
         kind: SyntaxKind.Parameter;
         parent?: SignatureDeclaration;
         dotDotDotToken?: DotDotDotToken;
@@ -576,14 +581,14 @@ declare namespace ts {
         name: BindingName;
         initializer?: Expression;
     }
-    interface PropertySignature extends TypeElement {
+    interface PropertySignature extends TypeElement, JSDocContainer {
         kind: SyntaxKind.PropertySignature;
         name: PropertyName;
         questionToken?: QuestionToken;
         type?: TypeNode;
         initializer?: Expression;
     }
-    interface PropertyDeclaration extends ClassElement {
+    interface PropertyDeclaration extends ClassElement, JSDocContainer {
         kind: SyntaxKind.PropertyDeclaration;
         questionToken?: QuestionToken;
         name: PropertyName;
@@ -595,27 +600,30 @@ declare namespace ts {
         name?: PropertyName;
     }
     type ObjectLiteralElementLike = PropertyAssignment | ShorthandPropertyAssignment | SpreadAssignment | MethodDeclaration | AccessorDeclaration;
-    interface PropertyAssignment extends ObjectLiteralElement {
+    interface PropertyAssignment extends ObjectLiteralElement, JSDocContainer {
+        parent: ObjectLiteralExpression;
         kind: SyntaxKind.PropertyAssignment;
         name: PropertyName;
         questionToken?: QuestionToken;
         initializer: Expression;
     }
-    interface ShorthandPropertyAssignment extends ObjectLiteralElement {
+    interface ShorthandPropertyAssignment extends ObjectLiteralElement, JSDocContainer {
+        parent: ObjectLiteralExpression;
         kind: SyntaxKind.ShorthandPropertyAssignment;
         name: Identifier;
         questionToken?: QuestionToken;
         equalsToken?: Token<SyntaxKind.EqualsToken>;
         objectAssignmentInitializer?: Expression;
     }
-    interface SpreadAssignment extends ObjectLiteralElement {
+    interface SpreadAssignment extends ObjectLiteralElement, JSDocContainer {
+        parent: ObjectLiteralExpression;
         kind: SyntaxKind.SpreadAssignment;
         expression: Expression;
     }
     interface VariableLikeDeclaration extends NamedDeclaration {
         propertyName?: PropertyName;
         dotDotDotToken?: DotDotDotToken;
-        name?: DeclarationName;
+        name: DeclarationName;
         questionToken?: QuestionToken;
         type?: TypeNode;
         initializer?: Expression;
@@ -643,7 +651,7 @@ declare namespace ts {
      * - MethodDeclaration
      * - AccessorDeclaration
      */
-    interface FunctionLikeDeclarationBase extends SignatureDeclaration {
+    interface FunctionLikeDeclarationBase extends SignatureDeclarationBase {
         _functionLikeDeclarationBrand: any;
         asteriskToken?: AsteriskToken;
         questionToken?: QuestionToken;
@@ -656,16 +664,16 @@ declare namespace ts {
         name?: Identifier;
         body?: FunctionBody;
     }
-    interface MethodSignature extends SignatureDeclaration, TypeElement {
+    interface MethodSignature extends SignatureDeclarationBase, TypeElement {
         kind: SyntaxKind.MethodSignature;
         name: PropertyName;
     }
-    interface MethodDeclaration extends FunctionLikeDeclarationBase, ClassElement, ObjectLiteralElement {
+    interface MethodDeclaration extends FunctionLikeDeclarationBase, ClassElement, ObjectLiteralElement, JSDocContainer {
         kind: SyntaxKind.MethodDeclaration;
         name: PropertyName;
         body?: FunctionBody;
     }
-    interface ConstructorDeclaration extends FunctionLikeDeclarationBase, ClassElement {
+    interface ConstructorDeclaration extends FunctionLikeDeclarationBase, ClassElement, JSDocContainer {
         kind: SyntaxKind.Constructor;
         parent?: ClassDeclaration | ClassExpression;
         body?: FunctionBody;
@@ -675,20 +683,20 @@ declare namespace ts {
         kind: SyntaxKind.SemicolonClassElement;
         parent?: ClassDeclaration | ClassExpression;
     }
-    interface GetAccessorDeclaration extends FunctionLikeDeclarationBase, ClassElement, ObjectLiteralElement {
+    interface GetAccessorDeclaration extends FunctionLikeDeclarationBase, ClassElement, ObjectLiteralElement, JSDocContainer {
         kind: SyntaxKind.GetAccessor;
         parent?: ClassDeclaration | ClassExpression | ObjectLiteralExpression;
         name: PropertyName;
         body: FunctionBody;
     }
-    interface SetAccessorDeclaration extends FunctionLikeDeclarationBase, ClassElement, ObjectLiteralElement {
+    interface SetAccessorDeclaration extends FunctionLikeDeclarationBase, ClassElement, ObjectLiteralElement, JSDocContainer {
         kind: SyntaxKind.SetAccessor;
         parent?: ClassDeclaration | ClassExpression | ObjectLiteralExpression;
         name: PropertyName;
         body: FunctionBody;
     }
     type AccessorDeclaration = GetAccessorDeclaration | SetAccessorDeclaration;
-    interface IndexSignatureDeclaration extends SignatureDeclaration, ClassElement, TypeElement {
+    interface IndexSignatureDeclaration extends SignatureDeclarationBase, ClassElement, TypeElement {
         kind: SyntaxKind.IndexSignature;
         parent?: ClassDeclaration | ClassExpression | InterfaceDeclaration | TypeLiteralNode;
     }
@@ -702,10 +710,10 @@ declare namespace ts {
         kind: SyntaxKind.ThisType;
     }
     type FunctionOrConstructorTypeNode = FunctionTypeNode | ConstructorTypeNode;
-    interface FunctionTypeNode extends TypeNode, SignatureDeclaration {
+    interface FunctionTypeNode extends TypeNode, SignatureDeclarationBase {
         kind: SyntaxKind.FunctionType;
     }
-    interface ConstructorTypeNode extends TypeNode, SignatureDeclaration {
+    interface ConstructorTypeNode extends TypeNode, SignatureDeclarationBase {
         kind: SyntaxKind.ConstructorType;
     }
     type TypeReferenceType = TypeReferenceNode | ExpressionWithTypeArguments;
@@ -716,6 +724,7 @@ declare namespace ts {
     }
     interface TypePredicateNode extends TypeNode {
         kind: SyntaxKind.TypePredicate;
+        parent?: SignatureDeclaration;
         parameterName: Identifier | ThisTypeNode;
         type: TypeNode;
     }
@@ -760,7 +769,6 @@ declare namespace ts {
     }
     interface MappedTypeNode extends TypeNode, Declaration {
         kind: SyntaxKind.MappedType;
-        parent?: TypeAliasDeclaration;
         readonlyToken?: ReadonlyToken;
         typeParameter: TypeParameterDeclaration;
         questionToken?: QuestionToken;
@@ -905,12 +913,12 @@ declare namespace ts {
     }
     type FunctionBody = Block;
     type ConciseBody = FunctionBody | Expression;
-    interface FunctionExpression extends PrimaryExpression, FunctionLikeDeclarationBase {
+    interface FunctionExpression extends PrimaryExpression, FunctionLikeDeclarationBase, JSDocContainer {
         kind: SyntaxKind.FunctionExpression;
         name?: Identifier;
         body: FunctionBody;
     }
-    interface ArrowFunction extends Expression, FunctionLikeDeclarationBase {
+    interface ArrowFunction extends Expression, FunctionLikeDeclarationBase, JSDocContainer {
         kind: SyntaxKind.ArrowFunction;
         equalsGreaterThanToken: EqualsGreaterThanToken;
         body: ConciseBody;
@@ -966,7 +974,7 @@ declare namespace ts {
         expression: Expression;
         literal: TemplateMiddle | TemplateTail;
     }
-    interface ParenthesizedExpression extends PrimaryExpression {
+    interface ParenthesizedExpression extends PrimaryExpression, JSDocContainer {
         kind: SyntaxKind.ParenthesizedExpression;
         expression: Expression;
     }
@@ -977,6 +985,7 @@ declare namespace ts {
     }
     interface SpreadElement extends Expression {
         kind: SyntaxKind.SpreadElement;
+        parent?: ArrayLiteralExpression | CallExpression | NewExpression;
         expression: Expression;
     }
     /**
@@ -1158,11 +1167,11 @@ declare namespace ts {
         statements: NodeArray<Statement>;
         multiLine?: boolean;
     }
-    interface VariableStatement extends Statement {
+    interface VariableStatement extends Statement, JSDocContainer {
         kind: SyntaxKind.VariableStatement;
         declarationList: VariableDeclarationList;
     }
-    interface ExpressionStatement extends Statement {
+    interface ExpressionStatement extends Statement, JSDocContainer {
         kind: SyntaxKind.ExpressionStatement;
         expression: Expression;
     }
@@ -1246,7 +1255,7 @@ declare namespace ts {
         statements: NodeArray<Statement>;
     }
     type CaseOrDefaultClause = CaseClause | DefaultClause;
-    interface LabeledStatement extends Statement {
+    interface LabeledStatement extends Statement, JSDocContainer {
         kind: SyntaxKind.LabeledStatement;
         label: Identifier;
         statement: Statement;
@@ -1268,20 +1277,21 @@ declare namespace ts {
         block: Block;
     }
     type DeclarationWithTypeParameters = SignatureDeclaration | ClassLikeDeclaration | InterfaceDeclaration | TypeAliasDeclaration | JSDocTemplateTag;
-    interface ClassLikeDeclaration extends NamedDeclaration {
+    interface ClassLikeDeclarationBase extends NamedDeclaration, JSDocContainer {
         kind: SyntaxKind.ClassDeclaration | SyntaxKind.ClassExpression;
         name?: Identifier;
         typeParameters?: NodeArray<TypeParameterDeclaration>;
         heritageClauses?: NodeArray<HeritageClause>;
         members: NodeArray<ClassElement>;
     }
-    interface ClassDeclaration extends ClassLikeDeclaration, DeclarationStatement {
+    interface ClassDeclaration extends ClassLikeDeclarationBase, DeclarationStatement {
         kind: SyntaxKind.ClassDeclaration;
         name?: Identifier;
     }
-    interface ClassExpression extends ClassLikeDeclaration, PrimaryExpression {
+    interface ClassExpression extends ClassLikeDeclarationBase, PrimaryExpression {
         kind: SyntaxKind.ClassExpression;
     }
+    type ClassLikeDeclaration = ClassDeclaration | ClassExpression;
     interface ClassElement extends NamedDeclaration {
         _classElementBrand: any;
         name?: PropertyName;
@@ -1291,7 +1301,7 @@ declare namespace ts {
         name?: PropertyName;
         questionToken?: QuestionToken;
     }
-    interface InterfaceDeclaration extends DeclarationStatement {
+    interface InterfaceDeclaration extends DeclarationStatement, JSDocContainer {
         kind: SyntaxKind.InterfaceDeclaration;
         name: Identifier;
         typeParameters?: NodeArray<TypeParameterDeclaration>;
@@ -1304,26 +1314,26 @@ declare namespace ts {
         token: SyntaxKind.ExtendsKeyword | SyntaxKind.ImplementsKeyword;
         types: NodeArray<ExpressionWithTypeArguments>;
     }
-    interface TypeAliasDeclaration extends DeclarationStatement {
+    interface TypeAliasDeclaration extends DeclarationStatement, JSDocContainer {
         kind: SyntaxKind.TypeAliasDeclaration;
         name: Identifier;
         typeParameters?: NodeArray<TypeParameterDeclaration>;
         type: TypeNode;
     }
-    interface EnumMember extends NamedDeclaration {
+    interface EnumMember extends NamedDeclaration, JSDocContainer {
         kind: SyntaxKind.EnumMember;
         parent?: EnumDeclaration;
         name: PropertyName;
         initializer?: Expression;
     }
-    interface EnumDeclaration extends DeclarationStatement {
+    interface EnumDeclaration extends DeclarationStatement, JSDocContainer {
         kind: SyntaxKind.EnumDeclaration;
         name: Identifier;
         members: NodeArray<EnumMember>;
     }
     type ModuleName = Identifier | StringLiteral;
     type ModuleBody = NamespaceBody | JSDocNamespaceBody;
-    interface ModuleDeclaration extends DeclarationStatement {
+    interface ModuleDeclaration extends DeclarationStatement, JSDocContainer {
         kind: SyntaxKind.ModuleDeclaration;
         parent?: ModuleBody | SourceFile;
         name: ModuleName;
@@ -1350,7 +1360,7 @@ declare namespace ts {
      * - import x = require("mod");
      * - import x = M.x;
      */
-    interface ImportEqualsDeclaration extends DeclarationStatement {
+    interface ImportEqualsDeclaration extends DeclarationStatement, JSDocContainer {
         kind: SyntaxKind.ImportEqualsDeclaration;
         parent?: SourceFile | ModuleBlock;
         name: Identifier;
@@ -1462,7 +1472,7 @@ declare namespace ts {
         kind: SyntaxKind.JSDocOptionalType;
         type: TypeNode;
     }
-    interface JSDocFunctionType extends JSDocType, SignatureDeclaration {
+    interface JSDocFunctionType extends JSDocType, SignatureDeclarationBase {
         kind: SyntaxKind.JSDocFunctionType;
     }
     interface JSDocVariadicType extends JSDocType {
@@ -1472,6 +1482,7 @@ declare namespace ts {
     type JSDocTypeReferencingNode = JSDocVariadicType | JSDocOptionalType | JSDocNullableType | JSDocNonNullableType;
     interface JSDoc extends Node {
         kind: SyntaxKind.JSDocComment;
+        parent?: HasJSDoc;
         tags: NodeArray<JSDocTag> | undefined;
         comment: string | undefined;
     }
@@ -2615,7 +2626,7 @@ declare namespace ts {
     interface PluginImport {
         name: string;
     }
-    type CompilerOptionsValue = string | number | boolean | (string | number)[] | string[] | MapLike<string[]> | PluginImport[];
+    type CompilerOptionsValue = string | number | boolean | (string | number)[] | string[] | MapLike<string[]> | PluginImport[] | null | undefined;
     interface CompilerOptions {
         all?: boolean;
         allowJs?: boolean;
@@ -2990,6 +3001,11 @@ declare namespace ts {
          * If accessing a non-index file, this should include its name e.g. "foo/bar".
          */
         name: string;
+        /**
+         * Name of a submodule within this package.
+         * May be "".
+         */
+        subModuleName: string;
         /** Version of the package, e.g. "1.2.3" */
         version: string;
     }
@@ -3007,6 +3023,7 @@ declare namespace ts {
     interface ResolvedTypeReferenceDirective {
         primary: boolean;
         resolvedFileName?: string;
+        packageId?: PackageId;
     }
     interface ResolvedTypeReferenceDirectiveWithFailedLookupLocations {
         resolvedTypeReferenceDirective: ResolvedTypeReferenceDirective;
@@ -3179,7 +3196,8 @@ declare namespace ts {
         SourceFile = 0,
         Expression = 1,
         IdentifierName = 2,
-        Unspecified = 3,
+        MappedTypeParameter = 3,
+        Unspecified = 4,
     }
     interface EmitHost extends ScriptReferenceHost {
         getSourceFiles(): ReadonlyArray<SourceFile>;
@@ -3451,6 +3469,9 @@ declare namespace ts {
     const versionMajorMinor = "2.6";
     /** The version of the TypeScript compiler release */
     const version: string;
+}
+declare namespace ts {
+    function isExternalModuleNameRelative(moduleName: string): boolean;
 }
 declare namespace ts {
     const collator: {
@@ -3738,6 +3759,8 @@ declare namespace ts {
     function cast<TOut extends TIn, TIn = any>(value: TIn | undefined, test: (value: TIn) => value is TOut): TOut;
     /** Does nothing. */
     function noop(): void;
+    /** Returns its argument. */
+    function identity<T>(x: T): T;
     /** Throws an error because a function is not implemented. */
     function notImplemented(): never;
     function memoize<T>(callback: () => T): () => T;
@@ -3799,7 +3822,6 @@ declare namespace ts {
     function getDirectoryPath(path: string): string;
     function isUrl(path: string): boolean;
     function pathIsRelative(path: string): boolean;
-    function isExternalModuleNameRelative(moduleName: string): boolean;
     /** @deprecated Use `!isExternalModuleNameRelative(moduleName)` instead. */
     function moduleHasNonRelativeName(moduleName: string): boolean;
     function getEmitScriptTarget(compilerOptions: CompilerOptions): ScriptTarget;
@@ -3917,7 +3939,8 @@ declare namespace ts {
         function assertLessThan(a: number, b: number, msg?: string): void;
         function assertLessThanOrEqual(a: number, b: number): void;
         function assertGreaterThanOrEqual(a: number, b: number): void;
-        function fail(message?: string, stackCrawlMark?: Function): void;
+        function fail(message?: string, stackCrawlMark?: Function): never;
+        function assertNever(member: never, message?: string, stackCrawlMark?: Function): never;
         function getFunctionName(func: Function): any;
     }
     /** Remove an item from an array, moving everything to its right one space left. */
@@ -3955,6 +3978,7 @@ declare namespace ts {
     function tryGetExtensionFromPath(path: string): Extension | undefined;
     function isCheckJsEnabledForFile(sourceFile: SourceFile, compilerOptions: CompilerOptions): boolean;
     function and<T>(f: (arg: T) => boolean, g: (arg: T) => boolean): (arg: T) => boolean;
+    function assertTypeIsNever(_: never): void;
 }
 declare function setTimeout(handler: (...args: any[]) => void, timeout: number): any;
 declare function clearTimeout(handle: any): void;
@@ -4545,7 +4569,8 @@ declare namespace ts {
      * @returns The unescaped identifier text.
      */
     function unescapeIdentifier(id: string): string;
-    function getNameOfDeclaration(declaration: Declaration): DeclarationName | undefined;
+    function getNameOfJSDocTypedef(declaration: JSDocTypedefTag): Identifier | undefined;
+    function getNameOfDeclaration(declaration: Declaration | Expression): DeclarationName | undefined;
 }
 declare namespace ts {
     function isNumericLiteral(node: Node): node is NumericLiteral;
@@ -4801,6 +4826,8 @@ declare namespace ts {
     /** True if node is of a kind that may contain comment text. */
     function isJSDocCommentContainingNode(node: Node): boolean;
     function isJSDocTag(node: Node): boolean;
+    /** True if has jsdoc nodes attached to it. */
+    function hasJSDocNodes(node: Node): node is HasJSDoc;
 }
 declare namespace ts {
     const Diagnostics: {
@@ -6212,6 +6239,7 @@ declare namespace ts {
     function updateFunctionExpression(node: FunctionExpression, modifiers: ReadonlyArray<Modifier> | undefined, asteriskToken: AsteriskToken | undefined, name: Identifier | undefined, typeParameters: ReadonlyArray<TypeParameterDeclaration> | undefined, parameters: ReadonlyArray<ParameterDeclaration>, type: TypeNode | undefined, body: Block): FunctionExpression;
     function createArrowFunction(modifiers: ReadonlyArray<Modifier> | undefined, typeParameters: ReadonlyArray<TypeParameterDeclaration> | undefined, parameters: ReadonlyArray<ParameterDeclaration>, type: TypeNode | undefined, equalsGreaterThanToken: EqualsGreaterThanToken | undefined, body: ConciseBody): ArrowFunction;
     function updateArrowFunction(node: ArrowFunction, modifiers: ReadonlyArray<Modifier> | undefined, typeParameters: ReadonlyArray<TypeParameterDeclaration> | undefined, parameters: ReadonlyArray<ParameterDeclaration>, type: TypeNode | undefined, body: ConciseBody): ArrowFunction;
+    function updateArrowFunction(node: ArrowFunction, modifiers: ReadonlyArray<Modifier> | undefined, typeParameters: ReadonlyArray<TypeParameterDeclaration> | undefined, parameters: ReadonlyArray<ParameterDeclaration>, type: TypeNode | undefined, equalsGreaterThanToken: Token<SyntaxKind.EqualsGreaterThanToken>, body: ConciseBody): ArrowFunction;
     function createDelete(expression: Expression): DeleteExpression;
     function updateDelete(node: DeleteExpression, expression: Expression): DeleteExpression;
     function createTypeOf(expression: Expression): TypeOfExpression;
@@ -6229,6 +6257,7 @@ declare namespace ts {
     function createConditional(condition: Expression, whenTrue: Expression, whenFalse: Expression): ConditionalExpression;
     function createConditional(condition: Expression, questionToken: QuestionToken, whenTrue: Expression, colonToken: ColonToken, whenFalse: Expression): ConditionalExpression;
     function updateConditional(node: ConditionalExpression, condition: Expression, whenTrue: Expression, whenFalse: Expression): ConditionalExpression;
+    function updateConditional(node: ConditionalExpression, condition: Expression, questionToken: Token<SyntaxKind.QuestionToken>, whenTrue: Expression, colonToken: Token<SyntaxKind.ColonToken>, whenFalse: Expression): ConditionalExpression;
     function createTemplateExpression(head: TemplateHead, templateSpans: ReadonlyArray<TemplateSpan>): TemplateExpression;
     function updateTemplateExpression(node: TemplateExpression, head: TemplateHead, templateSpans: ReadonlyArray<TemplateSpan>): TemplateExpression;
     function createYield(expression?: Expression): YieldExpression;
@@ -6983,7 +7012,7 @@ declare namespace ts {
         getNewLine(): string;
     }
     function formatDiagnostics(diagnostics: ReadonlyArray<Diagnostic>, host: FormatDiagnosticsHost): string;
-    function formatDiagnosticsWithColorAndContext(diagnostics: Diagnostic[], host: FormatDiagnosticsHost): string;
+    function formatDiagnosticsWithColorAndContext(diagnostics: ReadonlyArray<Diagnostic>, host: FormatDiagnosticsHost): string;
     function flattenDiagnosticMessageText(messageText: string | DiagnosticMessageChain, newLine: string): string;
     /**
      * Create a new 'Program' instance. A Program is an immutable collection of 'SourceFile's and a 'CompilerOptions'
@@ -7295,7 +7324,7 @@ declare namespace ts {
      * Represents a single refactoring action - for example, the "Extract Method..." refactor might
      * offer several actions, each corresponding to a surround class or closure to extract into.
      */
-    type RefactorActionInfo = {
+    interface RefactorActionInfo {
         /**
          * The programmatic name of the refactoring action
          */
@@ -7306,16 +7335,16 @@ declare namespace ts {
          * so this description should make sense by itself if the parent is inlineable=true
          */
         description: string;
-    };
+    }
     /**
      * A set of edits to make in response to a refactor action, plus an optional
      * location where renaming should be invoked from
      */
-    type RefactorEditInfo = {
+    interface RefactorEditInfo {
         edits: FileTextChanges[];
         renameFilename?: string;
         renameLocation?: number;
-    };
+    }
     interface TextInsertion {
         newText: string;
         /** The position in newText the caret should point to after the insertion. */
@@ -8248,9 +8277,8 @@ declare namespace ts.formatting {
         getCurrentLeadingTrivia(): TextRangeWithKind[];
         lastTrailingTriviaWasNewLine(): boolean;
         skipToEndOf(node: Node): void;
-        close(): void;
     }
-    function getFormattingScanner(text: string, languageVariant: LanguageVariant, startPos: number, endPos: number): FormattingScanner;
+    function getFormattingScanner<T>(text: string, languageVariant: LanguageVariant, startPos: number, endPos: number, cb: (scanner: FormattingScanner) => T): T;
 }
 declare namespace ts.formatting {
     class FormattingContext {
@@ -8713,10 +8741,7 @@ declare namespace ts.textChanges {
         private readonly validator;
         private changes;
         private readonly newLineCharacter;
-        static fromCodeFixContext(context: {
-            newLineCharacter: string;
-            rulesProvider?: formatting.RulesProvider;
-        }): ChangeTracker;
+        static fromContext(context: RefactorContext | CodeFixContext): ChangeTracker;
         constructor(newLine: NewLineKind, rulesProvider: formatting.RulesProvider, validator?: (text: NonFormattedText) => void);
         deleteRange(sourceFile: SourceFile, range: TextRange): this;
         deleteNode(sourceFile: SourceFile, node: Node, options?: ConfigurableStartEnd): this;
@@ -8750,8 +8775,6 @@ declare namespace ts.textChanges {
         readonly text: string;
         readonly node: Node;
     }
-    function getNonformattedText(node: Node, sourceFile: SourceFile | undefined, newLine: NewLineKind): NonFormattedText;
-    function applyFormatting(nonFormattedText: NonFormattedText, sourceFile: SourceFile, initialIndentation: number, delta: number, rulesProvider: formatting.RulesProvider): string;
     function applyChanges(text: string, changes: TextChange[]): string;
 }
 declare namespace ts {
