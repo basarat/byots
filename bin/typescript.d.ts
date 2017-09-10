@@ -4748,6 +4748,7 @@ declare namespace ts {
     function isPropertyName(node: Node): node is PropertyName;
     function isBindingName(node: Node): node is BindingName;
     function isFunctionLike(node: Node): node is FunctionLike;
+    function isFunctionLikeDeclaration(node: Node): node is FunctionLikeDeclaration;
     function isFunctionLikeKind(kind: SyntaxKind): boolean;
     function isClassElement(node: Node): node is ClassElement;
     function isClassLike(node: Node): node is ClassLikeDeclaration;
@@ -4987,8 +4988,8 @@ declare namespace ts {
         An_extended_Unicode_escape_value_must_be_between_0x0_and_0x10FFFF_inclusive: DiagnosticMessage;
         Unterminated_Unicode_escape_sequence: DiagnosticMessage;
         Line_terminator_not_permitted_before_arrow: DiagnosticMessage;
-        Import_assignment_cannot_be_used_when_targeting_ECMAScript_2015_modules_Consider_using_import_Asterisk_as_ns_from_mod_import_a_from_mod_import_d_from_mod_or_another_module_format_instead: DiagnosticMessage;
-        Export_assignment_cannot_be_used_when_targeting_ECMAScript_2015_modules_Consider_using_export_default_or_another_module_format_instead: DiagnosticMessage;
+        Import_assignment_cannot_be_used_when_targeting_ECMAScript_modules_Consider_using_import_Asterisk_as_ns_from_mod_import_a_from_mod_import_d_from_mod_or_another_module_format_instead: DiagnosticMessage;
+        Export_assignment_cannot_be_used_when_targeting_ECMAScript_modules_Consider_using_export_default_or_another_module_format_instead: DiagnosticMessage;
         Cannot_re_export_a_type_when_the_isolatedModules_flag_is_provided: DiagnosticMessage;
         Decorators_are_not_valid_here: DiagnosticMessage;
         Decorators_cannot_be_applied_to_multiple_get_Slashset_accessors_of_the_same_name: DiagnosticMessage;
@@ -5752,7 +5753,7 @@ declare namespace ts {
         Convert_function_to_an_ES2015_class: DiagnosticMessage;
         Convert_function_0_to_class: DiagnosticMessage;
         Extract_function: DiagnosticMessage;
-        Extract_function_into_0: DiagnosticMessage;
+        Extract_to_0: DiagnosticMessage;
     };
 }
 declare namespace ts {
