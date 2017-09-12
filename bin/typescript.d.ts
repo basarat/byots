@@ -4750,6 +4750,7 @@ declare namespace ts {
     function isFunctionLike(node: Node): node is FunctionLike;
     function isFunctionLikeDeclaration(node: Node): node is FunctionLikeDeclaration;
     function isFunctionLikeKind(kind: SyntaxKind): boolean;
+    function isFunctionOrModuleBlock(node: Node): boolean;
     function isClassElement(node: Node): node is ClassElement;
     function isClassLike(node: Node): node is ClassLikeDeclaration;
     function isAccessor(node: Node): node is AccessorDeclaration;
@@ -5311,6 +5312,7 @@ declare namespace ts {
         Value_of_type_0_has_no_properties_in_common_with_type_1_Did_you_mean_to_call_it: DiagnosticMessage;
         Object_literal_may_only_specify_known_properties_but_0_does_not_exist_in_type_1_Did_you_mean_to_write_2: DiagnosticMessage;
         Base_class_expressions_cannot_reference_class_type_parameters: DiagnosticMessage;
+        The_containing_function_or_module_body_is_too_large_for_control_flow_analysis: DiagnosticMessage;
         JSX_element_attributes_type_0_may_not_be_a_union_type: DiagnosticMessage;
         The_return_type_of_a_JSX_element_constructor_must_return_an_object_type: DiagnosticMessage;
         JSX_element_implicitly_has_type_any_because_the_global_type_JSX_Element_does_not_exist: DiagnosticMessage;
