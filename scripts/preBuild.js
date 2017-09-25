@@ -16,6 +16,27 @@ var fixesForFiles = [
             {
                 orig: 'const enum Usage',
                 new: 'export const enum Usage'
+            },
+            {
+                orig: 'type RangeToExtract',
+                new: 'export type RangeToExtract'
+            },
+            {
+                orig: 'interface TargetRange',
+                new: 'export interface TargetRange'
+            },
+            {
+                orig: 'interface PossibleExtraction',
+                new: 'export interface PossibleExtraction'
+            },
+        ],
+    },
+    {
+        filePath: '../TypeScript/src/services/shims.ts',
+        fixes: [
+            {
+                orig: 'interface RealizedDiagnostic',
+                new: 'export interface RealizedDiagnostic'
             }
         ]
     }
