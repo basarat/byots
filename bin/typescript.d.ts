@@ -776,7 +776,7 @@ declare namespace ts {
     }
     interface LiteralTypeNode extends TypeNode {
         kind: SyntaxKind.LiteralType;
-        literal: Expression;
+        literal: BooleanLiteral | LiteralExpression | PrefixUnaryExpression;
     }
     interface StringLiteral extends LiteralExpression {
         kind: SyntaxKind.StringLiteral;
@@ -1752,6 +1752,7 @@ declare namespace ts {
         getFileProcessingDiagnostics(): DiagnosticCollection;
         getResolvedTypeReferenceDirectives(): Map<ResolvedTypeReferenceDirective>;
         isSourceFileFromExternalLibrary(file: SourceFile): boolean;
+        isSourceFileDefaultLibrary(file: SourceFile): boolean;
         structureIsReused?: StructureIsReused;
         getSourceFileFromReference(referencingFile: SourceFile, ref: FileReference): SourceFile | undefined;
         /** Given a source file, get the name of the package it was imported from. */
@@ -1910,7 +1911,8 @@ declare namespace ts {
          * So for `{ a } | { b }`, this will include both `a` and `b`.
          * Does not include properties of primitive types.
          */
-        getAllPossiblePropertiesOfType(type: Type): Symbol[];
+        isArrayLikeType(type: Type): boolean;
+        getAllPossiblePropertiesOfTypes(type: ReadonlyArray<Type>): Symbol[];
         resolveName(name: string, location: Node, meaning: SymbolFlags): Symbol | undefined;
         getJsxNamespace(): string;
     }
@@ -2332,6 +2334,7 @@ declare namespace ts {
         JsxAttributes = 33554432,
         Nullable = 6144,
         Literal = 224,
+        Unit = 6368,
         StringOrNumberLiteral = 96,
         DefinitelyFalsy = 7392,
         PossiblyFalsy = 7406,
@@ -3029,8 +3032,8 @@ declare namespace ts {
         failedLookupLocations: string[];
     }
     interface CompilerHost extends ModuleResolutionHost {
-        getSourceFile(fileName: string, languageVersion: ScriptTarget, onError?: (message: string) => void): SourceFile;
-        getSourceFileByPath?(fileName: string, path: Path, languageVersion: ScriptTarget, onError?: (message: string) => void): SourceFile;
+        getSourceFile(fileName: string, languageVersion: ScriptTarget, onError?: (message: string) => void): SourceFile | undefined;
+        getSourceFileByPath?(fileName: string, path: Path, languageVersion: ScriptTarget, onError?: (message: string) => void): SourceFile | undefined;
         getCancellationToken?(): CancellationToken;
         getDefaultLibFileName(options: CompilerOptions): string;
         getDefaultLibLocation?(): string;
@@ -3681,13 +3684,9 @@ declare namespace ts {
     function getProperty<T>(map: MapLike<T>, key: string): T | undefined;
     /**
      * Gets the owned, enumerable property keys of a map-like.
-     *
-     * NOTE: This is intended for use with MapLike<T> objects. For Map<T> objects, use
-     *       Object.keys instead as it offers better performance.
-     *
-     * @param map A map-like.
      */
     function getOwnKeys<T>(map: MapLike<T>): string[];
+    function getOwnValues<T>(sparseArray: T[]): T[];
     /** Shims `Array.from`. */
     function arrayFrom<T, U>(iterator: Iterator<T>, map: (t: T) => U): U[];
     function arrayFrom<T>(iterator: Iterator<T>): T[];
@@ -4090,6 +4089,11 @@ declare namespace ts {
     function getTextOfNodeFromSourceText(sourceText: string, node: Node): string;
     function getTextOfNode(node: Node, includeTrivia?: boolean): string;
     /**
+     * Note: it is expected that the `nodeArray` and the `node` are within the same file.
+     * For example, searching for a `SourceFile` in a `SourceFile[]` wouldn't work.
+     */
+    function indexOfNode(nodeArray: ReadonlyArray<Node>, node: Node): number;
+    /**
      * Gets flags that control emit behavior of a node.
      */
     function getEmitFlags(node: Node): EmitFlags | undefined;
@@ -4183,12 +4187,13 @@ declare namespace ts {
     function childIsDecorated(node: Node): boolean;
     function isJSXTagName(node: Node): boolean;
     function isPartOfExpression(node: Node): boolean;
+    function isInExpressionContext(node: Node): boolean;
     function isExternalModuleImportEqualsDeclaration(node: Node): boolean;
     function getExternalModuleImportEqualsDeclarationExpression(node: Node): Expression;
     function isInternalModuleImportEqualsDeclaration(node: Node): node is ImportEqualsDeclaration;
     function isSourceFileJavaScript(file: SourceFile): boolean;
-    function isInJavaScriptFile(node: Node): boolean;
-    function isInJSDoc(node: Node): boolean;
+    function isInJavaScriptFile(node: Node | undefined): boolean;
+    function isInJSDoc(node: Node | undefined): boolean;
     /**
      * Returns true if the node is a CallExpression to the identifier 'require' with
      * exactly one argument (of the form 'require("name")').
@@ -4210,21 +4215,13 @@ declare namespace ts {
     function isDefaultImport(node: ImportDeclaration | ImportEqualsDeclaration | ExportDeclaration): boolean;
     function hasQuestionToken(node: Node): boolean;
     function isJSDocConstructSignature(node: Node): boolean;
-    function hasJSDocParameterTags(node: FunctionLikeDeclaration | SignatureDeclaration): boolean;
     function getAllJSDocs(node: Node): (JSDoc | JSDocTag)[];
-    function getJSDocTags(node: Node): ReadonlyArray<JSDocTag> | undefined;
-    function getJSDocParameterTags(param: ParameterDeclaration): JSDocParameterTag[] | undefined;
+    function getJSDocCommentsAndTags(node: Node): (JSDoc | JSDocTag)[];
     /** Does the opposite of `getJSDocParameterTags`: given a JSDoc parameter, finds the parameter corresponding to it. */
     function getParameterSymbolFromJSDoc(node: JSDocParameterTag): Symbol | undefined;
     function getTypeParameterFromJsDoc(node: TypeParameterDeclaration & {
         parent: JSDocTemplateTag;
     }): TypeParameterDeclaration | undefined;
-    function getJSDocType(node: Node): TypeNode;
-    function getJSDocAugmentsTag(node: Node): JSDocAugmentsTag;
-    function getJSDocClassTag(node: Node): JSDocClassTag;
-    function getJSDocReturnTag(node: Node): JSDocReturnTag;
-    function getJSDocReturnType(node: Node): TypeNode;
-    function getJSDocTemplateTag(node: Node): JSDocTemplateTag;
     function hasRestParameter(s: SignatureDeclaration): boolean;
     function hasDeclaredRestParameter(s: SignatureDeclaration): boolean;
     function isRestParameter(node: ParameterDeclaration): boolean;
@@ -4486,6 +4483,8 @@ declare namespace ts {
     function skipAlias(symbol: Symbol, checker: TypeChecker): Symbol;
     /** See comment on `declareModuleMember` in `binder.ts`. */
     function getCombinedLocalAndExportSymbolFlags(symbol: Symbol): SymbolFlags;
+    function isWriteOnlyAccess(node: Node): boolean;
+    function isWriteAccess(node: Node): boolean;
 }
 declare namespace ts {
     function getDefaultLibFileName(options: CompilerOptions): string;
@@ -4570,6 +4569,58 @@ declare namespace ts {
     function unescapeIdentifier(id: string): string;
     function getNameOfJSDocTypedef(declaration: JSDocTypedefTag): Identifier | undefined;
     function getNameOfDeclaration(declaration: Declaration | Expression): DeclarationName | undefined;
+    /**
+     * Gets the JSDoc parameter tags for the node if present.
+     *
+     * @remarks Returns any JSDoc param tag that matches the provided
+     * parameter, whether a param tag on a containing function
+     * expression, or a param tag on a variable declaration whose
+     * initializer is the containing function. The tags closest to the
+     * node are returned first, so in the previous example, the param
+     * tag on the containing function expression would be first.
+     *
+     * Does not return tags for binding patterns, because JSDoc matches
+     * parameters by name and binding patterns do not have a name.
+     */
+    function getJSDocParameterTags(param: ParameterDeclaration): ReadonlyArray<JSDocParameterTag> | undefined;
+    /**
+     * Return true if the node has JSDoc parameter tags.
+     *
+     * @remarks Includes parameter tags that are not directly on the node,
+     * for example on a variable declaration whose initializer is a function expression.
+     */
+    function hasJSDocParameterTags(node: FunctionLikeDeclaration | SignatureDeclaration): boolean;
+    /** Gets the JSDoc augments tag for the node if present */
+    function getJSDocAugmentsTag(node: Node): JSDocAugmentsTag | undefined;
+    /** Gets the JSDoc class tag for the node if present */
+    function getJSDocClassTag(node: Node): JSDocClassTag | undefined;
+    /** Gets the JSDoc return tag for the node if present */
+    function getJSDocReturnTag(node: Node): JSDocReturnTag | undefined;
+    /** Gets the JSDoc template tag for the node if present */
+    function getJSDocTemplateTag(node: Node): JSDocTemplateTag | undefined;
+    /** Gets the JSDoc type tag for the node if present and valid */
+    function getJSDocTypeTag(node: Node): JSDocTypeTag | undefined;
+    /**
+     * Gets the type node for the node if provided via JSDoc.
+     *
+     * @remarks The search includes any JSDoc param tag that relates
+     * to the provided parameter, for example a type tag on the
+     * parameter itself, or a param tag on a containing function
+     * expression, or a param tag on a variable declaration whose
+     * initializer is the containing function. The tags closest to the
+     * node are examined first, so in the previous example, the type
+     * tag directly on the node would be returned.
+     */
+    function getJSDocType(node: Node): TypeNode | undefined;
+    /**
+     * Gets the return type node for the node if provided via JSDoc's return tag.
+     *
+     * @remarks `getJSDocReturnTag` just gets the whole JSDoc tag. This function
+     * gets the type from inside the braces.
+     */
+    function getJSDocReturnType(node: Node): TypeNode | undefined;
+    /** Get all JSDoc tags related to a node, including those on parent nodes. */
+    function getJSDocTags(node: Node): ReadonlyArray<JSDocTag> | undefined;
 }
 declare namespace ts {
     function isNumericLiteral(node: Node): node is NumericLiteral;
@@ -5385,6 +5436,7 @@ declare namespace ts {
         A_dynamic_import_call_returns_a_Promise_Make_sure_you_have_a_declaration_for_Promise_or_include_ES2015_in_your_lib_option: DiagnosticMessage;
         A_dynamic_import_call_in_ES5_SlashES3_requires_the_Promise_constructor_Make_sure_you_have_a_declaration_for_the_Promise_constructor_or_include_ES2015_in_your_lib_option: DiagnosticMessage;
         Cannot_access_0_1_because_0_is_a_type_but_not_a_namespace_Did_you_mean_to_retrieve_the_type_of_the_property_1_in_0_with_0_1: DiagnosticMessage;
+        The_expression_of_an_export_assignment_must_be_an_identifier_or_qualified_name_in_an_ambient_context: DiagnosticMessage;
         Import_declaration_0_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_interface_has_or_is_using_private_name_1: DiagnosticMessage;
@@ -5607,17 +5659,16 @@ declare namespace ts {
         Resolving_real_path_for_0_result_1: DiagnosticMessage;
         Cannot_compile_modules_using_option_0_unless_the_module_flag_is_amd_or_system: DiagnosticMessage;
         File_name_0_has_a_1_extension_stripping_it: DiagnosticMessage;
-        _0_is_declared_but_never_used: DiagnosticMessage;
+        _0_is_declared_but_its_value_is_never_read: DiagnosticMessage;
         Report_errors_on_unused_locals: DiagnosticMessage;
         Report_errors_on_unused_parameters: DiagnosticMessage;
         The_maximum_dependency_depth_to_search_under_node_modules_and_load_JavaScript_files: DiagnosticMessage;
         Cannot_import_type_declaration_files_Consider_importing_0_instead_of_1: DiagnosticMessage;
-        Property_0_is_declared_but_never_used: DiagnosticMessage;
+        Property_0_is_declared_but_its_value_is_never_read: DiagnosticMessage;
         Import_emit_helpers_from_tslib: DiagnosticMessage;
         Auto_discovery_for_typings_is_enabled_in_project_0_Running_extra_resolution_pass_for_module_1_using_cache_location_2: DiagnosticMessage;
         Parse_in_strict_mode_and_emit_use_strict_for_each_source_file: DiagnosticMessage;
         Module_0_was_resolved_to_1_but_jsx_is_not_set: DiagnosticMessage;
-        Module_0_was_resolved_to_1_but_allowJs_is_not_set: DiagnosticMessage;
         Module_0_was_resolved_as_locally_declared_ambient_module_in_file_1: DiagnosticMessage;
         Module_0_was_resolved_as_ambient_module_declared_in_1_since_this_file_was_not_modified: DiagnosticMessage;
         Specify_the_JSX_factory_function_to_use_when_targeting_react_JSX_emit_e_g_React_createElement_or_h: DiagnosticMessage;
@@ -6211,8 +6262,8 @@ declare namespace ts {
     function updateIndexedAccessTypeNode(node: IndexedAccessTypeNode, objectType: TypeNode, indexType: TypeNode): IndexedAccessTypeNode;
     function createMappedTypeNode(readonlyToken: ReadonlyToken | undefined, typeParameter: TypeParameterDeclaration, questionToken: QuestionToken | undefined, type: TypeNode | undefined): MappedTypeNode;
     function updateMappedTypeNode(node: MappedTypeNode, readonlyToken: ReadonlyToken | undefined, typeParameter: TypeParameterDeclaration, questionToken: QuestionToken | undefined, type: TypeNode | undefined): MappedTypeNode;
-    function createLiteralTypeNode(literal: Expression): LiteralTypeNode;
-    function updateLiteralTypeNode(node: LiteralTypeNode, literal: Expression): LiteralTypeNode;
+    function createLiteralTypeNode(literal: LiteralTypeNode["literal"]): LiteralTypeNode;
+    function updateLiteralTypeNode(node: LiteralTypeNode, literal: LiteralTypeNode["literal"]): LiteralTypeNode;
     function createObjectBindingPattern(elements: ReadonlyArray<BindingElement>): ObjectBindingPattern;
     function updateObjectBindingPattern(node: ObjectBindingPattern, elements: ReadonlyArray<BindingElement>): ObjectBindingPattern;
     function createArrayBindingPattern(elements: ReadonlyArray<ArrayBindingElement>): ArrayBindingPattern;
@@ -6262,6 +6313,10 @@ declare namespace ts {
     function updateConditional(node: ConditionalExpression, condition: Expression, questionToken: Token<SyntaxKind.QuestionToken>, whenTrue: Expression, colonToken: Token<SyntaxKind.ColonToken>, whenFalse: Expression): ConditionalExpression;
     function createTemplateExpression(head: TemplateHead, templateSpans: ReadonlyArray<TemplateSpan>): TemplateExpression;
     function updateTemplateExpression(node: TemplateExpression, head: TemplateHead, templateSpans: ReadonlyArray<TemplateSpan>): TemplateExpression;
+    function createTemplateHead(text: string): TemplateHead;
+    function createTemplateMiddle(text: string): TemplateMiddle;
+    function createTemplateTail(text: string): TemplateTail;
+    function createNoSubstitutionTemplateLiteral(text: string): NoSubstitutionTemplateLiteral;
     function createYield(expression?: Expression): YieldExpression;
     function createYield(asteriskToken: AsteriskToken, expression: Expression): YieldExpression;
     function updateYield(node: YieldExpression, asteriskToken: AsteriskToken | undefined, expression: Expression): YieldExpression;
@@ -7344,8 +7399,8 @@ declare namespace ts {
      */
     interface RefactorEditInfo {
         edits: FileTextChanges[];
-        renameFilename?: string;
-        renameLocation?: number;
+        renameFilename: string | undefined;
+        renameLocation: number | undefined;
     }
     interface TextInsertion {
         newText: string;
@@ -8008,7 +8063,7 @@ declare namespace ts {
 declare namespace ts.FindAllReferences {
     interface ImportsResult {
         /** For every import of the symbol, the location and local symbol for the import. */
-        importSearches: Array<[Identifier, Symbol]>;
+        importSearches: [Identifier, Symbol][];
         /** For rename imports/exports `{ foo as bar }`, `foo` is not a local, so it may be added as a reference immediately without further searching. */
         singleReferences: Identifier[];
         /** List of source files that may (or may not) use the symbol via a namespace. (For UMD modules this is every file.) */
@@ -8206,7 +8261,7 @@ declare namespace ts {
     }
     interface PatternMatcher {
         getMatchesForLastSegmentOfPattern(candidate: string): PatternMatch[];
-        getMatches(candidateContainers: string[], candidate: string): PatternMatch[];
+        getMatches(candidateContainers: string[], candidate: string): PatternMatch[] | undefined;
         patternContainsDots: boolean;
     }
     function createPatternMatcher(pattern: string): PatternMatcher;
@@ -8900,17 +8955,6 @@ declare namespace ts.refactor.extractMethod {
         readonly targetRange: TargetRange;
         readonly errors?: never;
     };
-    type Scope = FunctionLikeDeclaration | SourceFile | ModuleBlock | ClassLikeDeclaration;
-    /**
-     * Result of 'extractRange' operation for a specific scope.
-     * Stores either a list of changes that should be applied to extract a range or a list of errors
-     */
-    interface ExtractResultForScope {
-        readonly scope: Scope;
-        readonly scopeDescription: string;
-        readonly changes?: FileTextChanges[];
-        readonly errors?: Diagnostic[];
-    }
     /**
      * getRangeToExtract takes a span inside a text file and returns either an expression or an array
      * of statements representing the minimum set of nodes needed to extract the entire span. This
@@ -8918,32 +8962,20 @@ declare namespace ts.refactor.extractMethod {
      * not shown to the user, but can be used by us diagnostically)
      */
     function getRangeToExtract(sourceFile: SourceFile, span: TextSpan): RangeToExtract;
-    /**
-     * Computes possible places we could extract the function into. For example,
-     * you may be able to extract into a class method *or* local closure *or* namespace function,
-     * depending on what's in the extracted body.
-     */
-    function collectEnclosingScopes(range: TargetRange): Scope[] | undefined;
+    function getExtractionAtIndex(targetRange: TargetRange, context: RefactorContext, requestedChangesIndex: number): RefactorEditInfo;
+    interface PossibleExtraction {
+        readonly scopeDescription: string;
+        readonly errors: ReadonlyArray<Diagnostic>;
+    }
     /**
      * Given a piece of text to extract ('targetRange'), computes a list of possible extractions.
      * Each returned ExtractResultForScope corresponds to a possible target scope and is either a set of changes
      * or an error explaining why we can't extract into that scope.
      */
-    function getPossibleExtractions(targetRange: TargetRange, context: RefactorContext, requestedChangesIndex?: number): ReadonlyArray<ExtractResultForScope> | undefined;
-    function extractFunctionInScope(node: Statement | Expression | Block, scope: Scope, {usages: usagesInScope, typeParameterUsages, substitutions}: ScopeUsages, range: TargetRange, context: RefactorContext): ExtractResultForScope;
+    function getPossibleExtractions(targetRange: TargetRange, context: RefactorContext): ReadonlyArray<PossibleExtraction> | undefined;
     enum Usage {
         Read = 1,
         Write = 2,
-    }
-    interface UsageEntry {
-        readonly usage: Usage;
-        readonly symbol: Symbol;
-        readonly node: Node;
-    }
-    interface ScopeUsages {
-        usages: Map<UsageEntry>;
-        typeParameterUsages: Map<TypeParameter>;
-        substitutions: Map<Node>;
     }
 }
 declare namespace ts {
@@ -9233,13 +9265,14 @@ declare namespace ts {
         readFile(fileName: string): string | undefined;
         getDirectories(path: string): string[];
     }
-    function realizeDiagnostics(diagnostics: ReadonlyArray<Diagnostic>, newLine: string): {
+    interface RealizedDiagnostic {
         message: string;
         start: number;
         length: number;
         category: string;
         code: number;
-    }[];
+    }
+    function realizeDiagnostics(diagnostics: ReadonlyArray<Diagnostic>, newLine: string): RealizedDiagnostic[];
     class TypeScriptServicesFactory implements ShimFactory {
         private _shims;
         private documentRegistry;
