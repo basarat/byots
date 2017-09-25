@@ -29,6 +29,10 @@ var fixesForFiles = [
                 orig: 'interface PossibleExtraction',
                 new: 'export interface PossibleExtraction'
             },
+            {
+                orig: 'enum RangeFacts',
+                new: 'export enum RangeFacts'
+            },
         ],
     },
     {
