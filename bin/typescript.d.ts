@@ -5759,6 +5759,7 @@ declare namespace ts {
         Octal_literals_are_not_allowed_in_enums_members_initializer_Use_the_syntax_0: DiagnosticMessage;
         Report_errors_in_js_files: DiagnosticMessage;
         JSDoc_types_can_only_be_used_inside_documentation_comments: DiagnosticMessage;
+        JSDoc_typedef_tag_should_either_have_a_type_annotation_or_be_followed_by_property_or_member_tags: DiagnosticMessage;
         Only_identifiers_Slashqualified_names_with_optional_type_arguments_are_currently_supported_in_a_class_extends_clause: DiagnosticMessage;
         class_expressions_are_not_currently_supported: DiagnosticMessage;
         Language_service_is_disabled: DiagnosticMessage;
@@ -8880,6 +8881,7 @@ declare namespace ts {
         function getApplicableRefactors(context: RefactorContext): ApplicableRefactorInfo[];
         function getEditsForRefactor(context: RefactorContext, refactorName: string, actionName: string): RefactorEditInfo | undefined;
     }
+    function getRefactorContextLength(context: RefactorContext): number;
 }
 declare namespace ts.codefix {
 }
