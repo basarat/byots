@@ -1698,7 +1698,7 @@ declare namespace ts {
         readFile(path: string): string | undefined;
     }
     interface WriteFileCallback {
-        (fileName: string, data: string, writeByteOrderMark: boolean, onError?: (message: string) => void, sourceFiles?: ReadonlyArray<SourceFile>): void;
+        (fileName: string, data: string, writeByteOrderMark: boolean, onError: ((message: string) => void) | undefined, sourceFiles: ReadonlyArray<SourceFile>): void;
     }
     class OperationCanceledException {
     }
@@ -5804,6 +5804,7 @@ declare namespace ts {
         Declare_static_method_0: DiagnosticMessage;
         Prefix_0_with_an_underscore: DiagnosticMessage;
         Rewrite_as_the_indexed_access_type_0: DiagnosticMessage;
+        Declare_static_property_0: DiagnosticMessage;
         Convert_function_to_an_ES2015_class: DiagnosticMessage;
         Convert_function_0_to_class: DiagnosticMessage;
         Extract_function: DiagnosticMessage;
