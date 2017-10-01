@@ -21,7 +21,7 @@ git reset --hard origin/master
 npm install
 
 # Build our scripts using official nightly TypeScript
-../node_modules/.bin/tsc -p ./scripts/tsconfig.json
+../node_modules/.bin/tsc -p ../scripts/tsconfig.json
 
 # Some pre build fixes
 node ../scripts/preBuild.js
