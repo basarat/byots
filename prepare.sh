@@ -20,6 +20,9 @@ git reset --hard origin/master
 # Install everything
 npm install
 
+# Build our scripts using official nightly TypeScript
+../node_modules/.bin/tsc -p ./scripts/tsconfig.json
+
 # Some pre build fixes
 node ../scripts/preBuild.js
 
@@ -29,7 +32,7 @@ npm run build:compiler
 # Copy our tsconfig.json to do the building
 cp ../src/tsconfig.json ./src/tsconfig.json
 
-# Now build the compiler with our tsconfig.json using nightly typescript to get new definitions
+# Now build the compiler with our tsconfig.json using official nightly typescript to get new definitions
 ../node_modules/.bin/tsc -p ./src
 
 # Finally just take the new typescript.d.ts
