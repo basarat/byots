@@ -24,7 +24,7 @@ interface IFixForFile {
 }
 const fixesForFiles: IFixForFile[] = [
   {
-    filePath: '../TypeScript/src/services/refactors/extractMethod.ts',
+    filePath: '../TypeScript/src/services/refactors/extractSymbol.ts',
     fixes: [
       {
         orig: 'const enum Usage',
