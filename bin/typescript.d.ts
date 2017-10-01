@@ -1497,7 +1497,9 @@ declare namespace ts {
     }
     interface JSDocAugmentsTag extends JSDocTag {
         kind: SyntaxKind.JSDocAugmentsTag;
-        typeExpression: JSDocTypeExpression;
+        class: ExpressionWithTypeArguments & {
+            expression: Identifier | PropertyAccessEntityNameExpression;
+        };
     }
     interface JSDocClassTag extends JSDocTag {
         kind: SyntaxKind.JSDocClassTag;
@@ -4209,7 +4211,7 @@ declare namespace ts {
     function getRightMostAssignedExpression(node: Node): Node;
     function isExportsIdentifier(node: Node): boolean;
     function isModuleExportsPropertyAccessExpression(node: Node): boolean;
-    function getSpecialPropertyAssignmentKind(expression: ts.BinaryExpression): SpecialPropertyAssignmentKind;
+    function getSpecialPropertyAssignmentKind(expr: ts.BinaryExpression): SpecialPropertyAssignmentKind;
     function getExternalModuleName(node: Node): Expression;
     function getNamespaceDeclarationNode(node: ImportDeclaration | ImportEqualsDeclaration | ExportDeclaration): ImportEqualsDeclaration | NamespaceImport;
     function isDefaultImport(node: ImportDeclaration | ImportEqualsDeclaration | ExportDeclaration): boolean;
@@ -4219,6 +4221,7 @@ declare namespace ts {
     function getJSDocCommentsAndTags(node: Node): (JSDoc | JSDocTag)[];
     /** Does the opposite of `getJSDocParameterTags`: given a JSDoc parameter, finds the parameter corresponding to it. */
     function getParameterSymbolFromJSDoc(node: JSDocParameterTag): Symbol | undefined;
+    function getJSDocHost(node: JSDocTag): HasJSDoc;
     function getTypeParameterFromJsDoc(node: TypeParameterDeclaration & {
         parent: JSDocTemplateTag;
     }): TypeParameterDeclaration | undefined;
@@ -4560,6 +4563,8 @@ declare namespace ts {
      * @returns The unescaped identifier text.
      */
     function unescapeLeadingUnderscores(identifier: __String): string;
+    function idText(identifier: Identifier): string;
+    function symbolName(symbol: Symbol): string;
     /**
      * Remove extra underscore from escaped identifier text content.
      * @deprecated Use `id.text` for the unescaped text.
@@ -5760,6 +5765,9 @@ declare namespace ts {
         Report_errors_in_js_files: DiagnosticMessage;
         JSDoc_types_can_only_be_used_inside_documentation_comments: DiagnosticMessage;
         JSDoc_typedef_tag_should_either_have_a_type_annotation_or_be_followed_by_property_or_member_tags: DiagnosticMessage;
+        JSDoc_augments_is_not_attached_to_a_class_declaration: DiagnosticMessage;
+        JSDoc_augments_0_does_not_match_the_extends_1_clause: DiagnosticMessage;
+        JSDoc_param_tag_has_name_0_but_there_is_no_parameter_with_that_name: DiagnosticMessage;
         Only_identifiers_Slashqualified_names_with_optional_type_arguments_are_currently_supported_in_a_class_extends_clause: DiagnosticMessage;
         class_expressions_are_not_currently_supported: DiagnosticMessage;
         Language_service_is_disabled: DiagnosticMessage;
@@ -5807,8 +5815,10 @@ declare namespace ts {
         Declare_static_property_0: DiagnosticMessage;
         Convert_function_to_an_ES2015_class: DiagnosticMessage;
         Convert_function_0_to_class: DiagnosticMessage;
-        Extract_function: DiagnosticMessage;
+        Extract_symbol: DiagnosticMessage;
         Extract_to_0: DiagnosticMessage;
+        Extract_function: DiagnosticMessage;
+        Extract_constant: DiagnosticMessage;
     };
 }
 declare namespace ts {
@@ -8924,7 +8934,35 @@ declare namespace ts.codefix {
 }
 declare namespace ts.refactor.convertFunctionToES6Class {
 }
-declare namespace ts.refactor.extractMethod {
+declare namespace ts.refactor.extractSymbol {
+    /**
+     * Compute the associated code actions
+     * Exported for tests.
+     */
+    function getAvailableActions(context: RefactorContext): ApplicableRefactorInfo[] | undefined;
+    function getEditsForAction(context: RefactorContext, actionName: string): RefactorEditInfo | undefined;
+    namespace Messages {
+        const CannotExtractRange: DiagnosticMessage;
+        const CannotExtractImport: DiagnosticMessage;
+        const CannotExtractSuper: DiagnosticMessage;
+        const CannotExtractEmpty: DiagnosticMessage;
+        const ExpressionExpected: DiagnosticMessage;
+        const StatementOrExpressionExpected: DiagnosticMessage;
+        const CannotExtractRangeContainingConditionalBreakOrContinueStatements: DiagnosticMessage;
+        const CannotExtractRangeContainingConditionalReturnStatement: DiagnosticMessage;
+        const CannotExtractRangeContainingLabeledBreakOrContinueStatementWithTargetOutsideOfTheRange: DiagnosticMessage;
+        const CannotExtractRangeThatContainsWritesToReferencesLocatedOutsideOfTheTargetRangeInGenerators: DiagnosticMessage;
+        const TypeWillNotBeVisibleInTheNewScope: DiagnosticMessage;
+        const FunctionWillNotBeVisibleInTheNewScope: DiagnosticMessage;
+        const CannotExtractIdentifier: DiagnosticMessage;
+        const CannotExtractExportedEntity: DiagnosticMessage;
+        const CannotCombineWritesAndReturns: DiagnosticMessage;
+        const CannotExtractReadonlyPropertyInitializerOutsideConstructor: DiagnosticMessage;
+        const CannotExtractAmbientBlock: DiagnosticMessage;
+        const CannotAccessVariablesFromNestedScopes: DiagnosticMessage;
+        const CannotExtractToOtherFunctionLike: DiagnosticMessage;
+        const CannotExtractToJSClass: DiagnosticMessage;
+    }
     enum RangeFacts {
         None = 0,
         HasReturn = 1,
@@ -8965,17 +9003,12 @@ declare namespace ts.refactor.extractMethod {
      * not shown to the user, but can be used by us diagnostically)
      */
     function getRangeToExtract(sourceFile: SourceFile, span: TextSpan): RangeToExtract;
-    function getExtractionAtIndex(targetRange: TargetRange, context: RefactorContext, requestedChangesIndex: number): RefactorEditInfo;
     interface PossibleExtraction {
-        readonly scopeDescription: string;
-        readonly errors: ReadonlyArray<Diagnostic>;
+        readonly functionDescription: string;
+        readonly functionErrors: ReadonlyArray<Diagnostic>;
+        readonly constantDescription: string;
+        readonly constantErrors: ReadonlyArray<Diagnostic>;
     }
-    /**
-     * Given a piece of text to extract ('targetRange'), computes a list of possible extractions.
-     * Each returned ExtractResultForScope corresponds to a possible target scope and is either a set of changes
-     * or an error explaining why we can't extract into that scope.
-     */
-    function getPossibleExtractions(targetRange: TargetRange, context: RefactorContext): ReadonlyArray<PossibleExtraction> | undefined;
     enum Usage {
         Read = 1,
         Write = 2,
