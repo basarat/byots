@@ -52,6 +52,15 @@ const fixesForFiles: IFixForFile[] = [
         new: 'export interface RealizedDiagnostic'
       }
     ]
+  },
+  {
+    filePath: '../TypeScript/src/services/formatting/rulesMap.ts',
+    fixes: [
+      {
+        orig: 'enum RulesPosition',
+        new: 'export enum RulesPosition'
+      }
+    ]
   }
 ];
 
