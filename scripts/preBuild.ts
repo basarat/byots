@@ -39,10 +39,6 @@ const fixesForFiles: IFixForFile[] = [
         new: 'export interface TargetRange'
       },
       {
-        orig: 'interface PossibleExtraction',
-        new: 'export interface PossibleExtraction'
-      },
-      {
         orig: 'enum RangeFacts',
         new: 'export enum RangeFacts'
       },
