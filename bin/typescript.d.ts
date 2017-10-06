@@ -5197,6 +5197,7 @@ declare namespace ts {
         Dynamic_import_cannot_have_type_arguments: DiagnosticMessage;
         String_literal_with_double_quotes_expected: DiagnosticMessage;
         Property_value_can_only_be_string_literal_numeric_literal_true_false_null_object_literal_or_array_literal: DiagnosticMessage;
+        _0_accepts_too_few_arguments_to_be_used_as_a_decorator_here_Did_you_mean_to_call_it_first_and_write_0: DiagnosticMessage;
         Duplicate_identifier_0: DiagnosticMessage;
         Initializer_of_instance_member_variable_0_cannot_reference_identifier_1_declared_in_the_constructor: DiagnosticMessage;
         Static_members_cannot_reference_class_type_parameters: DiagnosticMessage;
@@ -5895,6 +5896,7 @@ declare namespace ts {
         Prefix_0_with_an_underscore: DiagnosticMessage;
         Rewrite_as_the_indexed_access_type_0: DiagnosticMessage;
         Declare_static_property_0: DiagnosticMessage;
+        Call_decorator_expression: DiagnosticMessage;
         Convert_function_to_an_ES2015_class: DiagnosticMessage;
         Convert_function_0_to_class: DiagnosticMessage;
         Extract_symbol: DiagnosticMessage;
@@ -9106,6 +9108,8 @@ declare namespace ts {
         function getEditsForRefactor(context: RefactorContext, refactorName: string, actionName: string): RefactorEditInfo | undefined;
     }
     function getRefactorContextLength(context: RefactorContext): number;
+}
+declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
 }
