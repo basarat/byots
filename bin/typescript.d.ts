@@ -4286,9 +4286,7 @@ declare namespace ts {
         parent: JSDocTemplateTag;
     }): TypeParameterDeclaration | undefined;
     function hasRestParameter(s: SignatureDeclaration): boolean;
-    function hasDeclaredRestParameter(s: SignatureDeclaration): boolean;
     function isRestParameter(node: ParameterDeclaration): boolean;
-    function isDeclaredRestParam(node: ParameterDeclaration): boolean;
     enum AssignmentKind {
         None = 0,
         Definite = 1,
