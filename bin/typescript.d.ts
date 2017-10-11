@@ -3586,7 +3586,6 @@ declare namespace ts {
     function filter<T>(array: T[], f: (x: T) => boolean): T[];
     function filter<T, U extends T>(array: ReadonlyArray<T>, f: (x: T) => x is U): ReadonlyArray<U>;
     function filter<T, U extends T>(array: ReadonlyArray<T>, f: (x: T) => boolean): ReadonlyArray<T>;
-    function removeWhere<T>(array: T[], f: (x: T) => boolean): boolean;
     function filterMutate<T>(array: T[], f: (x: T, i: number, array: T[]) => boolean): void;
     function clear(array: {}[]): void;
     function map<T, U>(array: ReadonlyArray<T>, f: (x: T, i: number) => U): U[];
@@ -5857,8 +5856,8 @@ declare namespace ts {
         Report_errors_in_js_files: DiagnosticMessage;
         JSDoc_types_can_only_be_used_inside_documentation_comments: DiagnosticMessage;
         JSDoc_typedef_tag_should_either_have_a_type_annotation_or_be_followed_by_property_or_member_tags: DiagnosticMessage;
-        JSDoc_augments_is_not_attached_to_a_class_declaration: DiagnosticMessage;
-        JSDoc_augments_0_does_not_match_the_extends_1_clause: DiagnosticMessage;
+        JSDoc_0_is_not_attached_to_a_class: DiagnosticMessage;
+        JSDoc_0_1_does_not_match_the_extends_2_clause: DiagnosticMessage;
         JSDoc_param_tag_has_name_0_but_there_is_no_parameter_with_that_name: DiagnosticMessage;
         Class_declarations_cannot_have_more_than_one_augments_or_extends_tag: DiagnosticMessage;
         Only_identifiers_Slashqualified_names_with_optional_type_arguments_are_currently_supported_in_a_class_extends_clause: DiagnosticMessage;
@@ -9285,7 +9284,9 @@ declare namespace ts.BreakpointResolver {
      */
     function spanInSourceFileAtLocation(sourceFile: SourceFile, position: number): TextSpan;
 }
-declare let debugObjectHost: any;
+declare let debugObjectHost: {
+    CollectGarbage(): void;
+};
 declare namespace ts {
     interface ScriptSnapshotShim {
         /** Gets a portion of the script snapshot specified by [start, end). */
@@ -9363,11 +9364,11 @@ declare namespace ts {
         unregisterShim(shim: Shim): void;
     }
     interface Shim {
-        dispose(_dummy: any): void;
+        dispose(_dummy: {}): void;
     }
     interface LanguageServiceShim extends Shim {
         languageService: LanguageService;
-        dispose(_dummy: any): void;
+        dispose(_dummy: {}): void;
         refresh(throwOnError: boolean): void;
         cleanupSemanticCache(): void;
         getSyntacticDiagnostics(fileName: string): string;
