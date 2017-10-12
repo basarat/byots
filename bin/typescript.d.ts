@@ -1766,8 +1766,6 @@ declare namespace ts {
         sourceFileToPackageName: Map<string>;
         /** Set of all source files that some other source file redirects to. */
         redirectTargetsSet: Map<true>;
-        /** Returns true when file in the program had invalidated resolution at the time of program creation. */
-        hasInvalidatedResolution: HasInvalidatedResolution;
     }
     enum StructureIsReused {
         Not = 0,
@@ -3910,6 +3908,7 @@ declare namespace ts {
     function startsWith(str: string, prefix: string): boolean;
     function removePrefix(str: string, prefix: string): string;
     function endsWith(str: string, suffix: string): boolean;
+    function stringContains(str: string, substring: string): boolean;
     function hasExtension(fileName: string): boolean;
     function fileExtensionIs(path: string, extension: string): boolean;
     function fileExtensionIsOneOf(path: string, extensions: ReadonlyArray<string>): boolean;
@@ -5533,6 +5532,7 @@ declare namespace ts {
         Cannot_access_0_1_because_0_is_a_type_but_not_a_namespace_Did_you_mean_to_retrieve_the_type_of_the_property_1_in_0_with_0_1: DiagnosticMessage;
         The_expression_of_an_export_assignment_must_be_an_identifier_or_qualified_name_in_an_ambient_context: DiagnosticMessage;
         Abstract_property_0_in_class_1_cannot_be_accessed_in_the_constructor: DiagnosticMessage;
+        Type_parameter_0_has_a_circular_default: DiagnosticMessage;
         Import_declaration_0_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_interface_has_or_is_using_private_name_1: DiagnosticMessage;
@@ -6128,7 +6128,7 @@ declare namespace ts {
     /**
      * Creates a shallow, memberwise clone of a node with no source map location.
      */
-    function getSynthesizedClone<T extends Node>(node: T | undefined): T;
+    function getSynthesizedClone<T extends Node>(node: T | undefined): T | undefined;
     function createLiteral(value: string): StringLiteral;
     function createLiteral(value: number): NumericLiteral;
     function createLiteral(value: boolean): BooleanLiteral;
@@ -8215,6 +8215,13 @@ declare namespace ts {
     function getOpenBrace(constructor: ConstructorDeclaration, sourceFile: SourceFile): Node;
     function getOpenBraceOfClassLike(declaration: ClassLikeDeclaration, sourceFile: SourceFile): Node;
     function getSourceFileImportLocation(node: SourceFile): number;
+    /**
+     * Creates a deep, memberwise clone of a node with no source map location.
+     *
+     * WARNING: This is an expensive operation and is only intended to be used in refactorings
+     * and code fixes (because those are triggered by explicit user actions).
+     */
+    function getSynthesizedDeepClone<T extends Node>(node: T | undefined): T | undefined;
 }
 declare namespace ts {
     function createClassifier(): Classifier;
