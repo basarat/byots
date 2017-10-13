@@ -1908,6 +1908,23 @@ declare namespace ts {
         getSuggestionForNonexistentProperty(node: Identifier, containingType: Type): string | undefined;
         getSuggestionForNonexistentSymbol(location: Node, name: string, meaning: SymbolFlags): string | undefined;
         getBaseConstraintOfType(type: Type): Type | undefined;
+        getAnyType(): Type;
+        getStringType(): Type;
+        getNumberType(): Type;
+        getBooleanType(): Type;
+        getVoidType(): Type;
+        getUndefinedType(): Type;
+        getNullType(): Type;
+        getESSymbolType(): Type;
+        getNeverType(): Type;
+        getUnionType(types: Type[], subtypeReduction?: boolean): Type;
+        createArrayType(elementType: Type): Type;
+        createPromiseType(type: Type): Type;
+        createAnonymousType(symbol: Symbol, members: SymbolTable, callSignatures: Signature[], constructSignatures: Signature[], stringIndexInfo: IndexInfo, numberIndexInfo: IndexInfo): Type;
+        createSignature(declaration: SignatureDeclaration, typeParameters: TypeParameter[], thisParameter: Symbol | undefined, parameters: Symbol[], resolvedReturnType: Type, typePredicate: TypePredicate, minArgumentCount: number, hasRestParameter: boolean, hasLiteralTypes: boolean): Signature;
+        createSymbol(flags: SymbolFlags, name: __String): TransientSymbol;
+        createIndexInfo(type: Type, isReadonly: boolean, declaration?: SignatureDeclaration): IndexInfo;
+        isSymbolAccessible(symbol: Symbol, enclosingDeclaration: Node, meaning: SymbolFlags, shouldComputeAliasToMarkVisible: boolean): SymbolAccessibilityResult;
         tryFindAmbientModuleWithoutAugmentations(moduleName: string): Symbol | undefined;
         getSymbolWalker(accept?: (symbol: Symbol) => boolean): SymbolWalker;
         getDiagnostics(sourceFile?: SourceFile, cancellationToken?: CancellationToken): Diagnostic[];
@@ -3554,7 +3571,7 @@ declare namespace ts {
      */
     function findAncestor<T extends Node>(node: Node, callback: (element: Node) => element is T): T | undefined;
     function findAncestor(node: Node, callback: (element: Node) => boolean | "quit"): Node | undefined;
-    function zipWith<T, U>(arrayA: ReadonlyArray<T>, arrayB: ReadonlyArray<U>, callback: (a: T, b: U, index: number) => void): void;
+    function zipWith<T, U, V>(arrayA: ReadonlyArray<T>, arrayB: ReadonlyArray<U>, callback: (a: T, b: U, index: number) => V): V[];
     function zipToMap<T>(keys: ReadonlyArray<string>, values: ReadonlyArray<T>): Map<T>;
     /**
      * Iterates through `array` by index and performs the callback on each element of array until the callback
@@ -4971,6 +4988,8 @@ declare namespace ts {
     /** True if node is of a kind that may contain comment text. */
     function isJSDocCommentContainingNode(node: Node): boolean;
     function isJSDocTag(node: Node): boolean;
+    function isSetAccessor(node: Node): node is SetAccessorDeclaration;
+    function isGetAccessor(node: Node): node is GetAccessorDeclaration;
     /** True if has jsdoc nodes attached to it. */
     function hasJSDocNodes(node: Node): node is HasJSDoc;
 }
@@ -5914,6 +5933,8 @@ declare namespace ts {
         Extract_constant: DiagnosticMessage;
         Extract_to_0_in_enclosing_scope: DiagnosticMessage;
         Extract_to_0_in_1_scope: DiagnosticMessage;
+        Infer_type_of_0_from_usage: DiagnosticMessage;
+        Infer_parameter_types_from_usage: DiagnosticMessage;
     };
 }
 declare namespace ts {
@@ -6472,6 +6493,10 @@ declare namespace ts {
      */
     function setEmitFlags<T extends Node>(node: T, emitFlags: EmitFlags): T;
     /**
+     * Sets flags that control emit behavior of a node.
+     */
+    function addEmitFlags<T extends Node>(node: T, emitFlags: EmitFlags): T;
+    /**
      * Gets a custom text range to use when emitting source maps.
      */
     function getSourceMapRange(node: Node): SourceMapRange;
@@ -6910,6 +6935,12 @@ declare namespace ts {
         hasExportStarsToExportValues: boolean;
     }
     function collectExternalModuleInfo(sourceFile: SourceFile, resolver: EmitResolver, compilerOptions: CompilerOptions): ExternalModuleInfo;
+    /**
+     * Used in the module transformer to check if an expression is reasonably without sideeffect,
+     *  and thus better to copy into multiple places rather than to cache in a temporary variable
+     *  - this is mostly subjective beyond the requirement that the expression not be sideeffecting
+     */
+    function isSimpleCopiableExpression(expression: Expression): boolean;
 }
 declare namespace ts {
     enum FlattenLevel {
@@ -8222,6 +8253,10 @@ declare namespace ts {
      * and code fixes (because those are triggered by explicit user actions).
      */
     function getSynthesizedDeepClone<T extends Node>(node: T | undefined): T | undefined;
+    /**
+     * Sets EmitFlags to suppress leading and trailing trivia on the node.
+     */
+    function suppressLeadingAndTrailingTrivia(node: Node): void;
 }
 declare namespace ts {
     function createClassifier(): Classifier;
@@ -9168,6 +9203,8 @@ declare namespace ts.codefix {
     function createMethodFromCallExpression(callExpression: CallExpression, methodName: string, includeTypeScriptSyntax: boolean, makeStatic: boolean): MethodDeclaration;
     function createStubbedMethod(modifiers: ReadonlyArray<Modifier>, name: PropertyName, optional: boolean, typeParameters: ReadonlyArray<TypeParameterDeclaration> | undefined, parameters: ReadonlyArray<ParameterDeclaration>, returnType: TypeNode | undefined): MethodDeclaration;
 }
+declare namespace ts.codefix {
+}
 declare namespace ts.refactor.convertFunctionToES6Class {
 }
 declare namespace ts.refactor.extractSymbol {
@@ -9193,7 +9230,7 @@ declare namespace ts.refactor.extractSymbol {
         const FunctionWillNotBeVisibleInTheNewScope: DiagnosticMessage;
         const CannotExtractIdentifier: DiagnosticMessage;
         const CannotExtractExportedEntity: DiagnosticMessage;
-        const CannotCombineWritesAndReturns: DiagnosticMessage;
+        const CannotWriteInExpression: DiagnosticMessage;
         const CannotExtractReadonlyPropertyInitializerOutsideConstructor: DiagnosticMessage;
         const CannotExtractAmbientBlock: DiagnosticMessage;
         const CannotAccessVariablesFromNestedScopes: DiagnosticMessage;
