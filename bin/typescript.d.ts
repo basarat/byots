@@ -4442,22 +4442,22 @@ declare namespace ts {
      * Gets the effective type annotation of a variable, parameter, or property. If the node was
      * parsed in a JavaScript file, gets the type annotation from JSDoc.
      */
-    function getEffectiveTypeAnnotationNode(node: VariableLikeDeclaration): TypeNode | undefined;
+    function getEffectiveTypeAnnotationNode(node: VariableLikeDeclaration, checkJSDoc?: boolean): TypeNode | undefined;
     /**
      * Gets the effective return type annotation of a signature. If the node was parsed in a
      * JavaScript file, gets the return type annotation from JSDoc.
      */
-    function getEffectiveReturnTypeNode(node: SignatureDeclaration): TypeNode | undefined;
+    function getEffectiveReturnTypeNode(node: SignatureDeclaration, checkJSDoc?: boolean): TypeNode | undefined;
     /**
      * Gets the effective type parameters. If the node was parsed in a
      * JavaScript file, gets the type parameters from the `@template` tag from JSDoc.
      */
-    function getEffectiveTypeParameterDeclarations(node: DeclarationWithTypeParameters): ReadonlyArray<TypeParameterDeclaration>;
+    function getEffectiveTypeParameterDeclarations(node: DeclarationWithTypeParameters, checkJSDoc?: boolean): ReadonlyArray<TypeParameterDeclaration>;
     /**
      * Gets the effective type annotation of the value parameter of a set accessor. If the node
      * was parsed in a JavaScript file, gets the type annotation from JSDoc.
      */
-    function getEffectiveSetAccessorTypeAnnotationNode(node: SetAccessorDeclaration): TypeNode;
+    function getEffectiveSetAccessorTypeAnnotationNode(node: SetAccessorDeclaration, checkJSDoc?: boolean): TypeNode;
     function emitNewLineBeforeLeadingComments(lineMap: ReadonlyArray<number>, writer: EmitTextWriter, node: TextRange, leadingComments: ReadonlyArray<CommentRange>): void;
     function emitNewLineBeforeLeadingCommentsOfPosition(lineMap: ReadonlyArray<number>, writer: EmitTextWriter, pos: number, leadingComments: ReadonlyArray<CommentRange>): void;
     function emitNewLineBeforeLeadingCommentOfPosition(lineMap: ReadonlyArray<number>, writer: EmitTextWriter, pos: number, commentPos: number): void;
@@ -5933,6 +5933,8 @@ declare namespace ts {
         Extract_constant: DiagnosticMessage;
         Extract_to_0_in_enclosing_scope: DiagnosticMessage;
         Extract_to_0_in_1_scope: DiagnosticMessage;
+        Annotate_with_type_from_JSDoc: DiagnosticMessage;
+        Annotate_with_types_from_JSDoc: DiagnosticMessage;
         Infer_type_of_0_from_usage: DiagnosticMessage;
         Infer_parameter_types_from_usage: DiagnosticMessage;
     };
@@ -9204,6 +9206,8 @@ declare namespace ts.codefix {
     function createStubbedMethod(modifiers: ReadonlyArray<Modifier>, name: PropertyName, optional: boolean, typeParameters: ReadonlyArray<TypeParameterDeclaration> | undefined, parameters: ReadonlyArray<ParameterDeclaration>, returnType: TypeNode | undefined): MethodDeclaration;
 }
 declare namespace ts.codefix {
+}
+declare namespace ts.refactor.annotateWithTypeFromJSDoc {
 }
 declare namespace ts.refactor.convertFunctionToES6Class {
 }
