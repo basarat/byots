@@ -8149,6 +8149,9 @@ declare namespace ts {
     function rangeContainsStartEnd(range: TextRange, start: number, end: number): boolean;
     function rangeOverlapsWithStartEnd(r1: TextRange, start: number, end: number): boolean;
     function startEndOverlapsWithStartEnd(start1: number, end1: number, start2: number, end2: number): boolean;
+    /**
+     * Assumes `candidate.start <= position` holds.
+     */
     function positionBelongsToNode(candidate: Node, position: number, sourceFile: SourceFile): boolean;
     function isCompletedNode(n: Node, sourceFile: SourceFile): boolean;
     function findListItemInfo(node: Node): ListItemInfo;
@@ -8992,20 +8995,24 @@ declare namespace ts.formatting {
 declare namespace ts.formatting {
     namespace SmartIndenter {
         /**
-         * Computed indentation for a given position in source file
-         * @param position - position in file
-         * @param sourceFile - target source file
-         * @param options - set of editor options that control indentation
-         * @param assumeNewLineBeforeCloseBrace - false when getIndentation is called on the text from the real source file.
-         * true - when we need to assume that position is on the newline. This is usefult for codefixes, i.e.
+         * @param assumeNewLineBeforeCloseBrace
+         * `false` when called on text from a real source file.
+         * `true` when we need to assume `position` is on a newline.
+         *
+         * This is useful for codefixes. Consider
+         * ```
          * function f() {
          * |}
-         * when inserting some text after open brace we would like to get the value of indentation as if newline was already there.
-         * However by default indentation at position | will be 0 so 'assumeNewLineBeforeCloseBrace' allows to override this behavior,
+         * ```
+         * with `position` at `|`.
+         *
+         * When inserting some text after an open brace, we would like to get indentation as if a newline was already there.
+         * By default indentation at `position` will be 0 so 'assumeNewLineBeforeCloseBrace' overrides this behavior.
          */
         function getIndentation(position: number, sourceFile: SourceFile, options: EditorSettings, assumeNewLineBeforeCloseBrace?: boolean): number;
         function getIndentationForNode(n: Node, ignoreActualIndentationRange: TextRange, sourceFile: SourceFile, options: EditorSettings): number;
         function getBaseIndentation(options: EditorSettings): number;
+        function isArgumentAndStartLineOverlapsExpressionBeingCalled(parent: Node, child: Node, childStartLine: number, sourceFile: SourceFileLike): boolean;
         function childStartsOnTheSameLineWithElseInIfStatement(parent: Node, child: TextRangeWithKind, childStartLine: number, sourceFile: SourceFileLike): boolean;
         function getContainingList(node: Node, sourceFile: SourceFile): NodeArray<Node>;
         /**
