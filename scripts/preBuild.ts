@@ -85,6 +85,10 @@ const fixesForFiles: IFixForFile[] = [
         orig: 'interface ImportCodeAction',
         new: 'export interface ImportCodeAction'
       },
+      {
+        orig: 'type ImportCodeActionKind',
+        new: 'export type ImportCodeActionKind'
+      },
     ]
   }
 ];
