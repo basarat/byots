@@ -61,6 +61,15 @@ const fixesForFiles: IFixForFile[] = [
         new: 'export enum RulesPosition'
       }
     ]
+  },
+  {
+    filePath: '../TypeScript/src/services/codefixes/importFixes.ts',
+    fixes: [
+      {
+        orig: 'interface ImportCodeFixContext',
+        new: 'export interface ImportCodeFixContext'
+      }
+    ]
   }
 ];
 
