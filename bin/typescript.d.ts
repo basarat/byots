@@ -781,6 +781,7 @@ declare namespace ts {
     interface StringLiteral extends LiteralExpression {
         kind: SyntaxKind.StringLiteral;
         textSourceNode?: Identifier | StringLiteral | NumericLiteral;
+        /** Note: this is only set when synthesizing a node, not during parsing. */
         singleQuote?: boolean;
     }
     interface Expression extends Node {
@@ -2626,6 +2627,7 @@ declare namespace ts {
     interface JsFileExtensionInfo {
         extension: string;
         isMixedContent: boolean;
+        scriptKind?: ScriptKind;
     }
     interface DiagnosticMessage {
         key: string;
@@ -3563,6 +3565,8 @@ declare namespace ts {
      * If no such value is found, the callback is applied to each element of array and undefined is returned.
      */
     function forEach<T, U>(array: ReadonlyArray<T> | undefined, callback: (element: T, index: number) => U | undefined): U | undefined;
+    /** Like `forEach`, but suitable for use with numbers and strings (which may be falsy). */
+    function firstDefined<T, U>(array: ReadonlyArray<T> | undefined, callback: (element: T, index: number) => U | undefined): U | undefined;
     /**
      * Iterates through the parent chain of a node and performs the callback on each parent until the callback
      * returns a truthy value, then returns that value.
@@ -3582,6 +3586,7 @@ declare namespace ts {
     /** Works like Array.prototype.find, returning `undefined` if no element satisfying the predicate is found. */
     function find<T, U extends T>(array: ReadonlyArray<T>, predicate: (element: T, index: number) => element is U): U | undefined;
     function find<T>(array: ReadonlyArray<T>, predicate: (element: T, index: number) => boolean): T | undefined;
+    function findLast<T>(array: ReadonlyArray<T>, predicate: (element: T, index: number) => boolean): T | undefined;
     /** Works like Array.prototype.findIndex, returning `-1` if no element satisfying the predicate is found. */
     function findIndex<T>(array: ReadonlyArray<T>, predicate: (element: T, index: number) => boolean): number;
     /**
@@ -3791,6 +3796,7 @@ declare namespace ts {
      */
     function arrayToMap<T>(array: ReadonlyArray<T>, makeKey: (value: T) => string): Map<T>;
     function arrayToMap<T, U>(array: ReadonlyArray<T>, makeKey: (value: T) => string, makeValue: (value: T) => U): Map<U>;
+    function arrayToNumericMap<T>(array: ReadonlyArray<T>, makeKey: (value: T) => number): T[];
     /**
      * Creates a set from the elements of an array.
      *
@@ -4051,11 +4057,17 @@ declare namespace ts {
     function extensionFromPath(path: string): Extension;
     function isAnySupportedFileExtension(path: string): boolean;
     function tryGetExtensionFromPath(path: string): Extension | undefined;
+    function getAnyExtensionFromPath(path: string): string | undefined;
     function isCheckJsEnabledForFile(sourceFile: SourceFile, compilerOptions: CompilerOptions): boolean;
     function and<T>(f: (arg: T) => boolean, g: (arg: T) => boolean): (arg: T) => boolean;
     function assertTypeIsNever(_: never): void;
+    interface FileAndDirectoryExistence {
+        fileExists: boolean;
+        directoryExists: boolean;
+    }
     interface CachedDirectoryStructureHost extends DirectoryStructureHost {
-        addOrDeleteFileOrDirectory(fileOrDirectory: string, fileOrDirectoryPath: Path): void;
+        /** Returns the queried result for the file exists and directory exists if at all it was done */
+        addOrDeleteFileOrDirectory(fileOrDirectory: string, fileOrDirectoryPath: Path): FileAndDirectoryExistence | undefined;
         addOrDeleteFile(fileName: string, filePath: Path, eventKind: FileWatcherEventKind): void;
         clearCache(): void;
     }
@@ -4205,6 +4217,7 @@ declare namespace ts {
     function isEffectiveExternalModule(node: SourceFile, compilerOptions: CompilerOptions): boolean;
     function isBlockScope(node: Node, parentNode: Node): boolean;
     function isDeclarationWithTypeParameters(node: Node): node is DeclarationWithTypeParameters;
+    function isAnyImportSyntax(node: Node): node is AnyImportSyntax;
     function getEnclosingBlockScopeContainer(node: Node): Node;
     function declarationNameToString(name: DeclarationName): string;
     function getNameFromIndexInfo(info: IndexInfo): string | undefined;
@@ -4279,6 +4292,7 @@ declare namespace ts {
     function isSourceFileJavaScript(file: SourceFile): boolean;
     function isInJavaScriptFile(node: Node | undefined): boolean;
     function isInJSDoc(node: Node | undefined): boolean;
+    function isJSDocIndexSignature(node: TypeReferenceNode | ExpressionWithTypeArguments): boolean;
     /**
      * Returns true if the node is a CallExpression to the identifier 'require' with
      * exactly one argument (of the form 'require("name")').
@@ -4286,6 +4300,7 @@ declare namespace ts {
      */
     function isRequireCall(callExpression: Node, checkArgumentIsStringLiteral: boolean): callExpression is CallExpression;
     function isSingleOrDoubleQuote(charCode: number): boolean;
+    function isStringDoubleQuoted(string: StringLiteral, sourceFile: SourceFile): boolean;
     /**
      * Returns true if the node is a variable declaration whose initializer is a function expression.
      * This function does not test if the node is in a JavaScript file or not.
@@ -4497,7 +4512,9 @@ declare namespace ts {
      * Converts a string to a base-64 encoded ASCII string.
      */
     function convertToBase64(input: string): string;
-    function getNewLineCharacter(options: CompilerOptions | PrinterOptions, system?: System): string;
+    function getNewLineCharacter(options: CompilerOptions | PrinterOptions, system?: {
+        newLine: string;
+    }): string;
     function formatSyntaxKind(kind: SyntaxKind): string;
     function formatModifierFlags(flags: ModifierFlags): string;
     function formatTransformFlags(flags: TransformFlags): string;
@@ -6077,10 +6094,11 @@ declare namespace ts {
     interface Push<T> {
         push(value: T): void;
     }
-    function getEffectiveTypeRoots(options: CompilerOptions, host: {
-        directoryExists?: (directoryName: string) => boolean;
-        getCurrentDirectory?: () => string;
-    }): string[] | undefined;
+    interface GetEffectiveTypeRootsHost {
+        directoryExists?(directoryName: string): boolean;
+        getCurrentDirectory?(): string;
+    }
+    function getEffectiveTypeRoots(options: CompilerOptions, host: GetEffectiveTypeRootsHost): string[] | undefined;
     /**
      * @param {string | undefined} containingFile - file that contains type reference directive, can be undefined if containing file is unknown.
      * This is possible in case if resolution is performed for directives specified via 'types' parameter. In this case initial path for secondary lookups
@@ -6126,6 +6144,11 @@ declare namespace ts {
     function directoryProbablyExists(directoryName: string, host: {
         directoryExists?: (directoryName: string) => boolean;
     }): boolean;
+    function getPackageName(moduleName: string): {
+        packageName: string;
+        rest: string;
+    };
+    function getTypesPackageName(packageName: string): string;
     function getPackageNameFromAtTypesDirectory(mangledName: string): string;
     function classicNameResolver(moduleName: string, containingFile: string, compilerOptions: CompilerOptions, host: ModuleResolutionHost, cache?: NonRelativeModuleNameResolutionCache): ResolvedModuleWithFailedLookupLocations;
     /**
@@ -7165,38 +7188,29 @@ declare namespace ts {
         outputFiles: OutputFile[];
         emitSkipped: boolean;
     }
-    interface EmitOutputDetailed extends EmitOutput {
-        diagnostics: Diagnostic[];
-        sourceMaps: SourceMapData[];
-        emittedSourceFiles: SourceFile[];
-    }
     interface OutputFile {
         name: string;
         writeByteOrderMark: boolean;
         text: string;
     }
-    function getFileEmitOutput(program: Program, sourceFile: SourceFile, emitOnlyDtsFiles: boolean, isDetailed: boolean, cancellationToken?: CancellationToken, customTransformers?: CustomTransformers): EmitOutput | EmitOutputDetailed;
 }
 declare namespace ts {
+    function getFileEmitOutput(program: Program, sourceFile: SourceFile, emitOnlyDtsFiles: boolean, cancellationToken?: CancellationToken, customTransformers?: CustomTransformers): EmitOutput;
     interface Builder {
-        /**
-         * Call this to feed new program
-         */
+        /** Called to inform builder about new program */
         updateProgram(newProgram: Program): void;
-        getFilesAffectedBy(program: Program, path: Path): string[];
-        emitFile(program: Program, path: Path): EmitOutput;
+        /** Gets the files affected by the file path */
+        getFilesAffectedBy(program: Program, path: Path): ReadonlyArray<SourceFile>;
         /** Emit the changed files and clear the cache of the changed files */
-        emitChangedFiles(program: Program): EmitOutputDetailed[];
+        emitChangedFiles(program: Program, writeFileCallback: WriteFileCallback): ReadonlyArray<EmitResult>;
         /** When called gets the semantic diagnostics for the program. It also caches the diagnostics and manage them */
-        getSemanticDiagnostics(program: Program, cancellationToken?: CancellationToken): Diagnostic[];
+        getSemanticDiagnostics(program: Program, cancellationToken?: CancellationToken): ReadonlyArray<Diagnostic>;
         /** Called to reset the status of the builder */
         clear(): void;
     }
     interface BuilderOptions {
         getCanonicalFileName: (fileName: string) => string;
-        getEmitOutput: (program: Program, sourceFile: SourceFile, emitOnlyDtsFiles: boolean, isDetailed: boolean) => EmitOutput | EmitOutputDetailed;
         computeHash: (data: string) => string;
-        shouldEmitFile: (sourceFile: SourceFile) => boolean;
     }
     function createBuilder(options: BuilderOptions): Builder;
 }
@@ -7305,8 +7319,6 @@ declare namespace ts {
      * as wildcard directories wont change unless reloading config file
      */
     function updateWatchingWildcardDirectories(existingWatchedForWildcards: Map<WildcardDirectoryWatcher>, wildcardDirectories: Map<WatchDirectoryFlags>, watchDirectory: (directory: string, flags: WatchDirectoryFlags) => FileWatcher): void;
-}
-declare namespace ts {
     function addFileWatcher(host: System, file: string, cb: FileWatcherCallback): FileWatcher;
     function addFileWatcherWithLogging(host: System, file: string, cb: FileWatcherCallback, log: (s: string) => void): FileWatcher;
     function addFileWatcherWithOnlyTriggerLogging(host: System, file: string, cb: FileWatcherCallback, log: (s: string) => void): FileWatcher;
@@ -7483,7 +7495,11 @@ declare namespace ts {
     interface HostCancellationToken {
         isCancellationRequested(): boolean;
     }
-    interface LanguageServiceHost {
+    interface InstallPackageOptions {
+        fileName: Path;
+        packageName: string;
+    }
+    interface LanguageServiceHost extends GetEffectiveTypeRootsHost {
         getCompilationSettings(): CompilerOptions;
         getNewLine?(): string;
         getProjectVersion?(): string;
@@ -7507,12 +7523,13 @@ declare namespace ts {
         resolveTypeReferenceDirectives?(typeDirectiveNames: string[], containingFile: string): ResolvedTypeReferenceDirective[];
         hasInvalidatedResolution?: HasInvalidatedResolution;
         hasChangedAutomaticTypeDirectiveNames?: boolean;
-        directoryExists?(directoryName: string): boolean;
         getDirectories?(directoryName: string): string[];
         /**
          * Gets a set of custom transformers to use during emit.
          */
         getCustomTransformers?(): CustomTransformers | undefined;
+        isKnownTypesPackageName?(name: string): boolean;
+        installPackage?(options: InstallPackageOptions): Promise<ApplyCodeActionCommandResult>;
     }
     interface LanguageService {
         cleanupSemanticCache(): void;
@@ -7530,7 +7547,7 @@ declare namespace ts {
         getEncodedSyntacticClassifications(fileName: string, span: TextSpan): Classifications;
         getEncodedSemanticClassifications(fileName: string, span: TextSpan): Classifications;
         getCompletionsAtPosition(fileName: string, position: number): CompletionInfo;
-        getCompletionEntryDetails(fileName: string, position: number, entryName: string): CompletionEntryDetails;
+        getCompletionEntryDetails(fileName: string, position: number, entryName: string, options?: FormatCodeOptions | FormatCodeSettings): CompletionEntryDetails;
         getCompletionEntrySymbol(fileName: string, position: number, entryName: string): Symbol;
         getQuickInfoAtPosition(fileName: string, position: number): QuickInfo;
         getNameOrDottedNameSpan(fileName: string, startPos: number, endPos: number): TextSpan;
@@ -7560,10 +7577,10 @@ declare namespace ts {
         isValidBraceCompletionAtPosition(fileName: string, position: number, openingBrace: number): boolean;
         getSpanOfEnclosingComment(fileName: string, position: number, onlyMultiLine: boolean): TextSpan;
         getCodeFixesAtPosition(fileName: string, start: number, end: number, errorCodes: number[], formatOptions: FormatCodeSettings): CodeAction[];
+        applyCodeActionCommand(fileName: string, action: CodeActionCommand): Promise<ApplyCodeActionCommandResult>;
         getApplicableRefactors(fileName: string, positionOrRaneg: number | TextRange): ApplicableRefactorInfo[];
         getEditsForRefactor(fileName: string, formatOptions: FormatCodeSettings, positionOrRange: number | TextRange, refactorName: string, actionName: string): RefactorEditInfo | undefined;
         getEmitOutput(fileName: string, emitOnlyDtsFiles?: boolean): EmitOutput;
-        getEmitOutput(fileName: string, emitOnlyDtsFiles?: boolean, isDetailed?: boolean): EmitOutput | EmitOutputDetailed;
         getProgram(): Program;
         getNonBoundSourceFile(fileName: string): SourceFile;
         /**
@@ -7572,6 +7589,9 @@ declare namespace ts {
          */
         getSourceFile(fileName: string): SourceFile;
         dispose(): void;
+    }
+    interface ApplyCodeActionCommandResult {
+        successMessage: string;
     }
     interface Classifications {
         spans: number[];
@@ -7637,6 +7657,16 @@ declare namespace ts {
         description: string;
         /** Text changes to apply to each file as part of the code action */
         changes: FileTextChanges[];
+        /**
+         * If the user accepts the code fix, the editor should send the action back in a `applyAction` request.
+         * This allows the language service to have side effects (e.g. installing dependencies) upon a code fix.
+         */
+        commands?: CodeActionCommand[];
+    }
+    type CodeActionCommand = InstallPackageAction;
+    interface InstallPackageAction {
+        type: "install package";
+        packageName: string;
     }
     /**
      * A set of one or more available refactoring actions, grouped under a parent refactoring.
@@ -7685,6 +7715,7 @@ declare namespace ts {
         edits: FileTextChanges[];
         renameFilename: string | undefined;
         renameLocation: number | undefined;
+        commands?: CodeActionCommand[];
     }
     interface TextInsertion {
         newText: string;
@@ -7904,6 +7935,7 @@ declare namespace ts {
          * be used in that case
          */
         replacementSpan?: TextSpan;
+        hasAction?: true;
     }
     interface CompletionEntryDetails {
         name: string;
@@ -7912,6 +7944,7 @@ declare namespace ts {
         displayParts: SymbolDisplayPart[];
         documentation: SymbolDisplayPart[];
         tags: JSDocTagInfo[];
+        codeActions?: CodeAction[];
     }
     interface OutliningSpan {
         /** The span of the document to actually collapse. */
@@ -8112,6 +8145,11 @@ declare namespace ts {
         jsxAttributeStringLiteralValue = 24,
     }
 }
+interface PromiseConstructor {
+    new <T>(executor: (resolve: (value?: T | PromiseLike<T>) => void, reject: (reason?: any) => void) => void): Promise<T>;
+    reject(reason: any): Promise<never>;
+}
+declare var Promise: PromiseConstructor;
 declare namespace ts {
     const scanner: Scanner;
     enum SemanticMeaning {
@@ -8247,6 +8285,7 @@ declare namespace ts {
     function stripQuotes(name: string): string;
     function scriptKindIs(fileName: string, host: LanguageServiceHost, ...scriptKinds: ScriptKind[]): boolean;
     function getScriptKind(fileName: string, host?: LanguageServiceHost): ScriptKind;
+    function getUniqueSymbolId(symbol: Symbol, checker: TypeChecker): number;
     function getFirstNonSpaceCharacterPosition(text: string, position: number): number;
     function getOpenBrace(constructor: ConstructorDeclaration, sourceFile: SourceFile): Node;
     function getOpenBraceOfClassLike(declaration: ClassLikeDeclaration, sourceFile: SourceFile): Node;
@@ -8276,9 +8315,9 @@ declare namespace ts.Completions.PathCompletions {
 }
 declare namespace ts.Completions {
     type Log = (message: string) => void;
-    function getCompletionsAtPosition(host: LanguageServiceHost, typeChecker: TypeChecker, log: Log, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number): CompletionInfo | undefined;
-    function getCompletionEntryDetails(typeChecker: TypeChecker, log: (message: string) => void, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number, entryName: string): CompletionEntryDetails;
-    function getCompletionEntrySymbol(typeChecker: TypeChecker, log: (message: string) => void, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number, entryName: string): Symbol | undefined;
+    function getCompletionsAtPosition(host: LanguageServiceHost, typeChecker: TypeChecker, log: Log, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number, allSourceFiles: ReadonlyArray<SourceFile>): CompletionInfo | undefined;
+    function getCompletionEntryDetails(typeChecker: TypeChecker, log: (message: string) => void, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number, name: string, allSourceFiles: ReadonlyArray<SourceFile>, host: LanguageServiceHost, rulesProvider: formatting.RulesProvider): CompletionEntryDetails;
+    function getCompletionEntrySymbol(typeChecker: TypeChecker, log: (message: string) => void, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number, entryName: string, allSourceFiles: ReadonlyArray<SourceFile>): Symbol | undefined;
 }
 declare namespace ts.DocumentHighlights {
     function getDocumentHighlights(program: Program, cancellationToken: CancellationToken, sourceFile: SourceFile, position: number, sourceFilesToSearch: SourceFile[]): DocumentHighlights[] | undefined;
@@ -8524,6 +8563,20 @@ declare namespace ts.JsTyping {
         newTypingNames: string[];
         filesToWatch: string[];
     };
+    enum PackageNameValidationResult {
+        Ok = 0,
+        ScopedPackagesNotSupported = 1,
+        EmptyName = 2,
+        NameTooLong = 3,
+        NameStartsWithDot = 4,
+        NameStartsWithUnderscore = 5,
+        NameContainsNonURISafeCharacters = 6,
+    }
+    /**
+     * Validates package name using rules defined at https://docs.npmjs.com/files/package.json
+     */
+    function validatePackageName(packageName: string): PackageNameValidationResult;
+    function renderPackageNameValidationFailure(result: PackageNameValidationResult, typing: string): string;
 }
 declare namespace ts.NavigateTo {
     function getNavigateToItems(sourceFiles: ReadonlyArray<SourceFile>, checker: TypeChecker, cancellationToken: CancellationToken, searchValue: string, maxResultCount: number, excludeDtsFiles: boolean): NavigateToItem[];
@@ -9082,13 +9135,18 @@ declare namespace ts.textChanges {
     function getSeparatorCharacter(separator: Token<SyntaxKind.CommaToken | SyntaxKind.SemicolonToken>): string;
     function getAdjustedStartPosition(sourceFile: SourceFile, node: Node, options: ConfigurableStart, position: Position): number;
     function getAdjustedEndPosition(sourceFile: SourceFile, node: Node, options: ConfigurableEnd): number;
+    interface TextChangesContext {
+        newLineCharacter: string;
+        rulesProvider: formatting.RulesProvider;
+    }
     class ChangeTracker {
         private readonly newLine;
         private readonly rulesProvider;
         private readonly validator;
         private changes;
         private readonly newLineCharacter;
-        static fromContext(context: RefactorContext | CodeFixContext): ChangeTracker;
+        static fromContext(context: TextChangesContext): ChangeTracker;
+        static with(context: TextChangesContext, cb: (tracker: ChangeTracker) => void): FileTextChanges[];
         constructor(newLine: NewLineKind, rulesProvider: formatting.RulesProvider, validator?: (text: NonFormattedText) => void);
         deleteRange(sourceFile: SourceFile, range: TextRange): this;
         deleteNode(sourceFile: SourceFile, node: Node, options?: ConfigurableStartEnd): this;
@@ -9129,15 +9187,13 @@ declare namespace ts {
         errorCodes: number[];
         getCodeActions(context: CodeFixContext): CodeAction[] | undefined;
     }
-    interface CodeFixContext {
+    interface CodeFixContext extends textChanges.TextChangesContext {
         errorCode: number;
         sourceFile: SourceFile;
         span: TextSpan;
         program: Program;
-        newLineCharacter: string;
         host: LanguageServiceHost;
         cancellationToken: CancellationToken;
-        rulesProvider: formatting.RulesProvider;
     }
     namespace codefix {
         function registerCodeFix(codeFix: CodeFix): void;
@@ -9156,13 +9212,12 @@ declare namespace ts {
         /** Compute (quickly) which actions are available here */
         getAvailableActions(context: RefactorContext): ApplicableRefactorInfo[] | undefined;
     }
-    interface RefactorContext {
+    interface RefactorContext extends textChanges.TextChangesContext {
         file: SourceFile;
         startPosition: number;
         endPosition?: number;
         program: Program;
-        newLineCharacter: string;
-        rulesProvider?: formatting.RulesProvider;
+        host: LanguageServiceHost;
         cancellationToken?: CancellationToken;
     }
     namespace refactor {
@@ -9183,6 +9238,7 @@ declare namespace ts.codefix {
 declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
+    function tryGetCodeActionForInstallPackageTypes(host: LanguageServiceHost, moduleName: string): CodeAction | undefined;
 }
 declare namespace ts.codefix {
 }
@@ -9197,6 +9253,38 @@ declare namespace ts.codefix {
 declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
+}
+declare namespace ts.codefix {
+    type ImportCodeActionKind = "CodeChange" | "InsertingIntoExistingImport" | "NewImport";
+    type ImportDeclarationMap = AnyImportSyntax[][];
+    interface ImportCodeAction extends CodeAction {
+        kind: ImportCodeActionKind;
+        moduleSpecifier?: string;
+    }
+    interface SymbolContext extends textChanges.TextChangesContext {
+        sourceFile: SourceFile;
+        symbolName: string;
+    }
+    interface SymbolAndTokenContext extends SymbolContext {
+        symbolToken: Node | undefined;
+    }
+    interface ImportCodeFixContext extends SymbolAndTokenContext {
+        host: LanguageServiceHost;
+        checker: TypeChecker;
+        compilerOptions: CompilerOptions;
+        getCanonicalFileName(fileName: string): string;
+        cachedImportDeclarations?: ImportDeclarationMap;
+    }
+    interface ImportCodeFixOptions extends ImportCodeFixContext {
+        kind: ImportKind;
+    }
+    enum ImportKind {
+        Named = 0,
+        Default = 1,
+        Namespace = 2,
+    }
+    function getCodeActionForImport(moduleSymbol: Symbol, context: ImportCodeFixOptions): ImportCodeAction[];
+    function forEachExternalModule(checker: TypeChecker, allSourceFiles: ReadonlyArray<SourceFile>, cb: (module: Symbol) => void): void;
 }
 declare namespace ts.codefix {
 }
@@ -9293,6 +9381,8 @@ declare namespace ts.refactor.extractSymbol {
         Read = 1,
         Write = 2,
     }
+}
+declare namespace ts.refactor.installTypesForPackage {
 }
 declare namespace ts {
     /** The version of the language service API */
@@ -9434,7 +9524,7 @@ declare namespace ts {
         getEncodedSyntacticClassifications(fileName: string, start: number, length: number): string;
         getEncodedSemanticClassifications(fileName: string, start: number, length: number): string;
         getCompletionsAtPosition(fileName: string, position: number): string;
-        getCompletionEntryDetails(fileName: string, position: number, entryName: string): string;
+        getCompletionEntryDetails(fileName: string, position: number, entryName: string, options: string): string;
         getQuickInfoAtPosition(fileName: string, position: number): string;
         getNameOrDottedNameSpan(fileName: string, startPos: number, endPos: number): string;
         getBreakpointStatementAtPosition(fileName: string, position: number): string;
