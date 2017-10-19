@@ -68,7 +68,19 @@ const fixesForFiles: IFixForFile[] = [
       {
         orig: 'interface ImportCodeFixContext',
         new: 'export interface ImportCodeFixContext'
-      }
+      },
+      {
+        orig: 'interface SymbolAndTokenContext',
+        new: 'export interface SymbolAndTokenContext'
+      },
+      {
+        orig: 'interface SymbolContext',
+        new: 'export interface SymbolContext'
+      },
+      {
+        orig: 'type ImportDeclarationMap',
+        new: 'export type ImportDeclarationMap'
+      },
     ]
   }
 ];
