@@ -2794,6 +2794,7 @@ declare namespace ts {
         LineFeed = 1,
     }
     interface LineAndCharacter {
+        /** 0-based. */
         line: number;
         character: number;
     }
@@ -3534,7 +3535,7 @@ declare namespace ts.performance {
     function disable(): void;
 }
 declare namespace ts {
-    const versionMajorMinor = "2.6";
+    const versionMajorMinor = "2.7";
     /** The version of the TypeScript compiler release */
     const version: string;
 }
@@ -6003,10 +6004,7 @@ declare namespace ts {
     /**
      * We assume the first line starts at position 0 and 'position' is non-negative.
      */
-    function computeLineAndCharacterOfPosition(lineStarts: ReadonlyArray<number>, position: number): {
-        line: number;
-        character: number;
-    };
+    function computeLineAndCharacterOfPosition(lineStarts: ReadonlyArray<number>, position: number): LineAndCharacter;
     function getLineAndCharacterOfPosition(sourceFile: SourceFileLike, position: number): LineAndCharacter;
     function isWhiteSpaceLike(ch: number): boolean;
     /** Does not include line breaks. For that, see isWhiteSpaceLike. */
@@ -9696,7 +9694,7 @@ declare namespace ts {
 declare namespace TypeScript.Services {
     const TypeScriptServicesFactory: typeof ts.TypeScriptServicesFactory;
 }
-declare const toolsVersion = "2.6";
+declare const toolsVersion = "2.7";
 declare namespace ts {
     /**
      * Transform one or more nodes using the supplied transformers.
