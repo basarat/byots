@@ -4224,8 +4224,8 @@ declare namespace ts {
     function getNameFromIndexInfo(info: IndexInfo): string | undefined;
     function getTextOfPropertyName(name: PropertyName): __String;
     function entityNameToString(name: EntityNameOrEntityNameExpression): string;
-    function createDiagnosticForNode(node: Node, message: DiagnosticMessage, arg0?: string | number, arg1?: string | number, arg2?: string | number): Diagnostic;
-    function createDiagnosticForNodeInSourceFile(sourceFile: SourceFile, node: Node, message: DiagnosticMessage, arg0?: string | number, arg1?: string | number, arg2?: string | number): Diagnostic;
+    function createDiagnosticForNode(node: Node, message: DiagnosticMessage, arg0?: string | number, arg1?: string | number, arg2?: string | number, arg3?: string | number): Diagnostic;
+    function createDiagnosticForNodeInSourceFile(sourceFile: SourceFile, node: Node, message: DiagnosticMessage, arg0?: string | number, arg1?: string | number, arg2?: string | number, arg3?: string | number): Diagnostic;
     function createDiagnosticForNodeFromMessageChain(node: Node, messageChain: DiagnosticMessageChain): Diagnostic;
     function getSpanOfTokenAtPosition(sourceFile: SourceFile, pos: number): TextSpan;
     function getErrorSpanForNode(sourceFile: SourceFile, node: Node): TextSpan;
@@ -4317,6 +4317,10 @@ declare namespace ts {
     function hasQuestionToken(node: Node): boolean;
     function isJSDocConstructSignature(node: Node): boolean;
     function getAllJSDocs(node: Node): (JSDoc | JSDocTag)[];
+    function getSourceOfAssignment(node: Node): Node;
+    function getSingleInitializerOfVariableStatement(node: Node, child?: Node): Node;
+    function getSingleVariableOfVariableStatement(node: Node, child?: Node): Node;
+    function getNestedModuleDeclaration(node: Node): Node;
     function getJSDocCommentsAndTags(node: Node): (JSDoc | JSDocTag)[];
     /** Does the opposite of `getJSDocParameterTags`: given a JSDoc parameter, finds the parameter corresponding to it. */
     function getParameterSymbolFromJSDoc(node: JSDocParameterTag): Symbol | undefined;
@@ -5342,7 +5346,7 @@ declare namespace ts {
         Expression_resolves_to_variable_declaration_this_that_compiler_uses_to_capture_this_reference: DiagnosticMessage;
         Duplicate_identifier_super_Compiler_uses_super_to_capture_base_class_reference: DiagnosticMessage;
         Expression_resolves_to_super_that_compiler_uses_to_capture_base_class_reference: DiagnosticMessage;
-        Subsequent_variable_declarations_must_have_the_same_type_Variable_0_must_be_of_type_1_but_here_has_type_2: DiagnosticMessage;
+        Subsequent_variable_declarations_must_have_the_same_type_Variable_0_has_type_1_at_2_but_here_has_type_3: DiagnosticMessage;
         The_left_hand_side_of_a_for_in_statement_cannot_use_a_type_annotation: DiagnosticMessage;
         The_left_hand_side_of_a_for_in_statement_must_be_of_type_string_or_any: DiagnosticMessage;
         The_left_hand_side_of_a_for_in_statement_must_be_a_variable_or_a_property_access: DiagnosticMessage;
@@ -5897,6 +5901,8 @@ declare namespace ts {
         JSDoc_0_1_does_not_match_the_extends_2_clause: DiagnosticMessage;
         JSDoc_param_tag_has_name_0_but_there_is_no_parameter_with_that_name: DiagnosticMessage;
         Class_declarations_cannot_have_more_than_one_augments_or_extends_tag: DiagnosticMessage;
+        Expected_0_type_arguments_provide_these_with_an_extends_tag: DiagnosticMessage;
+        Expected_0_1_type_arguments_provide_these_with_an_extends_tag: DiagnosticMessage;
         Only_identifiers_Slashqualified_names_with_optional_type_arguments_are_currently_supported_in_a_class_extends_clause: DiagnosticMessage;
         class_expressions_are_not_currently_supported: DiagnosticMessage;
         Language_service_is_disabled: DiagnosticMessage;
