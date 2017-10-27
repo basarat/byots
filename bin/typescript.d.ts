@@ -7552,8 +7552,8 @@ declare namespace ts {
         getEncodedSyntacticClassifications(fileName: string, span: TextSpan): Classifications;
         getEncodedSemanticClassifications(fileName: string, span: TextSpan): Classifications;
         getCompletionsAtPosition(fileName: string, position: number): CompletionInfo;
-        getCompletionEntryDetails(fileName: string, position: number, entryName: string, options?: FormatCodeOptions | FormatCodeSettings): CompletionEntryDetails;
-        getCompletionEntrySymbol(fileName: string, position: number, entryName: string): Symbol;
+        getCompletionEntryDetails(fileName: string, position: number, name: string, options?: FormatCodeOptions | FormatCodeSettings, source?: string): CompletionEntryDetails;
+        getCompletionEntrySymbol(fileName: string, position: number, name: string, source?: string): Symbol;
         getQuickInfoAtPosition(fileName: string, position: number): QuickInfo;
         getNameOrDottedNameSpan(fileName: string, startPos: number, endPos: number): TextSpan;
         getBreakpointStatementAtPosition(fileName: string, position: number): TextSpan;
@@ -7941,6 +7941,7 @@ declare namespace ts {
          */
         replacementSpan?: TextSpan;
         hasAction?: true;
+        source?: string;
     }
     interface CompletionEntryDetails {
         name: string;
@@ -7950,6 +7951,7 @@ declare namespace ts {
         documentation: SymbolDisplayPart[];
         tags: JSDocTagInfo[];
         codeActions?: CodeAction[];
+        source?: SymbolDisplayPart[];
     }
     interface OutliningSpan {
         /** The span of the document to actually collapse. */
@@ -8321,8 +8323,12 @@ declare namespace ts.Completions.PathCompletions {
 declare namespace ts.Completions {
     type Log = (message: string) => void;
     function getCompletionsAtPosition(host: LanguageServiceHost, typeChecker: TypeChecker, log: Log, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number, allSourceFiles: ReadonlyArray<SourceFile>): CompletionInfo | undefined;
-    function getCompletionEntryDetails(typeChecker: TypeChecker, log: (message: string) => void, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number, name: string, allSourceFiles: ReadonlyArray<SourceFile>, host: LanguageServiceHost, rulesProvider: formatting.RulesProvider): CompletionEntryDetails;
-    function getCompletionEntrySymbol(typeChecker: TypeChecker, log: (message: string) => void, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number, entryName: string, allSourceFiles: ReadonlyArray<SourceFile>): Symbol | undefined;
+    interface CompletionEntryIdentifier {
+        name: string;
+        source?: string;
+    }
+    function getCompletionEntryDetails(typeChecker: TypeChecker, log: (message: string) => void, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number, entryId: CompletionEntryIdentifier, allSourceFiles: ReadonlyArray<SourceFile>, host: LanguageServiceHost, rulesProvider: formatting.RulesProvider): CompletionEntryDetails;
+    function getCompletionEntrySymbol(typeChecker: TypeChecker, log: (message: string) => void, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number, entryId: CompletionEntryIdentifier, allSourceFiles: ReadonlyArray<SourceFile>): Symbol | undefined;
 }
 declare namespace ts.DocumentHighlights {
     function getDocumentHighlights(program: Program, cancellationToken: CancellationToken, sourceFile: SourceFile, position: number, sourceFilesToSearch: SourceFile[]): DocumentHighlights[] | undefined;
@@ -8516,8 +8522,11 @@ declare namespace ts.JsDoc {
     function getJsDocCommentsFromDeclarations(declarations?: Declaration[]): SymbolDisplayPart[];
     function getJsDocTagsFromDeclarations(declarations?: Declaration[]): JSDocTagInfo[];
     function getJSDocTagNameCompletions(): CompletionEntry[];
+    const getJSDocTagNameCompletionDetails: typeof getJSDocTagCompletionDetails;
     function getJSDocTagCompletions(): CompletionEntry[];
+    function getJSDocTagCompletionDetails(name: string): CompletionEntryDetails;
     function getJSDocParameterNameCompletions(tag: JSDocParameterTag): CompletionEntry[];
+    function getJSDocParameterNameCompletionDetails(name: string): CompletionEntryDetails;
     /**
      * Checks if position points to a valid position to add JSDoc comments, and if so,
      * returns the appropriate template. Otherwise returns an empty string.
