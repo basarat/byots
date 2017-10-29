@@ -2421,6 +2421,7 @@ declare namespace ts {
         ObjectLiteral = 128,
         EvolvingArray = 256,
         ObjectLiteralPatternWithComputedProperties = 512,
+        ContainsSpread = 1024,
         ClassOrInterface = 3,
     }
     interface ObjectType extends Type {
@@ -2616,6 +2617,12 @@ declare namespace ts {
         inferences: InferenceInfo[];
         flags: InferenceFlags;
         compareTypes: TypeComparer;
+    }
+    interface WideningContext {
+        parent?: WideningContext;
+        propertyName?: __String;
+        siblings?: Type[];
+        resolvedPropertyNames?: __String[];
     }
     enum SpecialPropertyAssignmentKind {
         None = 0,
