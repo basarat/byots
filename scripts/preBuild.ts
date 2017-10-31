@@ -90,6 +90,15 @@ const fixesForFiles: IFixForFile[] = [
         new: 'export type ImportCodeActionKind'
       },
     ]
+  },
+  {
+    filePath:'../TypeScript/src/services/symbolDisplay.ts',
+    fixes: [
+      {
+        orig: 'interface SymbolDisplayPartsDocumentationAndSymbolKind',
+        new: 'export interface SymbolDisplayPartsDocumentationAndSymbolKind'
+      },
+    ]
   }
 ];
 
