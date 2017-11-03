@@ -1723,9 +1723,7 @@ declare namespace ts {
         fileExists(path: string): boolean;
         readFile(path: string): string | undefined;
     }
-    interface WriteFileCallback {
-        (fileName: string, data: string, writeByteOrderMark: boolean, onError: ((message: string) => void) | undefined, sourceFiles: ReadonlyArray<SourceFile>): void;
-    }
+    type WriteFileCallback = (fileName: string, data: string, writeByteOrderMark: boolean, onError: ((message: string) => void) | undefined, sourceFiles: ReadonlyArray<SourceFile>) => void;
     class OperationCanceledException {
     }
     interface CancellationToken {
@@ -2592,9 +2590,7 @@ declare namespace ts {
         isReadonly: boolean;
         declaration?: SignatureDeclaration;
     }
-    interface TypeMapper {
-        (t: TypeParameter): Type;
-    }
+    type TypeMapper = (t: TypeParameter) => Type;
     enum InferencePriority {
         Contravariant = 1,
         NakedTypeVariable = 2,
@@ -3116,9 +3112,7 @@ declare namespace ts {
         readonly resolvedTypeReferenceDirective: ResolvedTypeReferenceDirective;
         readonly failedLookupLocations: ReadonlyArray<string>;
     }
-    interface HasInvalidatedResolution {
-        (sourceFile: Path): boolean;
-    }
+    type HasInvalidatedResolution = (sourceFile: Path) => boolean;
     interface CompilerHost extends ModuleResolutionHost {
         getSourceFile(fileName: string, languageVersion: ScriptTarget, onError?: (message: string) => void, shouldCreateNewSourceFile?: boolean): SourceFile | undefined;
         getSourceFileByPath?(fileName: string, path: Path, languageVersion: ScriptTarget, onError?: (message: string) => void, shouldCreateNewSourceFile?: boolean): SourceFile | undefined;
@@ -5999,9 +5993,7 @@ declare namespace ts {
     };
 }
 declare namespace ts {
-    interface ErrorCallback {
-        (message: DiagnosticMessage, length: number): void;
-    }
+    type ErrorCallback = (message: DiagnosticMessage, length: number) => void;
     function tokenIsIdentifierOrKeyword(token: SyntaxKind): boolean;
     function tokenIsIdentifierOrKeywordOrGreaterThan(token: SyntaxKind): boolean;
     interface Scanner {
@@ -8834,9 +8826,7 @@ declare namespace ts.formatting {
 declare namespace ts.formatting {
     class RuleOperationContext {
         private readonly customContextChecks;
-        constructor(...funcs: {
-            (context: FormattingContext): boolean;
-        }[]);
+        constructor(...funcs: ((context: FormattingContext) => boolean)[]);
         static readonly Any: RuleOperationContext;
         IsAny(): boolean;
         InContext(context: FormattingContext): boolean;
@@ -9569,7 +9559,7 @@ declare namespace ts {
         trace(s: string): void;
         useCaseSensitiveFileNames?(): boolean;
     }
-    interface IFileReference {
+    interface ShimsFileReference {
         path: string;
         position: number;
         length: number;
