@@ -394,11 +394,12 @@ declare namespace ts {
         HasAggregatedChildData = 262144,
         PossiblyContainsDynamicImport = 524288,
         JSDoc = 1048576,
-        InWithStatement = 2097152,
+        Ambient = 2097152,
+        InWithStatement = 4194304,
         BlockScoped = 3,
         ReachabilityCheckFlags = 384,
         ReachabilityAndEmitFlags = 1408,
-        ContextFlags = 2193408,
+        ContextFlags = 6387712,
         TypeExcludesFlags = 20480,
     }
     enum ModifierFlags {
@@ -4362,7 +4363,6 @@ declare namespace ts {
     function isAssignmentTarget(node: Node): boolean;
     function isDeleteTarget(node: Node): boolean;
     function isNodeDescendantOf(node: Node, ancestor: Node): boolean;
-    function isInAmbientContext(node: Node): boolean;
     function isDeclarationName(name: Node): boolean;
     function isAnyDeclarationName(name: Node): boolean;
     function isLiteralComputedPropertyDeclarationName(node: Node): boolean;
@@ -4635,7 +4635,7 @@ declare namespace ts {
      */
     function mutateMap<T, U>(map: Map<T>, newMap: ReadonlyMap<U>, options: MutateMapOptions<T, U>): void;
     /** Calls `callback` on `directory` and every ancestor directory it has, returning the first defined result. */
-    function forEachAncestorDirectory<T>(directory: string, callback: (directory: string) => T): T;
+    function forEachAncestorDirectory<T>(directory: string, callback: (directory: string) => T | undefined): T | undefined;
 }
 declare namespace ts {
     function getDefaultLibFileName(options: CompilerOptions): string;
@@ -5990,6 +5990,8 @@ declare namespace ts {
         Annotate_with_types_from_JSDoc: DiagnosticMessage;
         Infer_type_of_0_from_usage: DiagnosticMessage;
         Infer_parameter_types_from_usage: DiagnosticMessage;
+        Convert_to_default_import: DiagnosticMessage;
+        Install_0: DiagnosticMessage;
     };
 }
 declare namespace ts {
@@ -7593,7 +7595,7 @@ declare namespace ts {
         getSemanticClassifications(fileName: string, span: TextSpan): ClassifiedSpan[];
         getEncodedSyntacticClassifications(fileName: string, span: TextSpan): Classifications;
         getEncodedSemanticClassifications(fileName: string, span: TextSpan): Classifications;
-        getCompletionsAtPosition(fileName: string, position: number): CompletionInfo;
+        getCompletionsAtPosition(fileName: string, position: number, options: GetCompletionsAtPositionOptions | undefined): CompletionInfo;
         getCompletionEntryDetails(fileName: string, position: number, name: string, options: FormatCodeOptions | FormatCodeSettings | undefined, source: string | undefined): CompletionEntryDetails;
         getCompletionEntrySymbol(fileName: string, position: number, name: string, source: string | undefined): Symbol;
         getQuickInfoAtPosition(fileName: string, position: number): QuickInfo;
@@ -7637,6 +7639,9 @@ declare namespace ts {
          */
         getSourceFile(fileName: string): SourceFile;
         dispose(): void;
+    }
+    interface GetCompletionsAtPositionOptions {
+        includeExternalModuleExports: boolean;
     }
     interface ApplyCodeActionCommandResult {
         successMessage: string;
@@ -8364,12 +8369,12 @@ declare namespace ts {
     function getEncodedSyntacticClassifications(cancellationToken: CancellationToken, sourceFile: SourceFile, span: TextSpan): Classifications;
 }
 declare namespace ts.Completions.PathCompletions {
-    function getStringLiteralCompletionEntriesFromModuleNames(node: StringLiteral, compilerOptions: CompilerOptions, host: LanguageServiceHost, typeChecker: TypeChecker): CompletionInfo;
-    function getTripleSlashReferenceCompletion(sourceFile: SourceFile, position: number, compilerOptions: CompilerOptions, host: LanguageServiceHost): CompletionInfo;
+    function getStringLiteralCompletionsFromModuleNames(node: StringLiteral, compilerOptions: CompilerOptions, host: LanguageServiceHost, typeChecker: TypeChecker): CompletionEntry[];
+    function getTripleSlashReferenceCompletion(sourceFile: SourceFile, position: number, compilerOptions: CompilerOptions, host: LanguageServiceHost): CompletionEntry[] | undefined;
 }
 declare namespace ts.Completions {
     type Log = (message: string) => void;
-    function getCompletionsAtPosition(host: LanguageServiceHost, typeChecker: TypeChecker, log: Log, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number, allSourceFiles: ReadonlyArray<SourceFile>): CompletionInfo | undefined;
+    function getCompletionsAtPosition(host: LanguageServiceHost, typeChecker: TypeChecker, log: Log, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number, allSourceFiles: ReadonlyArray<SourceFile>, options: GetCompletionsAtPositionOptions): CompletionInfo | undefined;
     interface CompletionEntryIdentifier {
         name: string;
         source?: string;
@@ -9445,9 +9450,11 @@ declare namespace ts.refactor.extractSymbol {
 }
 declare namespace ts.refactor.installTypesForPackage {
 }
+declare namespace ts.refactor.installTypesForPackage {
+}
 declare namespace ts {
     /** The version of the language service API */
-    const servicesVersion = "0.6";
+    const servicesVersion = "0.7";
     interface DisplayPartsSymbolWriter extends SymbolWriter {
         displayParts(): SymbolDisplayPart[];
     }
@@ -9584,7 +9591,7 @@ declare namespace ts {
         getSemanticClassifications(fileName: string, start: number, length: number): string;
         getEncodedSyntacticClassifications(fileName: string, start: number, length: number): string;
         getEncodedSemanticClassifications(fileName: string, start: number, length: number): string;
-        getCompletionsAtPosition(fileName: string, position: number): string;
+        getCompletionsAtPosition(fileName: string, position: number, options: GetCompletionsAtPositionOptions | undefined): string;
         getCompletionEntryDetails(fileName: string, position: number, entryName: string, options: string, source: string | undefined): string;
         getQuickInfoAtPosition(fileName: string, position: number): string;
         getNameOrDottedNameSpan(fileName: string, startPos: number, endPos: number): string;
