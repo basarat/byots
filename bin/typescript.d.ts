@@ -37,6 +37,13 @@ declare namespace ts {
     interface Push<T> {
         push(...values: T[]): void;
     }
+    type EqualityComparer<T> = (a: T, b: T) => boolean;
+    type Comparer<T> = (a: T, b: T) => Comparison;
+    enum Comparison {
+        LessThan = -1,
+        EqualTo = 0,
+        GreaterThan = 1,
+    }
     type Path = string & {
         __pathBrand: any;
     };
@@ -445,7 +452,6 @@ declare namespace ts {
         id?: number;
         parent?: Node;
         original?: Node;
-        startsOnNewLine?: boolean;
         symbol?: Symbol;
         locals?: SymbolTable;
         nextContainer?: Node;
@@ -500,6 +506,7 @@ declare namespace ts {
         isInJSDocNamespace?: boolean;
         typeArguments?: NodeArray<TypeNode>;
         jsdocDotPos?: number;
+        skipNameGenerationScope?: boolean;
     }
     interface TransientIdentifier extends Identifier {
         resolvedSymbol: Symbol;
@@ -3213,6 +3220,7 @@ declare namespace ts {
         constantValue?: string | number;
         externalHelpersModuleName?: Identifier;
         helpers?: EmitHelper[];
+        startsOnNewLine?: boolean;
     }
     enum EmitFlags {
         SingleLine = 1,
@@ -3563,10 +3571,6 @@ declare namespace ts {
     function isExternalModuleNameRelative(moduleName: string): boolean;
 }
 declare namespace ts {
-    const collator: {
-        compare(a: string, b: string): number;
-    };
-    const localeCompareIsCorrect: boolean;
     /** Create a new map. If a template object is provided, the map will copy entries from it. */
     function createMap<T>(): Map<T>;
     /** Create a new escaped identifier map. */
@@ -3574,11 +3578,6 @@ declare namespace ts {
     function createSymbolTable(symbols?: ReadonlyArray<Symbol>): SymbolTable;
     function createMapFromTemplate<T>(template?: MapLike<T>): Map<T>;
     function toPath(fileName: string, basePath: string, getCanonicalFileName: (path: string) => string): Path;
-    enum Comparison {
-        LessThan = -1,
-        EqualTo = 0,
-        GreaterThan = 1,
-    }
     function length(array: ReadonlyArray<any>): number;
     /**
      * Iterates through 'array' by index and performs the callback on each element of array until the callback
@@ -3615,7 +3614,7 @@ declare namespace ts {
      * This is like `forEach`, but never returns undefined.
      */
     function findMap<T, U>(array: ReadonlyArray<T>, callback: (element: T, index: number) => U | undefined): U;
-    function contains<T>(array: ReadonlyArray<T>, value: T): boolean;
+    function contains<T>(array: ReadonlyArray<T>, value: T, equalityComparer?: EqualityComparer<T>): boolean;
     function indexOf<T>(array: ReadonlyArray<T>, value: T): number;
     function indexOfAnyCharCode(text: string, charCodes: ReadonlyArray<number>, start?: number): number;
     function countWhere<T>(array: ReadonlyArray<T>, predicate: (x: T, i: number) => boolean): number;
@@ -3674,8 +3673,15 @@ declare namespace ts {
     function some<T>(array: ReadonlyArray<T>, predicate?: (value: T) => boolean): boolean;
     function concatenate<T>(array1: T[], array2: T[]): T[];
     function concatenate<T>(array1: ReadonlyArray<T>, array2: ReadonlyArray<T>): ReadonlyArray<T>;
-    function deduplicate<T>(array: ReadonlyArray<T>, areEqual?: (a: T, b: T) => boolean): T[];
-    function arrayIsEqualTo<T>(array1: ReadonlyArray<T>, array2: ReadonlyArray<T>, equaler?: (a: T, b: T) => boolean): boolean;
+    /**
+     * Deduplicates an unsorted array.
+     * @param equalityComparer An optional `EqualityComparer` used to determine if two values are duplicates.
+     * @param comparer An optional `Comparer` used to sort entries before comparison, though the
+     * result will remain in the original order in `array`.
+     */
+    function deduplicate<T>(array: ReadonlyArray<T>, equalityComparer: EqualityComparer<T>, comparer?: Comparer<T>): T[];
+    function sortAndDeduplicate<T>(array: ReadonlyArray<T>, comparer: Comparer<T>, equalityComparer?: EqualityComparer<T>): T[];
+    function arrayIsEqualTo<T>(array1: ReadonlyArray<T>, array2: ReadonlyArray<T>, equalityComparer?: (a: T, b: T) => boolean): boolean;
     function changesAffectModuleResolution(oldOptions: CompilerOptions, newOptions: CompilerOptions): boolean;
     /**
      * Compacts an array, removing any falsey elements.
@@ -3683,11 +3689,11 @@ declare namespace ts {
     function compact<T>(array: T[]): T[];
     function compact<T>(array: ReadonlyArray<T>): ReadonlyArray<T>;
     /**
-     * Gets the relative complement of `arrayA` with respect to `b`, returning the elements that
+     * Gets the relative complement of `arrayA` with respect to `arrayB`, returning the elements that
      * are not present in `arrayA` but are present in `arrayB`. Assumes both arrays are sorted
      * based on the provided comparer.
      */
-    function relativeComplement<T>(arrayA: T[] | undefined, arrayB: T[] | undefined, comparer?: Comparer<T>, offsetA?: number, offsetB?: number): T[] | undefined;
+    function relativeComplement<T>(arrayA: T[] | undefined, arrayB: T[] | undefined, comparer: Comparer<T>): T[] | undefined;
     function sum<T extends Record<K, number>, K extends string>(array: ReadonlyArray<T>, prop: K): number;
     /**
      * Appends a value to an array, returning the array.
@@ -3712,15 +3718,19 @@ declare namespace ts {
     /**
      * @return Whether the value was added.
      */
-    function pushIfUnique<T>(array: T[], toAdd: T): boolean;
+    function pushIfUnique<T>(array: T[], toAdd: T, equalityComparer?: EqualityComparer<T>): boolean;
     /**
      * Unlike `pushIfUnique`, this can take `undefined` as an input, and returns a new array.
      */
-    function appendIfUnique<T>(array: T[] | undefined, toAdd: T): T[];
+    function appendIfUnique<T>(array: T[] | undefined, toAdd: T, equalityComparer?: EqualityComparer<T>): T[];
+    /**
+     * Returns a new sorted array.
+     */
+    function sort<T>(array: ReadonlyArray<T>, comparer: Comparer<T>): T[];
     /**
      * Stable sort of an array. Elements equal to each other maintain their relative position in the array.
      */
-    function stableSort<T>(array: ReadonlyArray<T>, comparer?: Comparer<T>): T[];
+    function stableSort<T>(array: ReadonlyArray<T>, comparer: Comparer<T>): T[];
     function rangeEquals<T>(array1: ReadonlyArray<T>, array2: ReadonlyArray<T>, pos: number, end: number): boolean;
     /**
      * Returns the element at a specific offset in an array if non-empty, `undefined` otherwise.
@@ -3748,15 +3758,18 @@ declare namespace ts {
     function singleOrMany<T>(array: T[]): T | T[];
     function singleOrMany<T>(array: ReadonlyArray<T>): T | ReadonlyArray<T>;
     function replaceElement<T>(array: ReadonlyArray<T>, index: number, value: T): T[];
-    type Comparer<T> = (a: T, b: T) => Comparison;
     /**
-     * Performs a binary search, finding the index at which 'value' occurs in 'array'.
+     * Performs a binary search, finding the index at which `value` occurs in `array`.
      * If no such index is found, returns the 2's-complement of first index at which
-     * number[index] exceeds number.
+     * `array[index]` exceeds `value`.
      * @param array A sorted array whose first element must be no larger than number
-     * @param number The value to be searched for in the array.
+     * @param value The value to be searched for in the array.
+     * @param keySelector A callback used to select the search key from `value` and each element of
+     * `array`.
+     * @param keyComparer A callback used to compare two keys in a sorted array.
+     * @param offset An offset into `array` at which to start the search.
      */
-    function binarySearch<T>(array: ReadonlyArray<T>, value: T, comparer?: Comparer<T>, offset?: number): number;
+    function binarySearch<T, U>(array: ReadonlyArray<T>, value: T, keySelector: (v: T) => U, keyComparer: Comparer<U>, offset?: number): number;
     function reduceLeft<T, U>(array: ReadonlyArray<T>, f: (memo: U, value: T, i: number) => U, initial: U, start?: number, count?: number): U;
     function reduceLeft<T>(array: ReadonlyArray<T>, f: (memo: T, value: T, i: number) => T): T;
     /**
@@ -3802,7 +3815,7 @@ declare namespace ts {
      * @param left A map-like whose properties should be compared.
      * @param right A map-like whose properties should be compared.
      */
-    function equalOwnProperties<T>(left: MapLike<T>, right: MapLike<T>, equalityComparer?: (left: T, right: T) => boolean): boolean;
+    function equalOwnProperties<T>(left: MapLike<T>, right: MapLike<T>, equalityComparer?: EqualityComparer<T>): boolean;
     /**
      * Creates a map from the elements of an array.
      *
@@ -3887,12 +3900,68 @@ declare namespace ts {
     function createCompilerDiagnosticFromMessageChain(chain: DiagnosticMessageChain): Diagnostic;
     function chainDiagnosticMessages(details: DiagnosticMessageChain, message: DiagnosticMessage, ...args: string[]): DiagnosticMessageChain;
     function concatenateDiagnosticMessageChains(headChain: DiagnosticMessageChain, tailChain: DiagnosticMessageChain): DiagnosticMessageChain;
-    function compareValues<T>(a: T, b: T): Comparison;
-    function compareStrings(a: string, b: string, ignoreCase?: boolean): Comparison;
+    function equateValues<T>(a: T, b: T): boolean;
+    /**
+     * Compare the equality of two strings using a case-sensitive ordinal comparison.
+     *
+     * Case-sensitive comparisons compare both strings one code-point at a time using the integer
+     * value of each code-point after applying `toUpperCase` to each string. We always map both
+     * strings to their upper-case form as some unicode characters do not properly round-trip to
+     * lowercase (such as `ẞ` (German sharp capital s)).
+     */
+    function equateStringsCaseInsensitive(a: string, b: string): boolean;
+    /**
+     * Compare the equality of two strings using a case-sensitive ordinal comparison.
+     *
+     * Case-sensitive comparisons compare both strings one code-point at a time using the
+     * integer value of each code-point.
+     */
+    function equateStringsCaseSensitive(a: string, b: string): boolean;
+    /**
+     * Compare two numeric values for their order relative to each other.
+     * To compare strings, use any of the `compareStrings` functions.
+     */
+    function compareValues(a: number, b: number): Comparison;
+    /**
+     * Compare two strings using a case-insensitive ordinal comparison.
+     *
+     * Ordinal comparisons are based on the difference between the unicode code points of both
+     * strings. Characters with multiple unicode representations are considered unequal. Ordinal
+     * comparisons provide predictable ordering, but place "a" after "B".
+     *
+     * Case-insensitive comparisons compare both strings one code-point at a time using the integer
+     * value of each code-point after applying `toUpperCase` to each string. We always map both
+     * strings to their upper-case form as some unicode characters do not properly round-trip to
+     * lowercase (such as `ẞ` (German sharp capital s)).
+     */
     function compareStringsCaseInsensitive(a: string, b: string): Comparison;
+    /**
+     * Compare two strings using a case-sensitive ordinal comparison.
+     *
+     * Ordinal comparisons are based on the difference between the unicode code points of both
+     * strings. Characters with multiple unicode representations are considered unequal. Ordinal
+     * comparisons provide predictable ordering, but place "a" after "B".
+     *
+     * Case-sensitive comparisons compare both strings one code-point at a time using the integer
+     * value of each code-point.
+     */
+    function compareStringsCaseSensitive(a: string, b: string): Comparison;
+    function getUILocale(): string;
+    function setUILocale(value: string): void;
+    /**
+     * Compare two strings in a using the case-sensitive sort behavior of the UI locale.
+     *
+     * Ordering is not predictable between different host locales, but is best for displaying
+     * ordered data for UI presentation. Characters with multiple unicode representations may
+     * be considered equal.
+     *
+     * Case-sensitive comparisons compare strings that differ in base characters, or
+     * accents/diacritic marks, or case as unequal.
+     */
+    function compareStringsCaseSensitiveUI(a: string, b: string): Comparison;
+    function compareProperties<T, K extends keyof T>(a: T, b: T, key: K, comparer: Comparer<T[K]>): Comparison;
     function compareDiagnostics(d1: Diagnostic, d2: Diagnostic): Comparison;
-    function sortAndDeduplicateDiagnostics(diagnostics: Diagnostic[]): Diagnostic[];
-    function deduplicateSortedDiagnostics(diagnostics: Diagnostic[]): Diagnostic[];
+    function sortAndDeduplicateDiagnostics(diagnostics: ReadonlyArray<Diagnostic>): Diagnostic[];
     function normalizeSlashes(path: string): string;
     /**
      * Returns length of path root (i.e. length of "/", "x:/", "//server/share/, file:///user/files")
@@ -4325,7 +4394,7 @@ declare namespace ts {
      */
     function isRequireCall(callExpression: Node, checkArgumentIsStringLiteral: boolean): callExpression is CallExpression;
     function isSingleOrDoubleQuote(charCode: number): boolean;
-    function isStringDoubleQuoted(string: StringLiteral, sourceFile: SourceFile): boolean;
+    function isStringDoubleQuoted(str: StringLiteral, sourceFile: SourceFile): boolean;
     /**
      * Returns true if the node is a variable declaration whose initializer is a function expression.
      * This function does not test if the node is in a JavaScript file or not.
@@ -6209,11 +6278,10 @@ declare namespace ts {
      * Creates a shallow, memberwise clone of a node with no source map location.
      */
     function getSynthesizedClone<T extends Node>(node: T | undefined): T | undefined;
-    function createLiteral(value: string): StringLiteral;
+    /** If a node is passed, creates a string literal whose source text is read from a source node during emit. */
+    function createLiteral(value: string | StringLiteral | NumericLiteral | Identifier): StringLiteral;
     function createLiteral(value: number): NumericLiteral;
     function createLiteral(value: boolean): BooleanLiteral;
-    /** Create a string literal whose source text is read from a source node during emit. */
-    function createLiteral(sourceNode: StringLiteral | NumericLiteral | Identifier): StringLiteral;
     function createLiteral(value: string | number | boolean): PrimaryExpression;
     function createNumericLiteral(value: string): NumericLiteral;
     function createIdentifier(text: string): Identifier;
@@ -6227,6 +6295,7 @@ declare namespace ts {
     function createUniqueName(text: string): Identifier;
     /** Create a unique name generated for a node. */
     function getGeneratedNameForNode(node: Node): Identifier;
+    function getGeneratedNameForNode(node: Node, shouldSkipNameGenerationScope?: boolean): Identifier;
     function createToken<TKind extends SyntaxKind>(token: TKind): Token<TKind>;
     function createSuper(): SuperExpression;
     function createThis(): ThisExpression & Token<SyntaxKind.ThisKeyword>;
@@ -6577,6 +6646,14 @@ declare namespace ts {
      * Sets the TextRange to use for source maps for a token of a node.
      */
     function setTokenSourceMapRange<T extends Node>(node: T, token: SyntaxKind, range: SourceMapRange | undefined): T;
+    /**
+     * Gets a custom text range to use when emitting comments.
+     */
+    function getStartsOnNewLine(node: Node): boolean;
+    /**
+     * Sets a custom text range to use when emitting comments.
+     */
+    function setStartsOnNewLine<T extends Node>(node: T, newLine: boolean): T;
     /**
      * Gets a custom text range to use when emitting comments.
      */
@@ -7469,7 +7546,7 @@ declare namespace ts {
         getEscapedName(): __String;
         getName(): string;
         getDeclarations(): Declaration[] | undefined;
-        getDocumentationComment(): SymbolDisplayPart[];
+        getDocumentationComment(typeChecker: TypeChecker | undefined): SymbolDisplayPart[];
         getJsDocTags(): JSDocTagInfo[];
     }
     interface Type {
@@ -7490,7 +7567,7 @@ declare namespace ts {
         getTypeParameters(): TypeParameter[] | undefined;
         getParameters(): Symbol[];
         getReturnType(): Type;
-        getDocumentationComment(): SymbolDisplayPart[];
+        getDocumentationComment(typeChecker: TypeChecker | undefined): SymbolDisplayPart[];
         getJsDocTags(): JSDocTagInfo[];
     }
     interface SourceFile {
@@ -8583,13 +8660,9 @@ declare namespace ts.JsDoc {
     /**
      * Checks if position points to a valid position to add JSDoc comments, and if so,
      * returns the appropriate template. Otherwise returns an empty string.
-     * Valid positions are
-     *      - outside of comments, statements, and expressions, and
-     *      - preceding a:
-     *          - function/constructor/method declaration
-     *          - class declarations
-     *          - variable statements
-     *          - namespace declarations
+     * Invalid positions are
+     *      - within comments, strings (including template literals and regex), and JSXText
+     *      - within a token
      *
      * Hosts should ideally check that:
      * - The line is all whitespace up to 'position' before performing the insertion.
@@ -8600,7 +8673,7 @@ declare namespace ts.JsDoc {
      * @param position The (character-indexed) position in the file where the check should
      * be performed.
      */
-    function getDocCommentTemplateAtPosition(newLine: string, sourceFile: SourceFile, position: number): TextInsertion;
+    function getDocCommentTemplateAtPosition(newLine: string, sourceFile: SourceFile, position: number): TextInsertion | undefined;
 }
 declare namespace ts.JsTyping {
     interface TypingResolutionHost {
@@ -8785,11 +8858,11 @@ declare namespace ts.formatting {
 }
 declare namespace ts.formatting {
     class Rule {
-        readonly Descriptor: RuleDescriptor;
-        readonly Operation: RuleOperation;
-        readonly Flag: RuleFlags;
+        readonly descriptor: RuleDescriptor;
+        readonly operation: RuleOperation;
+        readonly flag: RuleFlags;
         debugName?: string;
-        constructor(Descriptor: RuleDescriptor, Operation: RuleOperation, Flag?: RuleFlags);
+        constructor(descriptor: RuleDescriptor, operation: RuleOperation, flag?: RuleFlags);
     }
 }
 declare namespace ts.formatting {
@@ -8802,9 +8875,9 @@ declare namespace ts.formatting {
 }
 declare namespace ts.formatting {
     class RuleDescriptor {
-        LeftTokenRange: Shared.TokenRange;
-        RightTokenRange: Shared.TokenRange;
-        constructor(LeftTokenRange: Shared.TokenRange, RightTokenRange: Shared.TokenRange);
+        leftTokenRange: Shared.TokenRange;
+        rightTokenRange: Shared.TokenRange;
+        constructor(leftTokenRange: Shared.TokenRange, rightTokenRange: Shared.TokenRange);
         toString(): string;
         static create1(left: SyntaxKind, right: SyntaxKind): RuleDescriptor;
         static create2(left: Shared.TokenRange, right: SyntaxKind): RuleDescriptor;
@@ -8820,9 +8893,9 @@ declare namespace ts.formatting {
 }
 declare namespace ts.formatting {
     class RuleOperation {
-        Context: RuleOperationContext;
-        Action: RuleAction;
-        constructor(Context: RuleOperationContext, Action: RuleAction);
+        readonly context: RuleOperationContext;
+        readonly action: RuleAction;
+        constructor(context: RuleOperationContext, action: RuleAction);
         toString(): string;
         static create1(action: RuleAction): RuleOperation;
         static create2(context: RuleOperationContext, action: RuleAction): RuleOperation;
@@ -8832,7 +8905,7 @@ declare namespace ts.formatting {
     class RuleOperationContext {
         private readonly customContextChecks;
         constructor(...funcs: ((context: FormattingContext) => boolean)[]);
-        static readonly Any: RuleOperationContext;
+        static readonly any: RuleOperationContext;
         IsAny(): boolean;
         InContext(context: FormattingContext): boolean;
     }
@@ -9380,28 +9453,28 @@ declare namespace ts.refactor.extractSymbol {
     function getAvailableActions(context: RefactorContext): ApplicableRefactorInfo[] | undefined;
     function getEditsForAction(context: RefactorContext, actionName: string): RefactorEditInfo | undefined;
     namespace Messages {
-        const CannotExtractRange: DiagnosticMessage;
-        const CannotExtractImport: DiagnosticMessage;
-        const CannotExtractSuper: DiagnosticMessage;
-        const CannotExtractEmpty: DiagnosticMessage;
-        const ExpressionExpected: DiagnosticMessage;
-        const UselessConstantType: DiagnosticMessage;
-        const StatementOrExpressionExpected: DiagnosticMessage;
-        const CannotExtractRangeContainingConditionalBreakOrContinueStatements: DiagnosticMessage;
-        const CannotExtractRangeContainingConditionalReturnStatement: DiagnosticMessage;
-        const CannotExtractRangeContainingLabeledBreakOrContinueStatementWithTargetOutsideOfTheRange: DiagnosticMessage;
-        const CannotExtractRangeThatContainsWritesToReferencesLocatedOutsideOfTheTargetRangeInGenerators: DiagnosticMessage;
-        const TypeWillNotBeVisibleInTheNewScope: DiagnosticMessage;
-        const FunctionWillNotBeVisibleInTheNewScope: DiagnosticMessage;
-        const CannotExtractIdentifier: DiagnosticMessage;
-        const CannotExtractExportedEntity: DiagnosticMessage;
-        const CannotWriteInExpression: DiagnosticMessage;
-        const CannotExtractReadonlyPropertyInitializerOutsideConstructor: DiagnosticMessage;
-        const CannotExtractAmbientBlock: DiagnosticMessage;
-        const CannotAccessVariablesFromNestedScopes: DiagnosticMessage;
-        const CannotExtractToOtherFunctionLike: DiagnosticMessage;
-        const CannotExtractToJSClass: DiagnosticMessage;
-        const CannotExtractToExpressionArrowFunction: DiagnosticMessage;
+        const cannotExtractRange: DiagnosticMessage;
+        const cannotExtractImport: DiagnosticMessage;
+        const cannotExtractSuper: DiagnosticMessage;
+        const cannotExtractEmpty: DiagnosticMessage;
+        const expressionExpected: DiagnosticMessage;
+        const uselessConstantType: DiagnosticMessage;
+        const statementOrExpressionExpected: DiagnosticMessage;
+        const cannotExtractRangeContainingConditionalBreakOrContinueStatements: DiagnosticMessage;
+        const cannotExtractRangeContainingConditionalReturnStatement: DiagnosticMessage;
+        const cannotExtractRangeContainingLabeledBreakOrContinueStatementWithTargetOutsideOfTheRange: DiagnosticMessage;
+        const cannotExtractRangeThatContainsWritesToReferencesLocatedOutsideOfTheTargetRangeInGenerators: DiagnosticMessage;
+        const typeWillNotBeVisibleInTheNewScope: DiagnosticMessage;
+        const functionWillNotBeVisibleInTheNewScope: DiagnosticMessage;
+        const cannotExtractIdentifier: DiagnosticMessage;
+        const cannotExtractExportedEntity: DiagnosticMessage;
+        const cannotWriteInExpression: DiagnosticMessage;
+        const cannotExtractReadonlyPropertyInitializerOutsideConstructor: DiagnosticMessage;
+        const cannotExtractAmbientBlock: DiagnosticMessage;
+        const cannotAccessVariablesFromNestedScopes: DiagnosticMessage;
+        const cannotExtractToOtherFunctionLike: DiagnosticMessage;
+        const cannotExtractToJSClass: DiagnosticMessage;
+        const cannotExtractToExpressionArrowFunction: DiagnosticMessage;
     }
     enum RangeFacts {
         None = 0,
