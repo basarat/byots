@@ -1717,8 +1717,8 @@ declare namespace ts {
     }
     interface ScriptReferenceHost {
         getCompilerOptions(): CompilerOptions;
-        getSourceFile(fileName: string): SourceFile;
-        getSourceFileByPath(path: Path): SourceFile;
+        getSourceFile(fileName: string): SourceFile | undefined;
+        getSourceFileByPath(path: Path): SourceFile | undefined;
         getCurrentDirectory(): string;
     }
     interface ParseConfigHost {
@@ -3865,7 +3865,7 @@ declare namespace ts {
     function tryCast<TOut extends TIn, TIn = any>(value: TIn | undefined, test: (value: TIn) => value is TOut): TOut | undefined;
     function cast<TOut extends TIn, TIn = any>(value: TIn | undefined, test: (value: TIn) => value is TOut): TOut;
     /** Does nothing. */
-    function noop(): void;
+    function noop(_?: {} | null | undefined): void;
     /** Do nothing and return false */
     function returnFalse(): false;
     /** Do nothing and return true */
@@ -3994,6 +3994,7 @@ declare namespace ts {
     function getEmitScriptTarget(compilerOptions: CompilerOptions): ScriptTarget;
     function getEmitModuleKind(compilerOptions: CompilerOptions): ModuleKind;
     function getEmitModuleResolutionKind(compilerOptions: CompilerOptions): ModuleResolutionKind;
+    function getAllowSyntheticDefaultImports(compilerOptions: CompilerOptions): boolean;
     type StrictOptionName = "noImplicitAny" | "noImplicitThis" | "strictNullChecks" | "strictFunctionTypes" | "alwaysStrict";
     function getStrictOptionValue(compilerOptions: CompilerOptions, flag: StrictOptionName): boolean;
     function hasZeroOrOneAsteriskCharacter(str: string): boolean;
@@ -6061,6 +6062,8 @@ declare namespace ts {
         Infer_parameter_types_from_usage: DiagnosticMessage;
         Convert_to_default_import: DiagnosticMessage;
         Install_0: DiagnosticMessage;
+        Import_0_require_1: DiagnosticMessage;
+        Import_Asterisk_as_0_from_1: DiagnosticMessage;
     };
 }
 declare namespace ts {
@@ -7062,12 +7065,12 @@ declare namespace ts {
      */
     function aggregateTransformFlags<T extends Node>(node: T): T;
     namespace Debug {
-        const failBadSyntaxKind: (node: Node, message?: string) => void;
+        const failBadSyntaxKind: typeof noop;
         const assertEachNode: (nodes: Node[], test: (node: Node) => boolean, message?: string) => void;
         const assertNode: (node: Node, test: (node: Node) => boolean, message?: string) => void;
         const assertOptionalNode: (node: Node, test: (node: Node) => boolean, message?: string) => void;
         const assertOptionalToken: (node: Node, kind: SyntaxKind, message?: string) => void;
-        const assertMissingNode: (node: Node, message?: string) => void;
+        const assertMissingNode: typeof noop;
         /**
          * Injects debug information into frequently used types.
          */
@@ -7430,6 +7433,13 @@ declare namespace ts {
     function convertCompilerOptionsForTelemetry(opts: ts.CompilerOptions): ts.CompilerOptions;
 }
 declare namespace ts {
+    enum ConfigFileProgramReloadLevel {
+        None = 0,
+        /** Update the file name list from the disk */
+        Partial = 1,
+        /** Reload completely by re-reading contents of config file from disk and updating program */
+        Full = 2,
+    }
     /**
      * Updates the existing missing file watches with the new set of missing files after new program is created
      */
@@ -9421,6 +9431,7 @@ declare namespace ts.codefix {
         Named = 0,
         Default = 1,
         Namespace = 2,
+        Equals = 3,
     }
     function getCodeActionForImport(moduleSymbol: Symbol, context: ImportCodeFixOptions): ImportCodeAction[];
     function forEachExternalModule(checker: TypeChecker, allSourceFiles: ReadonlyArray<SourceFile>, cb: (module: Symbol) => void): void;
