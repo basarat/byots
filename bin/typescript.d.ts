@@ -5542,7 +5542,7 @@ declare namespace ts {
         No_base_constructor_has_the_specified_number_of_type_arguments: DiagnosticMessage;
         Base_constructor_return_type_0_is_not_a_class_or_interface_type: DiagnosticMessage;
         Base_constructors_must_all_have_the_same_return_type: DiagnosticMessage;
-        Cannot_create_an_instance_of_the_abstract_class_0: DiagnosticMessage;
+        Cannot_create_an_instance_of_an_abstract_class: DiagnosticMessage;
         Overload_signatures_must_all_be_abstract_or_non_abstract: DiagnosticMessage;
         Abstract_method_0_in_class_1_cannot_be_accessed_via_super_expression: DiagnosticMessage;
         Classes_containing_abstract_methods_must_be_marked_abstract: DiagnosticMessage;
@@ -5693,16 +5693,16 @@ declare namespace ts {
         Public_property_0_of_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
         Property_0_of_exported_interface_has_or_is_using_name_1_from_private_module_2: DiagnosticMessage;
         Property_0_of_exported_interface_has_or_is_using_private_name_1: DiagnosticMessage;
-        Parameter_0_of_public_static_property_setter_from_exported_class_has_or_is_using_name_1_from_private_module_2: DiagnosticMessage;
-        Parameter_0_of_public_static_property_setter_from_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
-        Parameter_0_of_public_property_setter_from_exported_class_has_or_is_using_name_1_from_private_module_2: DiagnosticMessage;
-        Parameter_0_of_public_property_setter_from_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
-        Return_type_of_public_static_property_getter_from_exported_class_has_or_is_using_name_0_from_external_module_1_but_cannot_be_named: DiagnosticMessage;
-        Return_type_of_public_static_property_getter_from_exported_class_has_or_is_using_name_0_from_private_module_1: DiagnosticMessage;
-        Return_type_of_public_static_property_getter_from_exported_class_has_or_is_using_private_name_0: DiagnosticMessage;
-        Return_type_of_public_property_getter_from_exported_class_has_or_is_using_name_0_from_external_module_1_but_cannot_be_named: DiagnosticMessage;
-        Return_type_of_public_property_getter_from_exported_class_has_or_is_using_name_0_from_private_module_1: DiagnosticMessage;
-        Return_type_of_public_property_getter_from_exported_class_has_or_is_using_private_name_0: DiagnosticMessage;
+        Parameter_type_of_public_static_setter_0_from_exported_class_has_or_is_using_name_1_from_private_module_2: DiagnosticMessage;
+        Parameter_type_of_public_static_setter_0_from_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
+        Parameter_type_of_public_setter_0_from_exported_class_has_or_is_using_name_1_from_private_module_2: DiagnosticMessage;
+        Parameter_type_of_public_setter_0_from_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
+        Return_type_of_public_static_getter_0_from_exported_class_has_or_is_using_name_1_from_external_module_2_but_cannot_be_named: DiagnosticMessage;
+        Return_type_of_public_static_getter_0_from_exported_class_has_or_is_using_name_1_from_private_module_2: DiagnosticMessage;
+        Return_type_of_public_static_getter_0_from_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
+        Return_type_of_public_getter_0_from_exported_class_has_or_is_using_name_1_from_external_module_2_but_cannot_be_named: DiagnosticMessage;
+        Return_type_of_public_getter_0_from_exported_class_has_or_is_using_name_1_from_private_module_2: DiagnosticMessage;
+        Return_type_of_public_getter_0_from_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
         Return_type_of_constructor_signature_from_exported_interface_has_or_is_using_name_0_from_private_module_1: DiagnosticMessage;
         Return_type_of_constructor_signature_from_exported_interface_has_or_is_using_private_name_0: DiagnosticMessage;
         Return_type_of_call_signature_from_exported_interface_has_or_is_using_name_0_from_private_module_1: DiagnosticMessage;
@@ -8396,6 +8396,7 @@ declare namespace ts {
     function isInNonReferenceComment(sourceFile: SourceFile, position: number): boolean;
     function createTextSpanFromNode(node: Node, sourceFile?: SourceFile): TextSpan;
     function createTextSpanFromRange(range: TextRange): TextSpan;
+    const typeKeywords: ReadonlyArray<SyntaxKind>;
     function isTypeKeyword(kind: SyntaxKind): boolean;
     /** True if the symbol is for an external module, as opposed to a namespace. */
     function isExternalModuleSymbol(moduleSymbol: Symbol): boolean;
@@ -8466,7 +8467,7 @@ declare namespace ts.Completions {
         name: string;
         source?: string;
     }
-    function getCompletionEntryDetails(typeChecker: TypeChecker, log: (message: string) => void, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number, entryId: CompletionEntryIdentifier, allSourceFiles: ReadonlyArray<SourceFile>, host: LanguageServiceHost, rulesProvider: formatting.RulesProvider): CompletionEntryDetails;
+    function getCompletionEntryDetails(typeChecker: TypeChecker, log: (message: string) => void, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number, entryId: CompletionEntryIdentifier, allSourceFiles: ReadonlyArray<SourceFile>, host: LanguageServiceHost, formatContext: formatting.FormatContext): CompletionEntryDetails;
     function getCompletionEntrySymbol(typeChecker: TypeChecker, log: (message: string) => void, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number, entryId: CompletionEntryIdentifier, allSourceFiles: ReadonlyArray<SourceFile>): Symbol | undefined;
 }
 declare namespace ts.DocumentHighlights {
@@ -8820,17 +8821,14 @@ declare namespace ts {
     function fixupCompilerOptions(options: CompilerOptions, diagnostics: Diagnostic[]): CompilerOptions;
 }
 declare namespace ts.formatting {
-    interface FormattingScanner {
-        advance(): void;
-        isOnToken(): boolean;
-        readTokenInfo(n: Node): TokenInfo;
-        getCurrentLeadingTrivia(): TextRangeWithKind[];
-        lastTrailingTriviaWasNewLine(): boolean;
-        skipToEndOf(node: Node): void;
+    enum FormattingRequestKind {
+        FormatDocument = 0,
+        FormatSelection = 1,
+        FormatOnEnter = 2,
+        FormatOnSemicolon = 3,
+        FormatOnOpeningCurlyBrace = 4,
+        FormatOnClosingCurlyBrace = 5,
     }
-    function getFormattingScanner<T>(text: string, languageVariant: LanguageVariant, startPos: number, endPos: number, cb: (scanner: FormattingScanner) => T): T;
-}
-declare namespace ts.formatting {
     class FormattingContext {
         readonly sourceFile: SourceFileLike;
         formattingRequestKind: FormattingRequestKind;
@@ -8857,261 +8855,51 @@ declare namespace ts.formatting {
     }
 }
 declare namespace ts.formatting {
-    enum FormattingRequestKind {
-        FormatDocument = 0,
-        FormatSelection = 1,
-        FormatOnEnter = 2,
-        FormatOnSemicolon = 3,
-        FormatOnOpeningCurlyBrace = 4,
-        FormatOnClosingCurlyBrace = 5,
+    interface FormattingScanner {
+        advance(): void;
+        isOnToken(): boolean;
+        readTokenInfo(n: Node): TokenInfo;
+        getCurrentLeadingTrivia(): TextRangeWithKind[];
+        lastTrailingTriviaWasNewLine(): boolean;
+        skipToEndOf(node: Node): void;
     }
+    function getFormattingScanner<T>(text: string, languageVariant: LanguageVariant, startPos: number, endPos: number, cb: (scanner: FormattingScanner) => T): T;
 }
 declare namespace ts.formatting {
-    class Rule {
-        readonly descriptor: RuleDescriptor;
-        readonly operation: RuleOperation;
-        readonly flag: RuleFlags;
-        debugName?: string;
-        constructor(descriptor: RuleDescriptor, operation: RuleOperation, flag?: RuleFlags);
+    interface Rule {
+        readonly debugName: string;
+        readonly context: ReadonlyArray<ContextPredicate>;
+        readonly action: RuleAction;
+        readonly flags: RuleFlags;
     }
-}
-declare namespace ts.formatting {
+    type ContextPredicate = (context: FormattingContext) => boolean;
+    const anyContext: ReadonlyArray<ContextPredicate>;
     enum RuleAction {
         Ignore = 1,
         Space = 2,
         NewLine = 4,
         Delete = 8,
     }
-}
-declare namespace ts.formatting {
-    class RuleDescriptor {
-        leftTokenRange: Shared.TokenRange;
-        rightTokenRange: Shared.TokenRange;
-        constructor(leftTokenRange: Shared.TokenRange, rightTokenRange: Shared.TokenRange);
-        toString(): string;
-        static create1(left: SyntaxKind, right: SyntaxKind): RuleDescriptor;
-        static create2(left: Shared.TokenRange, right: SyntaxKind): RuleDescriptor;
-        static create3(left: SyntaxKind, right: Shared.TokenRange): RuleDescriptor;
-        static create4(left: Shared.TokenRange, right: Shared.TokenRange): RuleDescriptor;
-    }
-}
-declare namespace ts.formatting {
     enum RuleFlags {
         None = 0,
         CanDeleteNewLines = 1,
     }
-}
-declare namespace ts.formatting {
-    class RuleOperation {
-        readonly context: RuleOperationContext;
-        readonly action: RuleAction;
-        constructor(context: RuleOperationContext, action: RuleAction);
-        toString(): string;
-        static create1(action: RuleAction): RuleOperation;
-        static create2(context: RuleOperationContext, action: RuleAction): RuleOperation;
+    interface TokenRange {
+        readonly tokens: ReadonlyArray<SyntaxKind>;
+        readonly isSpecific: boolean;
     }
 }
 declare namespace ts.formatting {
-    class RuleOperationContext {
-        private readonly customContextChecks;
-        constructor(...funcs: ((context: FormattingContext) => boolean)[]);
-        static readonly any: RuleOperationContext;
-        IsAny(): boolean;
-        InContext(context: FormattingContext): boolean;
+    interface RuleSpec {
+        readonly leftTokenRange: TokenRange;
+        readonly rightTokenRange: TokenRange;
+        readonly rule: Rule;
     }
+    function getAllRules(): RuleSpec[];
 }
 declare namespace ts.formatting {
-    class Rules {
-        IgnoreBeforeComment: Rule;
-        IgnoreAfterLineComment: Rule;
-        NoSpaceBeforeSemicolon: Rule;
-        NoSpaceBeforeColon: Rule;
-        NoSpaceBeforeQuestionMark: Rule;
-        SpaceAfterColon: Rule;
-        SpaceAfterQuestionMarkInConditionalOperator: Rule;
-        NoSpaceAfterQuestionMark: Rule;
-        SpaceAfterSemicolon: Rule;
-        SpaceAfterCloseBrace: Rule;
-        SpaceBetweenCloseBraceAndElse: Rule;
-        SpaceBetweenCloseBraceAndWhile: Rule;
-        NoSpaceAfterCloseBrace: Rule;
-        NoSpaceBeforeDot: Rule;
-        NoSpaceAfterDot: Rule;
-        NoSpaceBeforeOpenBracket: Rule;
-        NoSpaceAfterCloseBracket: Rule;
-        SpaceAfterOpenBrace: Rule;
-        SpaceBeforeCloseBrace: Rule;
-        NoSpaceAfterOpenBrace: Rule;
-        NoSpaceBeforeCloseBrace: Rule;
-        NoSpaceBetweenEmptyBraceBrackets: Rule;
-        NewLineAfterOpenBraceInBlockContext: Rule;
-        NewLineBeforeCloseBraceInBlockContext: Rule;
-        NoSpaceAfterUnaryPrefixOperator: Rule;
-        NoSpaceAfterUnaryPreincrementOperator: Rule;
-        NoSpaceAfterUnaryPredecrementOperator: Rule;
-        NoSpaceBeforeUnaryPostincrementOperator: Rule;
-        NoSpaceBeforeUnaryPostdecrementOperator: Rule;
-        SpaceAfterPostincrementWhenFollowedByAdd: Rule;
-        SpaceAfterAddWhenFollowedByUnaryPlus: Rule;
-        SpaceAfterAddWhenFollowedByPreincrement: Rule;
-        SpaceAfterPostdecrementWhenFollowedBySubtract: Rule;
-        SpaceAfterSubtractWhenFollowedByUnaryMinus: Rule;
-        SpaceAfterSubtractWhenFollowedByPredecrement: Rule;
-        NoSpaceBeforeComma: Rule;
-        SpaceAfterCertainKeywords: Rule;
-        NoSpaceAfterNewKeywordOnConstructorSignature: Rule;
-        SpaceAfterLetConstInVariableDeclaration: Rule;
-        NoSpaceBeforeOpenParenInFuncCall: Rule;
-        SpaceAfterFunctionInFuncDecl: Rule;
-        SpaceBeforeOpenParenInFuncDecl: Rule;
-        NoSpaceBeforeOpenParenInFuncDecl: Rule;
-        SpaceAfterVoidOperator: Rule;
-        NoSpaceBetweenReturnAndSemicolon: Rule;
-        SpaceBetweenStatements: Rule;
-        SpaceAfterTryFinally: Rule;
-        SpaceAfterGetSetInMember: Rule;
-        SpaceBeforeBinaryKeywordOperator: Rule;
-        SpaceAfterBinaryKeywordOperator: Rule;
-        SpaceAfterConstructor: Rule;
-        NoSpaceAfterConstructor: Rule;
-        NoSpaceAfterModuleImport: Rule;
-        SpaceAfterCertainTypeScriptKeywords: Rule;
-        SpaceBeforeCertainTypeScriptKeywords: Rule;
-        SpaceAfterModuleName: Rule;
-        SpaceBeforeArrow: Rule;
-        SpaceAfterArrow: Rule;
-        NoSpaceAfterEllipsis: Rule;
-        NoSpaceAfterOptionalParameters: Rule;
-        NoSpaceBeforeOpenAngularBracket: Rule;
-        NoSpaceBetweenCloseParenAndAngularBracket: Rule;
-        NoSpaceAfterOpenAngularBracket: Rule;
-        NoSpaceBeforeCloseAngularBracket: Rule;
-        NoSpaceAfterCloseAngularBracket: Rule;
-        NoSpaceBetweenEmptyInterfaceBraceBrackets: Rule;
-        HighPriorityCommonRules: Rule[];
-        UserConfigurableRules: Rule[];
-        LowPriorityCommonRules: Rule[];
-        SpaceAfterComma: Rule;
-        NoSpaceAfterComma: Rule;
-        SpaceBeforeBinaryOperator: Rule;
-        SpaceAfterBinaryOperator: Rule;
-        NoSpaceBeforeBinaryOperator: Rule;
-        NoSpaceAfterBinaryOperator: Rule;
-        SpaceAfterKeywordInControl: Rule;
-        NoSpaceAfterKeywordInControl: Rule;
-        FunctionOpenBraceLeftTokenRange: Shared.TokenRange;
-        SpaceBeforeOpenBraceInFunction: Rule;
-        NewLineBeforeOpenBraceInFunction: Rule;
-        TypeScriptOpenBraceLeftTokenRange: Shared.TokenRange;
-        SpaceBeforeOpenBraceInTypeScriptDeclWithBlock: Rule;
-        NewLineBeforeOpenBraceInTypeScriptDeclWithBlock: Rule;
-        ControlOpenBraceLeftTokenRange: Shared.TokenRange;
-        SpaceBeforeOpenBraceInControl: Rule;
-        NewLineBeforeOpenBraceInControl: Rule;
-        SpaceAfterSemicolonInFor: Rule;
-        NoSpaceAfterSemicolonInFor: Rule;
-        SpaceAfterOpenParen: Rule;
-        SpaceBeforeCloseParen: Rule;
-        SpaceBetweenOpenParens: Rule;
-        NoSpaceBetweenParens: Rule;
-        NoSpaceAfterOpenParen: Rule;
-        NoSpaceBeforeCloseParen: Rule;
-        SpaceAfterOpenBracket: Rule;
-        SpaceBeforeCloseBracket: Rule;
-        NoSpaceBetweenBrackets: Rule;
-        NoSpaceAfterOpenBracket: Rule;
-        NoSpaceBeforeCloseBracket: Rule;
-        SpaceAfterAnonymousFunctionKeyword: Rule;
-        NoSpaceAfterAnonymousFunctionKeyword: Rule;
-        SpaceBeforeAt: Rule;
-        NoSpaceAfterAt: Rule;
-        SpaceAfterDecorator: Rule;
-        NoSpaceBetweenFunctionKeywordAndStar: Rule;
-        SpaceAfterStarInGeneratorDeclaration: Rule;
-        NoSpaceBetweenYieldKeywordAndStar: Rule;
-        SpaceBetweenYieldOrYieldStarAndOperand: Rule;
-        SpaceBetweenAsyncAndOpenParen: Rule;
-        SpaceBetweenAsyncAndFunctionKeyword: Rule;
-        NoSpaceBetweenTagAndTemplateString: Rule;
-        NoSpaceAfterTemplateHeadAndMiddle: Rule;
-        SpaceAfterTemplateHeadAndMiddle: Rule;
-        NoSpaceBeforeTemplateMiddleAndTail: Rule;
-        SpaceBeforeTemplateMiddleAndTail: Rule;
-        NoSpaceAfterOpenBraceInJsxExpression: Rule;
-        SpaceAfterOpenBraceInJsxExpression: Rule;
-        NoSpaceBeforeCloseBraceInJsxExpression: Rule;
-        SpaceBeforeCloseBraceInJsxExpression: Rule;
-        SpaceBeforeJsxAttribute: Rule;
-        SpaceBeforeSlashInJsxOpeningElement: Rule;
-        NoSpaceBeforeGreaterThanTokenInJsxOpeningElement: Rule;
-        NoSpaceBeforeEqualInJsxAttribute: Rule;
-        NoSpaceAfterEqualInJsxAttribute: Rule;
-        NoSpaceAfterTypeAssertion: Rule;
-        SpaceAfterTypeAssertion: Rule;
-        NoSpaceBeforeNonNullAssertionOperator: Rule;
-        constructor();
-        static IsOptionEnabled(optionName: keyof FormatCodeSettings): (context: FormattingContext) => boolean;
-        static IsOptionDisabled(optionName: keyof FormatCodeSettings): (context: FormattingContext) => boolean;
-        static IsOptionDisabledOrUndefined(optionName: keyof FormatCodeSettings): (context: FormattingContext) => boolean;
-        static isOptionDisabledOrUndefinedOrTokensOnSameLine(optionName: keyof FormatCodeSettings): (context: FormattingContext) => boolean;
-        static IsOptionEnabledOrUndefined(optionName: keyof FormatCodeSettings): (context: FormattingContext) => boolean;
-        static IsForContext(context: FormattingContext): boolean;
-        static IsNotForContext(context: FormattingContext): boolean;
-        static IsBinaryOpContext(context: FormattingContext): boolean;
-        static IsNotBinaryOpContext(context: FormattingContext): boolean;
-        static IsConditionalOperatorContext(context: FormattingContext): boolean;
-        static IsSameLineTokenOrBeforeBlockContext(context: FormattingContext): boolean;
-        static IsBraceWrappedContext(context: FormattingContext): boolean;
-        static IsBeforeMultilineBlockContext(context: FormattingContext): boolean;
-        static IsMultilineBlockContext(context: FormattingContext): boolean;
-        static IsSingleLineBlockContext(context: FormattingContext): boolean;
-        static IsBlockContext(context: FormattingContext): boolean;
-        static IsBeforeBlockContext(context: FormattingContext): boolean;
-        static NodeIsBlockContext(node: Node): boolean;
-        static IsFunctionDeclContext(context: FormattingContext): boolean;
-        static IsFunctionDeclarationOrFunctionExpressionContext(context: FormattingContext): boolean;
-        static IsTypeScriptDeclWithBlockContext(context: FormattingContext): boolean;
-        static NodeIsTypeScriptDeclWithBlockContext(node: Node): boolean;
-        static IsAfterCodeBlockContext(context: FormattingContext): boolean;
-        static IsControlDeclContext(context: FormattingContext): boolean;
-        static IsObjectContext(context: FormattingContext): boolean;
-        static IsFunctionCallContext(context: FormattingContext): boolean;
-        static IsNewContext(context: FormattingContext): boolean;
-        static IsFunctionCallOrNewContext(context: FormattingContext): boolean;
-        static IsPreviousTokenNotComma(context: FormattingContext): boolean;
-        static IsNextTokenNotCloseBracket(context: FormattingContext): boolean;
-        static IsArrowFunctionContext(context: FormattingContext): boolean;
-        static IsNonJsxSameLineTokenContext(context: FormattingContext): boolean;
-        static IsNonJsxElementContext(context: FormattingContext): boolean;
-        static IsJsxExpressionContext(context: FormattingContext): boolean;
-        static IsNextTokenParentJsxAttribute(context: FormattingContext): boolean;
-        static IsJsxAttributeContext(context: FormattingContext): boolean;
-        static IsJsxSelfClosingElementContext(context: FormattingContext): boolean;
-        static IsNotBeforeBlockInFunctionDeclarationContext(context: FormattingContext): boolean;
-        static IsEndOfDecoratorContextOnSameLine(context: FormattingContext): boolean;
-        static NodeIsInDecoratorContext(node: Node): boolean;
-        static IsStartOfVariableDeclarationList(context: FormattingContext): boolean;
-        static IsNotFormatOnEnter(context: FormattingContext): boolean;
-        static IsModuleDeclContext(context: FormattingContext): boolean;
-        static IsObjectTypeContext(context: FormattingContext): boolean;
-        static IsConstructorSignatureContext(context: FormattingContext): boolean;
-        static IsTypeArgumentOrParameterOrAssertion(token: TextRangeWithKind, parent: Node): boolean;
-        static IsTypeArgumentOrParameterOrAssertionContext(context: FormattingContext): boolean;
-        static IsTypeAssertionContext(context: FormattingContext): boolean;
-        static IsVoidOpContext(context: FormattingContext): boolean;
-        static IsYieldOrYieldStarWithOperand(context: FormattingContext): boolean;
-        static IsNonNullAssertionContext(context: FormattingContext): boolean;
-    }
-}
-declare namespace ts.formatting {
-    class RulesMap {
-        map: RulesBucket[];
-        mapRowLength: number;
-        constructor(rules: ReadonlyArray<Rule>);
-        private GetRuleBucketIndex(row, column);
-        private FillRule(rule, rulesBucketConstructionStateList);
-        GetRule(context: FormattingContext): Rule | undefined;
-    }
+    function getFormatContext(options: FormatCodeSettings): formatting.FormatContext;
+    type RulesMap = (context: FormattingContext) => Rule | undefined;
     enum RulesPosition {
         IgnoreRulesSpecific = 0,
         IgnoreRulesAny,
@@ -9120,59 +8908,12 @@ declare namespace ts.formatting {
         NoContextRulesSpecific,
         NoContextRulesAny,
     }
-    class RulesBucketConstructionState {
-        private rulesInsertionIndexBitmap;
-        constructor();
-        GetInsertionIndex(maskPosition: RulesPosition): number;
-        IncreaseInsertionIndex(maskPosition: RulesPosition): void;
-    }
-    class RulesBucket {
-        private rules;
-        constructor();
-        Rules(): Rule[];
-        AddRule(rule: Rule, specificTokens: boolean, constructionState: RulesBucketConstructionState[], rulesBucketIndex: number): void;
-    }
 }
 declare namespace ts.formatting {
-    namespace Shared {
-        interface TokenRange {
-            GetTokens(): SyntaxKind[];
-            Contains(token: SyntaxKind): boolean;
-            isSpecific(): boolean;
-        }
-        namespace TokenRange {
-            function FromToken(token: SyntaxKind): TokenRange;
-            function FromTokens(tokens: SyntaxKind[]): TokenRange;
-            function FromRange(from: SyntaxKind, to: SyntaxKind, except?: SyntaxKind[]): TokenRange;
-            function AnyExcept(token: SyntaxKind): TokenRange;
-            const Any: TokenRange;
-            const AnyIncludingMultilineComments: TokenRange;
-            const Keywords: TokenRange;
-            const BinaryOperators: TokenRange;
-            const BinaryKeywordOperators: TokenRange;
-            const UnaryPrefixOperators: TokenRange;
-            const UnaryPrefixExpressions: TokenRange;
-            const UnaryPreincrementExpressions: TokenRange;
-            const UnaryPostincrementExpressions: TokenRange;
-            const UnaryPredecrementExpressions: TokenRange;
-            const UnaryPostdecrementExpressions: TokenRange;
-            const Comments: TokenRange;
-            const TypeNames: TokenRange;
-        }
+    interface FormatContext {
+        readonly options: ts.FormatCodeSettings;
+        readonly getRule: ts.formatting.RulesMap;
     }
-}
-declare namespace ts.formatting {
-    class RulesProvider {
-        private globalRules;
-        private options;
-        private rulesMap;
-        constructor();
-        getRulesMap(): RulesMap;
-        getFormatOptions(): Readonly<ts.FormatCodeSettings>;
-        ensureUpToDate(options: ts.FormatCodeSettings): void;
-    }
-}
-declare namespace ts.formatting {
     interface TextRangeWithKind extends TextRange {
         kind: SyntaxKind;
     }
@@ -9181,13 +8922,13 @@ declare namespace ts.formatting {
         token: TextRangeWithKind;
         trailingTrivia: TextRangeWithKind[];
     }
-    function formatOnEnter(position: number, sourceFile: SourceFile, rulesProvider: RulesProvider, options: FormatCodeSettings): TextChange[];
-    function formatOnSemicolon(position: number, sourceFile: SourceFile, rulesProvider: RulesProvider, options: FormatCodeSettings): TextChange[];
-    function formatOnOpeningCurly(position: number, sourceFile: SourceFile, rulesProvider: RulesProvider, options: FormatCodeSettings): TextChange[];
-    function formatOnClosingCurly(position: number, sourceFile: SourceFile, rulesProvider: RulesProvider, options: FormatCodeSettings): TextChange[];
-    function formatDocument(sourceFile: SourceFile, rulesProvider: RulesProvider, options: FormatCodeSettings): TextChange[];
-    function formatSelection(start: number, end: number, sourceFile: SourceFile, rulesProvider: RulesProvider, options: FormatCodeSettings): TextChange[];
-    function formatNodeGivenIndentation(node: Node, sourceFileLike: SourceFileLike, languageVariant: LanguageVariant, initialIndentation: number, delta: number, rulesProvider: RulesProvider): TextChange[];
+    function formatOnEnter(position: number, sourceFile: SourceFile, formatContext: FormatContext): TextChange[];
+    function formatOnSemicolon(position: number, sourceFile: SourceFile, formatContext: FormatContext): TextChange[];
+    function formatOnOpeningCurly(position: number, sourceFile: SourceFile, formatContext: FormatContext): TextChange[];
+    function formatOnClosingCurly(position: number, sourceFile: SourceFile, formatContext: FormatContext): TextChange[];
+    function formatDocument(sourceFile: SourceFile, formatContext: FormatContext): TextChange[];
+    function formatSelection(start: number, end: number, sourceFile: SourceFile, formatContext: FormatContext): TextChange[];
+    function formatNodeGivenIndentation(node: Node, sourceFileLike: SourceFileLike, languageVariant: LanguageVariant, initialIndentation: number, delta: number, formatContext: FormatContext): TextChange[];
     /**
      * @param precedingToken pass `null` if preceding token was already computed and result was `undefined`.
      */
@@ -9286,17 +9027,17 @@ declare namespace ts.textChanges {
     function getAdjustedEndPosition(sourceFile: SourceFile, node: Node, options: ConfigurableEnd): number;
     interface TextChangesContext {
         newLineCharacter: string;
-        rulesProvider: formatting.RulesProvider;
+        formatContext: ts.formatting.FormatContext;
     }
     class ChangeTracker {
         private readonly newLine;
-        private readonly rulesProvider;
+        private readonly formatContext;
         private readonly validator;
         private changes;
         private readonly newLineCharacter;
         static fromContext(context: TextChangesContext): ChangeTracker;
         static with(context: TextChangesContext, cb: (tracker: ChangeTracker) => void): FileTextChanges[];
-        constructor(newLine: NewLineKind, rulesProvider: formatting.RulesProvider, validator?: (text: NonFormattedText) => void);
+        constructor(newLine: NewLineKind, formatContext: ts.formatting.FormatContext, validator?: (text: NonFormattedText) => void);
         deleteRange(sourceFile: SourceFile, range: TextRange): this;
         deleteNode(sourceFile: SourceFile, node: Node, options?: ConfigurableStartEnd): this;
         deleteNodeRange(sourceFile: SourceFile, startNode: Node, endNode: Node, options?: ConfigurableStartEnd): this;
