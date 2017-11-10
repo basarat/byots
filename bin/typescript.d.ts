@@ -377,6 +377,8 @@ declare namespace ts {
         LastJSDocNode = 288,
         FirstJSDocTagNode = 280,
         LastJSDocTagNode = 288,
+        FirstContextualKeyword = 117,
+        LastContextualKeyword = 142,
     }
     enum NodeFlags {
         None = 0,
@@ -2162,6 +2164,7 @@ declare namespace ts {
         ExportStar = 8388608,
         Optional = 16777216,
         Transient = 33554432,
+        All = 67108863,
         Enum = 384,
         Variable = 3,
         Value = 107455,
@@ -4447,6 +4450,8 @@ declare namespace ts {
     function getAncestor(node: Node | undefined, kind: SyntaxKind): Node | undefined;
     function getFileReferenceFromReferencePath(comment: string, commentRange: CommentRange): ReferencePathMatchResult;
     function isKeyword(token: SyntaxKind): boolean;
+    function isContextualKeyword(token: SyntaxKind): boolean;
+    function isNonContextualKeyword(token: SyntaxKind): boolean;
     function isTrivia(token: SyntaxKind): boolean;
     enum FunctionFlags {
         Normal = 0,
@@ -6104,7 +6109,7 @@ declare namespace ts {
     }
     function isUnicodeIdentifierStart(code: number, languageVersion: ScriptTarget): boolean;
     function tokenToString(t: SyntaxKind): string | undefined;
-    function stringToToken(s: string): SyntaxKind;
+    function stringToToken(s: string): SyntaxKind | undefined;
     function computeLineStarts(text: string): number[];
     function getPositionOfLineAndCharacter(sourceFile: SourceFile, line: number, character: number): number;
     function computePositionOfLineAndCharacter(lineStarts: ReadonlyArray<number>, line: number, character: number, debugText?: string): number;
@@ -7715,6 +7720,8 @@ declare namespace ts {
         getSpanOfEnclosingComment(fileName: string, position: number, onlyMultiLine: boolean): TextSpan;
         getCodeFixesAtPosition(fileName: string, start: number, end: number, errorCodes: number[], formatOptions: FormatCodeSettings): CodeAction[];
         applyCodeActionCommand(fileName: string, action: CodeActionCommand): Promise<ApplyCodeActionCommandResult>;
+        applyCodeActionCommand(fileName: string, action: CodeActionCommand[]): Promise<ApplyCodeActionCommandResult[]>;
+        applyCodeActionCommand(fileName: string, action: CodeActionCommand | CodeActionCommand[]): Promise<ApplyCodeActionCommandResult | ApplyCodeActionCommandResult[]>;
         getApplicableRefactors(fileName: string, positionOrRaneg: number | TextRange): ApplicableRefactorInfo[];
         getEditsForRefactor(fileName: string, formatOptions: FormatCodeSettings, positionOrRange: number | TextRange, refactorName: string, actionName: string): RefactorEditInfo | undefined;
         getEmitOutput(fileName: string, emitOnlyDtsFiles?: boolean): EmitOutput;
@@ -8294,6 +8301,7 @@ declare namespace ts {
 interface PromiseConstructor {
     new <T>(executor: (resolve: (value?: T | PromiseLike<T>) => void, reject: (reason?: any) => void) => void): Promise<T>;
     reject(reason: any): Promise<never>;
+    all<T>(values: (T | PromiseLike<T>)[]): Promise<T[]>;
 }
 declare var Promise: PromiseConstructor;
 declare namespace ts {
@@ -9176,6 +9184,7 @@ declare namespace ts.codefix {
     }
     function getCodeActionForImport(moduleSymbol: Symbol, context: ImportCodeFixOptions): ImportCodeAction[];
     function forEachExternalModule(checker: TypeChecker, allSourceFiles: ReadonlyArray<SourceFile>, cb: (module: Symbol) => void): void;
+    function moduleSymbolToValidIdentifier(moduleSymbol: Symbol, target: ScriptTarget): string;
 }
 declare namespace ts.codefix {
 }
