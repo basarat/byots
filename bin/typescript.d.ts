@@ -2607,6 +2607,7 @@ declare namespace ts {
         NakedTypeVariable = 2,
         MappedType = 4,
         ReturnType = 8,
+        NeverType = 16,
     }
     interface InferenceInfo {
         typeParameter: TypeParameter;
@@ -4088,6 +4089,10 @@ declare namespace ts {
     function tryRemoveExtension(path: string, extension: string): string | undefined;
     function removeExtension(path: string, extension: string): string;
     function changeExtension<T extends string | Path>(path: T, newExtension: string): T;
+    /**
+     * Takes a string like "jquery-min.4.2.3" and returns "jquery"
+     */
+    function removeMinAndVersionNumbers(fileName: string): string;
     interface ObjectAllocator {
         getNodeConstructor(): new (kind: SyntaxKind, pos?: number, end?: number) => Node;
         getTokenConstructor(): new <TKind extends SyntaxKind>(kind: TKind, pos?: number, end?: number) => Token<TKind>;
