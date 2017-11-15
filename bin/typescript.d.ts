@@ -4007,7 +4007,7 @@ declare namespace ts {
     function getNormalizedPathComponents(path: string, currentDirectory: string): string[];
     function getNormalizedAbsolutePath(fileName: string, currentDirectory: string): string;
     function getNormalizedPathFromPathComponents(pathComponents: ReadonlyArray<string>): string;
-    function getRelativePathToDirectoryOrUrl(directoryPathOrUrl: string, relativeOrAbsolutePath: string, currentDirectory: string, getCanonicalFileName: (fileName: string) => string, isAbsolutePathAnUrl: boolean): string;
+    function getRelativePathToDirectoryOrUrl(directoryPathOrUrl: string, relativeOrAbsolutePath: string, currentDirectory: string, getCanonicalFileName: GetCanonicalFileName, isAbsolutePathAnUrl: boolean): string;
     function getBaseFileName(path: string): string;
     function combinePaths(path1: string, path2: string): string;
     /**
@@ -4130,7 +4130,8 @@ declare namespace ts {
     function unorderedRemoveItemAt<T>(array: T[], index: number): void;
     /** Remove the *first* occurrence of `item` from the array. */
     function unorderedRemoveItem<T>(array: T[], item: T): void;
-    function createGetCanonicalFileName(useCaseSensitiveFileNames: boolean): (fileName: string) => string;
+    type GetCanonicalFileName = (fileName: string) => string;
+    function createGetCanonicalFileName(useCaseSensitiveFileNames: boolean): GetCanonicalFileName;
     /**
      * patternStrings contains both pattern strings (containing "*") and regular strings.
      * Return an exact match if possible, or a pattern match, or undefined.
@@ -7285,7 +7286,7 @@ declare namespace ts {
 declare namespace ts {
     function findConfigFile(searchPath: string, fileExists: (fileName: string) => boolean, configName?: string): string;
     function resolveTripleslashReference(moduleName: string, containingFile: string): string;
-    function computeCommonSourceDirectoryOfFilenames(fileNames: string[], currentDirectory: string, getCanonicalFileName: (fileName: string) => string): string;
+    function computeCommonSourceDirectoryOfFilenames(fileNames: string[], currentDirectory: string, getCanonicalFileName: GetCanonicalFileName): string;
     function createCompilerHost(options: CompilerOptions, setParentNodes?: boolean): CompilerHost;
     function getPreEmitDiagnostics(program: Program, sourceFile?: SourceFile, cancellationToken?: CancellationToken): Diagnostic[];
     interface FormatDiagnosticsHost {
@@ -7348,7 +7349,7 @@ declare namespace ts {
         clear(): void;
     }
     interface BuilderOptions {
-        getCanonicalFileName: (fileName: string) => string;
+        getCanonicalFileName: GetCanonicalFileName;
         computeHash: (data: string) => string;
     }
     function createBuilder(options: BuilderOptions): Builder;
@@ -8480,7 +8481,7 @@ declare namespace ts.Completions {
         name: string;
         source?: string;
     }
-    function getCompletionEntryDetails(typeChecker: TypeChecker, log: (message: string) => void, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number, entryId: CompletionEntryIdentifier, allSourceFiles: ReadonlyArray<SourceFile>, host: LanguageServiceHost, formatContext: formatting.FormatContext): CompletionEntryDetails;
+    function getCompletionEntryDetails(typeChecker: TypeChecker, log: (message: string) => void, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number, entryId: CompletionEntryIdentifier, allSourceFiles: ReadonlyArray<SourceFile>, host: LanguageServiceHost, formatContext: formatting.FormatContext, getCanonicalFileName: GetCanonicalFileName): CompletionEntryDetails;
     function getCompletionEntrySymbol(typeChecker: TypeChecker, log: (message: string) => void, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number, entryId: CompletionEntryIdentifier, allSourceFiles: ReadonlyArray<SourceFile>): Symbol | undefined;
 }
 declare namespace ts.DocumentHighlights {
@@ -8778,7 +8779,7 @@ declare namespace ts {
     function preProcessFile(sourceText: string, readImportFiles?: boolean, detectJavaScriptImports?: boolean): PreProcessedFileInfo;
 }
 declare namespace ts.Rename {
-    function getRenameInfo(typeChecker: TypeChecker, defaultLibFileName: string, getCanonicalFileName: (fileName: string) => string, sourceFile: SourceFile, position: number): RenameInfo;
+    function getRenameInfo(typeChecker: TypeChecker, defaultLibFileName: string, getCanonicalFileName: GetCanonicalFileName, sourceFile: SourceFile, position: number): RenameInfo;
 }
 declare namespace ts.SignatureHelp {
     enum ArgumentListKind {
@@ -9175,7 +9176,7 @@ declare namespace ts.codefix {
         host: LanguageServiceHost;
         checker: TypeChecker;
         compilerOptions: CompilerOptions;
-        getCanonicalFileName(fileName: string): string;
+        getCanonicalFileName: GetCanonicalFileName;
         cachedImportDeclarations?: ImportDeclarationMap;
     }
     interface ImportCodeFixOptions extends ImportCodeFixContext {
@@ -9188,6 +9189,7 @@ declare namespace ts.codefix {
         Equals = 3,
     }
     function getCodeActionForImport(moduleSymbol: Symbol, context: ImportCodeFixOptions): ImportCodeAction[];
+    function getModuleSpecifierForNewImport(sourceFile: SourceFile, moduleSymbol: Symbol, options: CompilerOptions, getCanonicalFileName: (file: string) => string, host: LanguageServiceHost): string | undefined;
     function forEachExternalModule(checker: TypeChecker, allSourceFiles: ReadonlyArray<SourceFile>, cb: (module: Symbol) => void): void;
     function moduleSymbolToValidIdentifier(moduleSymbol: Symbol, target: ScriptTarget): string;
 }
