@@ -965,18 +965,23 @@ declare namespace ts {
     interface NoSubstitutionTemplateLiteral extends LiteralExpression {
         kind: SyntaxKind.NoSubstitutionTemplateLiteral;
     }
-    enum NumericLiteralFlags {
+    enum TokenFlags {
         None = 0,
-        Scientific = 2,
-        Octal = 4,
-        HexSpecifier = 8,
-        BinarySpecifier = 16,
-        OctalSpecifier = 32,
-        BinaryOrOctalSpecifier = 48,
+        PrecedingLineBreak = 1,
+        PrecedingJSDocComment = 2,
+        Unterminated = 4,
+        ExtendedUnicodeEscape = 8,
+        Scientific = 16,
+        Octal = 32,
+        HexSpecifier = 64,
+        BinarySpecifier = 128,
+        OctalSpecifier = 256,
+        BinaryOrOctalSpecifier = 384,
+        NumericLiteralFlags = 496,
     }
     interface NumericLiteral extends LiteralExpression {
         kind: SyntaxKind.NumericLiteral;
-        numericLiteralFlags?: NumericLiteralFlags;
+        numericLiteralFlags?: TokenFlags;
     }
     interface TemplateHead extends LiteralLikeNode {
         kind: SyntaxKind.TemplateHead;
@@ -4052,6 +4057,7 @@ declare namespace ts {
     function startsWith(str: string, prefix: string): boolean;
     function removePrefix(str: string, prefix: string): string;
     function endsWith(str: string, suffix: string): boolean;
+    function removeSuffix(str: string, suffix: string): string;
     function stringContains(str: string, substring: string): boolean;
     function hasExtension(fileName: string): boolean;
     function fileExtensionIs(path: string, extension: string): boolean;
@@ -5638,8 +5644,8 @@ declare namespace ts {
         Computed_values_are_not_permitted_in_an_enum_with_string_valued_members: DiagnosticMessage;
         Expected_0_arguments_but_got_1: DiagnosticMessage;
         Expected_at_least_0_arguments_but_got_1: DiagnosticMessage;
-        Expected_0_arguments_but_got_a_minimum_of_1: DiagnosticMessage;
-        Expected_at_least_0_arguments_but_got_a_minimum_of_1: DiagnosticMessage;
+        Expected_0_arguments_but_got_1_or_more: DiagnosticMessage;
+        Expected_at_least_0_arguments_but_got_1_or_more: DiagnosticMessage;
         Expected_0_type_arguments_but_got_1: DiagnosticMessage;
         Type_0_has_no_properties_in_common_with_type_1: DiagnosticMessage;
         Value_of_type_0_has_no_properties_in_common_with_type_1_Did_you_mean_to_call_it: DiagnosticMessage;
@@ -6144,7 +6150,7 @@ declare namespace ts {
         isIdentifier(): boolean;
         isReservedWord(): boolean;
         isUnterminated(): boolean;
-        getNumericLiteralFlags(): NumericLiteralFlags;
+        getTokenFlags(): TokenFlags;
         reScanGreaterToken(): SyntaxKind;
         reScanSlashToken(): SyntaxKind;
         reScanTemplateToken(): SyntaxKind;
