@@ -2218,7 +2218,7 @@ declare namespace ts {
         BlockScoped = 418,
         PropertyOrAccessor = 98308,
         ClassMember = 106500,
-        Classifiable = 788448,
+        Classifiable = 2885600,
         LateBindingContainer = 6240,
     }
     interface Symbol {
@@ -3664,6 +3664,7 @@ declare namespace ts {
     function filterMutate<T>(array: T[], f: (x: T, i: number, array: T[]) => boolean): void;
     function clear(array: {}[]): void;
     function map<T, U>(array: ReadonlyArray<T>, f: (x: T, i: number) => U): U[];
+    function mapIterator<T, U>(iter: Iterator<T>, mapFn: (x: T) => U): Iterator<U>;
     function sameMap<T>(array: T[], f: (x: T, i: number) => T): T[];
     function sameMap<T>(array: ReadonlyArray<T>, f: (x: T, i: number) => T): ReadonlyArray<T>;
     /**
@@ -3762,6 +3763,8 @@ declare namespace ts {
      * Returns a new sorted array.
      */
     function sort<T>(array: ReadonlyArray<T>, comparer: Comparer<T>): T[];
+    function best<T>(iter: Iterator<T>, isBetter: (a: T, b: T) => boolean): T | undefined;
+    function arrayIterator<T>(array: ReadonlyArray<T>): Iterator<T>;
     /**
      * Stable sort of an array. Elements equal to each other maintain their relative position in the array.
      */
@@ -3893,6 +3896,8 @@ declare namespace ts {
      * Tests whether a value is an array.
      */
     function isArray(value: any): value is ReadonlyArray<any>;
+    function toArray<T>(value: T | ReadonlyArray<T>): ReadonlyArray<T>;
+    function toArray<T>(value: T | T[]): T[];
     /**
      * Tests whether a value is string
      */
@@ -4986,6 +4991,7 @@ declare namespace ts {
     function isForOfStatement(node: Node): node is ForOfStatement;
     function isContinueStatement(node: Node): node is ContinueStatement;
     function isBreakStatement(node: Node): node is BreakStatement;
+    function isBreakOrContinueStatement(node: Node): node is BreakOrContinueStatement;
     function isReturnStatement(node: Node): node is ReturnStatement;
     function isWithStatement(node: Node): node is WithStatement;
     function isSwitchStatement(node: Node): node is SwitchStatement;
@@ -6243,7 +6249,7 @@ declare namespace ts {
         Instantiated = 1,
         ConstEnumOnly = 2,
     }
-    function getModuleInstanceState(node: Node): ModuleInstanceState;
+    function getModuleInstanceState(node: ModuleDeclaration): ModuleInstanceState;
     function bindSourceFile(file: SourceFile, options: CompilerOptions): void;
     /**
      * Computes the transform flags for a node, given the transform flags of its subtree
@@ -7783,8 +7789,14 @@ declare namespace ts {
         isValidBraceCompletionAtPosition(fileName: string, position: number, openingBrace: number): boolean;
         getSpanOfEnclosingComment(fileName: string, position: number, onlyMultiLine: boolean): TextSpan;
         getCodeFixesAtPosition(fileName: string, start: number, end: number, errorCodes: number[], formatOptions: FormatCodeSettings): CodeAction[];
+        applyCodeActionCommand(action: CodeActionCommand): Promise<ApplyCodeActionCommandResult>;
+        applyCodeActionCommand(action: CodeActionCommand[]): Promise<ApplyCodeActionCommandResult[]>;
+        applyCodeActionCommand(action: CodeActionCommand | CodeActionCommand[]): Promise<ApplyCodeActionCommandResult | ApplyCodeActionCommandResult[]>;
+        /** @deprecated `fileName` will be ignored */
         applyCodeActionCommand(fileName: string, action: CodeActionCommand): Promise<ApplyCodeActionCommandResult>;
+        /** @deprecated `fileName` will be ignored */
         applyCodeActionCommand(fileName: string, action: CodeActionCommand[]): Promise<ApplyCodeActionCommandResult[]>;
+        /** @deprecated `fileName` will be ignored */
         applyCodeActionCommand(fileName: string, action: CodeActionCommand | CodeActionCommand[]): Promise<ApplyCodeActionCommandResult | ApplyCodeActionCommandResult[]>;
         getApplicableRefactors(fileName: string, positionOrRaneg: number | TextRange): ApplicableRefactorInfo[];
         getEditsForRefactor(fileName: string, formatOptions: FormatCodeSettings, positionOrRange: number | TextRange, refactorName: string, actionName: string): RefactorEditInfo | undefined;
@@ -7876,6 +7888,7 @@ declare namespace ts {
     }
     type CodeActionCommand = InstallPackageAction;
     interface InstallPackageAction {
+        file: string;
         type: "install package";
         packageName: string;
     }
@@ -9204,7 +9217,7 @@ declare namespace ts.codefix {
 declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
-    function tryGetCodeActionForInstallPackageTypes(host: LanguageServiceHost, moduleName: string): CodeAction | undefined;
+    function tryGetCodeActionForInstallPackageTypes(host: LanguageServiceHost, fileName: string, moduleName: string): CodeAction | undefined;
 }
 declare namespace ts.codefix {
 }
@@ -9250,8 +9263,8 @@ declare namespace ts.codefix {
         Namespace = 2,
         Equals = 3,
     }
-    function getCodeActionForImport(moduleSymbol: Symbol, context: ImportCodeFixOptions): ImportCodeAction[];
-    function getModuleSpecifierForNewImport(sourceFile: SourceFile, moduleSymbol: Symbol, options: CompilerOptions, getCanonicalFileName: (file: string) => string, host: LanguageServiceHost): string | undefined;
+    function getCodeActionForImport(moduleSymbols: Symbol | ReadonlyArray<Symbol>, context: ImportCodeFixOptions): ImportCodeAction[];
+    function getModuleSpecifierForNewImport(sourceFile: SourceFile, moduleSymbols: ReadonlyArray<Symbol>, options: CompilerOptions, getCanonicalFileName: (file: string) => string, host: LanguageServiceHost): string | undefined;
     function forEachExternalModule(checker: TypeChecker, allSourceFiles: ReadonlyArray<SourceFile>, cb: (module: Symbol) => void): void;
     function moduleSymbolToValidIdentifier(moduleSymbol: Symbol, target: ScriptTarget): string;
 }
