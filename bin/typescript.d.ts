@@ -701,6 +701,7 @@ declare namespace ts {
         kind: SyntaxKind.Constructor;
         parent?: ClassDeclaration | ClassExpression;
         body?: FunctionBody;
+        returnFlowNode?: FlowNode;
     }
     /** For when we encounter a semicolon in a class declaration. ES6 allows these as class elements. */
     interface SemicolonClassElement extends ClassElement {
@@ -2809,6 +2810,7 @@ declare namespace ts {
         strict?: boolean;
         strictFunctionTypes?: boolean;
         strictNullChecks?: boolean;
+        strictPropertyInitialization?: boolean;
         stripInternal?: boolean;
         suppressExcessPropertyErrors?: boolean;
         suppressImplicitAnyIndexErrors?: boolean;
@@ -3867,6 +3869,7 @@ declare namespace ts {
     function arrayToMap<T>(array: ReadonlyArray<T>, makeKey: (value: T) => string): Map<T>;
     function arrayToMap<T, U>(array: ReadonlyArray<T>, makeKey: (value: T) => string, makeValue: (value: T) => U): Map<U>;
     function arrayToNumericMap<T>(array: ReadonlyArray<T>, makeKey: (value: T) => number): T[];
+    function arrayToNumericMap<T, V>(array: ReadonlyArray<T>, makeKey: (value: T) => number, makeValue: (value: T) => V): V[];
     /**
      * Creates a set from the elements of an array.
      *
@@ -4035,7 +4038,7 @@ declare namespace ts {
     function getEmitModuleKind(compilerOptions: CompilerOptions): ModuleKind;
     function getEmitModuleResolutionKind(compilerOptions: CompilerOptions): ModuleResolutionKind;
     function getAllowSyntheticDefaultImports(compilerOptions: CompilerOptions): boolean;
-    type StrictOptionName = "noImplicitAny" | "noImplicitThis" | "strictNullChecks" | "strictFunctionTypes" | "alwaysStrict";
+    type StrictOptionName = "noImplicitAny" | "noImplicitThis" | "strictNullChecks" | "strictFunctionTypes" | "strictPropertyInitialization" | "alwaysStrict";
     function getStrictOptionValue(compilerOptions: CompilerOptions, flag: StrictOptionName): boolean;
     function hasZeroOrOneAsteriskCharacter(str: string): boolean;
     function isRootedDiskPath(path: string): boolean;
@@ -5658,6 +5661,8 @@ declare namespace ts {
         Object_literal_may_only_specify_known_properties_but_0_does_not_exist_in_type_1_Did_you_mean_to_write_2: DiagnosticMessage;
         Base_class_expressions_cannot_reference_class_type_parameters: DiagnosticMessage;
         The_containing_function_or_module_body_is_too_large_for_control_flow_analysis: DiagnosticMessage;
+        Property_0_has_no_initializer_and_is_not_definitely_assigned_in_the_constructor: DiagnosticMessage;
+        Property_0_is_used_before_being_assigned: DiagnosticMessage;
         JSX_element_attributes_type_0_may_not_be_a_union_type: DiagnosticMessage;
         The_return_type_of_a_JSX_element_constructor_must_return_an_object_type: DiagnosticMessage;
         JSX_element_implicitly_has_type_any_because_the_global_type_JSX_Element_does_not_exist: DiagnosticMessage;
@@ -6017,6 +6022,7 @@ declare namespace ts {
         Reusing_module_resolutions_originating_in_0_since_resolutions_are_unchanged_from_old_program: DiagnosticMessage;
         Disable_strict_checking_of_generic_signatures_in_function_types: DiagnosticMessage;
         Enable_strict_checking_of_function_types: DiagnosticMessage;
+        Enable_strict_checking_of_property_initialization_in_classes: DiagnosticMessage;
         Variable_0_implicitly_has_an_1_type: DiagnosticMessage;
         Parameter_0_implicitly_has_an_1_type: DiagnosticMessage;
         Member_0_implicitly_has_an_1_type: DiagnosticMessage;
