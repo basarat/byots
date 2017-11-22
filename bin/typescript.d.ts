@@ -479,6 +479,7 @@ declare namespace ts {
     }
     type DotDotDotToken = Token<SyntaxKind.DotDotDotToken>;
     type QuestionToken = Token<SyntaxKind.QuestionToken>;
+    type ExclamationToken = Token<SyntaxKind.ExclamationToken>;
     type ColonToken = Token<SyntaxKind.ColonToken>;
     type EqualsToken = Token<SyntaxKind.EqualsToken>;
     type AsteriskToken = Token<SyntaxKind.AsteriskToken>;
@@ -580,6 +581,7 @@ declare namespace ts {
         kind: SyntaxKind.VariableDeclaration;
         parent?: VariableDeclarationList | CatchClause;
         name: BindingName;
+        exclamationToken?: ExclamationToken;
         type?: TypeNode;
         initializer?: Expression;
     }
@@ -614,8 +616,9 @@ declare namespace ts {
     }
     interface PropertyDeclaration extends ClassElement, JSDocContainer {
         kind: SyntaxKind.PropertyDeclaration;
-        questionToken?: QuestionToken;
         name: PropertyName;
+        questionToken?: QuestionToken;
+        exclamationToken?: ExclamationToken;
         type?: TypeNode;
         initializer?: Expression;
     }
@@ -649,6 +652,7 @@ declare namespace ts {
         dotDotDotToken?: DotDotDotToken;
         name: DeclarationName;
         questionToken?: QuestionToken;
+        exclamationToken?: ExclamationToken;
         type?: TypeNode;
         initializer?: Expression;
     }
@@ -4456,7 +4460,7 @@ declare namespace ts {
     function getRightMostAssignedExpression(node: Node): Node;
     function isExportsIdentifier(node: Node): boolean;
     function isModuleExportsPropertyAccessExpression(node: Node): boolean;
-    function getSpecialPropertyAssignmentKind(expr: ts.BinaryExpression): SpecialPropertyAssignmentKind;
+    function getSpecialPropertyAssignmentKind(expr: BinaryExpression): SpecialPropertyAssignmentKind;
     function getExternalModuleName(node: Node): Expression;
     function getNamespaceDeclarationNode(node: ImportDeclaration | ImportEqualsDeclaration | ExportDeclaration): ImportEqualsDeclaration | NamespaceImport;
     function isDefaultImport(node: ImportDeclaration | ImportEqualsDeclaration | ExportDeclaration): boolean;
@@ -5381,6 +5385,7 @@ declare namespace ts {
         Function_declarations_are_not_allowed_inside_blocks_in_strict_mode_when_targeting_ES3_or_ES5_Modules_are_automatically_in_strict_mode: DiagnosticMessage;
         _0_tag_cannot_be_used_independently_as_a_top_level_JSDoc_tag: DiagnosticMessage;
         A_const_initializer_in_an_ambient_context_must_be_a_string_or_numeric_literal: DiagnosticMessage;
+        A_definite_assignment_assertion_is_not_permitted_in_this_context: DiagnosticMessage;
         with_statements_are_not_allowed_in_an_async_function_block: DiagnosticMessage;
         await_expression_is_only_allowed_within_an_async_function: DiagnosticMessage;
         can_only_be_used_in_an_object_literal_property_inside_a_destructuring_assignment: DiagnosticMessage;
