@@ -6117,7 +6117,7 @@ declare namespace ts {
         Add_this_to_unresolved_variable: DiagnosticMessage;
         Adding_a_tsconfig_json_file_will_help_organize_projects_that_contain_both_TypeScript_and_JavaScript_files_Learn_more_at_https_Colon_Slash_Slashaka_ms_Slashtsconfig: DiagnosticMessage;
         Type_0_is_not_assignable_to_type_1_Two_different_types_with_this_name_exist_but_they_are_unrelated: DiagnosticMessage;
-        Import_0_from_1: DiagnosticMessage;
+        Import_0_from_module_1: DiagnosticMessage;
         Change_0_to_1: DiagnosticMessage;
         Add_0_to_existing_import_declaration_from_1: DiagnosticMessage;
         Declare_property_0: DiagnosticMessage;
@@ -6147,8 +6147,6 @@ declare namespace ts {
         Infer_parameter_types_from_usage: DiagnosticMessage;
         Convert_to_default_import: DiagnosticMessage;
         Install_0: DiagnosticMessage;
-        Import_0_require_1: DiagnosticMessage;
-        Import_Asterisk_as_0_from_1: DiagnosticMessage;
     };
 }
 declare namespace ts {
