@@ -1952,12 +1952,16 @@ declare namespace ts {
         isOptionalParameter(node: ParameterDeclaration): boolean;
         getAmbientModules(): Symbol[];
         tryGetMemberInModuleExports(memberName: string, moduleSymbol: Symbol): Symbol | undefined;
-        /** Unlike `tryGetMemberInModuleExports`, this includes properties of an `export =` value. */
+        /**
+         * Unlike `tryGetMemberInModuleExports`, this includes properties of an `export =` value.
+         * Does *not* return properties of primitive types.
+         */
         tryGetMemberInModuleExportsAndProperties(memberName: string, moduleSymbol: Symbol): Symbol | undefined;
         getApparentType(type: Type): Type;
         getSuggestionForNonexistentProperty(node: Identifier, containingType: Type): string | undefined;
         getSuggestionForNonexistentSymbol(location: Node, name: string, meaning: SymbolFlags): string | undefined;
         getBaseConstraintOfType(type: Type): Type | undefined;
+        getDefaultFromTypeParameter(type: Type): Type | undefined;
         getAnyType(): Type;
         getStringType(): Type;
         getNumberType(): Type;
@@ -2586,12 +2590,12 @@ declare namespace ts {
         syntheticType?: Type;
     }
     interface TypeVariable extends Type {
-        resolvedBaseConstraint: Type;
-        resolvedIndexType: IndexType;
+        resolvedBaseConstraint?: Type;
+        resolvedIndexType?: IndexType;
     }
     interface TypeParameter extends TypeVariable {
         /** Retrieve using getConstraintFromTypeParameter */
-        constraint: Type;
+        constraint?: Type;
         default?: Type;
         target?: TypeParameter;
         mapper?: TypeMapper;
@@ -4430,10 +4434,17 @@ declare namespace ts {
     function isThisProperty(node: Node): boolean;
     function getEntityNameFromTypeNode(node: TypeNode): EntityNameOrEntityNameExpression;
     function getInvokedExpression(node: CallLikeExpression): Expression;
-    function nodeCanBeDecorated(node: Node): boolean;
-    function nodeIsDecorated(node: Node): boolean;
-    function nodeOrChildIsDecorated(node: Node): boolean;
-    function childIsDecorated(node: Node): boolean;
+    function nodeCanBeDecorated(node: ClassDeclaration): true;
+    function nodeCanBeDecorated(node: ClassElement, parent: Node): boolean;
+    function nodeCanBeDecorated(node: Node, parent: Node, grandparent: Node): boolean;
+    function nodeIsDecorated(node: ClassDeclaration): boolean;
+    function nodeIsDecorated(node: ClassElement, parent: Node): boolean;
+    function nodeIsDecorated(node: Node, parent: Node, grandparent: Node): boolean;
+    function nodeOrChildIsDecorated(node: ClassDeclaration): boolean;
+    function nodeOrChildIsDecorated(node: ClassElement, parent: Node): boolean;
+    function nodeOrChildIsDecorated(node: Node, parent: Node, grandparent: Node): boolean;
+    function childIsDecorated(node: ClassDeclaration): boolean;
+    function childIsDecorated(node: Node, parent: Node): boolean;
     function isJSXTagName(node: Node): boolean;
     function isExpressionNode(node: Node): boolean;
     function isInExpressionContext(node: Node): boolean;
@@ -4741,7 +4752,6 @@ declare namespace ts {
     function isWatchSet(options: CompilerOptions): boolean;
     function getCheckFlags(symbol: Symbol): CheckFlags;
     function getDeclarationModifierFlagsFromSymbol(s: Symbol): ModifierFlags;
-    function levenshtein(s1: string, s2: string): number;
     function skipAlias(symbol: Symbol, checker: TypeChecker): Symbol;
     /** See comment on `declareModuleMember` in `binder.ts`. */
     function getCombinedLocalAndExportSymbolFlags(symbol: Symbol): SymbolFlags;
@@ -7655,6 +7665,8 @@ declare namespace ts {
         getNumberIndexType(): Type | undefined;
         getBaseTypes(): BaseType[] | undefined;
         getNonNullableType(): Type;
+        getConstraint(): Type | undefined;
+        getDefault(): Type | undefined;
     }
     interface Signature {
         getDeclaration(): SignatureDeclaration;
@@ -8530,7 +8542,7 @@ declare namespace ts {
     function getFirstNonSpaceCharacterPosition(text: string, position: number): number;
     function getOpenBrace(constructor: ConstructorDeclaration, sourceFile: SourceFile): Node;
     function getOpenBraceOfClassLike(declaration: ClassLikeDeclaration, sourceFile: SourceFile): Node;
-    function getSourceFileImportLocation(node: SourceFile): number;
+    function getSourceFileImportLocation({text}: SourceFile): number;
     /**
      * Creates a deep, memberwise clone of a node with no source map location.
      *
@@ -9273,7 +9285,7 @@ declare namespace ts.codefix {
         Equals = 3,
     }
     function getCodeActionForImport(moduleSymbols: Symbol | ReadonlyArray<Symbol>, context: ImportCodeFixOptions): ImportCodeAction[];
-    function getModuleSpecifierForNewImport(sourceFile: SourceFile, moduleSymbols: ReadonlyArray<Symbol>, options: CompilerOptions, getCanonicalFileName: (file: string) => string, host: LanguageServiceHost): string | undefined;
+    function getModuleSpecifiersForNewImport(sourceFile: SourceFile, moduleSymbols: ReadonlyArray<Symbol>, options: CompilerOptions, getCanonicalFileName: (file: string) => string, host: LanguageServiceHost): string[];
     function forEachExternalModule(checker: TypeChecker, allSourceFiles: ReadonlyArray<SourceFile>, cb: (module: Symbol) => void): void;
     function moduleSymbolToValidIdentifier(moduleSymbol: Symbol, target: ScriptTarget): string;
 }
