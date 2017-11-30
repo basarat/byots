@@ -716,13 +716,13 @@ declare namespace ts {
         kind: SyntaxKind.GetAccessor;
         parent?: ClassDeclaration | ClassExpression | ObjectLiteralExpression;
         name: PropertyName;
-        body: FunctionBody;
+        body?: FunctionBody;
     }
     interface SetAccessorDeclaration extends FunctionLikeDeclarationBase, ClassElement, ObjectLiteralElement, JSDocContainer {
         kind: SyntaxKind.SetAccessor;
         parent?: ClassDeclaration | ClassExpression | ObjectLiteralExpression;
         name: PropertyName;
-        body: FunctionBody;
+        body?: FunctionBody;
     }
     type AccessorDeclaration = GetAccessorDeclaration | SetAccessorDeclaration;
     interface IndexSignatureDeclaration extends SignatureDeclarationBase, ClassElement, TypeElement {
@@ -4158,18 +4158,23 @@ declare namespace ts {
         Aggressive = 2,
         VeryAggressive = 3,
     }
+    /**
+     * Safer version of `Function` which should not be called.
+     * Every function should be assignable to this, but this should not be assignable to every function.
+     */
+    type AnyFunction = (...args: never[]) => void;
     namespace Debug {
         let currentAssertionLevel: AssertionLevel;
         let isDebugging: boolean;
         function shouldAssert(level: AssertionLevel): boolean;
-        function assert(expression: boolean, message?: string, verboseDebugInfo?: string | (() => string), stackCrawlMark?: Function): void;
+        function assert(expression: boolean, message?: string, verboseDebugInfo?: string | (() => string), stackCrawlMark?: AnyFunction): void;
         function assertEqual<T>(a: T, b: T, msg?: string, msg2?: string): void;
         function assertLessThan(a: number, b: number, msg?: string): void;
         function assertLessThanOrEqual(a: number, b: number): void;
         function assertGreaterThanOrEqual(a: number, b: number): void;
-        function fail(message?: string, stackCrawlMark?: Function): never;
-        function assertNever(member: never, message?: string, stackCrawlMark?: Function): never;
-        function getFunctionName(func: Function): any;
+        function fail(message?: string, stackCrawlMark?: AnyFunction): never;
+        function assertNever(member: never, message?: string, stackCrawlMark?: AnyFunction): never;
+        function getFunctionName(func: AnyFunction): any;
     }
     /** Remove an item from an array, moving everything to its right one space left. */
     function orderedRemoveItem<T>(array: T[], item: T): boolean;
@@ -5523,7 +5528,7 @@ declare namespace ts {
         Expression_resolves_to_variable_declaration_this_that_compiler_uses_to_capture_this_reference: DiagnosticMessage;
         Duplicate_identifier_super_Compiler_uses_super_to_capture_base_class_reference: DiagnosticMessage;
         Expression_resolves_to_super_that_compiler_uses_to_capture_base_class_reference: DiagnosticMessage;
-        Subsequent_variable_declarations_must_have_the_same_type_Variable_0_has_type_1_at_2_but_here_has_type_3: DiagnosticMessage;
+        Subsequent_variable_declarations_must_have_the_same_type_Variable_0_must_be_of_type_1_but_here_has_type_2: DiagnosticMessage;
         The_left_hand_side_of_a_for_in_statement_cannot_use_a_type_annotation: DiagnosticMessage;
         The_left_hand_side_of_a_for_in_statement_must_be_of_type_string_or_any: DiagnosticMessage;
         The_left_hand_side_of_a_for_in_statement_must_be_a_variable_or_a_property_access: DiagnosticMessage;
@@ -5753,7 +5758,7 @@ declare namespace ts {
         The_expression_of_an_export_assignment_must_be_an_identifier_or_qualified_name_in_an_ambient_context: DiagnosticMessage;
         Abstract_property_0_in_class_1_cannot_be_accessed_in_the_constructor: DiagnosticMessage;
         Type_parameter_0_has_a_circular_default: DiagnosticMessage;
-        Subsequent_property_declarations_must_have_the_same_type_Property_0_has_type_1_at_2_but_here_has_type_3: DiagnosticMessage;
+        Subsequent_property_declarations_must_have_the_same_type_Property_0_must_be_of_type_1_but_here_has_type_2: DiagnosticMessage;
         Duplicate_declaration_0: DiagnosticMessage;
         Import_declaration_0_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
