@@ -497,7 +497,7 @@ declare namespace ts {
         Unique = 3,
         Node = 4,
     }
-    interface Identifier extends PrimaryExpression {
+    interface Identifier extends PrimaryExpression, Declaration {
         kind: SyntaxKind.Identifier;
         /**
          * Prefer to use `id.unescapedText`. (Note: This is available only in services, not internally to the TypeScript compiler.)
@@ -2194,6 +2194,7 @@ declare namespace ts {
         ExportStar = 8388608,
         Optional = 16777216,
         Transient = 33554432,
+        JSContainer = 67108864,
         All = 67108863,
         Enum = 384,
         Variable = 3,
@@ -4469,7 +4470,7 @@ declare namespace ts {
     function isSingleOrDoubleQuote(charCode: number): boolean;
     function isStringDoubleQuoted(str: StringLiteral, sourceFile: SourceFile): boolean;
     /**
-     * Returns true if the node is a variable declaration whose initializer is a function expression.
+     * Returns true if the node is a variable declaration whose initializer is a function or class expression.
      * This function does not test if the node is in a JavaScript file or not.
      */
     function isDeclarationOfFunctionOrClassExpression(s: Symbol): boolean;
@@ -4477,6 +4478,7 @@ declare namespace ts {
     function isExportsIdentifier(node: Node): boolean;
     function isModuleExportsPropertyAccessExpression(node: Node): boolean;
     function getSpecialPropertyAssignmentKind(expr: BinaryExpression): SpecialPropertyAssignmentKind;
+    function isSpecialPropertyDeclaration(expr: ts.PropertyAccessExpression): boolean;
     function getExternalModuleName(node: Node): Expression;
     function getNamespaceDeclarationNode(node: ImportDeclaration | ImportEqualsDeclaration | ExportDeclaration): ImportEqualsDeclaration | NamespaceImport;
     function isDefaultImport(node: ImportDeclaration | ImportEqualsDeclaration | ExportDeclaration): boolean;
@@ -4524,6 +4526,7 @@ declare namespace ts {
     function isKeyword(token: SyntaxKind): boolean;
     function isContextualKeyword(token: SyntaxKind): boolean;
     function isNonContextualKeyword(token: SyntaxKind): boolean;
+    function isStringANonContextualKeyword(name: string): boolean;
     function isTrivia(token: SyntaxKind): boolean;
     enum FunctionFlags {
         Normal = 0,
@@ -4784,6 +4787,7 @@ declare namespace ts {
     function mutateMap<T, U>(map: Map<T>, newMap: ReadonlyMap<U>, options: MutateMapOptions<T, U>): void;
     /** Calls `callback` on `directory` and every ancestor directory it has, returning the first defined result. */
     function forEachAncestorDirectory<T>(directory: string, callback: (directory: string) => T | undefined): T | undefined;
+    function typeHasCallOrConstructSignatures(type: Type, checker: TypeChecker): boolean;
 }
 declare namespace ts {
     function getDefaultLibFileName(options: CompilerOptions): string;
@@ -9291,7 +9295,8 @@ declare namespace ts.codefix {
     }
     function getCodeActionForImport(moduleSymbols: Symbol | ReadonlyArray<Symbol>, context: ImportCodeFixOptions): ImportCodeAction[];
     function getModuleSpecifiersForNewImport(sourceFile: SourceFile, moduleSymbols: ReadonlyArray<Symbol>, options: CompilerOptions, getCanonicalFileName: (file: string) => string, host: LanguageServiceHost): string[];
-    function forEachExternalModule(checker: TypeChecker, allSourceFiles: ReadonlyArray<SourceFile>, cb: (module: Symbol) => void): void;
+    function forEachExternalModuleToImportFrom(checker: TypeChecker, from: SourceFile, allSourceFiles: ReadonlyArray<SourceFile>, cb: (module: Symbol) => void): void;
+    function forEachExternalModule(checker: TypeChecker, allSourceFiles: ReadonlyArray<SourceFile>, cb: (module: Symbol, sourceFile: SourceFile | undefined) => void): void;
     function moduleSymbolToValidIdentifier(moduleSymbol: Symbol, target: ScriptTarget): string;
 }
 declare namespace ts.codefix {
