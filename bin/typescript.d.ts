@@ -2898,8 +2898,9 @@ declare namespace ts {
         ES2015 = 2,
         ES2016 = 3,
         ES2017 = 4,
-        ESNext = 5,
-        Latest = 5,
+        ES2018 = 5,
+        ESNext = 6,
+        Latest = 6,
     }
     enum LanguageVariant {
         Standard = 0,
@@ -4299,6 +4300,7 @@ declare namespace ts {
         debugMode?: boolean;
         setTimeout?(callback: (...args: any[]) => void, ms: number, ...args: any[]): any;
         clearTimeout?(timeoutId: any): void;
+        clearScreen?(): void;
     }
     interface FileWatcher {
         close(): void;
@@ -5904,7 +5906,7 @@ declare namespace ts {
         Allow_default_imports_from_modules_with_no_default_export_This_does_not_affect_code_emit_just_typechecking: DiagnosticMessage;
         Skip_type_checking_of_declaration_files: DiagnosticMessage;
         Do_not_resolve_the_real_path_of_symlinks: DiagnosticMessage;
-        Specify_ECMAScript_target_version_Colon_ES3_default_ES5_ES2015_ES2016_ES2017_or_ESNEXT: DiagnosticMessage;
+        Specify_ECMAScript_target_version_Colon_ES3_default_ES5_ES2015_ES2016_ES2017_ES2018_or_ESNEXT: DiagnosticMessage;
         Specify_module_code_generation_Colon_none_commonjs_amd_system_umd_es2015_or_ESNext: DiagnosticMessage;
         Print_this_message: DiagnosticMessage;
         Print_the_compiler_s_version: DiagnosticMessage;
