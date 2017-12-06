@@ -1975,7 +1975,7 @@ declare namespace ts {
         createArrayType(elementType: Type): Type;
         createPromiseType(type: Type): Type;
         createAnonymousType(symbol: Symbol, members: SymbolTable, callSignatures: Signature[], constructSignatures: Signature[], stringIndexInfo: IndexInfo, numberIndexInfo: IndexInfo): Type;
-        createSignature(declaration: SignatureDeclaration, typeParameters: TypeParameter[], thisParameter: Symbol | undefined, parameters: Symbol[], resolvedReturnType: Type, typePredicate: TypePredicate, minArgumentCount: number, hasRestParameter: boolean, hasLiteralTypes: boolean): Signature;
+        createSignature(declaration: SignatureDeclaration, typeParameters: TypeParameter[], thisParameter: Symbol | undefined, parameters: Symbol[], resolvedReturnType: Type, typePredicate: TypePredicate | undefined, minArgumentCount: number, hasRestParameter: boolean, hasLiteralTypes: boolean): Signature;
         createSymbol(flags: SymbolFlags, name: __String): TransientSymbol;
         createIndexInfo(type: Type, isReadonly: boolean, declaration?: SignatureDeclaration): IndexInfo;
         isSymbolAccessible(symbol: Symbol, enclosingDeclaration: Node, meaning: SymbolFlags, shouldComputeAliasToMarkVisible: boolean): SymbolAccessibilityResult;
@@ -2630,7 +2630,8 @@ declare namespace ts {
         typeParameters?: TypeParameter[];
         parameters: Symbol[];
         thisParameter?: Symbol;
-        resolvedReturnType: Type;
+        resolvedReturnType: Type | undefined;
+        resolvedTypePredicate: TypePredicate | undefined;
         minArgumentCount: number;
         hasRestParameter: boolean;
         hasLiteralTypes: boolean;
@@ -2640,7 +2641,6 @@ declare namespace ts {
         erasedSignatureCache?: Signature;
         canonicalSignatureCache?: Signature;
         isolatedSignatureType?: ObjectType;
-        typePredicate?: TypePredicate;
         instantiations?: Map<Signature>;
     }
     enum IndexKind {
@@ -5918,6 +5918,7 @@ declare namespace ts {
         Options_Colon: DiagnosticMessage;
         Version_0: DiagnosticMessage;
         Insert_command_line_options_and_files_from_a_file: DiagnosticMessage;
+        Starting_compilation_in_watch_mode: DiagnosticMessage;
         File_change_detected_Starting_incremental_compilation: DiagnosticMessage;
         KIND: DiagnosticMessage;
         FILE: DiagnosticMessage;
@@ -6383,7 +6384,7 @@ declare namespace ts {
 }
 /** @internal */
 declare namespace ts {
-    function createGetSymbolWalker(getRestTypeOfSignature: (sig: Signature) => Type, getReturnTypeOfSignature: (sig: Signature) => Type, getBaseTypes: (type: Type) => Type[], resolveStructuredTypeMembers: (type: ObjectType) => ResolvedType, getTypeOfSymbol: (sym: Symbol) => Type, getResolvedSymbol: (node: Node) => Symbol, getIndexTypeOfStructuredType: (type: Type, kind: IndexKind) => Type, getConstraintFromTypeParameter: (typeParameter: TypeParameter) => Type, getFirstIdentifier: (node: EntityNameOrEntityNameExpression) => Identifier): (accept?: (symbol: Symbol) => boolean) => SymbolWalker;
+    function createGetSymbolWalker(getRestTypeOfSignature: (sig: Signature) => Type, getTypePredicateOfSignature: (sig: Signature) => TypePredicate | undefined, getReturnTypeOfSignature: (sig: Signature) => Type, getBaseTypes: (type: Type) => Type[], resolveStructuredTypeMembers: (type: ObjectType) => ResolvedType, getTypeOfSymbol: (sym: Symbol) => Type, getResolvedSymbol: (node: Node) => Symbol, getIndexTypeOfStructuredType: (type: Type, kind: IndexKind) => Type, getConstraintFromTypeParameter: (typeParameter: TypeParameter) => Type, getFirstIdentifier: (node: EntityNameOrEntityNameExpression) => Identifier): (accept?: (symbol: Symbol) => boolean) => SymbolWalker;
 }
 declare namespace ts {
     function getNodeId(node: Node): number;
@@ -9189,6 +9190,8 @@ declare namespace ts.textChanges {
         replaceNodeRangeWithNodes(sourceFile: SourceFile, startNode: Node, endNode: Node, newNodes: ReadonlyArray<Node>, options: ChangeMultipleNodesOptions): this;
         insertNodeAt(sourceFile: SourceFile, pos: number, newNode: Node, options?: InsertNodeOptions): this;
         insertNodeBefore(sourceFile: SourceFile, before: Node, newNode: Node, options?: InsertNodeOptions & ConfigurableStart): this;
+        insertNodeAtConstructorStart(sourceFile: SourceFile, ctr: ConstructorDeclaration, newStatement: Statement, newLineCharacter: string): void;
+        insertNodeAtClassStart(sourceFile: SourceFile, cls: ClassLikeDeclaration, newElement: ClassElement, newLineCharacter: string): void;
         insertNodeAfter(sourceFile: SourceFile, after: Node, newNode: Node, options?: InsertNodeOptions & ConfigurableEnd): this;
         /**
          * This function should be used to insert nodes in lists when nodes don't carry separators as the part of the node range,
