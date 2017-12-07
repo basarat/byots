@@ -1723,7 +1723,7 @@ declare namespace ts {
         additionalSyntacticDiagnostics?: ReadonlyArray<Diagnostic>;
         lineMap: ReadonlyArray<number>;
         classifiableNames?: ReadonlyUnderscoreEscapedMap<true>;
-        resolvedModules: Map<ResolvedModuleFull>;
+        resolvedModules: Map<ResolvedModuleFull | undefined>;
         resolvedTypeReferenceDirectiveNames: Map<ResolvedTypeReferenceDirective>;
         imports: ReadonlyArray<StringLiteral>;
         moduleAugmentations: ReadonlyArray<StringLiteral | Identifier>;
@@ -3130,6 +3130,7 @@ declare namespace ts {
      * If changing this, remember to change `moduleResolutionIsEqualTo`.
      */
     interface ResolvedModuleFull extends ResolvedModule {
+        readonly originalPath?: string;
         /**
          * Extension of resolvedFileName. This must match what's at the end of resolvedFileName.
          * This is optional for backwards-compatibility, but will be added if not provided.
@@ -3644,6 +3645,7 @@ declare namespace ts {
     function forEach<T, U>(array: ReadonlyArray<T> | undefined, callback: (element: T, index: number) => U | undefined): U | undefined;
     /** Like `forEach`, but suitable for use with numbers and strings (which may be falsy). */
     function firstDefined<T, U>(array: ReadonlyArray<T> | undefined, callback: (element: T, index: number) => U | undefined): U | undefined;
+    function firstDefinedIterator<T, U>(iter: Iterator<T>, callback: (element: T) => U | undefined): U | undefined;
     /**
      * Iterates through the parent chain of a node and performs the callback on each parent until the callback
      * returns a truthy value, then returns that value.
@@ -3702,7 +3704,7 @@ declare namespace ts {
      * @param mapfn The callback used to map the result into one or more values.
      */
     function flatMap<T, U>(array: ReadonlyArray<T> | undefined, mapfn: (x: T, i: number) => U | ReadonlyArray<U> | undefined): U[] | undefined;
-    function flatMapIter<T, U>(iter: Iterator<T>, mapfn: (x: T) => U | U[] | undefined): U[];
+    function flatMapIterator<T, U>(iter: Iterator<T>, mapfn: (x: T) => U[] | Iterator<U> | undefined): Iterator<U>;
     /**
      * Maps an array. If the mapped value is an array, it is spread into the result.
      * Avoids allocation if all elements map to themselves.
@@ -3713,7 +3715,9 @@ declare namespace ts {
     function sameFlatMap<T>(array: T[], mapfn: (x: T, i: number) => T | ReadonlyArray<T>): T[];
     function sameFlatMap<T>(array: ReadonlyArray<T>, mapfn: (x: T, i: number) => T | ReadonlyArray<T>): ReadonlyArray<T>;
     function mapDefined<T, U>(array: ReadonlyArray<T> | undefined, mapFn: (x: T, i: number) => U | undefined): U[];
-    function mapDefinedIter<T, U>(iter: Iterator<T>, mapFn: (x: T) => U | undefined): U[];
+    function mapDefinedIterator<T, U>(iter: Iterator<T>, mapFn: (x: T) => U | undefined): Iterator<U>;
+    const emptyIterator: Iterator<never>;
+    function singleIterator<T>(value: T): Iterator<T>;
     /**
      * Computes the first matching span of elements and returns a tuple of the first span
      * and the remaining elements.
@@ -3918,7 +3922,7 @@ declare namespace ts {
     /**
      * Tests whether a value is an array.
      */
-    function isArray(value: any): value is ReadonlyArray<any>;
+    function isArray(value: any): value is ReadonlyArray<{}>;
     function toArray<T>(value: T | ReadonlyArray<T>): ReadonlyArray<T>;
     function toArray<T>(value: T | T[]): T[];
     /**
@@ -4804,6 +4808,7 @@ declare namespace ts {
     function getClassLikeDeclarationOfSymbol(symbol: Symbol): Declaration | undefined;
     function getObjectFlags(type: Type): ObjectFlags;
     function typeHasCallOrConstructSignatures(type: Type, checker: TypeChecker): boolean;
+    function forSomeAncestorDirectory(directory: string, callback: (directory: string) => boolean): boolean;
 }
 declare namespace ts {
     function getDefaultLibFileName(options: CompilerOptions): string;
@@ -7775,6 +7780,7 @@ declare namespace ts {
         useCaseSensitiveFileNames?(): boolean;
         readDirectory?(path: string, extensions?: ReadonlyArray<string>, exclude?: ReadonlyArray<string>, include?: ReadonlyArray<string>, depth?: number): string[];
         readFile?(path: string, encoding?: string): string | undefined;
+        realpath?(path: string): string;
         fileExists?(path: string): boolean;
         getTypeRootsVersion?(): number;
         resolveModuleNames?(moduleNames: string[], containingFile: string, reusedNames?: string[]): ResolvedModule[];
@@ -8600,7 +8606,7 @@ declare namespace ts.Completions {
         name: string;
         source?: string;
     }
-    function getCompletionEntryDetails(typeChecker: TypeChecker, log: (message: string) => void, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number, entryId: CompletionEntryIdentifier, allSourceFiles: ReadonlyArray<SourceFile>, host: LanguageServiceHost, formatContext: formatting.FormatContext, getCanonicalFileName: GetCanonicalFileName): CompletionEntryDetails;
+    function getCompletionEntryDetails(program: Program, log: (message: string) => void, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number, entryId: CompletionEntryIdentifier, allSourceFiles: ReadonlyArray<SourceFile>, host: LanguageServiceHost, formatContext: formatting.FormatContext, getCanonicalFileName: GetCanonicalFileName): CompletionEntryDetails;
     function getCompletionEntrySymbol(typeChecker: TypeChecker, log: (message: string) => void, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number, entryId: CompletionEntryIdentifier, allSourceFiles: ReadonlyArray<SourceFile>): Symbol | undefined;
 }
 declare namespace ts.DocumentHighlights {
@@ -9299,6 +9305,7 @@ declare namespace ts.codefix {
     }
     interface ImportCodeFixContext extends SymbolAndTokenContext {
         host: LanguageServiceHost;
+        program: Program;
         checker: TypeChecker;
         compilerOptions: CompilerOptions;
         getCanonicalFileName: GetCanonicalFileName;
@@ -9314,7 +9321,7 @@ declare namespace ts.codefix {
         Equals = 3,
     }
     function getCodeActionForImport(moduleSymbols: Symbol | ReadonlyArray<Symbol>, context: ImportCodeFixOptions): ImportCodeAction[];
-    function getModuleSpecifiersForNewImport(sourceFile: SourceFile, moduleSymbols: ReadonlyArray<Symbol>, options: CompilerOptions, getCanonicalFileName: (file: string) => string, host: LanguageServiceHost): string[];
+    function getModuleSpecifiersForNewImport(program: Program, sourceFile: SourceFile, moduleSymbols: ReadonlyArray<Symbol>, options: CompilerOptions, getCanonicalFileName: (file: string) => string, host: LanguageServiceHost): string[];
     function forEachExternalModuleToImportFrom(checker: TypeChecker, from: SourceFile, allSourceFiles: ReadonlyArray<SourceFile>, cb: (module: Symbol) => void): void;
     function forEachExternalModule(checker: TypeChecker, allSourceFiles: ReadonlyArray<SourceFile>, cb: (module: Symbol, sourceFile: SourceFile | undefined) => void): void;
     function moduleSymbolToValidIdentifier(moduleSymbol: Symbol, target: ScriptTarget): string;
