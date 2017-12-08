@@ -703,31 +703,31 @@ declare namespace ts {
     }
     interface ConstructorDeclaration extends FunctionLikeDeclarationBase, ClassElement, JSDocContainer {
         kind: SyntaxKind.Constructor;
-        parent?: ClassDeclaration | ClassExpression;
+        parent?: ClassLikeDeclaration;
         body?: FunctionBody;
         returnFlowNode?: FlowNode;
     }
     /** For when we encounter a semicolon in a class declaration. ES6 allows these as class elements. */
     interface SemicolonClassElement extends ClassElement {
         kind: SyntaxKind.SemicolonClassElement;
-        parent?: ClassDeclaration | ClassExpression;
+        parent?: ClassLikeDeclaration;
     }
     interface GetAccessorDeclaration extends FunctionLikeDeclarationBase, ClassElement, ObjectLiteralElement, JSDocContainer {
         kind: SyntaxKind.GetAccessor;
-        parent?: ClassDeclaration | ClassExpression | ObjectLiteralExpression;
+        parent?: ClassLikeDeclaration | ObjectLiteralExpression;
         name: PropertyName;
         body?: FunctionBody;
     }
     interface SetAccessorDeclaration extends FunctionLikeDeclarationBase, ClassElement, ObjectLiteralElement, JSDocContainer {
         kind: SyntaxKind.SetAccessor;
-        parent?: ClassDeclaration | ClassExpression | ObjectLiteralExpression;
+        parent?: ClassLikeDeclaration | ObjectLiteralExpression;
         name: PropertyName;
         body?: FunctionBody;
     }
     type AccessorDeclaration = GetAccessorDeclaration | SetAccessorDeclaration;
     interface IndexSignatureDeclaration extends SignatureDeclarationBase, ClassElement, TypeElement {
         kind: SyntaxKind.IndexSignature;
-        parent?: ClassDeclaration | ClassExpression | InterfaceDeclaration | TypeLiteralNode;
+        parent?: ClassLikeDeclaration | InterfaceDeclaration | TypeLiteralNode;
     }
     interface TypeNode extends Node {
         _typeNodeBrand: any;
@@ -1362,7 +1362,7 @@ declare namespace ts {
     }
     interface HeritageClause extends Node {
         kind: SyntaxKind.HeritageClause;
-        parent?: InterfaceDeclaration | ClassDeclaration | ClassExpression;
+        parent?: InterfaceDeclaration | ClassLikeDeclaration;
         token: SyntaxKind.ExtendsKeyword | SyntaxKind.ImplementsKeyword;
         types: NodeArray<ExpressionWithTypeArguments>;
     }
@@ -3655,6 +3655,7 @@ declare namespace ts {
     function findAncestor<T extends Node>(node: Node, callback: (element: Node) => element is T): T | undefined;
     function findAncestor(node: Node, callback: (element: Node) => boolean | "quit"): Node | undefined;
     function zipWith<T, U, V>(arrayA: ReadonlyArray<T>, arrayB: ReadonlyArray<U>, callback: (a: T, b: U, index: number) => V): V[];
+    function zipToIterator<T, U>(arrayA: ReadonlyArray<T>, arrayB: ReadonlyArray<U>): Iterator<[T, U]>;
     function zipToMap<T>(keys: ReadonlyArray<string>, values: ReadonlyArray<T>): Map<T>;
     /**
      * Iterates through `array` by index and performs the callback on each element of array until the callback
@@ -7841,7 +7842,8 @@ declare namespace ts {
         getDocCommentTemplateAtPosition(fileName: string, position: number): TextInsertion;
         isValidBraceCompletionAtPosition(fileName: string, position: number, openingBrace: number): boolean;
         getSpanOfEnclosingComment(fileName: string, position: number, onlyMultiLine: boolean): TextSpan;
-        getCodeFixesAtPosition(fileName: string, start: number, end: number, errorCodes: number[], formatOptions: FormatCodeSettings): CodeAction[];
+        getCodeFixesAtPosition(fileName: string, start: number, end: number, errorCodes: ReadonlyArray<number>, formatOptions: FormatCodeSettings): ReadonlyArray<CodeAction>;
+        getCombinedCodeFix(scope: CombinedCodeFixScope, fixId: {}, formatOptions: FormatCodeSettings): CombinedCodeActions;
         applyCodeActionCommand(action: CodeActionCommand): Promise<ApplyCodeActionCommandResult>;
         applyCodeActionCommand(action: CodeActionCommand[]): Promise<ApplyCodeActionCommandResult[]>;
         applyCodeActionCommand(action: CodeActionCommand | CodeActionCommand[]): Promise<ApplyCodeActionCommandResult | ApplyCodeActionCommandResult[]>;
@@ -7862,6 +7864,10 @@ declare namespace ts {
          */
         getSourceFile(fileName: string): SourceFile;
         dispose(): void;
+    }
+    interface CombinedCodeFixScope {
+        type: "file";
+        fileName: string;
     }
     interface GetCompletionsAtPositionOptions {
         includeExternalModuleExports: boolean;
@@ -7938,6 +7944,17 @@ declare namespace ts {
          * This allows the language service to have side effects (e.g. installing dependencies) upon a code fix.
          */
         commands?: CodeActionCommand[];
+    }
+    interface CodeFixAction extends CodeAction {
+        /**
+         * If present, one may call 'getCombinedCodeFix' with this fixId.
+         * This may be omitted to indicate that the code fix can't be applied in a group.
+         */
+        fixId?: {};
+    }
+    interface CombinedCodeActions {
+        changes: ReadonlyArray<FileTextChanges>;
+        commands: ReadonlyArray<CodeActionCommand> | undefined;
     }
     type CodeActionCommand = InstallPackageAction;
     interface InstallPackageAction {
@@ -8541,6 +8558,10 @@ declare namespace ts {
     function isExternalModuleSymbol(moduleSymbol: Symbol): boolean;
     /** Returns `true` the first time it encounters a node and `false` afterwards. */
     function nodeSeenTracker<T extends Node>(): (node: T) => boolean;
+    /** Add a value to a set, and return true if it wasn't already present. */
+    function addToSeen(seen: Map<true>, key: string | number): boolean;
+    function singleElementArray<T>(t: T | undefined): T[];
+    function getFirstChildOfKind(node: Node, sourceFile: SourceFile, kind: SyntaxKind): Node | undefined;
 }
 declare namespace ts {
     function isFirstDeclarationOfSymbolParameter(symbol: Symbol): boolean;
@@ -8573,8 +8594,6 @@ declare namespace ts {
     function getScriptKind(fileName: string, host?: LanguageServiceHost): ScriptKind;
     function getUniqueSymbolId(symbol: Symbol, checker: TypeChecker): number;
     function getFirstNonSpaceCharacterPosition(text: string, position: number): number;
-    function getOpenBrace(constructor: ConstructorDeclaration, sourceFile: SourceFile): Node;
-    function getOpenBraceOfClassLike(declaration: ClassLikeDeclaration, sourceFile: SourceFile): Node;
     function getSourceFileImportLocation({text}: SourceFile): number;
     /**
      * Creates a deep, memberwise clone of a node with no source map location.
@@ -9178,6 +9197,8 @@ declare namespace ts.textChanges {
         private readonly validator;
         private changes;
         private readonly newLineCharacter;
+        private readonly deletedNodesInLists;
+        private readonly nodesInsertedAtClassStarts;
         static fromContext(context: TextChangesContext): ChangeTracker;
         static with(context: TextChangesContext, cb: (tracker: ChangeTracker) => void): FileTextChanges[];
         constructor(newLine: NewLineKind, formatContext: ts.formatting.FormatContext, validator?: (text: NonFormattedText) => void);
@@ -9205,6 +9226,7 @@ declare namespace ts.textChanges {
          * Note that separators are part of the node in statements and class elements.
          */
         insertNodeInListAfter(sourceFile: SourceFile, after: Node, newNode: Node): this;
+        private finishInsertNodeAtClassStart();
         getChanges(): FileTextChanges[];
         private computeSpan(change, _sourceFile);
         private computeNewText(change, sourceFile);
@@ -9218,22 +9240,33 @@ declare namespace ts.textChanges {
     function applyChanges(text: string, changes: TextChange[]): string;
 }
 declare namespace ts {
-    interface CodeFix {
+    interface CodeFixRegistration {
         errorCodes: number[];
-        getCodeActions(context: CodeFixContext): CodeAction[] | undefined;
+        getCodeActions(context: CodeFixContext): CodeFixAction[] | undefined;
+        fixIds?: string[];
+        getAllCodeActions?(context: CodeFixAllContext): CombinedCodeActions;
     }
-    interface CodeFixContext extends textChanges.TextChangesContext {
-        errorCode: number;
+    interface CodeFixContextBase extends textChanges.TextChangesContext {
         sourceFile: SourceFile;
-        span: TextSpan;
         program: Program;
         host: LanguageServiceHost;
         cancellationToken: CancellationToken;
     }
+    interface CodeFixAllContext extends CodeFixContextBase {
+        fixId: {};
+    }
+    interface CodeFixContext extends CodeFixContextBase {
+        errorCode: number;
+        span: TextSpan;
+    }
     namespace codefix {
-        function registerCodeFix(codeFix: CodeFix): void;
+        function registerCodeFix(reg: CodeFixRegistration): void;
         function getSupportedErrorCodes(): string[];
-        function getFixes(context: CodeFixContext): CodeAction[];
+        function getFixes(context: CodeFixContext): CodeFixAction[];
+        function getAllFixes(context: CodeFixAllContext): CombinedCodeActions;
+        function createFileTextChanges(fileName: string, textChanges: TextChange[]): FileTextChanges;
+        function codeFixAll(context: CodeFixAllContext, errorCodes: number[], use: (changes: textChanges.ChangeTracker, error: Diagnostic, commands: Push<CodeActionCommand>) => void): CombinedCodeActions;
+        function codeFixAllWithTextChanges(context: CodeFixAllContext, errorCodes: number[], use: (changes: Push<TextChange>, error: Diagnostic) => void): CombinedCodeActions;
     }
 }
 declare namespace ts {
@@ -9292,7 +9325,7 @@ declare namespace ts.codefix {
 declare namespace ts.codefix {
     type ImportCodeActionKind = "CodeChange" | "InsertingIntoExistingImport" | "NewImport";
     type ImportDeclarationMap = AnyImportSyntax[][];
-    interface ImportCodeAction extends CodeAction {
+    interface ImportCodeAction extends CodeFixAction {
         kind: ImportCodeActionKind;
         moduleSpecifier?: string;
     }
@@ -9329,16 +9362,14 @@ declare namespace ts.codefix {
 declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
-    function newNodesToChanges(newNodes: Node[], insertAfter: Node, context: CodeFixContext): FileTextChanges[];
     /**
      * Finds members of the resolved type that are missing in the class pointed to by class decl
      * and generates source code for the missing members.
      * @param possiblyMissingSymbols The collection of symbols to filter and then get insertions for.
      * @returns Empty string iff there are no member insertions.
      */
-    function createMissingMemberNodes(classDeclaration: ClassLikeDeclaration, possiblyMissingSymbols: Symbol[], checker: TypeChecker): Node[];
-    function createMethodFromCallExpression(callExpression: CallExpression, methodName: string, includeTypeScriptSyntax: boolean, makeStatic: boolean): MethodDeclaration;
-    function createStubbedMethod(modifiers: ReadonlyArray<Modifier>, name: PropertyName, optional: boolean, typeParameters: ReadonlyArray<TypeParameterDeclaration> | undefined, parameters: ReadonlyArray<ParameterDeclaration>, returnType: TypeNode | undefined): MethodDeclaration;
+    function createMissingMemberNodes(classDeclaration: ClassLikeDeclaration, possiblyMissingSymbols: ReadonlyArray<Symbol>, checker: TypeChecker, out: (node: ClassElement) => void): void;
+    function createMethodFromCallExpression({typeArguments, arguments: args}: CallExpression, methodName: string, inJs: boolean, makeStatic: boolean): MethodDeclaration;
 }
 declare namespace ts.codefix {
 }
