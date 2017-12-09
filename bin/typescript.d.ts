@@ -981,8 +981,9 @@ declare namespace ts {
         HexSpecifier = 64,
         BinarySpecifier = 128,
         OctalSpecifier = 256,
+        ContainsSeparator = 512,
         BinaryOrOctalSpecifier = 384,
-        NumericLiteralFlags = 496,
+        NumericLiteralFlags = 1008,
     }
     interface NumericLiteral extends LiteralExpression {
         kind: SyntaxKind.NumericLiteral;
@@ -4057,8 +4058,6 @@ declare namespace ts {
     function getDirectoryPath(path: string): string;
     function isUrl(path: string): boolean;
     function pathIsRelative(path: string): boolean;
-    /** @deprecated Use `!isExternalModuleNameRelative(moduleName)` instead. */
-    function moduleHasNonRelativeName(moduleName: string): boolean;
     function getEmitScriptTarget(compilerOptions: CompilerOptions): ScriptTarget;
     function getEmitModuleKind(compilerOptions: CompilerOptions): ModuleKind;
     function getEmitModuleResolutionKind(compilerOptions: CompilerOptions): ModuleResolutionKind;
@@ -6072,6 +6071,7 @@ declare namespace ts {
         Disable_strict_checking_of_generic_signatures_in_function_types: DiagnosticMessage;
         Enable_strict_checking_of_function_types: DiagnosticMessage;
         Enable_strict_checking_of_property_initialization_in_classes: DiagnosticMessage;
+        Numeric_separators_are_not_allowed_here: DiagnosticMessage;
         Variable_0_implicitly_has_an_1_type: DiagnosticMessage;
         Parameter_0_implicitly_has_an_1_type: DiagnosticMessage;
         Member_0_implicitly_has_an_1_type: DiagnosticMessage;
