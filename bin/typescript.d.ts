@@ -1817,6 +1817,8 @@ declare namespace ts {
         sourceFileToPackageName: Map<string>;
         /** Set of all source files that some other source file redirects to. */
         redirectTargetsSet: Map<true>;
+        /** Is the file emitted file */
+        isEmittedFile(file: string): boolean;
     }
     enum StructureIsReused {
         Not = 0,
@@ -7444,7 +7446,7 @@ declare namespace ts {
      *   If an array, the full list of source files to emit.
      *   Else, calls `getSourceFilesToEmit` with the (optional) target source file to determine the list of source files to emit.
      */
-    function forEachEmittedFile(host: EmitHost, action: (emitFileNames: EmitFileNames, sourceFileOrBundle: SourceFile | Bundle, emitOnlyDtsFiles: boolean) => void, sourceFilesOrTargetSourceFile?: SourceFile[] | SourceFile, emitOnlyDtsFiles?: boolean): void;
+    function forEachEmittedFile<T>(host: EmitHost, action: (emitFileNames: EmitFileNames, sourceFileOrBundle: SourceFile | Bundle, emitOnlyDtsFiles: boolean) => T, sourceFilesOrTargetSourceFile?: SourceFile[] | SourceFile, emitOnlyDtsFiles?: boolean): T;
     function emitFiles(resolver: EmitResolver, host: EmitHost, targetSourceFile: SourceFile, emitOnlyDtsFiles?: boolean, transformers?: TransformerFactory<SourceFile>[]): EmitResult;
     function createPrinter(printerOptions?: PrinterOptions, handlers?: PrintHandlers): Printer;
 }
@@ -7641,6 +7643,7 @@ declare namespace ts {
      * as wildcard directories wont change unless reloading config file
      */
     function updateWatchingWildcardDirectories(existingWatchedForWildcards: Map<WildcardDirectoryWatcher>, wildcardDirectories: Map<WatchDirectoryFlags>, watchDirectory: (directory: string, flags: WatchDirectoryFlags) => FileWatcher): void;
+    function isEmittedFileOfProgram(program: Program | undefined, file: string): boolean;
     function addFileWatcher(host: System, file: string, cb: FileWatcherCallback): FileWatcher;
     function addFileWatcherWithLogging(host: System, file: string, cb: FileWatcherCallback, log: (s: string) => void): FileWatcher;
     function addFileWatcherWithOnlyTriggerLogging(host: System, file: string, cb: FileWatcherCallback, log: (s: string) => void): FileWatcher;
@@ -7684,6 +7687,7 @@ declare namespace ts {
         getGlobalCache?(): string | undefined;
         writeLog(s: string): void;
         maxNumberOfFilesToIterateForInvalidation?: number;
+        getCurrentProgram(): Program;
     }
     const maxNumberOfFilesToIterateForInvalidation = 256;
     function createResolutionCache(resolutionHost: ResolutionCacheHost, rootDirForResolution: string): ResolutionCache;
@@ -7698,6 +7702,7 @@ declare namespace ts {
         reportWatchDiagnostic: DiagnosticReporter;
         beforeCompile(compilerOptions: CompilerOptions): void;
         afterCompile(host: DirectoryStructureHost, program: Program, builder: Builder): void;
+        maxNumberOfFilesToIterateForInvalidation?: number;
     }
     function createDiagnosticReporter(system?: System, worker?: typeof reportDiagnosticSimply, formatDiagnosticsHost?: FormatDiagnosticsHost): DiagnosticReporter;
     function createWatchDiagnosticReporter(system?: System): DiagnosticReporter;
