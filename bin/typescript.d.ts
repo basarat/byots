@@ -8631,6 +8631,7 @@ declare namespace ts {
     function nodeSeenTracker<T extends Node>(): (node: T) => boolean;
     /** Add a value to a set, and return true if it wasn't already present. */
     function addToSeen(seen: Map<true>, key: string | number): boolean;
+    function getSnapshotText(snap: IScriptSnapshot): string;
 }
 declare namespace ts {
     function isFirstDeclarationOfSymbolParameter(symbol: Symbol): boolean;
