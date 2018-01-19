@@ -70,10 +70,6 @@ const fixesForFiles: IFixForFile[] = [
         new: 'export interface ImportCodeFixContext'
       },
       {
-        orig: 'interface SymbolAndTokenContext',
-        new: 'export interface SymbolAndTokenContext'
-      },
-      {
         orig: 'interface SymbolContext',
         new: 'export interface SymbolContext'
       },
