@@ -4704,7 +4704,8 @@ declare namespace ts {
     function isContextualKeyword(token: SyntaxKind): boolean;
     function isNonContextualKeyword(token: SyntaxKind): boolean;
     function isStringANonContextualKeyword(name: string): boolean;
-    function isTrivia(token: SyntaxKind): boolean;
+    type TriviaKind = SyntaxKind.SingleLineCommentTrivia | SyntaxKind.MultiLineCommentTrivia | SyntaxKind.NewLineTrivia | SyntaxKind.WhitespaceTrivia | SyntaxKind.ShebangTrivia | SyntaxKind.ConflictMarkerTrivia;
+    function isTrivia(token: SyntaxKind): token is TriviaKind;
     enum FunctionFlags {
         Normal = 0,
         Generator = 1,
@@ -5881,6 +5882,7 @@ declare namespace ts {
         The_containing_function_or_module_body_is_too_large_for_control_flow_analysis: DiagnosticMessage;
         Property_0_has_no_initializer_and_is_not_definitely_assigned_in_the_constructor: DiagnosticMessage;
         Property_0_is_used_before_being_assigned: DiagnosticMessage;
+        A_rest_element_cannot_have_a_property_name: DiagnosticMessage;
         JSX_element_attributes_type_0_may_not_be_a_union_type: DiagnosticMessage;
         The_return_type_of_a_JSX_element_constructor_must_return_an_object_type: DiagnosticMessage;
         JSX_element_implicitly_has_type_any_because_the_global_type_JSX_Element_does_not_exist: DiagnosticMessage;
@@ -6359,7 +6361,6 @@ declare namespace ts {
         Add_async_modifier_to_containing_function: DiagnosticMessage;
         Convert_function_to_an_ES2015_class: DiagnosticMessage;
         Convert_function_0_to_class: DiagnosticMessage;
-        Extract_symbol: DiagnosticMessage;
         Extract_to_0_in_1: DiagnosticMessage;
         Extract_function: DiagnosticMessage;
         Extract_constant: DiagnosticMessage;
@@ -8786,7 +8787,7 @@ declare namespace ts {
     /**
      * The default is CRLF.
      */
-    function getNewLineOrDefaultFromHost(host: LanguageServiceHost | LanguageServiceShimHost): string;
+    function getNewLineOrDefaultFromHost(host: LanguageServiceHost | LanguageServiceShimHost, formatSettings?: FormatCodeSettings): string;
     function lineBreakPart(): SymbolDisplayPart;
     function mapToDisplayParts(writeDisplayParts: (writer: DisplayPartsSymbolWriter) => void): SymbolDisplayPart[];
     function typeToDisplayParts(typechecker: TypeChecker, type: Type, enclosingDeclaration?: Node, flags?: TypeFormatFlags): SymbolDisplayPart[];
@@ -9297,10 +9298,13 @@ declare namespace ts.formatting {
     interface TextRangeWithKind extends TextRange {
         kind: SyntaxKind;
     }
+    interface TextRangeWithTriviaKind extends TextRange {
+        kind: TriviaKind;
+    }
     interface TokenInfo {
-        leadingTrivia: TextRangeWithKind[];
+        leadingTrivia: TextRangeWithTriviaKind[];
         token: TextRangeWithKind;
-        trailingTrivia: TextRangeWithKind[];
+        trailingTrivia: TextRangeWithTriviaKind[];
     }
     function formatOnEnter(position: number, sourceFile: SourceFile, formatContext: FormatContext): TextChange[];
     function formatOnSemicolon(position: number, sourceFile: SourceFile, formatContext: FormatContext): TextChange[];
@@ -9407,7 +9411,7 @@ declare namespace ts.textChanges {
     function getAdjustedStartPosition(sourceFile: SourceFile, node: Node, options: ConfigurableStart, position: Position): number;
     function getAdjustedEndPosition(sourceFile: SourceFile, node: Node, options: ConfigurableEnd): number;
     interface TextChangesContext {
-        newLineCharacter: string;
+        host: LanguageServiceHost;
         formatContext: ts.formatting.FormatContext;
     }
     class ChangeTracker {
@@ -9474,7 +9478,6 @@ declare namespace ts {
     interface CodeFixContextBase extends textChanges.TextChangesContext {
         sourceFile: SourceFile;
         program: Program;
-        host: LanguageServiceHost;
         cancellationToken: CancellationToken;
     }
     interface CodeFixAllContext extends CodeFixContextBase {
@@ -9496,10 +9499,6 @@ declare namespace ts {
 }
 declare namespace ts {
     interface Refactor {
-        /** An unique code associated with each refactor */
-        name: string;
-        /** Description of the refactor to display in the UI of the editor */
-        description: string;
         /** Compute the associated code actions */
         getEditsForAction(context: RefactorContext, actionName: string): RefactorEditInfo | undefined;
         /** Compute (quickly) which actions are available here */
@@ -9510,11 +9509,11 @@ declare namespace ts {
         startPosition: number;
         endPosition?: number;
         program: Program;
-        host: LanguageServiceHost;
         cancellationToken?: CancellationToken;
     }
     namespace refactor {
-        function registerRefactor(refactor: Refactor): void;
+        /** @param name An unique code associated with each refactor. Does not have to be human-readable. */
+        function registerRefactor(name: string, refactor: Refactor): void;
         function getApplicableRefactors(context: RefactorContext): ApplicableRefactorInfo[];
         function getEditsForRefactor(context: RefactorContext, refactorName: string, actionName: string): RefactorEditInfo | undefined;
     }
@@ -9560,11 +9559,8 @@ declare namespace ts.codefix {
         sourceFile: SourceFile;
         symbolName: string;
     }
-    interface SymbolAndTokenContext extends SymbolContext {
+    interface ImportCodeFixContext extends SymbolContext {
         symbolToken: Identifier | undefined;
-    }
-    interface ImportCodeFixContext extends SymbolAndTokenContext {
-        host: LanguageServiceHost;
         program: Program;
         checker: TypeChecker;
         compilerOptions: CompilerOptions;
