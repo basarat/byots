@@ -2007,7 +2007,7 @@ declare namespace ts {
         getSymbolWalker(accept?: (symbol: Symbol) => boolean): SymbolWalker;
         getDiagnostics(sourceFile?: SourceFile, cancellationToken?: CancellationToken): Diagnostic[];
         getGlobalDiagnostics(): Diagnostic[];
-        getEmitResolver(sourceFile?: SourceFile, cancellationToken?: CancellationToken): EmitResolver;
+        getEmitResolver(sourceFile?: SourceFile, cancellationToken?: CancellationToken, ignoreDiagnostics?: boolean): EmitResolver;
         getNodeCount(): number;
         getIdentifierCount(): number;
         getSymbolCount(): number;
@@ -3262,6 +3262,7 @@ declare namespace ts {
         onReleaseOldSourceFile?(oldSourceFile: SourceFile, oldOptions: CompilerOptions): void;
         hasInvalidatedResolution?: HasInvalidatedResolution;
         hasChangedAutomaticTypeDirectiveNames?: boolean;
+        createHash?(data: string): string;
     }
     enum TransformFlags {
         None = 0,
@@ -4095,6 +4096,8 @@ declare namespace ts {
     function returnTrue(): true;
     /** Returns its argument. */
     function identity<T>(x: T): T;
+    /** Returns lower case string */
+    function toLowerCase(x: string): string;
     /** Throws an error because a function is not implemented. */
     function notImplemented(): never;
     function memoize<T>(callback: () => T): () => T;
@@ -4385,18 +4388,7 @@ declare namespace ts {
     function and<T>(f: (arg: T) => boolean, g: (arg: T) => boolean): (arg: T) => boolean;
     function or<T>(f: (arg: T) => boolean, g: (arg: T) => boolean): (arg: T) => boolean;
     function assertTypeIsNever(_: never): void;
-    interface FileAndDirectoryExistence {
-        fileExists: boolean;
-        directoryExists: boolean;
-    }
-    interface CachedDirectoryStructureHost extends DirectoryStructureHost {
-        /** Returns the queried result for the file exists and directory exists if at all it was done */
-        addOrDeleteFileOrDirectory(fileOrDirectory: string, fileOrDirectoryPath: Path): FileAndDirectoryExistence | undefined;
-        addOrDeleteFile(fileName: string, filePath: Path, eventKind: FileWatcherEventKind): void;
-        clearCache(): void;
-    }
     const emptyFileSystemEntries: FileSystemEntries;
-    function createCachedDirectoryStructureHost(host: DirectoryStructureHost): CachedDirectoryStructureHost;
     function singleElementArray<T>(t: T | undefined): T[] | undefined;
 }
 declare function setTimeout(handler: (...args: any[]) => void, timeout: number): any;
@@ -4420,26 +4412,14 @@ declare namespace ts {
         callback: FileWatcherCallback;
         mtime?: Date;
     }
-    /**
-     * Partial interface of the System thats needed to support the caching of directory structure
-     */
-    interface DirectoryStructureHost {
+    interface System {
+        args: string[];
         newLine: string;
         useCaseSensitiveFileNames: boolean;
         write(s: string): void;
         readFile(path: string, encoding?: string): string | undefined;
-        writeFile(path: string, data: string, writeByteOrderMark?: boolean): void;
-        fileExists(path: string): boolean;
-        directoryExists(path: string): boolean;
-        createDirectory(path: string): void;
-        getCurrentDirectory(): string;
-        getDirectories(path: string): string[];
-        readDirectory(path: string, extensions?: ReadonlyArray<string>, exclude?: ReadonlyArray<string>, include?: ReadonlyArray<string>, depth?: number): string[];
-        exit(exitCode?: number): void;
-    }
-    interface System extends DirectoryStructureHost {
-        args: string[];
         getFileSize?(path: string): number;
+        writeFile(path: string, data: string, writeByteOrderMark?: boolean): void;
         /**
          * @pollingInterval - this parameter is used in polling-based watchers and ignored in watchers that
          * use native OS file watching
@@ -4447,7 +4427,13 @@ declare namespace ts {
         watchFile?(path: string, callback: FileWatcherCallback, pollingInterval?: number): FileWatcher;
         watchDirectory?(path: string, callback: DirectoryWatcherCallback, recursive?: boolean): FileWatcher;
         resolvePath(path: string): string;
+        fileExists(path: string): boolean;
+        directoryExists(path: string): boolean;
+        createDirectory(path: string): void;
         getExecutingFilePath(): string;
+        getCurrentDirectory(): string;
+        getDirectories(path: string): string[];
+        readDirectory(path: string, extensions?: ReadonlyArray<string>, exclude?: ReadonlyArray<string>, include?: ReadonlyArray<string>, depth?: number): string[];
         getModifiedTime?(path: string): Date;
         /**
          * This should be cryptographically secure.
@@ -4455,6 +4441,7 @@ declare namespace ts {
          */
         createHash?(data: string): string;
         getMemoryUsage?(): number;
+        exit(exitCode?: number): void;
         realpath?(path: string): string;
         getEnvironmentVariable(name: string): string;
         tryEnableSourceMapsForHost?(): void;
@@ -4871,9 +4858,7 @@ declare namespace ts {
      * Converts a string to a base-64 encoded ASCII string.
      */
     function convertToBase64(input: string): string;
-    function getNewLineCharacter(options: CompilerOptions | PrinterOptions, system?: {
-        newLine: string;
-    }): string;
+    function getNewLineCharacter(options: CompilerOptions | PrinterOptions, getNewLine?: () => string): string;
     function formatSyntaxKind(kind: SyntaxKind): string;
     function formatModifierFlags(flags: ModifierFlags): string;
     function formatTransformFlags(flags: TransformFlags): string;
@@ -7653,23 +7638,244 @@ declare namespace ts {
 }
 declare namespace ts {
     function getFileEmitOutput(program: Program, sourceFile: SourceFile, emitOnlyDtsFiles: boolean, cancellationToken?: CancellationToken, customTransformers?: CustomTransformers): EmitOutput;
-    interface Builder {
-        /** Called to inform builder about new program */
-        updateProgram(newProgram: Program): void;
-        /** Gets the files affected by the file path */
-        getFilesAffectedBy(program: Program, path: Path): ReadonlyArray<SourceFile>;
-        /** Emit the changed files and clear the cache of the changed files */
-        emitChangedFiles(program: Program, writeFileCallback: WriteFileCallback): ReadonlyArray<EmitResult>;
-        /** When called gets the semantic diagnostics for the program. It also caches the diagnostics and manage them */
-        getSemanticDiagnostics(program: Program, cancellationToken?: CancellationToken): ReadonlyArray<Diagnostic>;
-        /** Called to reset the status of the builder */
-        clear(): void;
+    interface BuilderState {
+        /**
+         * Information of the file eg. its version, signature etc
+         */
+        fileInfos: Map<BuilderState.FileInfo>;
+        /**
+         * Contains the map of ReferencedSet=Referenced files of the file if module emit is enabled
+         * Otherwise undefined
+         * Thus non undefined value indicates, module emit
+         */
+        readonly referencedMap: ReadonlyMap<BuilderState.ReferencedSet> | undefined;
+        /**
+         * Map of files that have already called update signature.
+         * That means hence forth these files are assumed to have
+         * no change in their signature for this version of the program
+         */
+        hasCalledUpdateShapeSignature: Map<true>;
+        /**
+         * Cache of all files excluding default library file for the current program
+         */
+        allFilesExcludingDefaultLibraryFile: ReadonlyArray<SourceFile> | undefined;
+        /**
+         * Cache of all the file names
+         */
+        allFileNames: ReadonlyArray<string> | undefined;
     }
-    interface BuilderOptions {
-        getCanonicalFileName: GetCanonicalFileName;
-        computeHash: (data: string) => string;
+}
+declare namespace ts.BuilderState {
+    /**
+     * Information about the source file: Its version and optional signature from last emit
+     */
+    interface FileInfo {
+        readonly version: string;
+        signature: string | undefined;
     }
-    function createBuilder(options: BuilderOptions): Builder;
+    /**
+     * Referenced files with values for the keys as referenced file's path to be true
+     */
+    type ReferencedSet = ReadonlyMap<true>;
+    /**
+     * Compute the hash to store the shape of the file
+     */
+    type ComputeHash = (data: string) => string;
+    /**
+     * Returns true if oldState is reusable, that is the emitKind = module/non module has not changed
+     */
+    function canReuseOldState(newReferencedMap: ReadonlyMap<ReferencedSet>, oldState: Readonly<BuilderState> | undefined): boolean;
+    /**
+     * Creates the state of file references and signature for the new program from oldState if it is safe
+     */
+    function create(newProgram: Program, getCanonicalFileName: GetCanonicalFileName, oldState?: Readonly<BuilderState>): BuilderState;
+    /**
+     * Gets the files affected by the path from the program
+     */
+    function getFilesAffectedBy(state: BuilderState, programOfThisState: Program, path: Path, cancellationToken: CancellationToken | undefined, computeHash: ComputeHash, cacheToUpdateSignature?: Map<string>): ReadonlyArray<SourceFile>;
+    /**
+     * Updates the signatures from the cache into state's fileinfo signatures
+     * This should be called whenever it is safe to commit the state of the builder
+     */
+    function updateSignaturesFromCache(state: BuilderState, signatureCache: Map<string>): void;
+    /**
+     * Get all the dependencies of the sourceFile
+     */
+    function getAllDependencies(state: BuilderState, programOfThisState: Program, sourceFile: SourceFile): ReadonlyArray<string>;
+}
+declare namespace ts {
+    /**
+     * State to store the changed files, affected files and cache semantic diagnostics
+     */
+    interface BuilderProgramState extends BuilderState {
+        /**
+         * Cache of semantic diagnostics for files with their Path being the key
+         */
+        semanticDiagnosticsPerFile: Map<ReadonlyArray<Diagnostic>> | undefined;
+        /**
+         * The map has key by source file's path that has been changed
+         */
+        changedFilesSet: Map<true>;
+        /**
+         * Set of affected files being iterated
+         */
+        affectedFiles: ReadonlyArray<SourceFile> | undefined;
+        /**
+         * Current index to retrieve affected file from
+         */
+        affectedFilesIndex: number | undefined;
+        /**
+         * Current changed file for iterating over affected files
+         */
+        currentChangedFilePath: Path | undefined;
+        /**
+         * Map of file signatures, with key being file path, calculated while getting current changed file's affected files
+         * These will be commited whenever the iteration through affected files of current changed file is complete
+         */
+        currentAffectedFilesSignatures: Map<string> | undefined;
+        /**
+         * Already seen affected files
+         */
+        seenAffectedFiles: Map<true> | undefined;
+        /**
+         * program corresponding to this state
+         */
+        program: Program;
+    }
+    enum BuilderProgramKind {
+        SemanticDiagnosticsBuilderProgram = 0,
+        EmitAndSemanticDiagnosticsBuilderProgram = 1,
+    }
+    interface BuilderCreationParameters {
+        newProgram: Program;
+        host: BuilderProgramHost;
+        oldProgram: BuilderProgram | undefined;
+    }
+    function getBuilderCreationParameters(newProgramOrRootNames: Program | ReadonlyArray<string>, hostOrOptions: BuilderProgramHost | CompilerOptions, oldProgramOrHost?: CompilerHost | BuilderProgram, oldProgram?: BuilderProgram): BuilderCreationParameters;
+    function createBuilderProgram(kind: BuilderProgramKind.SemanticDiagnosticsBuilderProgram, builderCreationParameters: BuilderCreationParameters): SemanticDiagnosticsBuilderProgram;
+    function createBuilderProgram(kind: BuilderProgramKind.EmitAndSemanticDiagnosticsBuilderProgram, builderCreationParameters: BuilderCreationParameters): EmitAndSemanticDiagnosticsBuilderProgram;
+}
+declare namespace ts {
+    type AffectedFileResult<T> = {
+        result: T;
+        affected: SourceFile | Program;
+    } | undefined;
+    interface BuilderProgramHost {
+        /**
+         * return true if file names are treated with case sensitivity
+         */
+        useCaseSensitiveFileNames(): boolean;
+        /**
+         * If provided this would be used this hash instead of actual file shape text for detecting changes
+         */
+        createHash?: (data: string) => string;
+        /**
+         * When emit or emitNextAffectedFile are called without writeFile,
+         * this callback if present would be used to write files
+         */
+        writeFile?: WriteFileCallback;
+    }
+    /**
+     * Builder to manage the program state changes
+     */
+    interface BuilderProgram {
+        getState(): BuilderProgramState;
+        /**
+         * Returns current program
+         */
+        getProgram(): Program;
+        /**
+         * Get compiler options of the program
+         */
+        getCompilerOptions(): CompilerOptions;
+        /**
+         * Get the source file in the program with file name
+         */
+        getSourceFile(fileName: string): SourceFile | undefined;
+        /**
+         * Get a list of files in the program
+         */
+        getSourceFiles(): ReadonlyArray<SourceFile>;
+        /**
+         * Get the diagnostics for compiler options
+         */
+        getOptionsDiagnostics(cancellationToken?: CancellationToken): ReadonlyArray<Diagnostic>;
+        /**
+         * Get the diagnostics that dont belong to any file
+         */
+        getGlobalDiagnostics(cancellationToken?: CancellationToken): ReadonlyArray<Diagnostic>;
+        /**
+         * Get the syntax diagnostics, for all source files if source file is not supplied
+         */
+        getSyntacticDiagnostics(sourceFile?: SourceFile, cancellationToken?: CancellationToken): ReadonlyArray<Diagnostic>;
+        /**
+         * Get all the dependencies of the file
+         */
+        getAllDependencies(sourceFile: SourceFile): ReadonlyArray<string>;
+        /**
+         * Gets the semantic diagnostics from the program corresponding to this state of file (if provided) or whole program
+         * The semantic diagnostics are cached and managed here
+         * Note that it is assumed that when asked about semantic diagnostics through this API,
+         * the file has been taken out of affected files so it is safe to use cache or get from program and cache the diagnostics
+         * In case of SemanticDiagnosticsBuilderProgram if the source file is not provided,
+         * it will iterate through all the affected files, to ensure that cache stays valid and yet provide a way to get all semantic diagnostics
+         */
+        getSemanticDiagnostics(sourceFile?: SourceFile, cancellationToken?: CancellationToken): ReadonlyArray<Diagnostic>;
+        /**
+         * Emits the JavaScript and declaration files.
+         * When targetSource file is specified, emits the files corresponding to that source file,
+         * otherwise for the whole program.
+         * In case of EmitAndSemanticDiagnosticsBuilderProgram, when targetSourceFile is specified,
+         * it is assumed that that file is handled from affected file list. If targetSourceFile is not specified,
+         * it will only emit all the affected files instead of whole program
+         *
+         * The first of writeFile if provided, writeFile of BuilderProgramHost if provided, writeFile of compiler host
+         * in that order would be used to write the files
+         */
+        emit(targetSourceFile?: SourceFile, writeFile?: WriteFileCallback, cancellationToken?: CancellationToken, emitOnlyDtsFiles?: boolean, customTransformers?: CustomTransformers): EmitResult;
+        /**
+         * Get the current directory of the program
+         */
+        getCurrentDirectory(): string;
+    }
+    /**
+     * The builder that caches the semantic diagnostics for the program and handles the changed files and affected files
+     */
+    interface SemanticDiagnosticsBuilderProgram extends BuilderProgram {
+        /**
+         * Gets the semantic diagnostics from the program for the next affected file and caches it
+         * Returns undefined if the iteration is complete
+         */
+        getSemanticDiagnosticsOfNextAffectedFile(cancellationToken?: CancellationToken, ignoreSourceFile?: (sourceFile: SourceFile) => boolean): AffectedFileResult<ReadonlyArray<Diagnostic>>;
+    }
+    /**
+     * The builder that can handle the changes in program and iterate through changed file to emit the files
+     * The semantic diagnostics are cached per file and managed by clearing for the changed/affected files
+     */
+    interface EmitAndSemanticDiagnosticsBuilderProgram extends BuilderProgram {
+        /**
+         * Emits the next affected file's emit result (EmitResult and sourceFiles emitted) or returns undefined if iteration is complete
+         * The first of writeFile if provided, writeFile of BuilderProgramHost if provided, writeFile of compiler host
+         * in that order would be used to write the files
+         */
+        emitNextAffectedFile(writeFile?: WriteFileCallback, cancellationToken?: CancellationToken, emitOnlyDtsFiles?: boolean, customTransformers?: CustomTransformers): AffectedFileResult<EmitResult>;
+    }
+    /**
+     * Create the builder to manage semantic diagnostics and cache them
+     */
+    function createSemanticDiagnosticsBuilderProgram(newProgram: Program, host: BuilderProgramHost, oldProgram?: SemanticDiagnosticsBuilderProgram): SemanticDiagnosticsBuilderProgram;
+    function createSemanticDiagnosticsBuilderProgram(rootNames: ReadonlyArray<string>, options: CompilerOptions, host?: CompilerHost, oldProgram?: SemanticDiagnosticsBuilderProgram): SemanticDiagnosticsBuilderProgram;
+    /**
+     * Create the builder that can handle the changes in program and iterate through changed files
+     * to emit the those files and manage semantic diagnostics cache as well
+     */
+    function createEmitAndSemanticDiagnosticsBuilderProgram(newProgram: Program, host: BuilderProgramHost, oldProgram?: EmitAndSemanticDiagnosticsBuilderProgram): EmitAndSemanticDiagnosticsBuilderProgram;
+    function createEmitAndSemanticDiagnosticsBuilderProgram(rootNames: ReadonlyArray<string>, options: CompilerOptions, host?: CompilerHost, oldProgram?: EmitAndSemanticDiagnosticsBuilderProgram): EmitAndSemanticDiagnosticsBuilderProgram;
+    /**
+     * Creates a builder thats just abstraction over program and can be used with watch
+     */
+    function createAbstractBuilder(newProgram: Program, host: BuilderProgramHost, oldProgram?: BuilderProgram): BuilderProgram;
+    function createAbstractBuilder(rootNames: ReadonlyArray<string>, options: CompilerOptions, host?: CompilerHost, oldProgram?: BuilderProgram): BuilderProgram;
 }
 declare namespace ts {
     const compileOnSaveCommandLineOption: CommandLineOption;
@@ -7761,6 +7967,32 @@ declare namespace ts {
     function convertCompilerOptionsForTelemetry(opts: ts.CompilerOptions): ts.CompilerOptions;
 }
 declare namespace ts {
+    /**
+     * Partial interface of the System thats needed to support the caching of directory structure
+     */
+    interface DirectoryStructureHost {
+        fileExists(path: string): boolean;
+        readFile(path: string, encoding?: string): string | undefined;
+        directoryExists?(path: string): boolean;
+        getDirectories?(path: string): string[];
+        readDirectory?(path: string, extensions?: ReadonlyArray<string>, exclude?: ReadonlyArray<string>, include?: ReadonlyArray<string>, depth?: number): string[];
+        createDirectory?(path: string): void;
+        writeFile?(path: string, data: string, writeByteOrderMark?: boolean): void;
+    }
+    interface FileAndDirectoryExistence {
+        fileExists: boolean;
+        directoryExists: boolean;
+    }
+    interface CachedDirectoryStructureHost extends DirectoryStructureHost {
+        useCaseSensitiveFileNames: boolean;
+        getDirectories(path: string): string[];
+        readDirectory(path: string, extensions?: ReadonlyArray<string>, exclude?: ReadonlyArray<string>, include?: ReadonlyArray<string>, depth?: number): string[];
+        /** Returns the queried result for the file exists and directory exists if at all it was done */
+        addOrDeleteFileOrDirectory(fileOrDirectory: string, fileOrDirectoryPath: Path): FileAndDirectoryExistence | undefined;
+        addOrDeleteFile(fileName: string, filePath: Path, eventKind: FileWatcherEventKind): void;
+        clearCache(): void;
+    }
+    function createCachedDirectoryStructureHost(host: DirectoryStructureHost, currentDirectory: string, useCaseSensitiveFileNames: boolean): CachedDirectoryStructureHost | undefined;
     enum ConfigFileProgramReloadLevel {
         None = 0,
         /** Update the file name list from the disk */
@@ -7784,16 +8016,22 @@ declare namespace ts {
      */
     function updateWatchingWildcardDirectories(existingWatchedForWildcards: Map<WildcardDirectoryWatcher>, wildcardDirectories: Map<WatchDirectoryFlags>, watchDirectory: (directory: string, flags: WatchDirectoryFlags) => FileWatcher): void;
     function isEmittedFileOfProgram(program: Program | undefined, file: string): boolean;
-    function addFileWatcher(host: System, file: string, cb: FileWatcherCallback): FileWatcher;
-    function addFileWatcherWithLogging(host: System, file: string, cb: FileWatcherCallback, log: (s: string) => void): FileWatcher;
-    function addFileWatcherWithOnlyTriggerLogging(host: System, file: string, cb: FileWatcherCallback, log: (s: string) => void): FileWatcher;
+    interface WatchFileHost {
+        watchFile(path: string, callback: FileWatcherCallback, pollingInterval?: number): FileWatcher;
+    }
+    function addFileWatcher(host: WatchFileHost, file: string, cb: FileWatcherCallback): FileWatcher;
+    function addFileWatcherWithLogging(host: WatchFileHost, file: string, cb: FileWatcherCallback, log: (s: string) => void): FileWatcher;
+    function addFileWatcherWithOnlyTriggerLogging(host: WatchFileHost, file: string, cb: FileWatcherCallback, log: (s: string) => void): FileWatcher;
     type FilePathWatcherCallback = (fileName: string, eventKind: FileWatcherEventKind, filePath: Path) => void;
-    function addFilePathWatcher(host: System, file: string, cb: FilePathWatcherCallback, path: Path): FileWatcher;
-    function addFilePathWatcherWithLogging(host: System, file: string, cb: FilePathWatcherCallback, path: Path, log: (s: string) => void): FileWatcher;
-    function addFilePathWatcherWithOnlyTriggerLogging(host: System, file: string, cb: FilePathWatcherCallback, path: Path, log: (s: string) => void): FileWatcher;
-    function addDirectoryWatcher(host: System, directory: string, cb: DirectoryWatcherCallback, flags: WatchDirectoryFlags): FileWatcher;
-    function addDirectoryWatcherWithLogging(host: System, directory: string, cb: DirectoryWatcherCallback, flags: WatchDirectoryFlags, log: (s: string) => void): FileWatcher;
-    function addDirectoryWatcherWithOnlyTriggerLogging(host: System, directory: string, cb: DirectoryWatcherCallback, flags: WatchDirectoryFlags, log: (s: string) => void): FileWatcher;
+    function addFilePathWatcher(host: WatchFileHost, file: string, cb: FilePathWatcherCallback, path: Path): FileWatcher;
+    function addFilePathWatcherWithLogging(host: WatchFileHost, file: string, cb: FilePathWatcherCallback, path: Path, log: (s: string) => void): FileWatcher;
+    function addFilePathWatcherWithOnlyTriggerLogging(host: WatchFileHost, file: string, cb: FilePathWatcherCallback, path: Path, log: (s: string) => void): FileWatcher;
+    interface WatchDirectoryHost {
+        watchDirectory(path: string, callback: DirectoryWatcherCallback, recursive?: boolean): FileWatcher;
+    }
+    function addDirectoryWatcher(host: WatchDirectoryHost, directory: string, cb: DirectoryWatcherCallback, flags: WatchDirectoryFlags): FileWatcher;
+    function addDirectoryWatcherWithLogging(host: WatchDirectoryHost, directory: string, cb: DirectoryWatcherCallback, flags: WatchDirectoryFlags, log: (s: string) => void): FileWatcher;
+    function addDirectoryWatcherWithOnlyTriggerLogging(host: WatchDirectoryHost, directory: string, cb: DirectoryWatcherCallback, flags: WatchDirectoryFlags, log: (s: string) => void): FileWatcher;
     function closeFileWatcher(watcher: FileWatcher): void;
     function closeFileWatcherOf<T extends {
         watcher: FileWatcher;
@@ -7804,11 +8042,11 @@ declare namespace ts {
     interface ResolutionCache {
         startRecordingFilesWithChangedResolutions(): void;
         finishRecordingFilesWithChangedResolutions(): Path[];
-        resolveModuleNames(moduleNames: string[], containingFile: string, reusedNames: string[] | undefined, logChanges: boolean): ResolvedModuleFull[];
+        resolveModuleNames(moduleNames: string[], containingFile: string, reusedNames: string[] | undefined): ResolvedModuleFull[];
         resolveTypeReferenceDirectives(typeDirectiveNames: string[], containingFile: string): ResolvedTypeReferenceDirective[];
         invalidateResolutionOfFile(filePath: Path): void;
         removeResolutionsOfFile(filePath: Path): void;
-        createHasInvalidatedResolution(): HasInvalidatedResolution;
+        createHasInvalidatedResolution(forceAllFilesAsInvalidated?: boolean): HasInvalidatedResolution;
         startCachingPerDirectoryResolution(): void;
         finishCachingPerDirectoryResolution(): void;
         updateTypeRootsWatch(): void;
@@ -7822,7 +8060,7 @@ declare namespace ts {
         onInvalidatedResolution(): void;
         watchTypeRootsDirectory(directory: string, cb: DirectoryWatcherCallback, flags: WatchDirectoryFlags): FileWatcher;
         onChangedAutomaticTypeDirectiveNames(): void;
-        getCachedDirectoryStructureHost?(): CachedDirectoryStructureHost;
+        getCachedDirectoryStructureHost(): CachedDirectoryStructureHost | undefined;
         projectName?: string;
         getGlobalCache?(): string | undefined;
         writeLog(s: string): void;
@@ -7830,32 +8068,193 @@ declare namespace ts {
         getCurrentProgram(): Program;
     }
     const maxNumberOfFilesToIterateForInvalidation = 256;
-    function createResolutionCache(resolutionHost: ResolutionCacheHost, rootDirForResolution: string): ResolutionCache;
+    function createResolutionCache(resolutionHost: ResolutionCacheHost, rootDirForResolution: string, logChangesWhenResolvingModule: boolean): ResolutionCache;
+}
+declare namespace ts {
+    /**
+     * Create a function that reports error by writing to the system and handles the formating of the diagnostic
+     */
+    function createDiagnosticReporter(system: System, pretty?: boolean): DiagnosticReporter;
+    /**
+     * Create a function that reports watch status by writing to the system and handles the formating of the diagnostic
+     */
+    function createWatchStatusReporter(system: System, pretty?: boolean): WatchStatusReporter;
+    /**
+     * Interface extending ParseConfigHost to support ParseConfigFile that reads config file and reports errors
+     */
+    interface ParseConfigFileHost extends ParseConfigHost, ConfigFileDiagnosticsReporter {
+        getCurrentDirectory(): string;
+    }
+    /** Parses config file using System interface */
+    function parseConfigFileWithSystem(configFileName: string, optionsToExtend: CompilerOptions, system: System, reportDiagnostic: DiagnosticReporter): ParsedCommandLine;
+    /**
+     * Reads the config file, reports errors if any and exits if the config file cannot be found
+     */
+    function parseConfigFile(configFileName: string, optionsToExtend: CompilerOptions, host: ParseConfigFileHost): ParsedCommandLine | undefined;
+    /**
+     * Program structure needed to emit the files and report diagnostics
+     */
+    interface ProgramToEmitFilesAndReportErrors {
+        getCurrentDirectory(): string;
+        getCompilerOptions(): CompilerOptions;
+        getSourceFiles(): ReadonlyArray<SourceFile>;
+        getSyntacticDiagnostics(): ReadonlyArray<Diagnostic>;
+        getOptionsDiagnostics(): ReadonlyArray<Diagnostic>;
+        getGlobalDiagnostics(): ReadonlyArray<Diagnostic>;
+        getSemanticDiagnostics(): ReadonlyArray<Diagnostic>;
+        emit(): EmitResult;
+    }
+    /**
+     * Helper that emit files, report diagnostics and lists emitted and/or source files depending on compiler options
+     */
+    function emitFilesAndReportErrors(program: ProgramToEmitFilesAndReportErrors, reportDiagnostic: DiagnosticReporter, writeFileName?: (s: string) => void): ExitStatus;
+    /**
+     * Creates the watch compiler host from system for config file in watch mode
+     */
+    function createWatchCompilerHostOfConfigFile<T extends BuilderProgram = EmitAndSemanticDiagnosticsBuilderProgram>(configFileName: string, optionsToExtend: CompilerOptions | undefined, system: System, createProgram?: CreateProgram<T>, reportDiagnostic?: DiagnosticReporter, reportWatchStatus?: WatchStatusReporter): WatchCompilerHostOfConfigFile<T>;
+    /**
+     * Creates the watch compiler host from system for compiling root files and options in watch mode
+     */
+    function createWatchCompilerHostOfFilesAndCompilerOptions<T extends BuilderProgram = EmitAndSemanticDiagnosticsBuilderProgram>(rootFiles: string[], options: CompilerOptions, system: System, createProgram?: CreateProgram<T>, reportDiagnostic?: DiagnosticReporter, reportWatchStatus?: WatchStatusReporter): WatchCompilerHostOfFilesAndCompilerOptions<T>;
 }
 declare namespace ts {
     type DiagnosticReporter = (diagnostic: Diagnostic) => void;
-    type ParseConfigFile = (configFileName: string, optionsToExtend: CompilerOptions, system: DirectoryStructureHost, reportDiagnostic: DiagnosticReporter, reportWatchDiagnostic: DiagnosticReporter) => ParsedCommandLine;
-    interface WatchingSystemHost {
-        system: System;
-        parseConfigFile: ParseConfigFile;
-        reportDiagnostic: DiagnosticReporter;
-        reportWatchDiagnostic: DiagnosticReporter;
-        beforeCompile(compilerOptions: CompilerOptions): void;
-        afterCompile(host: DirectoryStructureHost, program: Program, builder: Builder): void;
+    type WatchStatusReporter = (diagnostic: Diagnostic, newLine: string) => void;
+    type CreateProgram<T extends BuilderProgram> = (rootNames: ReadonlyArray<string>, options: CompilerOptions, host?: CompilerHost, oldProgram?: T) => T;
+    interface WatchCompilerHost<T extends BuilderProgram> {
+        /**
+         * Used to create the program when need for program creation or recreation detected
+         */
+        createProgram: CreateProgram<T>;
+        /** If provided, callback to invoke after every new program creation */
+        afterProgramCreate?(program: T): void;
+        /** If provided, called with Diagnostic message that informs about change in watch status */
+        onWatchStatusChange?(diagnostic: Diagnostic, newLine: string): void;
         maxNumberOfFilesToIterateForInvalidation?: number;
+        useCaseSensitiveFileNames(): boolean;
+        getNewLine(): string;
+        getCurrentDirectory(): string;
+        getDefaultLibFileName(options: CompilerOptions): string;
+        getDefaultLibLocation?(): string;
+        createHash?(data: string): string;
+        /**
+         * Use to check file presence for source files and
+         * if resolveModuleNames is not provided (complier is in charge of module resolution) then module files as well
+         */
+        fileExists(path: string): boolean;
+        /**
+         * Use to read file text for source files and
+         * if resolveModuleNames is not provided (complier is in charge of module resolution) then module files as well
+         */
+        readFile(path: string, encoding?: string): string | undefined;
+        /** If provided, used for module resolution as well as to handle directory structure */
+        directoryExists?(path: string): boolean;
+        /** If provided, used in resolutions as well as handling directory structure */
+        getDirectories?(path: string): string[];
+        /** If provided, used to cache and handle directory structure modifications */
+        readDirectory?(path: string, extensions?: ReadonlyArray<string>, exclude?: ReadonlyArray<string>, include?: ReadonlyArray<string>, depth?: number): string[];
+        /** Symbol links resolution */
+        realpath?(path: string): string;
+        /** If provided would be used to write log about compilation */
+        trace?(s: string): void;
+        /** If provided is used to get the environment variable */
+        getEnvironmentVariable?(name: string): string;
+        /** If provided, used to resolve the module names, otherwise typescript's default module resolution */
+        resolveModuleNames?(moduleNames: string[], containingFile: string, reusedNames?: string[]): ResolvedModule[];
+        /** If provided, used to resolve type reference directives, otherwise typescript's default resolution */
+        resolveTypeReferenceDirectives?(typeReferenceDirectiveNames: string[], containingFile: string): (ResolvedTypeReferenceDirective | undefined)[];
+        /** Used to watch changes in source files, missing files needed to update the program or config file */
+        watchFile(path: string, callback: FileWatcherCallback, pollingInterval?: number): FileWatcher;
+        /** Used to watch resolved module's failed lookup locations, config file specs, type roots where auto type reference directives are added */
+        watchDirectory(path: string, callback: DirectoryWatcherCallback, recursive?: boolean): FileWatcher;
+        /** If provided, will be used to set delayed compilation, so that multiple changes in short span are compiled together */
+        setTimeout?(callback: (...args: any[]) => void, ms: number, ...args: any[]): any;
+        /** If provided, will be used to reset existing delayed compilation */
+        clearTimeout?(timeoutId: any): void;
     }
-    function createDiagnosticReporter(system?: System, worker?: typeof reportDiagnosticSimply, formatDiagnosticsHost?: FormatDiagnosticsHost): DiagnosticReporter;
-    function createWatchDiagnosticReporter(system?: System): DiagnosticReporter;
-    /** @internal */
-    function createWatchDiagnosticReporterWithColor(system?: System): DiagnosticReporter;
-    function reportDiagnostics(diagnostics: Diagnostic[], reportDiagnostic: DiagnosticReporter): void;
-    function reportDiagnosticSimply(diagnostic: Diagnostic, host: FormatDiagnosticsHost, system: System): void;
-    function reportDiagnosticWithColorAndContext(diagnostic: Diagnostic, host: FormatDiagnosticsHost, system: System): void;
-    function parseConfigFile(configFileName: string, optionsToExtend: CompilerOptions, system: DirectoryStructureHost, reportDiagnostic: DiagnosticReporter, reportWatchDiagnostic: DiagnosticReporter): ParsedCommandLine;
-    function handleEmitOutputAndReportErrors(system: DirectoryStructureHost, program: Program, emittedFiles: string[], emitSkipped: boolean, diagnostics: Diagnostic[], reportDiagnostic: DiagnosticReporter): ExitStatus;
-    function createWatchingSystemHost(pretty?: DiagnosticStyle, system?: System, parseConfigFile?: ParseConfigFile, reportDiagnostic?: DiagnosticReporter, reportWatchDiagnostic?: DiagnosticReporter): WatchingSystemHost;
-    function createWatchModeWithConfigFile(configParseResult: ParsedCommandLine, optionsToExtend?: CompilerOptions, watchingHost?: WatchingSystemHost): () => Program;
-    function createWatchModeWithoutConfigFile(rootFileNames: string[], compilerOptions: CompilerOptions, watchingHost?: WatchingSystemHost): () => Program;
+    /** Internal interface used to wire emit through same host */
+    interface WatchCompilerHost<T extends BuilderProgram> {
+        createDirectory?(path: string): void;
+        writeFile?(path: string, data: string, writeByteOrderMark?: boolean): void;
+        onCachedDirectoryStructureHostCreate?(host: CachedDirectoryStructureHost): void;
+    }
+    /**
+     * Host to create watch with root files and options
+     */
+    interface WatchCompilerHostOfFilesAndCompilerOptions<T extends BuilderProgram> extends WatchCompilerHost<T> {
+        /** root files to use to generate program */
+        rootFiles: string[];
+        /** Compiler options */
+        options: CompilerOptions;
+    }
+    /**
+     * Reports config file diagnostics
+     */
+    interface ConfigFileDiagnosticsReporter {
+        /**
+         * Reports the diagnostics in reading/writing or parsing of the config file
+         */
+        onConfigFileDiagnostic: DiagnosticReporter;
+        /**
+         * Reports unrecoverable error when parsing config file
+         */
+        onUnRecoverableConfigFileDiagnostic: DiagnosticReporter;
+    }
+    /**
+     * Host to create watch with config file
+     */
+    interface WatchCompilerHostOfConfigFile<T extends BuilderProgram> extends WatchCompilerHost<T>, ConfigFileDiagnosticsReporter {
+        /** Name of the config file to compile */
+        configFileName: string;
+        /** Options to extend */
+        optionsToExtend?: CompilerOptions;
+        /**
+         * Used to generate source file names from the config file and its include, exclude, files rules
+         * and also to cache the directory stucture
+         */
+        readDirectory(path: string, extensions?: ReadonlyArray<string>, exclude?: ReadonlyArray<string>, include?: ReadonlyArray<string>, depth?: number): string[];
+    }
+    /**
+     * Host to create watch with config file that is already parsed (from tsc)
+     */
+    interface WatchCompilerHostOfConfigFile<T extends BuilderProgram> extends WatchCompilerHost<T> {
+        rootFiles?: string[];
+        options?: CompilerOptions;
+        optionsToExtend?: CompilerOptions;
+        configFileSpecs?: ConfigFileSpecs;
+        configFileWildCardDirectories?: MapLike<WatchDirectoryFlags>;
+    }
+    interface Watch<T> {
+        /** Synchronize with host and get updated program */
+        getProgram(): T;
+        /** Gets the existing program without synchronizing with changes on host */
+        getCurrentProgram(): T;
+    }
+    /**
+     * Creates the watch what generates program using the config file
+     */
+    interface WatchOfConfigFile<T> extends Watch<T> {
+    }
+    /**
+     * Creates the watch that generates program using the root files and compiler options
+     */
+    interface WatchOfFilesAndCompilerOptions<T> extends Watch<T> {
+        /** Updates the root files in the program, only if this is not config file compilation */
+        updateRootFileNames(fileNames: string[]): void;
+    }
+    /**
+     * Create the watch compiler host for either configFile or fileNames and its options
+     */
+    function createWatchCompilerHost<T extends BuilderProgram>(rootFiles: string[], options: CompilerOptions, system: System, createProgram?: CreateProgram<T>, reportDiagnostic?: DiagnosticReporter, reportWatchStatus?: WatchStatusReporter): WatchCompilerHostOfFilesAndCompilerOptions<T>;
+    function createWatchCompilerHost<T extends BuilderProgram>(configFileName: string, optionsToExtend: CompilerOptions | undefined, system: System, createProgram?: CreateProgram<T>, reportDiagnostic?: DiagnosticReporter, reportWatchStatus?: WatchStatusReporter): WatchCompilerHostOfConfigFile<T>;
+    /**
+     * Creates the watch from the host for root files and compiler options
+     */
+    function createWatchProgram<T extends BuilderProgram>(host: WatchCompilerHostOfFilesAndCompilerOptions<T>): WatchOfFilesAndCompilerOptions<T>;
+    /**
+     * Creates the watch from the host for config file
+     */
+    function createWatchProgram<T extends BuilderProgram>(host: WatchCompilerHostOfConfigFile<T>): WatchOfConfigFile<T>;
 }
 declare namespace ts {
     function executeCommandLine(args: string[]): void;
