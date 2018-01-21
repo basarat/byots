@@ -95,7 +95,16 @@ const fixesForFiles: IFixForFile[] = [
         new: 'export interface SymbolDisplayPartsDocumentationAndSymbolKind'
       },
     ]
-  }
+  },
+  {
+    filePath:'../TypeScript/src/compiler/watchUtilities.ts',
+    fixes: [
+      {
+        orig: 'interface FileAndDirectoryExistence',
+        new: 'export interface FileAndDirectoryExistence'
+      },
+    ]
+  },  
 ];
 
 /**
