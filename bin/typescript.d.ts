@@ -2829,6 +2829,7 @@ declare namespace ts {
         /** configFile is set as non enumerable property so as to avoid checking of json source files */
         readonly configFile?: JsonSourceFile;
         declaration?: boolean;
+        emitDeclarationsOnly?: boolean;
         declarationDir?: string;
         diagnostics?: boolean;
         extendedDiagnostics?: boolean;
@@ -3780,6 +3781,7 @@ declare namespace ts {
 }
 declare namespace ts {
     function isExternalModuleNameRelative(moduleName: string): boolean;
+    function sortAndDeduplicateDiagnostics(diagnostics: ReadonlyArray<Diagnostic>): Diagnostic[];
 }
 declare namespace ts {
     const emptyArray: never[];
@@ -3830,6 +3832,7 @@ declare namespace ts {
      */
     function findMap<T, U>(array: ReadonlyArray<T>, callback: (element: T, index: number) => U | undefined): U;
     function contains<T>(array: ReadonlyArray<T>, value: T, equalityComparer?: EqualityComparer<T>): boolean;
+    function arraysEqual<T>(a: ReadonlyArray<T>, b: ReadonlyArray<T>, equalityComparer?: EqualityComparer<T>): boolean;
     function indexOfAnyCharCode(text: string, charCodes: ReadonlyArray<number>, start?: number): number;
     function countWhere<T>(array: ReadonlyArray<T>, predicate: (x: T, i: number) => boolean): number;
     /**
@@ -4187,7 +4190,6 @@ declare namespace ts {
     function compareStringsCaseSensitiveUI(a: string, b: string): Comparison;
     function compareProperties<T, K extends keyof T>(a: T, b: T, key: K, comparer: Comparer<T[K]>): Comparison;
     function compareDiagnostics(d1: Diagnostic, d2: Diagnostic): Comparison;
-    function sortAndDeduplicateDiagnostics(diagnostics: ReadonlyArray<Diagnostic>): Diagnostic[];
     function normalizeSlashes(path: string): string;
     /**
      * Returns length of path root (i.e. length of "/", "x:/", "//server/share/, file:///user/files")
@@ -6075,6 +6077,7 @@ declare namespace ts {
         Allow_default_imports_from_modules_with_no_default_export_This_does_not_affect_code_emit_just_typechecking: DiagnosticMessage;
         Skip_type_checking_of_declaration_files: DiagnosticMessage;
         Do_not_resolve_the_real_path_of_symlinks: DiagnosticMessage;
+        Only_emit_d_ts_declaration_files: DiagnosticMessage;
         Specify_ECMAScript_target_version_Colon_ES3_default_ES5_ES2015_ES2016_ES2017_ES2018_or_ESNEXT: DiagnosticMessage;
         Specify_module_code_generation_Colon_none_commonjs_amd_system_umd_es2015_or_ESNext: DiagnosticMessage;
         Print_this_message: DiagnosticMessage;
@@ -8091,7 +8094,7 @@ declare namespace ts {
     /**
      * Reads the config file, reports errors if any and exits if the config file cannot be found
      */
-    function parseConfigFile(configFileName: string, optionsToExtend: CompilerOptions, host: ParseConfigFileHost): ParsedCommandLine | undefined;
+    function getParsedCommandLineOfConfigFile(configFileName: string, optionsToExtend: CompilerOptions, host: ParseConfigFileHost): ParsedCommandLine | undefined;
     /**
      * Program structure needed to emit the files and report diagnostics
      */
