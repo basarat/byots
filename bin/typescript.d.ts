@@ -2007,7 +2007,7 @@ declare namespace ts {
         getSymbolWalker(accept?: (symbol: Symbol) => boolean): SymbolWalker;
         getDiagnostics(sourceFile?: SourceFile, cancellationToken?: CancellationToken): Diagnostic[];
         getGlobalDiagnostics(): Diagnostic[];
-        getEmitResolver(sourceFile?: SourceFile, cancellationToken?: CancellationToken, ignoreDiagnostics?: boolean): EmitResolver;
+        getEmitResolver(sourceFile?: SourceFile, cancellationToken?: CancellationToken): EmitResolver;
         getNodeCount(): number;
         getIdentifierCount(): number;
         getSymbolCount(): number;
