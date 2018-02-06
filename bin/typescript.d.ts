@@ -1056,7 +1056,7 @@ declare namespace ts {
         kind: SyntaxKind.ObjectLiteralExpression;
         multiLine?: boolean;
     }
-    type EntityNameExpression = Identifier | PropertyAccessEntityNameExpression | ParenthesizedExpression;
+    type EntityNameExpression = Identifier | PropertyAccessEntityNameExpression;
     type EntityNameOrEntityNameExpression = EntityName | EntityNameExpression;
     interface PropertyAccessExpression extends MemberExpression, NamedDeclaration {
         kind: SyntaxKind.PropertyAccessExpression;
@@ -1355,6 +1355,7 @@ declare namespace ts {
     }
     interface ClassDeclaration extends ClassLikeDeclarationBase, DeclarationStatement {
         kind: SyntaxKind.ClassDeclaration;
+        /** May be undefined in `export default class { ... }`. */
         name?: Identifier;
     }
     interface ClassExpression extends ClassLikeDeclarationBase, PrimaryExpression {
@@ -1915,19 +1916,21 @@ declare namespace ts {
         /** Note that the resulting nodes cannot be checked. */
         typeToTypeNode(type: Type, enclosingDeclaration?: Node, flags?: NodeBuilderFlags): TypeNode;
         /** Note that the resulting nodes cannot be checked. */
-        signatureToSignatureDeclaration(signature: Signature, kind: SyntaxKind, enclosingDeclaration?: Node, flags?: NodeBuilderFlags): SignatureDeclaration;
+        signatureToSignatureDeclaration(signature: Signature, kind: SyntaxKind, enclosingDeclaration?: Node, flags?: NodeBuilderFlags): SignatureDeclaration & {
+            typeArguments?: NodeArray<TypeNode>;
+        } | undefined;
         /** Note that the resulting nodes cannot be checked. */
-        indexInfoToIndexSignatureDeclaration(indexInfo: IndexInfo, kind: IndexKind, enclosingDeclaration?: Node, flags?: NodeBuilderFlags): IndexSignatureDeclaration;
+        indexInfoToIndexSignatureDeclaration(indexInfo: IndexInfo, kind: IndexKind, enclosingDeclaration?: Node, flags?: NodeBuilderFlags): IndexSignatureDeclaration | undefined;
         /** Note that the resulting nodes cannot be checked. */
-        symbolToEntityName(symbol: Symbol, meaning: SymbolFlags, enclosingDeclaration?: Node, flags?: NodeBuilderFlags): EntityName;
+        symbolToEntityName(symbol: Symbol, meaning: SymbolFlags, enclosingDeclaration?: Node, flags?: NodeBuilderFlags): EntityName | undefined;
         /** Note that the resulting nodes cannot be checked. */
-        symbolToExpression(symbol: Symbol, meaning: SymbolFlags, enclosingDeclaration?: Node, flags?: NodeBuilderFlags): Expression;
+        symbolToExpression(symbol: Symbol, meaning: SymbolFlags, enclosingDeclaration?: Node, flags?: NodeBuilderFlags): Expression | undefined;
         /** Note that the resulting nodes cannot be checked. */
         symbolToTypeParameterDeclarations(symbol: Symbol, enclosingDeclaration?: Node, flags?: NodeBuilderFlags): NodeArray<TypeParameterDeclaration> | undefined;
         /** Note that the resulting nodes cannot be checked. */
-        symbolToParameterDeclaration(symbol: Symbol, enclosingDeclaration?: Node, flags?: NodeBuilderFlags): ParameterDeclaration;
+        symbolToParameterDeclaration(symbol: Symbol, enclosingDeclaration?: Node, flags?: NodeBuilderFlags): ParameterDeclaration | undefined;
         /** Note that the resulting nodes cannot be checked. */
-        typeParameterToDeclaration(parameter: TypeParameter, enclosingDeclaration?: Node, flags?: NodeBuilderFlags): TypeParameterDeclaration;
+        typeParameterToDeclaration(parameter: TypeParameter, enclosingDeclaration?: Node, flags?: NodeBuilderFlags): TypeParameterDeclaration | undefined;
         getSymbolsInScope(location: Node, meaning: SymbolFlags): Symbol[];
         getSymbolAtLocation(node: Node): Symbol | undefined;
         getSymbolsOfParameterPropertyDeclaration(parameter: ParameterDeclaration, parameterName: string): Symbol[];
@@ -2329,6 +2332,7 @@ declare namespace ts {
         type?: Type;
         declaredType?: Type;
         typeParameters?: TypeParameter[];
+        outerTypeParameters?: TypeParameter[];
         inferredClassType?: Type;
         instantiations?: Map<Type>;
         mapper?: TypeMapper;
@@ -2542,7 +2546,7 @@ declare namespace ts {
         pattern?: DestructuringPattern;
         aliasSymbol?: Symbol;
         aliasTypeArguments?: Type[];
-        resolvedAnyInstantiation?: Type;
+        wildcardInstantiation?: Type;
     }
     interface IntrinsicType extends Type {
         intrinsicName: string;
@@ -2766,6 +2770,7 @@ declare namespace ts {
         isFixed: boolean;
     }
     enum InferenceFlags {
+        None = 0,
         InferUnionTypes = 1,
         NoDefault = 2,
         AnyDefault = 4,
@@ -2865,7 +2870,7 @@ declare namespace ts {
         /** configFile is set as non enumerable property so as to avoid checking of json source files */
         readonly configFile?: JsonSourceFile;
         declaration?: boolean;
-        emitDeclarationsOnly?: boolean;
+        emitDeclarationOnly?: boolean;
         declarationDir?: string;
         diagnostics?: boolean;
         extendedDiagnostics?: boolean;
@@ -4887,7 +4892,7 @@ declare namespace ts {
     function isDestructuringAssignment(node: Node): node is DestructuringAssignment;
     function isExpressionWithTypeArgumentsInClassExtendsClause(node: Node): boolean;
     function isExpressionWithTypeArgumentsInClassImplementsClause(node: Node): node is ExpressionWithTypeArguments;
-    function isEntityNameExpression(node: Expression): node is EntityNameExpression;
+    function isEntityNameExpression(node: Node): node is EntityNameExpression;
     function isRightSideOfQualifiedNameOrPropertyAccess(node: Node): boolean;
     function isEmptyObjectLiteral(expression: Node): boolean;
     function isEmptyArrayLiteral(expression: Node): boolean;
