@@ -2084,6 +2084,7 @@ declare namespace ts {
         InObjectTypeLiteral = 4194304,
         InTypeAlias = 8388608,
         InInitialEntityName = 16777216,
+        InReverseMappedType = 33554432,
     }
     enum TypeFormatFlags {
         None = 0,
@@ -2330,6 +2331,7 @@ declare namespace ts {
         immediateTarget?: Symbol;
         target?: Symbol;
         type?: Type;
+        uniqueESSymbolType?: Type;
         declaredType?: Type;
         typeParameters?: TypeParameter[];
         outerTypeParameters?: TypeParameter[];
@@ -3694,6 +3696,9 @@ declare namespace ts {
         span: TextSpan;
         newLength: number;
     }
+    interface SortedArray<T> extends Array<T> {
+        " __sortedArrayBrand": any;
+    }
     interface DiagnosticCollection {
         add(diagnostic: Diagnostic): void;
         getGlobalDiagnostics(): Diagnostic[];
@@ -3942,6 +3947,7 @@ declare namespace ts {
      * result will remain in the original order in `array`.
      */
     function deduplicate<T>(array: ReadonlyArray<T>, equalityComparer: EqualityComparer<T>, comparer?: Comparer<T>): T[];
+    function insertSorted<T>(array: SortedArray<T>, insert: T, compare: Comparer<T>): void;
     function sortAndDeduplicate<T>(array: ReadonlyArray<T>, comparer: Comparer<T>, equalityComparer?: EqualityComparer<T>): T[];
     function arrayIsEqualTo<T>(array1: ReadonlyArray<T>, array2: ReadonlyArray<T>, equalityComparer?: (a: T, b: T) => boolean): boolean;
     function changesAffectModuleResolution(oldOptions: CompilerOptions, newOptions: CompilerOptions): boolean;
@@ -4390,6 +4396,7 @@ declare namespace ts {
         function assertGreaterThanOrEqual(a: number, b: number): void;
         function fail(message?: string, stackCrawlMark?: AnyFunction): never;
         function assertDefined<T>(value: T | null | undefined, message?: string): T;
+        function assertEachDefined<T, A extends ReadonlyArray<T>>(value: A, message: string): A;
         function assertNever(member: never, message?: string, stackCrawlMark?: AnyFunction): never;
         function getFunctionName(func: AnyFunction): any;
     }
@@ -5002,6 +5009,7 @@ declare namespace ts {
     function getObjectFlags(type: Type): ObjectFlags;
     function typeHasCallOrConstructSignatures(type: Type, checker: TypeChecker): boolean;
     function forSomeAncestorDirectory(directory: string, callback: (directory: string) => boolean): boolean;
+    function isUMDExportSymbol(symbol: Symbol): boolean;
 }
 declare namespace ts {
     function getDefaultLibFileName(options: CompilerOptions): string;
@@ -9283,8 +9291,15 @@ declare namespace ts {
     function getEncodedSyntacticClassifications(cancellationToken: CancellationToken, sourceFile: SourceFile, span: TextSpan): Classifications;
 }
 declare namespace ts.Completions.PathCompletions {
-    function getStringLiteralCompletionsFromModuleNames(sourceFile: SourceFile, node: LiteralExpression, compilerOptions: CompilerOptions, host: LanguageServiceHost, typeChecker: TypeChecker): CompletionEntry[];
-    function getTripleSlashReferenceCompletion(sourceFile: SourceFile, position: number, compilerOptions: CompilerOptions, host: LanguageServiceHost): CompletionEntry[] | undefined;
+    interface NameAndKind {
+        readonly name: string;
+        readonly kind: ScriptElementKind.scriptElement | ScriptElementKind.directory | ScriptElementKind.externalModuleName;
+    }
+    interface PathCompletion extends NameAndKind {
+        readonly span: TextSpan;
+    }
+    function getStringLiteralCompletionsFromModuleNames(sourceFile: SourceFile, node: LiteralExpression, compilerOptions: CompilerOptions, host: LanguageServiceHost, typeChecker: TypeChecker): PathCompletion[];
+    function getTripleSlashReferenceCompletion(sourceFile: SourceFile, position: number, compilerOptions: CompilerOptions, host: LanguageServiceHost): PathCompletion[] | undefined;
 }
 declare namespace ts.Completions {
     type Log = (message: string) => void;
@@ -9297,7 +9312,7 @@ declare namespace ts.Completions {
     function getCompletionEntrySymbol(typeChecker: TypeChecker, log: (message: string) => void, compilerOptions: CompilerOptions, sourceFile: SourceFile, position: number, entryId: CompletionEntryIdentifier, allSourceFiles: ReadonlyArray<SourceFile>): Symbol | undefined;
 }
 declare namespace ts.DocumentHighlights {
-    function getDocumentHighlights(program: Program, cancellationToken: CancellationToken, sourceFile: SourceFile, position: number, sourceFilesToSearch: SourceFile[]): DocumentHighlights[] | undefined;
+    function getDocumentHighlights(program: Program, cancellationToken: CancellationToken, sourceFile: SourceFile, position: number, sourceFilesToSearch: ReadonlyArray<SourceFile>): DocumentHighlights[] | undefined;
 }
 declare namespace ts {
     /**
@@ -9488,7 +9503,7 @@ declare namespace ts.GoToDefinition {
     } | undefined;
     function getTypeDefinitionAtPosition(typeChecker: TypeChecker, sourceFile: SourceFile, position: number): DefinitionInfo[];
     function getDefinitionAndBoundSpan(program: Program, sourceFile: SourceFile, position: number): DefinitionInfoAndBoundSpan;
-    function findReferenceInPosition(refs: ReadonlyArray<FileReference>, pos: number): FileReference;
+    function findReferenceInPosition(refs: ReadonlyArray<FileReference>, pos: number): FileReference | undefined;
 }
 declare namespace ts.JsDoc {
     function getJsDocCommentsFromDeclarations(declarations?: Declaration[]): SymbolDisplayPart[];
@@ -10006,26 +10021,18 @@ declare namespace ts.codefix {
 declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
-    type ImportCodeActionKind = "CodeChange" | "InsertingIntoExistingImport" | "NewImport";
-    type ImportDeclarationMap = AnyImportSyntax[][];
-    interface ImportCodeAction extends CodeFixAction {
-        kind: ImportCodeActionKind;
-        moduleSpecifier?: string;
-    }
+    type ImportDeclarationMap = ExistingImportInfo[][];
     interface SymbolContext extends textChanges.TextChangesContext {
         sourceFile: SourceFile;
         symbolName: string;
     }
     interface ImportCodeFixContext extends SymbolContext {
-        symbolToken: Identifier | undefined;
+        symbolToken: Node;
         program: Program;
         checker: TypeChecker;
         compilerOptions: CompilerOptions;
         getCanonicalFileName: GetCanonicalFileName;
         cachedImportDeclarations?: ImportDeclarationMap;
-    }
-    interface ImportCodeFixOptions extends ImportCodeFixContext {
-        kind: ImportKind;
     }
     enum ImportKind {
         Named = 0,
@@ -10033,10 +10040,16 @@ declare namespace ts.codefix {
         Namespace = 2,
         Equals = 3,
     }
-    function getCodeActionForImport(moduleSymbols: Symbol | ReadonlyArray<Symbol>, context: ImportCodeFixOptions): ImportCodeAction[];
-    function getModuleSpecifiersForNewImport(program: Program, sourceFile: SourceFile, moduleSymbols: ReadonlyArray<Symbol>, options: CompilerOptions, getCanonicalFileName: (file: string) => string, host: LanguageServiceHost): string[];
+    /** Information needed to augment an existing import declaration. */
+    interface ExistingImportInfo {
+        readonly declaration: AnyImportSyntax;
+        readonly importKind: ImportKind;
+    }
+    function getImportCompletionAction(exportedSymbol: Symbol, moduleSymbol: Symbol, sourceFile: SourceFile, symbolName: string, host: LanguageServiceHost, program: ts.Program, checker: ts.TypeChecker, compilerOptions: ts.CompilerOptions, allSourceFiles: ReadonlyArray<ts.SourceFile>, formatContext: ts.formatting.FormatContext, getCanonicalFileName: GetCanonicalFileName, symbolToken: Node | undefined): {
+        readonly moduleSpecifier: string;
+        readonly codeAction: CodeAction;
+    };
     function forEachExternalModuleToImportFrom(checker: TypeChecker, from: SourceFile, allSourceFiles: ReadonlyArray<SourceFile>, cb: (module: Symbol) => void): void;
-    function forEachExternalModule(checker: TypeChecker, allSourceFiles: ReadonlyArray<SourceFile>, cb: (module: Symbol, sourceFile: SourceFile | undefined) => void): void;
     function moduleSymbolToValidIdentifier(moduleSymbol: Symbol, target: ScriptTarget): string;
     function moduleSpecifierToValidIdentifier(moduleSpecifier: string, target: ScriptTarget): string;
 }
