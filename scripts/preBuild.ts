@@ -77,6 +77,10 @@ const fixesForFiles: IFixForFile[] = [
         orig: 'type ImportDeclarationMap',
         new: 'export type ImportDeclarationMap'
       },
+      {
+        orig: 'interface ExistingImportInfo',
+        new: 'export interface ExistingImportInfo'
+      },
     ]
   },
   {
