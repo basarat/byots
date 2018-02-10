@@ -2956,15 +2956,6 @@ declare namespace ts {
         exclude?: string[];
         [option: string]: string[] | boolean | undefined;
     }
-    interface DiscoverTypingsInfo {
-        fileNames: string[];
-        projectRootPath: string;
-        safeListPath: string;
-        packageNameToTypingLocation: Map<string>;
-        typeAcquisition: TypeAcquisition;
-        compilerOptions: CompilerOptions;
-        unresolvedImports: ReadonlyArray<string>;
-    }
     enum ModuleKind {
         None = 0,
         CommonJS = 1,
@@ -4399,6 +4390,8 @@ declare namespace ts {
         function assertEachDefined<T, A extends ReadonlyArray<T>>(value: A, message: string): A;
         function assertNever(member: never, message?: string, stackCrawlMark?: AnyFunction): never;
         function getFunctionName(func: AnyFunction): any;
+        function showSymbol(symbol: Symbol): string;
+        function showSyntaxKind(node: Node): string;
     }
     /** Remove an item from an array, moving everything to its right one space left. */
     function orderedRemoveItem<T>(array: T[], item: T): boolean;
@@ -9539,6 +9532,25 @@ declare namespace ts.JsDoc {
      */
     function getDocCommentTemplateAtPosition(newLine: string, sourceFile: SourceFile, position: number): TextInsertion | undefined;
 }
+declare namespace ts {
+    class Semver {
+        readonly major: number;
+        readonly minor: number;
+        readonly patch: number;
+        /**
+         * If true, this is `major.minor.0-next.patch`.
+         * If false, this is `major.minor.patch`.
+         */
+        readonly isPrerelease: boolean;
+        static parse(semver: string): Semver;
+        static fromRaw({major, minor, patch, isPrerelease}: Semver): Semver;
+        private static tryParse(semver, isPrerelease);
+        private constructor();
+        readonly versionString: string;
+        equals(sem: Semver): boolean;
+        greaterThan(sem: Semver): boolean;
+    }
+}
 declare namespace ts.JsTyping {
     interface TypingResolutionHost {
         directoryExists(path: string): boolean;
@@ -9546,6 +9558,11 @@ declare namespace ts.JsTyping {
         readFile(path: string, encoding?: string): string | undefined;
         readDirectory(rootDir: string, extensions: ReadonlyArray<string>, excludes: ReadonlyArray<string>, includes: ReadonlyArray<string>, depth?: number): string[];
     }
+    interface CachedTyping {
+        typingLocation: string;
+        version: Semver;
+    }
+    function isTypingUpToDate(cachedTyping: JsTyping.CachedTyping, availableTypingVersions: MapLike<string>): boolean;
     const nodeCoreModuleList: ReadonlyArray<string>;
     /**
      * A map of loose file names to library names that we are confident require typings
@@ -9558,11 +9575,11 @@ declare namespace ts.JsTyping {
      * @param fileNames are the file names that belong to the same project
      * @param projectRootPath is the path to the project root directory
      * @param safeListPath is the path used to retrieve the safe list
-     * @param packageNameToTypingLocation is the map of package names to their cached typing locations
+     * @param packageNameToTypingLocation is the map of package names to their cached typing locations and installed versions
      * @param typeAcquisition is used to customize the typing acquisition process
      * @param compilerOptions are used as a source for typing inference
      */
-    function discoverTypings(host: TypingResolutionHost, log: ((message: string) => void) | undefined, fileNames: string[], projectRootPath: Path, safeList: SafeList, packageNameToTypingLocation: ReadonlyMap<string>, typeAcquisition: TypeAcquisition, unresolvedImports: ReadonlyArray<string>): {
+    function discoverTypings(host: TypingResolutionHost, log: ((message: string) => void) | undefined, fileNames: string[], projectRootPath: Path, safeList: SafeList, packageNameToTypingLocation: ReadonlyMap<CachedTyping>, typeAcquisition: TypeAcquisition, unresolvedImports: ReadonlyArray<string>, typesRegistry: ReadonlyMap<MapLike<string>>): {
         cachedTypingPaths: string[];
         newTypingNames: string[];
         filesToWatch: string[];
@@ -9836,9 +9853,11 @@ declare namespace ts.formatting {
 }
 declare namespace ts.textChanges {
     interface ConfigurableStart {
+        /** True to use getStart() (NB, not getFullStart()) without adjustment. */
         useNonAdjustedStartPosition?: boolean;
     }
     interface ConfigurableEnd {
+        /** True to use getEnd() without adjustment. */
         useNonAdjustedEndPosition?: boolean;
     }
     enum Position {
@@ -9858,6 +9877,7 @@ declare namespace ts.textChanges {
      * If pos\end should be interpreted literally 'useNonAdjustedStartPosition' or 'useNonAdjustedEndPosition' should be set to true
      */
     type ConfigurableStartEnd = ConfigurableStart & ConfigurableEnd;
+    const useNonAdjustedPositions: ConfigurableStartEnd;
     interface InsertNodeOptions {
         /**
          * Text to be inserted before the new node
@@ -9901,13 +9921,12 @@ declare namespace ts.textChanges {
         deleteNode(sourceFile: SourceFile, node: Node, options?: ConfigurableStartEnd): this;
         deleteNodeRange(sourceFile: SourceFile, startNode: Node, endNode: Node, options?: ConfigurableStartEnd): this;
         deleteNodeInList(sourceFile: SourceFile, node: Node): this;
-        replaceRange(sourceFile: SourceFile, range: TextRange, newNode: Node, options?: InsertNodeOptions): this;
+        replaceRange(sourceFile: SourceFile, range: TextRange, newNode: Node, options?: ChangeNodeOptions): this;
         replaceNode(sourceFile: SourceFile, oldNode: Node, newNode: Node, options?: ChangeNodeOptions): this;
         replaceNodeRange(sourceFile: SourceFile, startNode: Node, endNode: Node, newNode: Node, options?: ChangeNodeOptions): this;
-        private replaceWithSingle(sourceFile, startPosition, endPosition, newNode, options);
-        private replaceWithMultiple(sourceFile, startPosition, endPosition, newNodes, options);
-        replaceNodeWithNodes(sourceFile: SourceFile, oldNode: Node, newNodes: ReadonlyArray<Node>): void;
-        replaceNodesWithNodes(sourceFile: SourceFile, oldNodes: ReadonlyArray<Node>, newNodes: ReadonlyArray<Node>): void;
+        replaceRangeWithNodes(sourceFile: SourceFile, range: TextRange, newNodes: ReadonlyArray<Node>, options?: ChangeNodeOptions): this;
+        replaceNodeWithNodes(sourceFile: SourceFile, oldNode: Node, newNodes: ReadonlyArray<Node>, options?: ChangeNodeOptions): this;
+        replaceNodeRangeWithNodes(sourceFile: SourceFile, startNode: Node, endNode: Node, newNodes: ReadonlyArray<Node>, options?: ChangeNodeOptions): this;
         private insertNodeAt(sourceFile, pos, newNode, options?);
         insertNodeAtTopOfFile(sourceFile: SourceFile, newNode: Statement, blankLineBetween: boolean): void;
         insertNodeBefore(sourceFile: SourceFile, before: Node, newNode: Node, blankLineBetween?: boolean): this;
