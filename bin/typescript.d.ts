@@ -697,10 +697,12 @@ declare namespace ts {
     }
     interface MethodSignature extends SignatureDeclarationBase, TypeElement {
         kind: SyntaxKind.MethodSignature;
+        parent?: ClassLikeDeclaration | InterfaceDeclaration | TypeLiteralNode;
         name: PropertyName;
     }
     interface MethodDeclaration extends FunctionLikeDeclarationBase, ClassElement, ObjectLiteralElement, JSDocContainer {
         kind: SyntaxKind.MethodDeclaration;
+        parent?: ClassLikeDeclaration | ObjectLiteralExpression;
         name: PropertyName;
         body?: FunctionBody;
     }
@@ -5312,6 +5314,7 @@ declare namespace ts {
     /**
      * True if node is of some token syntax kind.
      * For example, this is true for an IfKeyword but not for an IfStatement.
+     * Literals are considered tokens, except TemplateLiteral, but does include TemplateHead/Middle/Tail.
      */
     function isToken(n: Node): boolean;
     function isNodeArray<T extends Node>(array: ReadonlyArray<T>): array is NodeArray<T>;
@@ -5917,6 +5920,7 @@ declare namespace ts {
         Property_0_has_no_initializer_and_is_not_definitely_assigned_in_the_constructor: DiagnosticMessage;
         Property_0_is_used_before_being_assigned: DiagnosticMessage;
         A_rest_element_cannot_have_a_property_name: DiagnosticMessage;
+        Enum_declarations_can_only_merge_with_namespace_or_other_enum_declarations: DiagnosticMessage;
         JSX_element_attributes_type_0_may_not_be_a_union_type: DiagnosticMessage;
         The_return_type_of_a_JSX_element_constructor_must_return_an_object_type: DiagnosticMessage;
         JSX_element_implicitly_has_type_any_because_the_global_type_JSX_Element_does_not_exist: DiagnosticMessage;
@@ -9194,7 +9198,6 @@ declare namespace ts {
      * returns true if the position is in between the open and close elements of an JSX expression.
      */
     function isInsideJsxElementOrAttribute(sourceFile: SourceFile, position: number): boolean;
-    function isWhiteSpaceOnlyJsxText(node: Node): node is JsxText;
     function isInTemplateString(sourceFile: SourceFile, position: number): boolean;
     /**
      * Returns true if the cursor at position in sourceFile is within a comment.
@@ -9931,7 +9934,6 @@ declare namespace ts.textChanges {
         insertNodeAtTopOfFile(sourceFile: SourceFile, newNode: Statement, blankLineBetween: boolean): void;
         insertNodeBefore(sourceFile: SourceFile, before: Node, newNode: Node, blankLineBetween?: boolean): this;
         insertModifierBefore(sourceFile: SourceFile, modifier: SyntaxKind, before: Node): void;
-        changeIdentifierToPropertyAccess(sourceFile: SourceFile, prefix: string, node: Identifier): void;
         private getOptionsForInsertNodeBefore(before, doubleNewlines);
         insertNodeAtConstructorStart(sourceFile: SourceFile, ctr: ConstructorDeclaration, newStatement: Statement): void;
         insertNodeAtConstructorEnd(sourceFile: SourceFile, ctr: ConstructorDeclaration, newStatement: Statement): void;
