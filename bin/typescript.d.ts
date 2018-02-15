@@ -5425,6 +5425,7 @@ declare namespace ts {
     function hasOnlyExpressionInitializer(node: Node): node is HasExpressionInitializer;
     function isObjectLiteralElement(node: Node): node is ObjectLiteralElement;
     function isTypeReferenceType(node: Node): node is TypeReferenceType;
+    function isStringLiteralLike(node: Node): node is StringLiteralLike;
 }
 declare namespace ts {
     const Diagnostics: {
