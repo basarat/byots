@@ -4122,6 +4122,7 @@ declare namespace ts {
         remove(key: string, value: T): void;
     }
     function createMultiMap<T>(): MultiMap<T>;
+    function group<T>(values: ReadonlyArray<T>, getGroupId: (value: T) => string): ReadonlyArray<ReadonlyArray<T>>;
     /**
      * Tests whether a value is an array.
      */
@@ -9915,16 +9916,16 @@ declare namespace ts.textChanges {
         formatContext: ts.formatting.FormatContext;
     }
     class ChangeTracker {
-        private readonly newLine;
+        private readonly newLineCharacter;
         private readonly formatContext;
         private readonly validator;
         private readonly changes;
-        private readonly newLineCharacter;
         private readonly deletedNodesInLists;
         private readonly nodesInsertedAtClassStarts;
         static fromContext(context: TextChangesContext): ChangeTracker;
         static with(context: TextChangesContext, cb: (tracker: ChangeTracker) => void): FileTextChanges[];
-        constructor(newLine: NewLineKind, formatContext: ts.formatting.FormatContext, validator?: (text: NonFormattedText) => void);
+        /** Public for tests only. Other callers should use `ChangeTracker.with`. */
+        constructor(newLineCharacter: string, formatContext: ts.formatting.FormatContext, validator?: (text: NonFormattedText) => void);
         deleteRange(sourceFile: SourceFile, range: TextRange): this;
         deleteNode(sourceFile: SourceFile, node: Node, options?: ConfigurableStartEnd): this;
         deleteNodeRange(sourceFile: SourceFile, startNode: Node, endNode: Node, options?: ConfigurableStartEnd): this;
@@ -9955,7 +9956,6 @@ declare namespace ts.textChanges {
         insertNodeInListAfter(sourceFile: SourceFile, after: Node, newNode: Node): this;
         private finishInsertNodeAtClassStart();
         getChanges(): FileTextChanges[];
-        private computeSpan(change, _sourceFile);
         private computeNewText(change, sourceFile);
         private getFormattedTextOfNode(node, sourceFile, pos, options);
         private static normalize(changes);
