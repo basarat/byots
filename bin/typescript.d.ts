@@ -1969,6 +1969,8 @@ declare namespace ts {
         getAugmentedPropertiesOfType(type: Type): Symbol[];
         getRootSymbols(symbol: Symbol): Symbol[];
         getContextualType(node: Expression): Type | undefined;
+        getContextualTypeForArgumentAtIndex(call: CallLikeExpression, argIndex: number): Type;
+        getContextualTypeForJsxAttribute(attribute: JsxAttribute | JsxSpreadAttribute): Type | undefined;
         isContextSensitive(node: Expression | MethodDeclaration | ObjectLiteralElementLike | JsxAttributeLike): boolean;
         /**
          * returns unknownSignature in the case of an error.
@@ -2328,7 +2330,7 @@ declare namespace ts {
         parent?: Symbol;
         exportSymbol?: Symbol;
         constEnumOnlyModule?: boolean;
-        isReferenced?: boolean;
+        isReferenced?: SymbolFlags;
         isReplaceableByMethod?: boolean;
         isAssigned?: boolean;
     }
@@ -4234,6 +4236,8 @@ declare namespace ts {
     function compareStringsCaseSensitiveUI(a: string, b: string): Comparison;
     function compareProperties<T, K extends keyof T>(a: T, b: T, key: K, comparer: Comparer<T[K]>): Comparison;
     function compareDiagnostics(d1: Diagnostic, d2: Diagnostic): Comparison;
+    /** True is greater than false. */
+    function compareBooleans(a: boolean, b: boolean): Comparison;
     function normalizeSlashes(path: string): string;
     /**
      * Returns length of path root (i.e. length of "/", "x:/", "//server/share/, file:///user/files")
@@ -8528,6 +8532,7 @@ declare namespace ts {
         applyCodeActionCommand(fileName: string, action: CodeActionCommand | CodeActionCommand[]): Promise<ApplyCodeActionCommandResult | ApplyCodeActionCommandResult[]>;
         getApplicableRefactors(fileName: string, positionOrRaneg: number | TextRange): ApplicableRefactorInfo[];
         getEditsForRefactor(fileName: string, formatOptions: FormatCodeSettings, positionOrRange: number | TextRange, refactorName: string, actionName: string): RefactorEditInfo | undefined;
+        organizeImports(scope: OrganizeImportsScope, formatOptions: FormatCodeSettings): ReadonlyArray<FileTextChanges>;
         getEmitOutput(fileName: string, emitOnlyDtsFiles?: boolean): EmitOutput;
         getProgram(): Program;
         getNonBoundSourceFile(fileName: string): SourceFile;
@@ -8542,6 +8547,7 @@ declare namespace ts {
         type: "file";
         fileName: string;
     }
+    type OrganizeImportsScope = CombinedCodeFixScope;
     interface GetCompletionsAtPositionOptions {
         includeExternalModuleExports: boolean;
         includeInsertTextCompletions: boolean;
@@ -8890,6 +8896,7 @@ declare namespace ts {
         argumentCount: number;
     }
     interface CompletionInfo {
+        /** Not true for all glboal completions. This will be true if the enclosing scope matches a few syntax kinds. See `isGlobalCompletionScope`. */
         isGlobalCompletion: boolean;
         isMemberCompletion: boolean;
         /**
@@ -9615,6 +9622,14 @@ declare namespace ts.NavigationBar {
     function getNavigationBarItems(sourceFile: SourceFile, cancellationToken: CancellationToken): NavigationBarItem[];
     function getNavigationTree(sourceFile: SourceFile, cancellationToken: CancellationToken): NavigationTree;
 }
+declare namespace ts.OrganizeImports {
+    function organizeImports(sourceFile: SourceFile, formatContext: formatting.FormatContext, host: LanguageServiceHost): FileTextChanges[];
+    /**
+     * @param importGroup a list of ImportDeclarations, all with the same module name.
+     */
+    function coalesceImports(importGroup: ReadonlyArray<ImportDeclaration>): ReadonlyArray<ImportDeclaration>;
+    function compareModuleSpecifiers(m1: Expression, m2: Expression): Comparison;
+}
 declare namespace ts.OutliningElementsCollector {
     function collectElements(sourceFile: SourceFile, cancellationToken: CancellationToken): OutliningSpan[];
 }
@@ -9666,7 +9681,7 @@ declare namespace ts.SignatureHelp {
      * Returns relevant information for the argument list and the current argument if we are
      * in the argument of an invocation; returns undefined otherwise.
      */
-    function getImmediatelyContainingArgumentInfo(node: Node, position: number, sourceFile: SourceFile): ArgumentListInfo;
+    function getImmediatelyContainingArgumentInfo(node: Node, position: number, sourceFile: SourceFile): ArgumentListInfo | undefined;
     function getContainingArgumentInfo(node: Node, position: number, sourceFile: SourceFile): ArgumentListInfo;
 }
 declare namespace ts.SymbolDisplay {
