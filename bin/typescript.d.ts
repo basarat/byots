@@ -4101,7 +4101,7 @@ declare namespace ts {
     function arrayToMap<T>(array: ReadonlyArray<T>, makeKey: (value: T) => string): Map<T>;
     function arrayToMap<T, U>(array: ReadonlyArray<T>, makeKey: (value: T) => string, makeValue: (value: T) => U): Map<U>;
     function arrayToNumericMap<T>(array: ReadonlyArray<T>, makeKey: (value: T) => number): T[];
-    function arrayToNumericMap<T, V>(array: ReadonlyArray<T>, makeKey: (value: T) => number, makeValue: (value: T) => V): V[];
+    function arrayToNumericMap<T, U>(array: ReadonlyArray<T>, makeKey: (value: T) => number, makeValue: (value: T) => U): U[];
     /**
      * Creates a set from the elements of an array.
      *
@@ -4109,6 +4109,9 @@ declare namespace ts {
      */
     function arrayToSet(array: ReadonlyArray<string>): Map<true>;
     function arrayToSet<T>(array: ReadonlyArray<T>, makeKey: (value: T) => string): Map<true>;
+    function arrayToMultiMap<T>(values: ReadonlyArray<T>, makeKey: (value: T) => string): MultiMap<T>;
+    function arrayToMultiMap<T, U>(values: ReadonlyArray<T>, makeKey: (value: T) => string, makeValue: (value: T) => U): MultiMap<U>;
+    function group<T>(values: ReadonlyArray<T>, getGroupId: (value: T) => string): ReadonlyArray<ReadonlyArray<T>>;
     function cloneMap(map: SymbolTable): SymbolTable;
     function cloneMap<T>(map: ReadonlyMap<T>): Map<T>;
     function cloneMap<T>(map: ReadonlyUnderscoreEscapedMap<T>): UnderscoreEscapedMap<T>;
@@ -4128,7 +4131,6 @@ declare namespace ts {
         remove(key: string, value: T): void;
     }
     function createMultiMap<T>(): MultiMap<T>;
-    function group<T>(values: ReadonlyArray<T>, getGroupId: (value: T) => string): ReadonlyArray<ReadonlyArray<T>>;
     /**
      * Tests whether a value is an array.
      */
@@ -4778,8 +4780,10 @@ declare namespace ts {
      */
     function isWellKnownSymbolSyntactically(node: Expression): boolean;
     function getPropertyNameForPropertyNameNode(name: DeclarationName): __String;
-    function getTextOfIdentifierOrLiteral(node: Identifier | LiteralLikeNode): string;
-    function getEscapedTextOfIdentifierOrLiteral(node: Identifier | LiteralLikeNode): __String;
+    type PropertyNameLiteral = Identifier | StringLiteralLike | NumericLiteral;
+    function isPropertyNameLiteral(node: Node): node is PropertyNameLiteral;
+    function getTextOfIdentifierOrLiteral(node: PropertyNameLiteral): string;
+    function getEscapedTextOfIdentifierOrLiteral(node: PropertyNameLiteral): __String;
     function getPropertyNameForKnownSymbolName(symbolName: string): __String;
     function isKnownSymbol(symbol: Symbol): boolean;
     /**
@@ -8900,7 +8904,7 @@ declare namespace ts {
         argumentCount: number;
     }
     interface CompletionInfo {
-        /** Not true for all glboal completions. This will be true if the enclosing scope matches a few syntax kinds. See `isGlobalCompletionScope`. */
+        /** Not true for all glboal completions. This will be true if the enclosing scope matches a few syntax kinds. See `isSnippetScope`. */
         isGlobalCompletion: boolean;
         isMemberCompletion: boolean;
         /**
@@ -9627,7 +9631,13 @@ declare namespace ts.NavigationBar {
     function getNavigationTree(sourceFile: SourceFile, cancellationToken: CancellationToken): NavigationTree;
 }
 declare namespace ts.OrganizeImports {
-    function organizeImports(sourceFile: SourceFile, formatContext: formatting.FormatContext, host: LanguageServiceHost): FileTextChanges[];
+    /**
+     * Organize imports by:
+     *   1) Removing unused imports
+     *   2) Coalescing imports from the same module
+     *   3) Sorting imports
+     */
+    function organizeImports(sourceFile: SourceFile, formatContext: formatting.FormatContext, host: LanguageServiceHost, program: Program): FileTextChanges[];
     /**
      * @param importGroup a list of ImportDeclarations, all with the same module name.
      */
