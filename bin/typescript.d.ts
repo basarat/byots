@@ -5016,7 +5016,7 @@ declare namespace ts {
     function forEachAncestorDirectory<T>(directory: string, callback: (directory: string) => T | undefined): T | undefined;
     function isAbstractConstructorType(type: Type): boolean;
     function isAbstractConstructorSymbol(symbol: Symbol): boolean;
-    function getClassLikeDeclarationOfSymbol(symbol: Symbol): Declaration | undefined;
+    function getClassLikeDeclarationOfSymbol(symbol: Symbol): ClassLikeDeclaration | undefined;
     function getObjectFlags(type: Type): ObjectFlags;
     function typeHasCallOrConstructSignatures(type: Type, checker: TypeChecker): boolean;
     function forSomeAncestorDirectory(directory: string, callback: (directory: string) => boolean): boolean;
@@ -6432,6 +6432,9 @@ declare namespace ts {
         Replace_import_with_0: DiagnosticMessage;
         Use_synthetic_default_member: DiagnosticMessage;
         Convert_to_ES6_module: DiagnosticMessage;
+        Add_undefined_type_to_property_0: DiagnosticMessage;
+        Add_initializer_to_property_0: DiagnosticMessage;
+        Add_definite_assignment_assertion_to_property_0: DiagnosticMessage;
     };
 }
 declare namespace ts {
@@ -9161,7 +9164,10 @@ declare namespace ts {
     function isNewExpressionTarget(node: Node): boolean;
     function climbPastPropertyAccess(node: Node): Node;
     function getTargetLabel(referenceNode: Node, labelName: string): Identifier;
-    function isJumpStatementTarget(node: Node): boolean;
+    function isJumpStatementTarget(node: Node): node is Identifier & {
+        parent: BreakOrContinueStatement;
+    };
+    function isLabelOfLabeledStatement(node: Node): node is Identifier;
     function isLabelName(node: Node): boolean;
     function isRightSideOfQualifiedName(node: Node): boolean;
     function isRightSideOfPropertyAccess(node: Node): boolean;
@@ -9510,6 +9516,8 @@ declare namespace ts.FindAllReferences {
 declare namespace ts.FindAllReferences.Core {
     /** Core find-all-references algorithm. Handles special cases before delegating to `getReferencedSymbolsForSymbol`. */
     function getReferencedSymbolsForNode(position: number, node: Node, program: Program, sourceFiles: ReadonlyArray<SourceFile>, cancellationToken: CancellationToken, options?: Options): SymbolAndEntries[] | undefined;
+    /** Used as a quick check for whether a symbol is used at all in a file (besides its definition). */
+    function isSymbolReferencedInFile(definition: Identifier, checker: TypeChecker, sourceFile: SourceFile): boolean;
     function getReferenceEntriesForShorthandPropertyAssignment(node: Node, checker: TypeChecker, addReference: (node: Node) => void): void;
 }
 declare namespace ts.GoToDefinition {
@@ -10119,6 +10127,8 @@ declare namespace ts.codefix {
      */
     function createMissingMemberNodes(classDeclaration: ClassLikeDeclaration, possiblyMissingSymbols: ReadonlyArray<Symbol>, checker: TypeChecker, out: (node: ClassElement) => void): void;
     function createMethodFromCallExpression({typeArguments, arguments: args}: CallExpression, methodName: string, inJs: boolean, makeStatic: boolean): MethodDeclaration;
+}
+declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
 }
