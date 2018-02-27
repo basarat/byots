@@ -95,7 +95,33 @@ const fixesForFiles: IFixForFile[] = [
         new: 'export interface FileAndDirectoryExistence'
       },
     ]
-  },  
+  },
+  {
+    filePath:'../TypeScript/src/compiler/parser.ts',
+    fixes: [
+      {
+        orig: 'type PragmaDiagnosticReporter',
+        new: 'export type PragmaDiagnosticReporter'
+      },
+    ]
+  },
+  {
+    filePath:'../TypeScript/src/compiler/types.ts',
+    fixes: [
+      {
+        orig: 'interface PragmaArgumentSpecification',
+        new: 'export interface PragmaArgumentSpecification'
+      },
+      {
+        orig: 'type ConcretePragmaSpecs',
+        new: 'export type ConcretePragmaSpecs'
+      },
+      {
+        orig: 'type PragmaArgumentType',
+        new: 'export type PragmaArgumentType'
+      },
+    ]
+  },
 ];
 
 /**
