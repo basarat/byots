@@ -45,15 +45,6 @@ const fixesForFiles: IFixForFile[] = [
     ],
   },
   {
-    filePath: '../TypeScript/src/services/shims.ts',
-    fixes: [
-      {
-        orig: 'interface RealizedDiagnostic',
-        new: 'export interface RealizedDiagnostic'
-      }
-    ]
-  },
-  {
     filePath: '../TypeScript/src/services/formatting/rulesMap.ts',
     fixes: [
       {
