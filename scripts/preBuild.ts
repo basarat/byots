@@ -120,6 +120,10 @@ const fixesForFiles: IFixForFile[] = [
         orig: 'type PragmaArgumentType',
         new: 'export type PragmaArgumentType'
       },
+      {
+        orig: 'type PragmaArgTypeOptional',
+        new: 'export type PragmaArgTypeOptional'
+      },
     ]
   },
 ];
