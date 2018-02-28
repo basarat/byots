@@ -1696,7 +1696,7 @@ declare namespace ts {
      */
     interface SourceFileLike {
         readonly text: string;
-        lineMap: ReadonlyArray<number>;
+        lineMap?: ReadonlyArray<number>;
     }
     interface RedirectInfo {
         /** Source file this redirects to. */
@@ -1758,6 +1758,9 @@ declare namespace ts {
         ambientModuleNames: ReadonlyArray<string>;
         checkJsDirective: CheckJsDirective | undefined;
         version: string;
+        pragmas: PragmaMap;
+        localJsxNamespace?: __String;
+        localJsxFactory?: EntityName;
     }
     interface Bundle extends Node {
         kind: SyntaxKind.Bundle;
@@ -2047,7 +2050,7 @@ declare namespace ts {
         isArrayLikeType(type: Type): boolean;
         getAllPossiblePropertiesOfTypes(type: ReadonlyArray<Type>): Symbol[];
         resolveName(name: string, location: Node, meaning: SymbolFlags, excludeGlobals: boolean): Symbol | undefined;
-        getJsxNamespace(): string;
+        getJsxNamespace(location?: Node): string;
         /**
          * Note that this will return undefined in the following case:
          *     // a.ts
@@ -2254,7 +2257,7 @@ declare namespace ts {
         getTypeReferenceDirectivesForSymbol(symbol: Symbol, meaning?: SymbolFlags): string[];
         isLiteralConstDeclaration(node: VariableDeclaration | PropertyDeclaration | PropertySignature | ParameterDeclaration): boolean;
         writeLiteralConstValue(node: VariableDeclaration | PropertyDeclaration | PropertySignature | ParameterDeclaration, writer: EmitTextWriter): void;
-        getJsxFactoryEntity(): EntityName;
+        getJsxFactoryEntity(location?: Node): EntityName;
     }
     enum SymbolFlags {
         None = 0,
@@ -2858,8 +2861,12 @@ declare namespace ts {
     enum DiagnosticCategory {
         Warning = 0,
         Error = 1,
-        Message = 2,
+        Suggestion = 2,
+        Message = 3,
     }
+    function diagnosticCategoryName(d: {
+        category: DiagnosticCategory;
+    }, lowerCase?: boolean): string;
     enum ModuleResolutionKind {
         Classic = 1,
         NodeJs = 2,
@@ -3775,6 +3782,129 @@ declare namespace ts {
         TypeParameters = 26896,
         Parameters = 1296,
         IndexSignatureParameters = 4432,
+    }
+    enum PragmaKindFlags {
+        None = 0,
+        /**
+         * Triple slash comment of the form
+         * /// <pragma-name argname="value" />
+         */
+        TripleSlashXML = 1,
+        /**
+         * Single line comment of the form
+         * // @pragma-name argval1 argval2
+         * or
+         * /// @pragma-name argval1 argval2
+         */
+        SingleLine = 2,
+        /**
+         * Multiline non-jsdoc pragma of the form
+         * /* @pragma-name argval1 argval2 * /
+         */
+        MultiLine = 4,
+        All = 7,
+        Default = 7,
+    }
+    interface PragmaArgumentSpecification<TName extends string> {
+        name: TName;
+        optional?: boolean;
+        captureSpan?: boolean;
+    }
+    interface PragmaDefinition<T1 extends string = string, T2 extends string = string, T3 extends string = string> {
+        args?: [PragmaArgumentSpecification<T1>] | [PragmaArgumentSpecification<T1>, PragmaArgumentSpecification<T2>] | [PragmaArgumentSpecification<T1>, PragmaArgumentSpecification<T2>, PragmaArgumentSpecification<T3>];
+        kind?: PragmaKindFlags;
+    }
+    const commentPragmas: {
+        "reference": {
+            args: [{
+                    name: "types";
+                    optional: true;
+                    captureSpan: true;
+                }, {
+                    name: "path";
+                    optional: true;
+                    captureSpan: true;
+                }, {
+                    name: "no-default-lib";
+                    optional: true;
+                }];
+            kind: PragmaKindFlags;
+        };
+        "amd-dependency": {
+            args: [{
+                    name: "path";
+                }, {
+                    name: "name";
+                    optional: true;
+                }];
+            kind: PragmaKindFlags;
+        };
+        "amd-module": {
+            args: [{
+                    name: "name";
+                }];
+            kind: PragmaKindFlags;
+        };
+        "ts-check": {
+            kind: PragmaKindFlags;
+        };
+        "ts-nocheck": {
+            kind: PragmaKindFlags;
+        };
+        "jsx": {
+            args: [{
+                    name: "factory";
+                }];
+            kind: PragmaKindFlags;
+        };
+    };
+    type PragmaArgTypeMaybeCapture<TDesc> = TDesc extends {
+        captureSpan: true;
+    } ? {
+        value: string;
+        pos: number;
+        end: number;
+    } : string;
+    type PragmaArgTypeOptional<TDesc, TName extends string> = TDesc extends {
+        optional: true;
+    } ? {
+        [K in TName]?: PragmaArgTypeMaybeCapture<TDesc>;
+    } : {
+        [K in TName]: PragmaArgTypeMaybeCapture<TDesc>;
+    };
+    /**
+     * Maps a pragma definition into the desired shape for its arguments object
+     * Maybe the below is a good argument for types being iterable on struture in some way.
+     */
+    type PragmaArgumentType<T extends PragmaDefinition> = T extends {
+        args: [PragmaArgumentSpecification<infer TName1>, PragmaArgumentSpecification<infer TName2>, PragmaArgumentSpecification<infer TName3>];
+    } ? PragmaArgTypeOptional<T["args"][0], TName1> & PragmaArgTypeOptional<T["args"][1], TName2> & PragmaArgTypeOptional<T["args"][2], TName3> : T extends {
+        args: [PragmaArgumentSpecification<infer TName1>, PragmaArgumentSpecification<infer TName2>];
+    } ? PragmaArgTypeOptional<T["args"][0], TName1> & PragmaArgTypeOptional<T["args"][1], TName2> : T extends {
+        args: [PragmaArgumentSpecification<infer TName>];
+    } ? PragmaArgTypeOptional<T["args"][0], TName> : object;
+    type ConcretePragmaSpecs = typeof commentPragmas;
+    type PragmaPsuedoMap = {
+        [K in keyof ConcretePragmaSpecs]?: {
+            arguments: PragmaArgumentType<ConcretePragmaSpecs[K]>;
+            range: CommentRange;
+        };
+    };
+    type PragmaPsuedoMapEntry = {
+        [K in keyof PragmaPsuedoMap]: {
+            name: K;
+            args: PragmaPsuedoMap[K];
+        };
+    }[keyof PragmaPsuedoMap];
+    /**
+     * A strongly-typed es6 map of pragma entries, the values of which are either a single argument
+     * value (if only one was found), or an array of multiple argument values if the pragma is present
+     * in multiple places
+     */
+    interface PragmaMap extends Map<PragmaPsuedoMap[keyof PragmaPsuedoMap] | PragmaPsuedoMap[keyof PragmaPsuedoMap][]> {
+        set<TKey extends keyof PragmaPsuedoMap>(key: TKey, value: PragmaPsuedoMap[TKey] | PragmaPsuedoMap[TKey][]): this;
+        get<TKey extends keyof PragmaPsuedoMap>(key: TKey): PragmaPsuedoMap[TKey] | PragmaPsuedoMap[TKey][];
+        forEach(action: <TKey extends keyof PragmaPsuedoMap>(value: PragmaPsuedoMap[TKey] | PragmaPsuedoMap[TKey][], key: TKey) => void): void;
     }
 }
 declare namespace ts {
@@ -4747,7 +4877,6 @@ declare namespace ts {
     function getHeritageClause(clauses: NodeArray<HeritageClause>, kind: SyntaxKind): HeritageClause;
     function tryResolveScriptReference(host: ScriptReferenceHost, sourceFile: SourceFile, reference: FileReference): SourceFile;
     function getAncestor(node: Node | undefined, kind: SyntaxKind): Node | undefined;
-    function getFileReferenceFromReferencePath(comment: string, commentRange: CommentRange): ReferencePathMatchResult;
     function isKeyword(token: SyntaxKind): boolean;
     function isContextualKeyword(token: SyntaxKind): boolean;
     function isNonContextualKeyword(token: SyntaxKind): boolean;
@@ -6265,7 +6394,7 @@ declare namespace ts {
         Module_0_was_resolved_as_locally_declared_ambient_module_in_file_1: DiagnosticMessage;
         Module_0_was_resolved_as_ambient_module_declared_in_1_since_this_file_was_not_modified: DiagnosticMessage;
         Specify_the_JSX_factory_function_to_use_when_targeting_react_JSX_emit_e_g_React_createElement_or_h: DiagnosticMessage;
-        Resolution_for_module_0_was_found_in_cache: DiagnosticMessage;
+        Resolution_for_module_0_was_found_in_cache_from_location_1: DiagnosticMessage;
         Directory_0_does_not_exist_skipping_all_lookups_in_it: DiagnosticMessage;
         Show_diagnostic_information: DiagnosticMessage;
         Show_verbose_diagnostic_information: DiagnosticMessage;
@@ -6388,10 +6517,12 @@ declare namespace ts {
         JSX_fragment_has_no_corresponding_closing_tag: DiagnosticMessage;
         Expected_corresponding_closing_tag_for_JSX_fragment: DiagnosticMessage;
         JSX_fragment_is_not_supported_when_using_jsxFactory: DiagnosticMessage;
+        JSX_fragment_is_not_supported_when_using_an_inline_JSX_factory_pragma: DiagnosticMessage;
         Circularity_detected_while_resolving_configuration_Colon_0: DiagnosticMessage;
         A_path_in_an_extends_option_must_be_relative_or_rooted_but_0_is_not: DiagnosticMessage;
         The_files_list_in_config_file_0_is_empty: DiagnosticMessage;
         No_inputs_were_found_in_config_file_0_Specified_include_paths_were_1_and_exclude_paths_were_2: DiagnosticMessage;
+        File_is_a_CommonJS_module_it_may_be_converted_to_an_ES6_module: DiagnosticMessage;
         Add_missing_super_call: DiagnosticMessage;
         Make_super_call_the_first_statement_in_the_constructor: DiagnosticMessage;
         Change_extends_to_implements: DiagnosticMessage;
@@ -6541,6 +6672,19 @@ declare namespace ts {
         jsDocTypeExpression: JSDocTypeExpression;
         diagnostics: Diagnostic[];
     };
+    interface PragmaContext {
+        languageVersion: ScriptTarget;
+        pragmas?: PragmaMap;
+        checkJsDirective?: CheckJsDirective;
+        referencedFiles: FileReference[];
+        typeReferenceDirectives: FileReference[];
+        amdDependencies: AmdDependency[];
+        hasNoDefaultLib?: boolean;
+        moduleName?: string;
+    }
+    function processCommentPragmas(context: PragmaContext, sourceText: string): void;
+    type PragmaDiagnosticReporter = (pos: number, length: number, message: DiagnosticMessage) => void;
+    function processPragmasIntoFields(context: PragmaContext, reportDiagnostic: PragmaDiagnosticReporter): void;
 }
 declare namespace ts {
     enum ModuleInstanceState {
@@ -6613,6 +6757,7 @@ declare namespace ts {
         set(directory: string, result: ResolvedModuleWithFailedLookupLocations): void;
     }
     function createModuleResolutionCache(currentDirectory: string, getCanonicalFileName: (s: string) => string): ModuleResolutionCache;
+    function createModuleResolutionCacheWithMaps(directoryToModuleNameMap: Map<Map<ResolvedModuleWithFailedLookupLocations>>, moduleNameToDirectoryMap: Map<PerModuleNameCache>, currentDirectory: string, getCanonicalFileName: GetCanonicalFileName): ModuleResolutionCache;
     function resolveModuleName(moduleName: string, containingFile: string, compilerOptions: CompilerOptions, host: ModuleResolutionHost, cache?: ModuleResolutionCache): ResolvedModuleWithFailedLookupLocations;
     function nodeModuleNameResolver(moduleName: string, containingFile: string, compilerOptions: CompilerOptions, host: ModuleResolutionHost, cache?: ModuleResolutionCache): ResolvedModuleWithFailedLookupLocations;
     /**
@@ -6629,6 +6774,7 @@ declare namespace ts {
         rest: string;
     };
     function getTypesPackageName(packageName: string): string;
+    function getMangledNameForScopedPackage(packageName: string): string;
     function getPackageNameFromAtTypesDirectory(mangledName: string): string;
     function getUnmangledNameForScopedPackage(typesPackageName: string): string;
     function classicNameResolver(moduleName: string, containingFile: string, compilerOptions: CompilerOptions, host: ModuleResolutionHost, cache?: NonRelativeModuleNameResolutionCache): ResolvedModuleWithFailedLookupLocations;
@@ -8137,6 +8283,7 @@ declare namespace ts {
     }
     interface ResolutionCacheHost extends ModuleResolutionHost {
         toPath(fileName: string): Path;
+        getCanonicalFileName: GetCanonicalFileName;
         getCompilationSettings(): CompilerOptions;
         watchDirectoryOfFailedLookupLocation(directory: string, cb: DirectoryWatcherCallback, flags: WatchDirectoryFlags): FileWatcher;
         onInvalidatedResolution(): void;
@@ -8488,6 +8635,7 @@ declare namespace ts {
         cleanupSemanticCache(): void;
         getSyntacticDiagnostics(fileName: string): Diagnostic[];
         getSemanticDiagnostics(fileName: string): Diagnostic[];
+        getSuggestionDiagnostics(fileName: string): Diagnostic[];
         getCompilerOptionsDiagnostics(): Diagnostic[];
         /**
          * @deprecated Use getEncodedSyntacticClassifications instead.
@@ -9706,6 +9854,9 @@ declare namespace ts.SignatureHelp {
     function getImmediatelyContainingArgumentInfo(node: Node, position: number, sourceFile: SourceFile): ArgumentListInfo | undefined;
     function getContainingArgumentInfo(node: Node, position: number, sourceFile: SourceFile): ArgumentListInfo;
 }
+declare namespace ts {
+    function computeSuggestionDiagnostics(sourceFile: SourceFile): Diagnostic[];
+}
 declare namespace ts.SymbolDisplay {
     function getSymbolKind(typeChecker: TypeChecker, symbol: Symbol, location: Node): ScriptElementKind;
     function getSymbolModifiers(symbol: Symbol): string;
@@ -9955,14 +10106,13 @@ declare namespace ts.textChanges {
     class ChangeTracker {
         private readonly newLineCharacter;
         private readonly formatContext;
-        private readonly validator;
         private readonly changes;
         private readonly deletedNodesInLists;
         private readonly nodesInsertedAtClassStarts;
         static fromContext(context: TextChangesContext): ChangeTracker;
         static with(context: TextChangesContext, cb: (tracker: ChangeTracker) => void): FileTextChanges[];
         /** Public for tests only. Other callers should use `ChangeTracker.with`. */
-        constructor(newLineCharacter: string, formatContext: ts.formatting.FormatContext, validator?: (text: NonFormattedText) => void);
+        constructor(newLineCharacter: string, formatContext: ts.formatting.FormatContext);
         deleteRange(sourceFile: SourceFile, range: TextRange): this;
         deleteNode(sourceFile: SourceFile, node: Node, options?: ConfigurableStartEnd): this;
         deleteNodeRange(sourceFile: SourceFile, startNode: Node, endNode: Node, options?: ConfigurableStartEnd): this;
@@ -9992,15 +10142,15 @@ declare namespace ts.textChanges {
          */
         insertNodeInListAfter(sourceFile: SourceFile, after: Node, newNode: Node): this;
         private finishInsertNodeAtClassStart();
-        getChanges(): FileTextChanges[];
-        private computeNewText(change, sourceFile);
-        private getFormattedTextOfNode(node, sourceFile, pos, options);
-        private static normalize(changes);
+        /**
+         * Note: after calling this, the TextChanges object must be discarded!
+         * @param validate only for tests
+         *    The reason we must validate as part of this method is that `getNonFormattedText` changes the node's positions,
+         *    so we can only call this once and can't get the non-formatted text separately.
+         */
+        getChanges(validate?: ValidateNonFormattedText): FileTextChanges[];
     }
-    interface NonFormattedText {
-        readonly text: string;
-        readonly node: Node;
-    }
+    type ValidateNonFormattedText = (node: Node, text: string) => void;
     function applyChanges(text: string, changes: TextChange[]): string;
 }
 declare namespace ts {
@@ -10053,6 +10203,8 @@ declare namespace ts {
         function getEditsForRefactor(context: RefactorContext, refactorName: string, actionName: string): RefactorEditInfo | undefined;
     }
     function getRefactorContextLength(context: RefactorContext): number;
+}
+declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
 }
@@ -10137,8 +10289,6 @@ declare namespace ts.codefix {
 declare namespace ts.refactor.annotateWithTypeFromJSDoc {
 }
 declare namespace ts.refactor.convertFunctionToES6Class {
-}
-declare namespace ts.refactor {
 }
 declare namespace ts.refactor.extractSymbol {
     /**
@@ -10354,6 +10504,7 @@ declare namespace ts {
         cleanupSemanticCache(): void;
         getSyntacticDiagnostics(fileName: string): string;
         getSemanticDiagnostics(fileName: string): string;
+        getSuggestionDiagnostics(fileName: string): string;
         getCompilerOptionsDiagnostics(): string;
         getSyntacticClassifications(fileName: string, start: number, length: number): string;
         getSemanticClassifications(fileName: string, start: number, length: number): string;
