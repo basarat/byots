@@ -2002,7 +2002,7 @@ declare namespace ts {
         /** Unlike `getExportsOfModule`, this includes properties of an `export =` value. */
         getExportsAndPropertiesOfModule(moduleSymbol: Symbol): Symbol[];
         getAllAttributesTypeFromJsxOpeningLikeElement(elementNode: JsxOpeningLikeElement): Type | undefined;
-        getJsxIntrinsicTagNames(): Symbol[];
+        getJsxIntrinsicTagNamesAt(location: Node): Symbol[];
         isOptionalParameter(node: ParameterDeclaration): boolean;
         getAmbientModules(): Symbol[];
         tryGetMemberInModuleExports(memberName: string, moduleSymbol: Symbol): Symbol | undefined;
@@ -2066,6 +2066,11 @@ declare namespace ts {
         /** @param node A location where we might consider accessing `this`. Not necessarily a ThisExpression. */
         tryGetThisTypeAt(node: Node): Type | undefined;
         getTypeArgumentConstraint(node: TypeNode): Type | undefined;
+        /**
+         * Does *not* get *all* suggestion diagnostics, just the ones that were convenient to report in the checker.
+         * Others are added in computeSuggestionDiagnostics.
+         */
+        getSuggestionDiagnostics(file: SourceFile): ReadonlyArray<Diagnostic>;
     }
     enum UnionReduction {
         None = 0,
@@ -2724,13 +2729,25 @@ declare namespace ts {
     interface IndexType extends InstantiableType {
         type: InstantiableType | UnionOrIntersectionType;
     }
-    interface ConditionalType extends InstantiableType {
+    interface ConditionalRoot {
+        node: ConditionalTypeNode;
         checkType: Type;
         extendsType: Type;
         trueType: Type;
         falseType: Type;
+        isDistributive: boolean;
         inferTypeParameters: TypeParameter[];
-        target?: ConditionalType;
+        outerTypeParameters?: TypeParameter[];
+        instantiations?: Map<Type>;
+        aliasSymbol: Symbol;
+        aliasTypeArguments: Type[];
+    }
+    interface ConditionalType extends InstantiableType {
+        root: ConditionalRoot;
+        checkType: Type;
+        extendsType: Type;
+        resolvedTrueType?: Type;
+        resolvedFalseType?: Type;
         mapper?: TypeMapper;
     }
     interface SubstitutionType extends InstantiableType {
@@ -2938,6 +2955,7 @@ declare namespace ts {
         plugins?: PluginImport[];
         preserveConstEnums?: boolean;
         preserveSymlinks?: boolean;
+        preserveWatchOutput?: boolean;
         project?: string;
         pretty?: DiagnosticStyle;
         reactNamespace?: string;
@@ -4832,7 +4850,7 @@ declare namespace ts {
     function isExportsIdentifier(node: Node): boolean;
     function isModuleExportsPropertyAccessExpression(node: Node): boolean;
     function getSpecialPropertyAssignmentKind(expr: BinaryExpression): SpecialPropertyAssignmentKind;
-    function isSpecialPropertyDeclaration(expr: ts.PropertyAccessExpression): boolean;
+    function isSpecialPropertyDeclaration(expr: PropertyAccessExpression): boolean;
     function getExternalModuleName(node: Node): Expression;
     function getNamespaceDeclarationNode(node: ImportDeclaration | ImportEqualsDeclaration | ExportDeclaration): ImportEqualsDeclaration | NamespaceImport;
     function isDefaultImport(node: ImportDeclaration | ImportEqualsDeclaration | ExportDeclaration): boolean;
@@ -5526,7 +5544,8 @@ declare namespace ts {
     function isPartiallyEmittedExpression(node: Node): node is PartiallyEmittedExpression;
     function isNotEmittedStatement(node: Node): node is NotEmittedStatement;
     function isNotEmittedOrPartiallyEmittedNode(node: Node): node is NotEmittedStatement | PartiallyEmittedExpression;
-    function isIterationStatement(node: Node, lookInLabeledStatements: boolean): node is IterationStatement;
+    function isIterationStatement(node: Node, lookInLabeledStatements: false): node is IterationStatement;
+    function isIterationStatement(node: Node, lookInLabeledStatements: boolean): node is IterationStatement | LabeledStatement;
     function isForInOrOfStatement(node: Node): node is ForInOrOfStatement;
     function isConciseBody(node: Node): node is ConciseBody;
     function isFunctionBody(node: Node): node is FunctionBody;
@@ -6438,6 +6457,7 @@ declare namespace ts {
         Numeric_separators_are_not_allowed_here: DiagnosticMessage;
         Multiple_consecutive_numeric_separators_are_not_permitted: DiagnosticMessage;
         Found_package_json_at_0_Package_ID_is_1: DiagnosticMessage;
+        Whether_to_keep_outdated_console_output_in_watch_mode_instead_of_clearing_the_screen: DiagnosticMessage;
         Variable_0_implicitly_has_an_1_type: DiagnosticMessage;
         Parameter_0_implicitly_has_an_1_type: DiagnosticMessage;
         Member_0_implicitly_has_an_1_type: DiagnosticMessage;
@@ -8192,7 +8212,7 @@ declare namespace ts {
      * Produces a cleaned version of compiler options with personally identifiying info (aka, paths) removed.
      * Also converts enum values back to strings.
      */
-    function convertCompilerOptionsForTelemetry(opts: ts.CompilerOptions): ts.CompilerOptions;
+    function convertCompilerOptionsForTelemetry(opts: CompilerOptions): CompilerOptions;
 }
 declare namespace ts {
     /**
@@ -9614,19 +9634,18 @@ declare namespace ts.FindAllReferences {
     type Definition = {
         type: "symbol";
         symbol: Symbol;
-        node: Node;
     } | {
         type: "label";
         node: Identifier;
     } | {
         type: "keyword";
-        node: ts.Node;
+        node: Node;
     } | {
         type: "this";
-        node: ts.Node;
+        node: Node;
     } | {
         type: "string";
-        node: ts.StringLiteral;
+        node: StringLiteral;
     };
     type Entry = NodeEntry | SpanEntry;
     interface NodeEntry {
@@ -9639,7 +9658,7 @@ declare namespace ts.FindAllReferences {
         fileName: string;
         textSpan: TextSpan;
     }
-    function nodeEntry(node: ts.Node, isInString?: true): NodeEntry;
+    function nodeEntry(node: Node, isInString?: true): NodeEntry;
     interface Options {
         readonly findInStrings?: boolean;
         readonly findInComments?: boolean;
@@ -9655,7 +9674,7 @@ declare namespace ts.FindAllReferences {
     function getImplementationsAtPosition(program: Program, cancellationToken: CancellationToken, sourceFiles: ReadonlyArray<SourceFile>, sourceFile: SourceFile, position: number): ImplementationLocation[];
     function findReferencedEntries(program: Program, cancellationToken: CancellationToken, sourceFiles: ReadonlyArray<SourceFile>, sourceFile: SourceFile, position: number, options?: Options): ReferenceEntry[] | undefined;
     function getReferenceEntriesForNode(position: number, node: Node, program: Program, sourceFiles: ReadonlyArray<SourceFile>, cancellationToken: CancellationToken, options?: Options): Entry[] | undefined;
-    function toHighlightSpan(entry: FindAllReferences.Entry): {
+    function toHighlightSpan(entry: Entry): {
         fileName: string;
         span: HighlightSpan;
     };
@@ -9666,6 +9685,15 @@ declare namespace ts.FindAllReferences.Core {
     function getReferencedSymbolsForNode(position: number, node: Node, program: Program, sourceFiles: ReadonlyArray<SourceFile>, cancellationToken: CancellationToken, options?: Options): SymbolAndEntries[] | undefined;
     /** Used as a quick check for whether a symbol is used at all in a file (besides its definition). */
     function isSymbolReferencedInFile(definition: Identifier, checker: TypeChecker, sourceFile: SourceFile): boolean;
+    /**
+     * Given an initial searchMeaning, extracted from a location, widen the search scope based on the declarations
+     * of the corresponding symbol. e.g. if we are searching for "Foo" in value position, but "Foo" references a class
+     * then we need to widen the search to include type positions as well.
+     * On the contrary, if we are searching for "Bar" in type position and we trace bar to an interface, and an uninstantiated
+     * module, we want to keep the search limited to only types, as the two declarations (interface and uninstantiated module)
+     * do not intersect in any of the three spaces.
+     */
+    function getIntersectingMeaningFromDeclarations(node: Node, symbol: Symbol): SemanticMeaning;
     function getReferenceEntriesForShorthandPropertyAssignment(node: Node, checker: TypeChecker, addReference: (node: Node) => void): void;
 }
 declare namespace ts.GoToDefinition {
@@ -9742,7 +9770,7 @@ declare namespace ts.JsTyping {
         typingLocation: string;
         version: Semver;
     }
-    function isTypingUpToDate(cachedTyping: JsTyping.CachedTyping, availableTypingVersions: MapLike<string>): boolean;
+    function isTypingUpToDate(cachedTyping: CachedTyping, availableTypingVersions: MapLike<string>): boolean;
     const nodeCoreModuleList: ReadonlyArray<string>;
     /**
      * A map of loose file names to library names that we are confident require typings
@@ -9855,7 +9883,7 @@ declare namespace ts.SignatureHelp {
     function getContainingArgumentInfo(node: Node, position: number, sourceFile: SourceFile): ArgumentListInfo;
 }
 declare namespace ts {
-    function computeSuggestionDiagnostics(sourceFile: SourceFile): Diagnostic[];
+    function computeSuggestionDiagnostics(sourceFile: SourceFile, program: Program): Diagnostic[];
 }
 declare namespace ts.SymbolDisplay {
     function getSymbolKind(typeChecker: TypeChecker, symbol: Symbol, location: Node): ScriptElementKind;
@@ -9899,7 +9927,7 @@ declare namespace ts.formatting {
     class FormattingContext {
         readonly sourceFile: SourceFileLike;
         formattingRequestKind: FormattingRequestKind;
-        options: ts.FormatCodeSettings;
+        options: FormatCodeSettings;
         currentTokenSpan: TextRangeWithKind;
         nextTokenSpan: TextRangeWithKind;
         contextNode: Node;
@@ -9910,7 +9938,7 @@ declare namespace ts.formatting {
         private tokensAreOnSameLine;
         private contextNodeBlockIsOnOneLine;
         private nextNodeBlockIsOnOneLine;
-        constructor(sourceFile: SourceFileLike, formattingRequestKind: FormattingRequestKind, options: ts.FormatCodeSettings);
+        constructor(sourceFile: SourceFileLike, formattingRequestKind: FormattingRequestKind, options: FormatCodeSettings);
         updateContext(currentRange: TextRangeWithKind, currentTokenParent: Node, nextRange: TextRangeWithKind, nextTokenParent: Node, commonParent: Node): void;
         ContextNodeAllOnSameLine(): boolean;
         NextNodeAllOnSameLine(): boolean;
@@ -9965,7 +9993,7 @@ declare namespace ts.formatting {
     function getAllRules(): RuleSpec[];
 }
 declare namespace ts.formatting {
-    function getFormatContext(options: FormatCodeSettings): formatting.FormatContext;
+    function getFormatContext(options: FormatCodeSettings): FormatContext;
     type RulesMap = (context: FormattingContext) => Rule | undefined;
     enum RulesPosition {
         IgnoreRulesSpecific = 0,
@@ -9978,8 +10006,8 @@ declare namespace ts.formatting {
 }
 declare namespace ts.formatting {
     interface FormatContext {
-        readonly options: ts.FormatCodeSettings;
-        readonly getRule: ts.formatting.RulesMap;
+        readonly options: FormatCodeSettings;
+        readonly getRule: RulesMap;
     }
     interface TextRangeWithKind extends TextRange {
         kind: SyntaxKind;
@@ -10101,7 +10129,7 @@ declare namespace ts.textChanges {
     function getAdjustedEndPosition(sourceFile: SourceFile, node: Node, options: ConfigurableEnd): number;
     interface TextChangesContext {
         host: LanguageServiceHost;
-        formatContext: ts.formatting.FormatContext;
+        formatContext: formatting.FormatContext;
     }
     class ChangeTracker {
         private readonly newLineCharacter;
@@ -10112,7 +10140,7 @@ declare namespace ts.textChanges {
         static fromContext(context: TextChangesContext): ChangeTracker;
         static with(context: TextChangesContext, cb: (tracker: ChangeTracker) => void): FileTextChanges[];
         /** Public for tests only. Other callers should use `ChangeTracker.with`. */
-        constructor(newLineCharacter: string, formatContext: ts.formatting.FormatContext);
+        constructor(newLineCharacter: string, formatContext: formatting.FormatContext);
         deleteRange(sourceFile: SourceFile, range: TextRange): this;
         deleteNode(sourceFile: SourceFile, node: Node, options?: ConfigurableStartEnd): this;
         deleteNodeRange(sourceFile: SourceFile, startNode: Node, endNode: Node, options?: ConfigurableStartEnd): this;
@@ -10217,7 +10245,6 @@ declare namespace ts.codefix {
 declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
-    function tryGetCodeActionForInstallPackageTypes(host: LanguageServiceHost, fileName: string, moduleName: string): CodeAction | undefined;
 }
 declare namespace ts.codefix {
 }
@@ -10260,7 +10287,7 @@ declare namespace ts.codefix {
         readonly declaration: AnyImportSyntax;
         readonly importKind: ImportKind;
     }
-    function getImportCompletionAction(exportedSymbol: Symbol, moduleSymbol: Symbol, sourceFile: SourceFile, symbolName: string, host: LanguageServiceHost, program: ts.Program, checker: ts.TypeChecker, compilerOptions: ts.CompilerOptions, allSourceFiles: ReadonlyArray<ts.SourceFile>, formatContext: ts.formatting.FormatContext, getCanonicalFileName: GetCanonicalFileName, symbolToken: Node | undefined): {
+    function getImportCompletionAction(exportedSymbol: Symbol, moduleSymbol: Symbol, sourceFile: SourceFile, symbolName: string, host: LanguageServiceHost, program: Program, checker: TypeChecker, compilerOptions: CompilerOptions, allSourceFiles: ReadonlyArray<SourceFile>, formatContext: formatting.FormatContext, getCanonicalFileName: GetCanonicalFileName, symbolToken: Node | undefined): {
         readonly moduleSpecifier: string;
         readonly codeAction: CodeAction;
     };
@@ -10365,8 +10392,6 @@ declare namespace ts.refactor.extractSymbol {
         Read = 1,
         Write = 2,
     }
-}
-declare namespace ts.refactor.installTypesForPackage {
 }
 declare namespace ts.refactor.installTypesForPackage {
 }
