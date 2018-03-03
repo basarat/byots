@@ -6169,6 +6169,7 @@ declare namespace ts {
         Cannot_invoke_an_object_which_is_possibly_null: DiagnosticMessage;
         Cannot_invoke_an_object_which_is_possibly_undefined: DiagnosticMessage;
         Cannot_invoke_an_object_which_is_possibly_null_or_undefined: DiagnosticMessage;
+        Module_0_has_no_exported_member_1_Did_you_mean_2: DiagnosticMessage;
         Import_declaration_0_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_interface_has_or_is_using_private_name_1: DiagnosticMessage;
@@ -6543,6 +6544,7 @@ declare namespace ts {
         The_files_list_in_config_file_0_is_empty: DiagnosticMessage;
         No_inputs_were_found_in_config_file_0_Specified_include_paths_were_1_and_exclude_paths_were_2: DiagnosticMessage;
         File_is_a_CommonJS_module_it_may_be_converted_to_an_ES6_module: DiagnosticMessage;
+        This_constructor_function_may_be_converted_to_a_class_declaration: DiagnosticMessage;
         Add_missing_super_call: DiagnosticMessage;
         Make_super_call_the_first_statement_in_the_constructor: DiagnosticMessage;
         Change_extends_to_implements: DiagnosticMessage;
@@ -7614,7 +7616,7 @@ declare namespace ts {
      */
     function aggregateTransformFlags<T extends Node>(node: T): T;
     namespace Debug {
-        const failBadSyntaxKind: typeof noop;
+        const failBadSyntaxKind: (node: Node, message?: string) => never;
         const assertEachNode: (nodes: Node[], test: (node: Node) => boolean, message?: string) => void;
         const assertNode: (node: Node, test: (node: Node) => boolean, message?: string) => void;
         const assertOptionalNode: (node: Node, test: (node: Node) => boolean, message?: string) => void;
@@ -10263,6 +10265,8 @@ declare namespace ts.codefix {
 declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
+}
+declare namespace ts.codefix {
     type ImportDeclarationMap = ExistingImportInfo[][];
     interface SymbolContext extends textChanges.TextChangesContext {
         sourceFile: SourceFile;
@@ -10314,8 +10318,6 @@ declare namespace ts.codefix {
 declare namespace ts.codefix {
 }
 declare namespace ts.refactor.annotateWithTypeFromJSDoc {
-}
-declare namespace ts.refactor.convertFunctionToES6Class {
 }
 declare namespace ts.refactor.extractSymbol {
     /**
