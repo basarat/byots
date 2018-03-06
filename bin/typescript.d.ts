@@ -2362,7 +2362,6 @@ declare namespace ts {
         leftSpread?: Symbol;
         rightSpread?: Symbol;
         syntheticOrigin?: Symbol;
-        syntheticLiteralTypeOrigin?: StringLiteralType;
         isDiscriminantProperty?: boolean;
         resolvedExports?: SymbolTable;
         resolvedMembers?: SymbolTable;
@@ -2374,6 +2373,7 @@ declare namespace ts {
         enumKind?: EnumKind;
         originatingImport?: ImportDeclaration | ImportCall;
         lateSymbol?: Symbol;
+        nameType?: Type;
     }
     enum EnumKind {
         Numeric = 0,
@@ -2788,10 +2788,12 @@ declare namespace ts {
     type TypeMapper = (t: TypeParameter) => Type;
     enum InferencePriority {
         NakedTypeVariable = 1,
-        MappedType = 2,
-        ReturnType = 4,
-        NoConstraints = 8,
-        AlwaysStrict = 16,
+        HomomorphicMappedType = 2,
+        MappedTypeConstraint = 4,
+        ReturnType = 8,
+        NoConstraints = 16,
+        AlwaysStrict = 32,
+        PriorityImpliesUnion = 12,
     }
     interface InferenceInfo {
         typeParameter: TypeParameter;
@@ -2824,6 +2826,7 @@ declare namespace ts {
     }
     type TypeComparer = (s: Type, t: Type, reportErrors?: boolean) => Ternary;
     interface InferenceContext extends TypeMapper {
+        typeParameters: TypeParameter[];
         signature: Signature;
         inferences: InferenceInfo[];
         flags: InferenceFlags;
@@ -6545,6 +6548,7 @@ declare namespace ts {
         No_inputs_were_found_in_config_file_0_Specified_include_paths_were_1_and_exclude_paths_were_2: DiagnosticMessage;
         File_is_a_CommonJS_module_it_may_be_converted_to_an_ES6_module: DiagnosticMessage;
         This_constructor_function_may_be_converted_to_a_class_declaration: DiagnosticMessage;
+        Import_may_be_converted_to_a_default_import: DiagnosticMessage;
         Add_missing_super_call: DiagnosticMessage;
         Make_super_call_the_first_statement_in_the_constructor: DiagnosticMessage;
         Change_extends_to_implements: DiagnosticMessage;
@@ -10239,6 +10243,7 @@ declare namespace ts.codefix {
 declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
+    function makeImportDeclaration(name: Identifier, namedImports: ReadonlyArray<ImportSpecifier> | undefined, moduleSpecifier: Expression): ImportDeclaration;
 }
 declare namespace ts.codefix {
 }
@@ -10310,6 +10315,8 @@ declare namespace ts.codefix {
      */
     function createMissingMemberNodes(classDeclaration: ClassLikeDeclaration, possiblyMissingSymbols: ReadonlyArray<Symbol>, checker: TypeChecker, out: (node: ClassElement) => void): void;
     function createMethodFromCallExpression({typeArguments, arguments: args}: CallExpression, methodName: string, inJs: boolean, makeStatic: boolean): MethodDeclaration;
+}
+declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
 }
@@ -10394,8 +10401,6 @@ declare namespace ts.refactor.extractSymbol {
         Read = 1,
         Write = 2,
     }
-}
-declare namespace ts.refactor.installTypesForPackage {
 }
 declare namespace ts {
     /** The version of the language service API */
