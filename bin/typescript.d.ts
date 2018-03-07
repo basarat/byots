@@ -1407,6 +1407,9 @@ declare namespace ts {
     }
     type ModuleName = Identifier | StringLiteral;
     type ModuleBody = NamespaceBody | JSDocNamespaceBody;
+    interface AmbientModuleDeclaration extends ModuleDeclaration {
+        body?: ModuleBlock;
+    }
     interface ModuleDeclaration extends DeclarationStatement, JSDocContainer {
         kind: SyntaxKind.ModuleDeclaration;
         parent?: ModuleBody | SourceFile;
@@ -4728,7 +4731,7 @@ declare namespace ts {
     function makeIdentifierFromModuleName(moduleName: string): string;
     function isBlockOrCatchScoped(declaration: Declaration): boolean;
     function isCatchClauseVariableDeclarationOrBindingElement(declaration: Declaration): boolean;
-    function isAmbientModule(node: Node): boolean;
+    function isAmbientModule(node: Node): node is AmbientModuleDeclaration;
     function isModuleWithStringLiteralName(node: Node): node is ModuleDeclaration;
     function isNonGlobalAmbientModule(node: Node): node is ModuleDeclaration & {
         name: StringLiteral;
@@ -4737,7 +4740,8 @@ declare namespace ts {
     function isShorthandAmbientModuleSymbol(moduleSymbol: Symbol): boolean;
     function isBlockScopedContainerTopLevel(node: Node): boolean;
     function isGlobalScopeAugmentation(module: ModuleDeclaration): boolean;
-    function isExternalModuleAugmentation(node: Node): boolean;
+    function isExternalModuleAugmentation(node: Node): node is AmbientModuleDeclaration;
+    function isModuleAugmentationExternal(node: AmbientModuleDeclaration): boolean;
     function isEffectiveExternalModule(node: SourceFile, compilerOptions: CompilerOptions): boolean;
     function isBlockScope(node: Node, parentNode: Node): boolean;
     function isDeclarationWithTypeParameters(node: Node): node is DeclarationWithTypeParameters;
@@ -6549,6 +6553,7 @@ declare namespace ts {
         File_is_a_CommonJS_module_it_may_be_converted_to_an_ES6_module: DiagnosticMessage;
         This_constructor_function_may_be_converted_to_a_class_declaration: DiagnosticMessage;
         Import_may_be_converted_to_a_default_import: DiagnosticMessage;
+        JSDoc_types_may_be_moved_to_TypeScript_types: DiagnosticMessage;
         Add_missing_super_call: DiagnosticMessage;
         Make_super_call_the_first_statement_in_the_constructor: DiagnosticMessage;
         Change_extends_to_implements: DiagnosticMessage;
@@ -10126,6 +10131,10 @@ declare namespace ts.textChanges {
          * Text of inserted node will be formatted with this delta, otherwise delta will be inferred from the new node kind
          */
         delta?: number;
+        /**
+         * Do not trim leading white spaces in the edit range
+         */
+        preserveLeadingWhitespace?: boolean;
     }
     interface ChangeNodeOptions extends ConfigurableStartEnd, InsertNodeOptions {
         readonly useIndentationFromFile?: boolean;
@@ -10138,7 +10147,7 @@ declare namespace ts.textChanges {
         formatContext: formatting.FormatContext;
     }
     class ChangeTracker {
-        private readonly newLineCharacter;
+        readonly newLineCharacter: string;
         private readonly formatContext;
         private readonly changes;
         private readonly deletedNodesInLists;
@@ -10241,6 +10250,10 @@ declare namespace ts {
 declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
+    type DeclarationWithType = FunctionLikeDeclaration | VariableDeclaration | PropertySignature | PropertyDeclaration;
+    function parameterShouldGetTypeFromJSDoc(node: Node): node is DeclarationWithType;
+}
+declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
     function makeImportDeclaration(name: Identifier, namedImports: ReadonlyArray<ImportSpecifier> | undefined, moduleSpecifier: Expression): ImportDeclaration;
@@ -10323,8 +10336,6 @@ declare namespace ts.codefix {
 declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
-}
-declare namespace ts.refactor.annotateWithTypeFromJSDoc {
 }
 declare namespace ts.refactor.extractSymbol {
     /**
