@@ -60,6 +60,7 @@ const fixesForFiles: IFixForFile[] = [
         orig: 'type DeclarationWithType',
         new: 'export type DeclarationWithType'
       },
+    ]
   },
   {
     filePath: '../TypeScript/src/services/codefixes/importFixes.ts',
