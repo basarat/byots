@@ -54,6 +54,14 @@ const fixesForFiles: IFixForFile[] = [
     ]
   },
   {
+    filePath: '../TypeScript/src/services/codefixes/annotateWithTypeFromJSDoc.ts',
+    fixes: [
+      {
+        orig: 'type DeclarationWithType',
+        new: 'export type DeclarationWithType'
+      },
+  },
+  {
     filePath: '../TypeScript/src/services/codefixes/importFixes.ts',
     fixes: [
       {
