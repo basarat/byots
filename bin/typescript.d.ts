@@ -1929,6 +1929,7 @@ declare namespace ts {
         getNonNullableType(type: Type): Type;
         /** Note that the resulting nodes cannot be checked. */
         typeToTypeNode(type: Type, enclosingDeclaration?: Node, flags?: NodeBuilderFlags): TypeNode;
+        typeToTypeNode(type: Type, enclosingDeclaration?: Node, flags?: NodeBuilderFlags, tracker?: SymbolTracker): TypeNode;
         /** Note that the resulting nodes cannot be checked. */
         signatureToSignatureDeclaration(signature: Signature, kind: SyntaxKind, enclosingDeclaration?: Node, flags?: NodeBuilderFlags): SignatureDeclaration & {
             typeArguments?: NodeArray<TypeNode>;
@@ -3691,12 +3692,9 @@ declare namespace ts {
         inlineSourceMap?: boolean;
         extendedDiagnostics?: boolean;
     }
-    interface EmitTextWriter extends SymbolTracker, SymbolWriter {
+    interface EmitTextWriter extends SymbolWriter {
         write(s: string): void;
         writeTextOfNode(text: string, node: Node): void;
-        writeLine(): void;
-        increaseIndent(): void;
-        decreaseIndent(): void;
         getText(): string;
         rawWrite(s: string): void;
         writeLiteral(s: string): void;
@@ -3705,16 +3703,8 @@ declare namespace ts {
         getColumn(): number;
         getIndent(): number;
         isAtStartOfLine(): boolean;
-        clear(): void;
-        writeKeyword(text: string): void;
-        writeOperator(text: string): void;
-        writePunctuation(text: string): void;
-        writeSpace(text: string): void;
-        writeStringLiteral(text: string): void;
-        writeParameter(text: string): void;
-        writeProperty(text: string): void;
-        writeSymbol(text: string, symbol: Symbol): void;
     }
+    /** @deprecated See comment on SymbolWriter */
     interface SymbolTracker {
         trackSymbol?(symbol: Symbol, enclosingDeclaration?: Node, meaning?: SymbolFlags): void;
         reportInaccessibleThisError?(): void;
@@ -4754,6 +4744,7 @@ declare namespace ts {
     function createDiagnosticForNode(node: Node, message: DiagnosticMessage, arg0?: string | number, arg1?: string | number, arg2?: string | number, arg3?: string | number): Diagnostic;
     function createDiagnosticForNodeArray(sourceFile: SourceFile, nodes: NodeArray<Node>, message: DiagnosticMessage, arg0?: string | number, arg1?: string | number, arg2?: string | number, arg3?: string | number): Diagnostic;
     function createDiagnosticForNodeInSourceFile(sourceFile: SourceFile, node: Node, message: DiagnosticMessage, arg0?: string | number, arg1?: string | number, arg2?: string | number, arg3?: string | number): Diagnostic;
+    function createDiagnosticForNodeSpan(sourceFile: SourceFile, startNode: Node, endNode: Node, message: DiagnosticMessage, arg0?: string | number, arg1?: string | number, arg2?: string | number, arg3?: string | number): Diagnostic;
     function createDiagnosticForNodeFromMessageChain(node: Node, messageChain: DiagnosticMessageChain): Diagnostic;
     function getSpanOfTokenAtPosition(sourceFile: SourceFile, pos: number): TextSpan;
     function getErrorSpanForNode(sourceFile: SourceFile, node: Node): TextSpan;
@@ -5175,6 +5166,7 @@ declare namespace ts {
     function typeHasCallOrConstructSignatures(type: Type, checker: TypeChecker): boolean;
     function forSomeAncestorDirectory(directory: string, callback: (directory: string) => boolean): boolean;
     function isUMDExportSymbol(symbol: Symbol): boolean;
+    function showModuleSpecifier({moduleSpecifier}: ImportDeclaration): string;
 }
 declare namespace ts {
     function getDefaultLibFileName(options: CompilerOptions): string;
@@ -6466,6 +6458,7 @@ declare namespace ts {
         Multiple_consecutive_numeric_separators_are_not_permitted: DiagnosticMessage;
         Found_package_json_at_0_Package_ID_is_1: DiagnosticMessage;
         Whether_to_keep_outdated_console_output_in_watch_mode_instead_of_clearing_the_screen: DiagnosticMessage;
+        All_imports_in_import_declaration_are_unused: DiagnosticMessage;
         Variable_0_implicitly_has_an_1_type: DiagnosticMessage;
         Parameter_0_implicitly_has_an_1_type: DiagnosticMessage;
         Member_0_implicitly_has_an_1_type: DiagnosticMessage;
@@ -6558,6 +6551,7 @@ declare namespace ts {
         Make_super_call_the_first_statement_in_the_constructor: DiagnosticMessage;
         Change_extends_to_implements: DiagnosticMessage;
         Remove_declaration_for_Colon_0: DiagnosticMessage;
+        Remove_import_from_0: DiagnosticMessage;
         Implement_interface_0: DiagnosticMessage;
         Implement_inherited_abstract_class: DiagnosticMessage;
         Add_this_to_unresolved_variable: DiagnosticMessage;
@@ -10146,6 +10140,7 @@ declare namespace ts.textChanges {
         host: LanguageServiceHost;
         formatContext: formatting.FormatContext;
     }
+    type TypeAnnotatable = SignatureDeclaration | VariableDeclaration | ParameterDeclaration | PropertyDeclaration | PropertySignature;
     class ChangeTracker {
         readonly newLineCharacter: string;
         private readonly formatContext;
@@ -10170,6 +10165,8 @@ declare namespace ts.textChanges {
         insertNodeAtTopOfFile(sourceFile: SourceFile, newNode: Statement, blankLineBetween: boolean): void;
         insertNodeBefore(sourceFile: SourceFile, before: Node, newNode: Node, blankLineBetween?: boolean): this;
         insertModifierBefore(sourceFile: SourceFile, modifier: SyntaxKind, before: Node): void;
+        /** Prefer this over replacing a node with another that has a type annotation, as it avoids reformatting the other parts of the node. */
+        insertTypeAnnotation(sourceFile: SourceFile, node: TypeAnnotatable, type: TypeNode): void;
         private getOptionsForInsertNodeBefore(before, doubleNewlines);
         insertNodeAtConstructorStart(sourceFile: SourceFile, ctr: ConstructorDeclaration, newStatement: Statement): void;
         insertNodeAtConstructorEnd(sourceFile: SourceFile, ctr: ConstructorDeclaration, newStatement: Statement): void;
