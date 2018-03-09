@@ -691,7 +691,8 @@ declare namespace ts {
         body?: Block | Expression;
     }
     type FunctionLikeDeclaration = FunctionDeclaration | MethodDeclaration | ConstructorDeclaration | GetAccessorDeclaration | SetAccessorDeclaration | FunctionExpression | ArrowFunction;
-    type FunctionLike = FunctionLikeDeclaration | FunctionTypeNode | ConstructorTypeNode | IndexSignatureDeclaration | MethodSignature | ConstructSignatureDeclaration | CallSignatureDeclaration | JSDocFunctionType;
+    /** @deprecated Use SignatureDeclaration */
+    type FunctionLike = SignatureDeclaration;
     interface FunctionDeclaration extends FunctionLikeDeclarationBase, DeclarationStatement {
         kind: SyntaxKind.FunctionDeclaration;
         name?: Identifier;
@@ -1989,7 +1990,7 @@ declare namespace ts {
          */
         getResolvedSignature(node: CallLikeExpression, candidatesOutArray?: Signature[], argumentCount?: number): Signature;
         getSignatureFromDeclaration(declaration: SignatureDeclaration): Signature | undefined;
-        isImplementationOfOverload(node: FunctionLike): boolean | undefined;
+        isImplementationOfOverload(node: SignatureDeclaration): boolean | undefined;
         isUndefinedSymbol(symbol: Symbol): boolean;
         isArgumentsSymbol(symbol: Symbol): boolean;
         isUnknownSymbol(symbol: Symbol): boolean;
@@ -2300,28 +2301,28 @@ declare namespace ts {
         All = 67108863,
         Enum = 384,
         Variable = 3,
-        Value = 107455,
-        Type = 793064,
+        Value = 67216319,
+        Type = 67901928,
         Namespace = 1920,
         Module = 1536,
         Accessor = 98304,
-        FunctionScopedVariableExcludes = 107454,
-        BlockScopedVariableExcludes = 107455,
-        ParameterExcludes = 107455,
+        FunctionScopedVariableExcludes = 67216318,
+        BlockScopedVariableExcludes = 67216319,
+        ParameterExcludes = 67216319,
         PropertyExcludes = 0,
-        EnumMemberExcludes = 900095,
-        FunctionExcludes = 106927,
-        ClassExcludes = 899519,
-        InterfaceExcludes = 792968,
-        RegularEnumExcludes = 899327,
-        ConstEnumExcludes = 899967,
-        ValueModuleExcludes = 106639,
+        EnumMemberExcludes = 68008959,
+        FunctionExcludes = 67215791,
+        ClassExcludes = 68008383,
+        InterfaceExcludes = 67901832,
+        RegularEnumExcludes = 68008191,
+        ConstEnumExcludes = 68008831,
+        ValueModuleExcludes = 67215503,
         NamespaceModuleExcludes = 0,
-        MethodExcludes = 99263,
-        GetAccessorExcludes = 41919,
-        SetAccessorExcludes = 74687,
-        TypeParameterExcludes = 530920,
-        TypeAliasExcludes = 793064,
+        MethodExcludes = 67208127,
+        GetAccessorExcludes = 67150783,
+        SetAccessorExcludes = 67183551,
+        TypeParameterExcludes = 67639784,
+        TypeAliasExcludes = 67901928,
         AliasExcludes = 2097152,
         ModuleMember = 2623475,
         ExportHasLocal = 944,
@@ -2849,6 +2850,7 @@ declare namespace ts {
         PrototypeProperty = 3,
         ThisProperty = 4,
         Property = 5,
+        Prototype = 6,
     }
     interface JsFileExtensionInfo {
         extension: string;
@@ -3977,6 +3979,7 @@ declare namespace ts {
 }
 declare namespace ts {
     const emptyArray: never[];
+    function closeFileWatcher(watcher: FileWatcher): void;
     /** Create a new map. If a template object is provided, the map will copy entries from it. */
     function createMap<T>(): Map<T>;
     /** Create a new escaped identifier map. */
@@ -4594,6 +4597,7 @@ declare namespace ts {
     function assertTypeIsNever(_: never): void;
     const emptyFileSystemEntries: FileSystemEntries;
     function singleElementArray<T>(t: T | undefined): T[] | undefined;
+    function enumerateInsertsAndDeletes<T, U>(newItems: ReadonlyArray<T>, oldItems: ReadonlyArray<U>, comparer: (a: T, b: U) => Comparison, inserted: (newItem: T) => void, deleted: (oldItem: U) => void, unchanged?: (oldItem: U, newItem: T) => void): void;
 }
 declare function setTimeout(handler: (...args: any[]) => void, timeout: number): any;
 declare function clearTimeout(handle: any): void;
@@ -4612,10 +4616,45 @@ declare namespace ts {
     type FileWatcherCallback = (fileName: string, eventKind: FileWatcherEventKind) => void;
     type DirectoryWatcherCallback = (fileName: string) => void;
     interface WatchedFile {
-        fileName: string;
-        callback: FileWatcherCallback;
-        mtime?: Date;
+        readonly fileName: string;
+        readonly callback: FileWatcherCallback;
+        mtime: Date;
     }
+    enum PollingInterval {
+        High = 2000,
+        Medium = 500,
+        Low = 250,
+    }
+    function watchFileUsingPriorityPollingInterval(host: System, fileName: string, callback: FileWatcherCallback, watchPriority: PollingInterval): FileWatcher;
+    type HostWatchFile = (fileName: string, callback: FileWatcherCallback, pollingInterval: PollingInterval) => FileWatcher;
+    type HostWatchDirectory = (fileName: string, callback: DirectoryWatcherCallback, recursive?: boolean) => FileWatcher;
+    const missingFileModifiedTime: Date;
+    let unchangedPollThresholds: {
+        [PollingInterval.Low]: number;
+        [PollingInterval.Medium]: number;
+        [PollingInterval.High]: number;
+    };
+    function setCustomPollingValues(system: System): void;
+    function createDynamicPriorityPollingWatchFile(host: {
+        getModifiedTime: System["getModifiedTime"];
+        setTimeout: System["setTimeout"];
+    }): HostWatchFile;
+    /**
+     * Returns true if file status changed
+     */
+    function onWatchedFileStat(watchedFile: WatchedFile, modifiedTime: Date): boolean;
+    interface RecursiveDirectoryWatcherHost {
+        watchDirectory: HostWatchDirectory;
+        getAccessileSortedChildDirectories(path: string): ReadonlyArray<string>;
+        directoryExists(dir: string): boolean;
+        filePathComparer: Comparer<string>;
+    }
+    /**
+     * Watch the directory recursively using host provided method to watch child directories
+     * that means if this is recursive watcher, watch the children directories as well
+     * (eg on OS that dont support recursive watch using fs.watch use fs.watchFile)
+     */
+    function createRecursiveDirectoryWatcher(host: RecursiveDirectoryWatcherHost): (directoryName: string, callback: DirectoryWatcherCallback) => FileWatcher;
     interface System {
         args: string[];
         newLine: string;
@@ -4699,7 +4738,7 @@ declare namespace ts {
     function getTokenPosOfNode(node: Node, sourceFile?: SourceFileLike, includeJsDoc?: boolean): number;
     function getNonDecoratorTokenPosOfNode(node: Node, sourceFile?: SourceFileLike): number;
     function getSourceTextOfNodeFromSourceFile(sourceFile: SourceFile, node: Node, includeTrivia?: boolean): string;
-    function getTextOfNodeFromSourceText(sourceText: string, node: Node): string;
+    function getTextOfNodeFromSourceText(sourceText: string, node: Node, includeTrivia?: boolean): string;
     function getTextOfNode(node: Node, includeTrivia?: boolean): string;
     /**
      * Note: it is expected that the `nodeArray` and the `node` are within the same file.
@@ -4782,7 +4821,7 @@ declare namespace ts {
     function isIdentifierTypePredicate(predicate: TypePredicate): predicate is IdentifierTypePredicate;
     function isThisTypePredicate(predicate: TypePredicate): predicate is ThisTypePredicate;
     function getPropertyAssignment(objectLiteral: ObjectLiteralExpression, key: string, key2?: string): ReadonlyArray<PropertyAssignment>;
-    function getContainingFunction(node: Node): FunctionLike;
+    function getContainingFunction(node: Node): SignatureDeclaration;
     function getContainingClass(node: Node): ClassLikeDeclaration;
     function getThisContainer(node: Node, includeArrowFunctions: boolean): Node;
     function getNewTargetContainer(node: Node): Node;
@@ -4840,10 +4879,33 @@ declare namespace ts {
     function isSingleOrDoubleQuote(charCode: number): boolean;
     function isStringDoubleQuoted(str: StringLiteral, sourceFile: SourceFile): boolean;
     /**
-     * Returns true if the node is a variable declaration whose initializer is a function or class expression.
-     * This function does not test if the node is in a JavaScript file or not.
+     * Given the symbol of a declaration, find the symbol of its Javascript container-like initializer,
+     * if it has one. Otherwise just return the original symbol.
+     *
+     * Container-like initializer behave like namespaces, so the binder needs to add contained symbols
+     * to their exports. An example is a function with assignments to `this` inside.
      */
-    function isDeclarationOfFunctionOrClassExpression(s: Symbol): boolean;
+    function getJSInitializerSymbol(symbol: Symbol): Symbol;
+    /** Get the declaration initializer, when the initializer is container-like (See getJavascriptInitializer) */
+    function getDeclaredJavascriptInitializer(node: Node): Expression;
+    /**
+     * Get the assignment 'initializer' -- the righthand side-- when the initializer is container-like (See getJavascriptInitializer).
+     * We treat the right hand side of assignments with container-like initalizers as declarations.
+     */
+    function getAssignedJavascriptInitializer(node: Node): Expression;
+    /**
+     * Recognized Javascript container-like initializers are:
+     * 1. (function() {})() -- IIFEs
+     * 2. function() { } -- Function expressions
+     * 3. class { } -- Class expressions
+     * 4. {} -- Empty object literals
+     * 5. { ... } -- Non-empty object literals, when used to initialize a prototype, like `C.prototype = { m() { } }`
+     *
+     * This function returns the provided initializer, or undefined if it is not valid.
+     */
+    function getJavascriptInitializer(initializer: Node, isPrototypeAssignment: boolean): Expression;
+    /** Given a Javascript initializer, return the outer name. That is, the lhs of the assignment or the declaration name. */
+    function getOuterNameOfJsInitializer(node: Declaration): DeclarationName | undefined;
     function getRightMostAssignedExpression(node: Expression): Expression;
     function isExportsIdentifier(node: Node): boolean;
     function isModuleExportsPropertyAccessExpression(node: Node): boolean;
@@ -4857,7 +4919,7 @@ declare namespace ts {
     function getJSDocCommentsAndTags(node: Node): ReadonlyArray<JSDoc | JSDocTag>;
     /** Does the opposite of `getJSDocParameterTags`: given a JSDoc parameter, finds the parameter corresponding to it. */
     function getParameterSymbolFromJSDoc(node: JSDocParameterTag): Symbol | undefined;
-    function getHostSignatureFromJSDoc(node: JSDocParameterTag): FunctionLike | undefined;
+    function getHostSignatureFromJSDoc(node: JSDocParameterTag): SignatureDeclaration | undefined;
     function getJSDocHost(node: JSDocTag): HasJSDoc;
     function getTypeParameterFromJsDoc(node: TypeParameterDeclaration & {
         parent: JSDocTemplateTag;
@@ -4879,6 +4941,8 @@ declare namespace ts {
     function isNodeWithPossibleHoistedDeclaration(node: Node): node is NodeWithPossibleHoistedDeclaration;
     function walkUpParenthesizedTypes(node: Node): Node;
     function walkUpParenthesizedExpressions(node: Node): Node;
+    function skipParentheses(node: Expression): Expression;
+    function skipParentheses(node: Node): Node;
     function isDeleteTarget(node: Node): boolean;
     function isNodeDescendantOf(node: Node, ancestor: Node): boolean;
     function isDeclarationName(name: Node): boolean;
@@ -4906,7 +4970,7 @@ declare namespace ts {
         Invalid = 4,
         AsyncGenerator = 3,
     }
-    function getFunctionFlags(node: FunctionLike | undefined): FunctionFlags;
+    function getFunctionFlags(node: SignatureDeclaration | undefined): FunctionFlags;
     function isAsyncFunction(node: Node): boolean;
     function isStringOrNumericLiteral(node: Node): node is StringLiteral | NumericLiteral;
     /**
@@ -5009,22 +5073,23 @@ declare namespace ts {
      * Gets the effective type annotation of a variable, parameter, or property. If the node was
      * parsed in a JavaScript file, gets the type annotation from JSDoc.
      */
-    function getEffectiveTypeAnnotationNode(node: Node, checkJSDoc?: boolean): TypeNode | undefined;
+    function getEffectiveTypeAnnotationNode(node: Node): TypeNode | undefined;
     /**
      * Gets the effective return type annotation of a signature. If the node was parsed in a
      * JavaScript file, gets the return type annotation from JSDoc.
      */
-    function getEffectiveReturnTypeNode(node: SignatureDeclaration, checkJSDoc?: boolean): TypeNode | undefined;
+    function getEffectiveReturnTypeNode(node: SignatureDeclaration): TypeNode | undefined;
     /**
      * Gets the effective type parameters. If the node was parsed in a
      * JavaScript file, gets the type parameters from the `@template` tag from JSDoc.
      */
-    function getEffectiveTypeParameterDeclarations(node: DeclarationWithTypeParameters, checkJSDoc?: boolean): ReadonlyArray<TypeParameterDeclaration>;
+    function getEffectiveTypeParameterDeclarations(node: DeclarationWithTypeParameters): ReadonlyArray<TypeParameterDeclaration> | undefined;
+    function getJSDocTypeParameterDeclarations(node: DeclarationWithTypeParameters): ReadonlyArray<TypeParameterDeclaration>;
     /**
      * Gets the effective type annotation of the value parameter of a set accessor. If the node
      * was parsed in a JavaScript file, gets the type annotation from JSDoc.
      */
-    function getEffectiveSetAccessorTypeAnnotationNode(node: SetAccessorDeclaration, checkJSDoc?: boolean): TypeNode;
+    function getEffectiveSetAccessorTypeAnnotationNode(node: SetAccessorDeclaration): TypeNode;
     function emitNewLineBeforeLeadingComments(lineMap: ReadonlyArray<number>, writer: EmitTextWriter, node: TextRange, leadingComments: ReadonlyArray<CommentRange>): void;
     function emitNewLineBeforeLeadingCommentsOfPosition(lineMap: ReadonlyArray<number>, writer: EmitTextWriter, pos: number, leadingComments: ReadonlyArray<CommentRange>): void;
     function emitNewLineBeforeLeadingCommentOfPosition(lineMap: ReadonlyArray<number>, writer: EmitTextWriter, pos: number, commentPos: number): void;
@@ -5252,6 +5317,10 @@ declare namespace ts {
      */
     function unescapeIdentifier(id: string): string;
     function getNameOfJSDocTypedef(declaration: JSDocTypedefTag): Identifier | undefined;
+    /** @internal */
+    function isNamedDeclaration(node: Node): node is NamedDeclaration & {
+        name: DeclarationName;
+    };
     function getNameOfDeclaration(declaration: Declaration | Expression): DeclarationName | undefined;
     /**
      * Gets the JSDoc parameter tags for the node if present.
@@ -5491,7 +5560,7 @@ declare namespace ts {
     function isEntityName(node: Node): node is EntityName;
     function isPropertyName(node: Node): node is PropertyName;
     function isBindingName(node: Node): node is BindingName;
-    function isFunctionLike(node: Node): node is FunctionLike;
+    function isFunctionLike(node: Node): node is SignatureDeclaration;
     function isFunctionLikeDeclaration(node: Node): node is FunctionLikeDeclaration;
     function isFunctionLikeKind(kind: SyntaxKind): boolean;
     function isFunctionOrModuleBlock(node: Node): boolean;
@@ -7453,8 +7522,6 @@ declare namespace ts {
     function isOuterExpression(node: Node, kinds?: OuterExpressionKinds): node is OuterExpression;
     function skipOuterExpressions(node: Expression, kinds?: OuterExpressionKinds): Expression;
     function skipOuterExpressions(node: Node, kinds?: OuterExpressionKinds): Node;
-    function skipParentheses(node: Expression): Expression;
-    function skipParentheses(node: Node): Node;
     function skipAssertions(node: Expression): Expression;
     function skipAssertions(node: Node): Node;
     function recreateOuterExpressions(outerExpression: Expression | undefined, innerExpression: Expression, kinds?: OuterExpressionKinds): Expression;
@@ -8269,23 +8336,28 @@ declare namespace ts {
      */
     function updateWatchingWildcardDirectories(existingWatchedForWildcards: Map<WildcardDirectoryWatcher>, wildcardDirectories: Map<WatchDirectoryFlags>, watchDirectory: (directory: string, flags: WatchDirectoryFlags) => FileWatcher): void;
     function isEmittedFileOfProgram(program: Program | undefined, file: string): boolean;
+    enum WatchLogLevel {
+        None = 0,
+        TriggerOnly = 1,
+        Verbose = 2,
+    }
     interface WatchFileHost {
         watchFile(path: string, callback: FileWatcherCallback, pollingInterval?: number): FileWatcher;
     }
-    function addFileWatcher(host: WatchFileHost, file: string, cb: FileWatcherCallback): FileWatcher;
-    function addFileWatcherWithLogging(host: WatchFileHost, file: string, cb: FileWatcherCallback, log: (s: string) => void): FileWatcher;
-    function addFileWatcherWithOnlyTriggerLogging(host: WatchFileHost, file: string, cb: FileWatcherCallback, log: (s: string) => void): FileWatcher;
-    type FilePathWatcherCallback = (fileName: string, eventKind: FileWatcherEventKind, filePath: Path) => void;
-    function addFilePathWatcher(host: WatchFileHost, file: string, cb: FilePathWatcherCallback, path: Path): FileWatcher;
-    function addFilePathWatcherWithLogging(host: WatchFileHost, file: string, cb: FilePathWatcherCallback, path: Path, log: (s: string) => void): FileWatcher;
-    function addFilePathWatcherWithOnlyTriggerLogging(host: WatchFileHost, file: string, cb: FilePathWatcherCallback, path: Path, log: (s: string) => void): FileWatcher;
     interface WatchDirectoryHost {
         watchDirectory(path: string, callback: DirectoryWatcherCallback, recursive?: boolean): FileWatcher;
     }
-    function addDirectoryWatcher(host: WatchDirectoryHost, directory: string, cb: DirectoryWatcherCallback, flags: WatchDirectoryFlags): FileWatcher;
-    function addDirectoryWatcherWithLogging(host: WatchDirectoryHost, directory: string, cb: DirectoryWatcherCallback, flags: WatchDirectoryFlags, log: (s: string) => void): FileWatcher;
-    function addDirectoryWatcherWithOnlyTriggerLogging(host: WatchDirectoryHost, directory: string, cb: DirectoryWatcherCallback, flags: WatchDirectoryFlags, log: (s: string) => void): FileWatcher;
-    function closeFileWatcher(watcher: FileWatcher): void;
+    type WatchFile<X, Y> = (host: WatchFileHost, file: string, callback: FileWatcherCallback, pollingInterval: PollingInterval, detailInfo1?: X, detailInfo2?: Y) => FileWatcher;
+    type FilePathWatcherCallback = (fileName: string, eventKind: FileWatcherEventKind, filePath: Path) => void;
+    type WatchFilePath<X, Y> = (host: WatchFileHost, file: string, callback: FilePathWatcherCallback, pollingInterval: PollingInterval, path: Path, detailInfo1?: X, detailInfo2?: Y) => FileWatcher;
+    type WatchDirectory<X, Y> = (host: WatchDirectoryHost, directory: string, callback: DirectoryWatcherCallback, flags: WatchDirectoryFlags, detailInfo1?: X, detailInfo2?: Y) => FileWatcher;
+    interface WatchFactory<X, Y> {
+        watchFile: WatchFile<X, Y>;
+        watchFilePath: WatchFilePath<X, Y>;
+        watchDirectory: WatchDirectory<X, Y>;
+    }
+    function getWatchFactory<X = undefined, Y = undefined>(watchLogLevel: WatchLogLevel, log: (s: string) => void, getDetailWatchInfo?: GetDetailWatchInfo<X, Y>): WatchFactory<X, Y>;
+    type GetDetailWatchInfo<X, Y> = (detailInfo1: X, detailInfo2: Y) => string;
     function closeFileWatcherOf<T extends {
         watcher: FileWatcher;
     }>(objWithWatcher: T): void;
@@ -8513,6 +8585,7 @@ declare namespace ts {
 declare namespace ts {
     function executeCommandLine(args: string[]): void;
 }
+declare var process: any;
 declare namespace ts {
     interface Node {
         getSourceFile(): SourceFile;
@@ -10162,11 +10235,13 @@ declare namespace ts.textChanges {
         replaceNodeWithNodes(sourceFile: SourceFile, oldNode: Node, newNodes: ReadonlyArray<Node>, options?: ChangeNodeOptions): this;
         replaceNodeRangeWithNodes(sourceFile: SourceFile, startNode: Node, endNode: Node, newNodes: ReadonlyArray<Node>, options?: ChangeNodeOptions): this;
         private insertNodeAt(sourceFile, pos, newNode, options?);
+        private insertNodesAt(sourceFile, pos, newNodes, options?);
         insertNodeAtTopOfFile(sourceFile: SourceFile, newNode: Statement, blankLineBetween: boolean): void;
         insertNodeBefore(sourceFile: SourceFile, before: Node, newNode: Node, blankLineBetween?: boolean): this;
         insertModifierBefore(sourceFile: SourceFile, modifier: SyntaxKind, before: Node): void;
         /** Prefer this over replacing a node with another that has a type annotation, as it avoids reformatting the other parts of the node. */
         insertTypeAnnotation(sourceFile: SourceFile, node: TypeAnnotatable, type: TypeNode): void;
+        insertTypeParameters(sourceFile: SourceFile, node: SignatureDeclaration, typeParameters: ReadonlyArray<TypeParameterDeclaration>): void;
         private getOptionsForInsertNodeBefore(before, doubleNewlines);
         insertNodeAtConstructorStart(sourceFile: SourceFile, ctr: ConstructorDeclaration, newStatement: Statement): void;
         insertNodeAtConstructorEnd(sourceFile: SourceFile, ctr: ConstructorDeclaration, newStatement: Statement): void;
@@ -10219,7 +10294,6 @@ declare namespace ts {
         function getAllFixes(context: CodeFixAllContext): CombinedCodeActions;
         function createFileTextChanges(fileName: string, textChanges: TextChange[]): FileTextChanges;
         function codeFixAll(context: CodeFixAllContext, errorCodes: number[], use: (changes: textChanges.ChangeTracker, error: Diagnostic, commands: Push<CodeActionCommand>) => void): CombinedCodeActions;
-        function codeFixAllWithTextChanges(context: CodeFixAllContext, errorCodes: number[], use: (changes: Push<TextChange>, error: Diagnostic) => void): CombinedCodeActions;
     }
 }
 declare namespace ts {
