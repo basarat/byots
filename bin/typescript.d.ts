@@ -9472,6 +9472,8 @@ declare namespace ts {
      */
     function isInsideJsxElementOrAttribute(sourceFile: SourceFile, position: number): boolean;
     function isInTemplateString(sourceFile: SourceFile, position: number): boolean;
+    function findPrecedingMatchingToken(token: Node, matchingTokenKind: SyntaxKind, sourceFile: SourceFile): Node;
+    function isPossiblyTypeArgumentPosition(token: Node, sourceFile: SourceFile): boolean;
     /**
      * Returns true if the cursor at position in sourceFile is within a comment.
      *
