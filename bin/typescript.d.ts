@@ -52,6 +52,7 @@ declare namespace ts {
         end: number;
     }
     type JsDocSyntaxKind = SyntaxKind.EndOfFileToken | SyntaxKind.WhitespaceTrivia | SyntaxKind.AtToken | SyntaxKind.NewLineTrivia | SyntaxKind.AsteriskToken | SyntaxKind.OpenBraceToken | SyntaxKind.CloseBraceToken | SyntaxKind.LessThanToken | SyntaxKind.OpenBracketToken | SyntaxKind.CloseBracketToken | SyntaxKind.EqualsToken | SyntaxKind.CommaToken | SyntaxKind.DotToken | SyntaxKind.Identifier | SyntaxKind.Unknown;
+    type JsxTokenSyntaxKind = SyntaxKind.LessThanSlashToken | SyntaxKind.EndOfFileToken | SyntaxKind.ConflictMarkerTrivia | SyntaxKind.JsxText | SyntaxKind.JsxTextAllWhiteSpaces | SyntaxKind.OpenBraceToken | SyntaxKind.LessThanToken;
     enum SyntaxKind {
         Unknown = 0,
         EndOfFileToken = 1,
@@ -4692,6 +4693,7 @@ declare namespace ts {
         setTimeout?(callback: (...args: any[]) => void, ms: number, ...args: any[]): any;
         clearTimeout?(timeoutId: any): void;
         clearScreen?(): void;
+        setBlocking?(): void;
     }
     interface FileWatcher {
         close(): void;
@@ -5232,6 +5234,8 @@ declare namespace ts {
     function forSomeAncestorDirectory(directory: string, callback: (directory: string) => boolean): boolean;
     function isUMDExportSymbol(symbol: Symbol): boolean;
     function showModuleSpecifier({moduleSpecifier}: ImportDeclaration): string;
+    /** Add a value to a set, and return true if it wasn't already present. */
+    function addToSeen(seen: Map<true>, key: string | number): boolean;
 }
 declare namespace ts {
     function getDefaultLibFileName(options: CompilerOptions): string;
@@ -5335,7 +5339,7 @@ declare namespace ts {
      * Does not return tags for binding patterns, because JSDoc matches
      * parameters by name and binding patterns do not have a name.
      */
-    function getJSDocParameterTags(param: ParameterDeclaration): ReadonlyArray<JSDocParameterTag> | undefined;
+    function getJSDocParameterTags(param: ParameterDeclaration): ReadonlyArray<JSDocParameterTag>;
     /**
      * Return true if the node has JSDoc parameter tags.
      *
@@ -6684,8 +6688,8 @@ declare namespace ts {
         reScanTemplateToken(): SyntaxKind;
         scanJsxIdentifier(): SyntaxKind;
         scanJsxAttributeValue(): SyntaxKind;
-        reScanJsxToken(): SyntaxKind;
-        scanJsxToken(): SyntaxKind;
+        reScanJsxToken(): JsxTokenSyntaxKind;
+        scanJsxToken(): JsxTokenSyntaxKind;
         scanJSDocToken(): JsDocSyntaxKind;
         scan(): SyntaxKind;
         getText(): string;
@@ -8585,7 +8589,6 @@ declare namespace ts {
 declare namespace ts {
     function executeCommandLine(args: string[]): void;
 }
-declare var process: any;
 declare namespace ts {
     interface Node {
         getSourceFile(): SourceFile;
@@ -9505,8 +9508,6 @@ declare namespace ts {
     function isExternalModuleSymbol(moduleSymbol: Symbol): boolean;
     /** Returns `true` the first time it encounters a node and `false` afterwards. */
     function nodeSeenTracker<T extends Node>(): (node: T) => boolean;
-    /** Add a value to a set, and return true if it wasn't already present. */
-    function addToSeen(seen: Map<true>, key: string | number): boolean;
     function getSnapshotText(snap: IScriptSnapshot): string;
     function repeatString(str: string, count: number): string;
 }
