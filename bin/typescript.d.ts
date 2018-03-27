@@ -2937,6 +2937,7 @@ declare namespace ts {
         /** configFile is set as non enumerable property so as to avoid checking of json source files */
         readonly configFile?: JsonSourceFile;
         declaration?: boolean;
+        declarationMap?: boolean;
         emitDeclarationOnly?: boolean;
         declarationDir?: string;
         diagnostics?: boolean;
@@ -4096,11 +4097,6 @@ declare namespace ts {
     const emptyIterator: Iterator<never>;
     function singleIterator<T>(value: T): Iterator<T>;
     /**
-     * Computes the first matching span of elements and returns a tuple of the first span
-     * and the remaining elements.
-     */
-    function span<T>(array: ReadonlyArray<T>, f: (x: T, i: number) => boolean): [T[], T[]];
-    /**
      * Maps contiguous spans of values with the same key.
      *
      * @param array The array to map.
@@ -4444,6 +4440,7 @@ declare namespace ts {
     function getEmitScriptTarget(compilerOptions: CompilerOptions): ScriptTarget;
     function getEmitModuleKind(compilerOptions: CompilerOptions): ModuleKind;
     function getEmitModuleResolutionKind(compilerOptions: CompilerOptions): ModuleResolutionKind;
+    function getAreDeclarationMapsEnabled(options: CompilerOptions): boolean;
     function getAllowSyntheticDefaultImports(compilerOptions: CompilerOptions): boolean;
     type StrictOptionName = "noImplicitAny" | "noImplicitThis" | "strictNullChecks" | "strictFunctionTypes" | "strictPropertyInitialization" | "alwaysStrict";
     function getStrictOptionValue(compilerOptions: CompilerOptions, flag: StrictOptionName): boolean;
@@ -4716,6 +4713,8 @@ declare namespace ts {
         clearTimeout?(timeoutId: any): void;
         clearScreen?(): void;
         setBlocking?(): void;
+        base64decode?(input: string): string;
+        base64encode?(input: string): string;
     }
     interface FileWatcher {
         close(): void;
@@ -5067,8 +5066,9 @@ declare namespace ts {
     function getDeclarationEmitOutputFilePath(sourceFile: SourceFile, host: EmitHost): string;
     interface EmitFileNames {
         jsFilePath: string;
-        sourceMapFilePath: string;
-        declarationFilePath: string;
+        sourceMapFilePath: string | undefined;
+        declarationFilePath: string | undefined;
+        declarationMapPath: string | undefined;
     }
     /**
      * Gets the source files that are expected to have an emit output.
@@ -5164,6 +5164,12 @@ declare namespace ts {
      * Converts a string to a base-64 encoded ASCII string.
      */
     function convertToBase64(input: string): string;
+    function base64encode(host: {
+        base64encode?(input: string): string;
+    }, input: string): string;
+    function base64decode(host: {
+        base64decode?(input: string): string;
+    }, input: string): string;
     function getNewLineCharacter(options: CompilerOptions | PrinterOptions, getNewLine?: () => string): string;
     function formatSyntaxKind(kind: SyntaxKind): string;
     function formatModifierFlags(flags: ModifierFlags): string;
@@ -6389,6 +6395,8 @@ declare namespace ts {
         Substitutions_for_pattern_0_shouldn_t_be_an_empty_array: DiagnosticMessage;
         Invalid_value_for_jsxFactory_0_is_not_a_valid_identifier_or_qualified_name: DiagnosticMessage;
         Adding_a_tsconfig_json_file_will_help_organize_projects_that_contain_both_TypeScript_and_JavaScript_files_Learn_more_at_https_Colon_Slash_Slashaka_ms_Slashtsconfig: DiagnosticMessage;
+        Option_0_cannot_be_specified_without_specifying_option_1_or_option_2: DiagnosticMessage;
+        Generates_a_sourcemap_for_each_corresponding_d_ts_file: DiagnosticMessage;
         Concatenate_and_emit_output_to_single_file: DiagnosticMessage;
         Generates_corresponding_d_ts_file: DiagnosticMessage;
         Specify_the_location_where_debugger_should_locate_map_files_instead_of_generated_locations: DiagnosticMessage;
@@ -6743,7 +6751,7 @@ declare namespace ts {
     function tokenToString(t: SyntaxKind): string | undefined;
     function stringToToken(s: string): SyntaxKind | undefined;
     function computeLineStarts(text: string): number[];
-    function getPositionOfLineAndCharacter(sourceFile: SourceFile, line: number, character: number): number;
+    function getPositionOfLineAndCharacter(sourceFile: SourceFileLike, line: number, character: number): number;
     function computePositionOfLineAndCharacter(lineStarts: ReadonlyArray<number>, line: number, character: number, debugText?: string): number;
     function getLineStarts(sourceFile: SourceFileLike): ReadonlyArray<number>;
     /**
@@ -7886,7 +7894,7 @@ declare namespace ts {
          * @param sourceMapFilePath The path to the output source map file.
          * @param sourceFileOrBundle The input source file or bundle for the program.
          */
-        initialize(filePath: string, sourceMapFilePath: string, sourceFileOrBundle: SourceFile | Bundle): void;
+        initialize(filePath: string, sourceMapFilePath: string, sourceFileOrBundle: SourceFile | Bundle, sourceMapOutput?: SourceMapData[]): void;
         /**
          * Reset the SourceMapWriter to an empty state.
          */
@@ -7931,16 +7939,16 @@ declare namespace ts {
          * Gets the SourceMappingURL for the source map.
          */
         getSourceMappingURL(): string;
-        /**
-         * Gets test data for source maps.
-         */
-        getSourceMapData(): SourceMapData;
-        /**
-         * @returns the previous disabled state
-         */
-        setState(disabled: boolean): boolean;
     }
-    function createSourceMapWriter(host: EmitHost, writer: EmitTextWriter): SourceMapWriter;
+    interface SourceMapOptions {
+        sourceMap?: boolean;
+        inlineSourceMap?: boolean;
+        inlineSources?: boolean;
+        sourceRoot?: string;
+        mapRoot?: string;
+        extendedDiagnostics?: boolean;
+    }
+    function createSourceMapWriter(host: EmitHost, writer: EmitTextWriter, compilerOptions?: SourceMapOptions): SourceMapWriter;
 }
 declare namespace ts {
     interface CommentWriter {
@@ -7969,6 +7977,7 @@ declare namespace ts {
         jsFilePath: string;
         sourceMapFilePath: string;
         declarationFilePath: string;
+        declarationMapPath: string;
     };
     function emitFiles(resolver: EmitResolver, host: EmitHost, targetSourceFile: SourceFile, emitOnlyDtsFiles?: boolean, transformers?: TransformerFactory<SourceFile>[]): EmitResult;
     function createPrinter(printerOptions?: PrinterOptions, handlers?: PrintHandlers): Printer;
@@ -8728,9 +8737,11 @@ declare namespace ts {
         getLineStarts(): ReadonlyArray<number>;
         getPositionOfLineAndCharacter(line: number, character: number): number;
         update(newText: string, textChangeRange: TextChangeRange): SourceFile;
+        sourceMapper?: sourcemaps.SourceMapper;
     }
     interface SourceFileLike {
         getLineAndCharacterOfPosition(pos: number): LineAndCharacter;
+        sourceMapper?: sourcemaps.SourceMapper;
     }
     interface SourceMapSource {
         getLineAndCharacterOfPosition(pos: number): LineAndCharacter;
@@ -10277,7 +10288,8 @@ declare namespace ts.textChanges {
      * By default when removing nodes we adjust start and end positions to respect specification of the trivia above.
      * If pos\end should be interpreted literally 'useNonAdjustedStartPosition' or 'useNonAdjustedEndPosition' should be set to true
      */
-    type ConfigurableStartEnd = ConfigurableStart & ConfigurableEnd;
+    interface ConfigurableStartEnd extends ConfigurableStart, ConfigurableEnd {
+    }
     const useNonAdjustedPositions: ConfigurableStartEnd;
     interface InsertNodeOptions {
         /**
@@ -10302,7 +10314,6 @@ declare namespace ts.textChanges {
         preserveLeadingWhitespace?: boolean;
     }
     interface ChangeNodeOptions extends ConfigurableStartEnd, InsertNodeOptions {
-        readonly useIndentationFromFile?: boolean;
     }
     interface TextChangesContext {
         host: LanguageServiceHost;
@@ -10324,10 +10335,10 @@ declare namespace ts.textChanges {
         deleteNode(sourceFile: SourceFile, node: Node, options?: ConfigurableStartEnd): this;
         deleteNodeRange(sourceFile: SourceFile, startNode: Node, endNode: Node, options?: ConfigurableStartEnd): this;
         deleteNodeInList(sourceFile: SourceFile, node: Node): this;
-        replaceRange(sourceFile: SourceFile, range: TextRange, newNode: Node, options?: ChangeNodeOptions): this;
+        replaceRange(sourceFile: SourceFile, range: TextRange, newNode: Node, options?: InsertNodeOptions): this;
         replaceNode(sourceFile: SourceFile, oldNode: Node, newNode: Node, options?: ChangeNodeOptions): this;
         replaceNodeRange(sourceFile: SourceFile, startNode: Node, endNode: Node, newNode: Node, options?: ChangeNodeOptions): this;
-        replaceRangeWithNodes(sourceFile: SourceFile, range: TextRange, newNodes: ReadonlyArray<Node>, options?: ChangeNodeOptions): this;
+        replaceRangeWithNodes(sourceFile: SourceFile, range: TextRange, newNodes: ReadonlyArray<Node>, options?: InsertNodeOptions): this;
         replaceNodeWithNodes(sourceFile: SourceFile, oldNode: Node, newNodes: ReadonlyArray<Node>, options?: ChangeNodeOptions): this;
         replaceNodeRangeWithNodes(sourceFile: SourceFile, startNode: Node, endNode: Node, newNodes: ReadonlyArray<Node>, options?: ChangeNodeOptions): this;
         private insertNodeAt;
@@ -10583,6 +10594,36 @@ declare namespace ts.refactor.extractSymbol {
         Write = 2
     }
 }
+declare namespace ts.sourcemaps {
+    interface SourceMapData {
+        version?: number;
+        file?: string;
+        sourceRoot?: string;
+        sources: string[];
+        sourcesContent?: string[];
+        names?: string[];
+        mappings: string;
+    }
+    interface SourceMappableLocation {
+        fileName: string;
+        position: number;
+    }
+    interface SourceMapper {
+        getOriginalPosition(input: SourceMappableLocation): SourceMappableLocation;
+        getGeneratedPosition(input: SourceMappableLocation): SourceMappableLocation;
+    }
+    const identitySourceMapper: {
+        getOriginalPosition: typeof identity;
+        getGeneratedPosition: typeof identity;
+    };
+    interface SourceMapDecodeHost {
+        readFile(path: string): string;
+        fileExists(path: string): boolean;
+        getCanonicalFileName(path: string): string;
+        log(text: string): void;
+    }
+    function decode(host: SourceMapDecodeHost, mapPath: string, map: SourceMapData, program?: Program, fallbackCache?: SourceFileLikeCache): SourceMapper;
+}
 declare namespace ts {
     /** The version of the language service API */
     const servicesVersion = "0.8";
@@ -10606,6 +10647,13 @@ declare namespace ts {
         isCancellationRequested(): boolean;
         throwIfCancellationRequested(): void;
     }
+    interface SourceFileLikeCache {
+        get(path: Path): SourceFileLike | undefined;
+    }
+    function createSourceFileLikeCache(host: {
+        readFile?: (path: string) => string;
+        fileExists?: (path: string) => boolean;
+    }): SourceFileLikeCache;
     function createLanguageService(host: LanguageServiceHost, documentRegistry?: DocumentRegistry): LanguageService;
     /** Names in the name table are escaped, so an identifier `__foo` will have a name table entry `___foo`. */
     function getNameTable(sourceFile: SourceFile): UnderscoreEscapedMap<number>;
