@@ -1777,6 +1777,7 @@ declare namespace ts {
         sourceFiles: ReadonlyArray<SourceFile>;
         syntheticFileReferences?: ReadonlyArray<FileReference>;
         syntheticTypeReferences?: ReadonlyArray<FileReference>;
+        hasNoDefaultLib?: boolean;
     }
     interface JsonSourceFile extends SourceFile {
         jsonObject?: ObjectLiteralExpression;
@@ -1836,6 +1837,7 @@ declare namespace ts {
         getSyntacticDiagnostics(sourceFile?: SourceFile, cancellationToken?: CancellationToken): ReadonlyArray<Diagnostic>;
         getSemanticDiagnostics(sourceFile?: SourceFile, cancellationToken?: CancellationToken): ReadonlyArray<Diagnostic>;
         getDeclarationDiagnostics(sourceFile?: SourceFile, cancellationToken?: CancellationToken): ReadonlyArray<Diagnostic>;
+        getConfigFileParsingDiagnostics(): ReadonlyArray<Diagnostic>;
         /**
          * Gets a type checker that can be used to semantically analyze source files in the program.
          */
@@ -1914,7 +1916,7 @@ declare namespace ts {
     interface TypeCheckerHost {
         getCompilerOptions(): CompilerOptions;
         getSourceFiles(): ReadonlyArray<SourceFile>;
-        getSourceFile(fileName: string): SourceFile;
+        getSourceFile(fileName: string): SourceFile | undefined;
         getResolvedTypeReferenceDirectives(): ReadonlyMap<ResolvedTypeReferenceDirective>;
     }
     interface TypeChecker {
@@ -2027,6 +2029,7 @@ declare namespace ts {
         getApparentType(type: Type): Type;
         getSuggestionForNonexistentProperty(node: Identifier, containingType: Type): string | undefined;
         getSuggestionForNonexistentSymbol(location: Node, name: string, meaning: SymbolFlags): string | undefined;
+        getSuggestionForNonexistentModule(node: Identifier, target: Symbol): string | undefined;
         getBaseConstraintOfType(type: Type): Type | undefined;
         getDefaultFromTypeParameter(type: Type): Type | undefined;
         getAnyType(): Type;
@@ -3754,7 +3757,6 @@ declare namespace ts {
         add(diagnostic: Diagnostic): void;
         getGlobalDiagnostics(): Diagnostic[];
         getDiagnostics(fileName?: string): Diagnostic[];
-        getModificationCount(): number;
         reattachFileDiagnostics(newFile: SourceFile): void;
     }
     interface SyntaxList extends Node {
@@ -4338,9 +4340,7 @@ declare namespace ts {
      * @param args The functions to compose.
      */
     function compose<T>(...args: ((t: T) => T)[]): (t: T) => T;
-    function formatStringFromArgs(text: string, args: {
-        [index: number]: string;
-    }, baseIndex?: number): string;
+    function formatStringFromArgs(text: string, args: ArrayLike<string>, baseIndex?: number): string;
     let localizedDiagnosticMessages: MapLike<string>;
     function getLocaleSpecificMessage(message: DiagnosticMessage): string;
     function createFileDiagnostic(file: SourceFile, start: number, length: number, message: DiagnosticMessage, ...args: (string | number)[]): Diagnostic;
@@ -4572,7 +4572,7 @@ declare namespace ts {
         function assertGreaterThanOrEqual(a: number, b: number): void;
         function fail(message?: string, stackCrawlMark?: AnyFunction): never;
         function assertDefined<T>(value: T | null | undefined, message?: string): T;
-        function assertEachDefined<T, A extends ReadonlyArray<T>>(value: A, message: string): A;
+        function assertEachDefined<T, A extends ReadonlyArray<T>>(value: A, message?: string): A;
         function assertNever(member: never, message?: string, stackCrawlMark?: AnyFunction): never;
         function getFunctionName(func: AnyFunction): any;
         function showSymbol(symbol: Symbol): string;
@@ -4667,9 +4667,10 @@ declare namespace ts {
     function onWatchedFileStat(watchedFile: WatchedFile, modifiedTime: Date): boolean;
     interface RecursiveDirectoryWatcherHost {
         watchDirectory: HostWatchDirectory;
-        getAccessileSortedChildDirectories(path: string): ReadonlyArray<string>;
+        getAccessibleSortedChildDirectories(path: string): ReadonlyArray<string>;
         directoryExists(dir: string): boolean;
         filePathComparer: Comparer<string>;
+        realpath(s: string): string;
     }
     /**
      * Watch the directory recursively using host provided method to watch child directories
@@ -5719,6 +5720,7 @@ declare namespace ts {
         Trailing_comma_not_allowed: DiagnosticMessage;
         Asterisk_Slash_expected: DiagnosticMessage;
         Unexpected_token: DiagnosticMessage;
+        A_rest_parameter_or_binding_pattern_may_not_have_a_trailing_comma: DiagnosticMessage;
         A_rest_parameter_must_be_last_in_a_parameter_list: DiagnosticMessage;
         Parameter_cannot_have_question_mark_and_initializer: DiagnosticMessage;
         A_required_parameter_cannot_follow_an_optional_parameter: DiagnosticMessage;
@@ -6055,7 +6057,7 @@ declare namespace ts {
         The_left_hand_side_of_a_for_in_statement_cannot_use_a_type_annotation: DiagnosticMessage;
         The_left_hand_side_of_a_for_in_statement_must_be_of_type_string_or_any: DiagnosticMessage;
         The_left_hand_side_of_a_for_in_statement_must_be_a_variable_or_a_property_access: DiagnosticMessage;
-        The_right_hand_side_of_a_for_in_statement_must_be_of_type_any_an_object_type_or_a_type_parameter: DiagnosticMessage;
+        The_right_hand_side_of_a_for_in_statement_must_be_of_type_any_an_object_type_or_a_type_parameter_but_here_has_type_0: DiagnosticMessage;
         Setters_cannot_return_a_value: DiagnosticMessage;
         Return_type_of_constructor_signature_must_be_assignable_to_the_instance_type_of_the_class: DiagnosticMessage;
         The_with_statement_is_not_supported_All_symbols_in_a_with_block_will_have_type_any: DiagnosticMessage;
@@ -6129,7 +6131,7 @@ declare namespace ts {
         The_left_hand_side_of_a_for_of_statement_cannot_use_a_type_annotation: DiagnosticMessage;
         Export_declaration_conflicts_with_exported_declaration_of_0: DiagnosticMessage;
         The_left_hand_side_of_a_for_of_statement_must_be_a_variable_or_a_property_access: DiagnosticMessage;
-        Type_must_have_a_Symbol_iterator_method_that_returns_an_iterator: DiagnosticMessage;
+        Type_0_must_have_a_Symbol_iterator_method_that_returns_an_iterator: DiagnosticMessage;
         An_iterator_must_have_a_next_method: DiagnosticMessage;
         The_type_returned_by_the_next_method_of_an_iterator_must_have_a_value_property: DiagnosticMessage;
         The_left_hand_side_of_a_for_in_statement_cannot_be_a_destructuring_pattern: DiagnosticMessage;
@@ -6145,7 +6147,7 @@ declare namespace ts {
         A_rest_element_cannot_contain_a_binding_pattern: DiagnosticMessage;
         _0_is_referenced_directly_or_indirectly_in_its_own_type_annotation: DiagnosticMessage;
         Cannot_find_namespace_0: DiagnosticMessage;
-        Type_must_have_a_Symbol_asyncIterator_method_that_returns_an_async_iterator: DiagnosticMessage;
+        Type_0_must_have_a_Symbol_asyncIterator_method_that_returns_an_async_iterator: DiagnosticMessage;
         A_generator_cannot_have_a_void_type_annotation: DiagnosticMessage;
         _0_is_referenced_directly_or_indirectly_in_its_own_base_expression: DiagnosticMessage;
         Type_0_is_not_a_constructor_function_type: DiagnosticMessage;
@@ -6209,6 +6211,8 @@ declare namespace ts {
         Property_0_is_used_before_being_assigned: DiagnosticMessage;
         A_rest_element_cannot_have_a_property_name: DiagnosticMessage;
         Enum_declarations_can_only_merge_with_namespace_or_other_enum_declarations: DiagnosticMessage;
+        Type_0_is_not_an_array_type_Use_compiler_option_downlevelIteration_to_allow_iterating_of_iterators: DiagnosticMessage;
+        Type_0_is_not_an_array_type_or_a_string_type_Use_compiler_option_downlevelIteration_to_allow_iterating_of_iterators: DiagnosticMessage;
         JSX_element_attributes_type_0_may_not_be_a_union_type: DiagnosticMessage;
         The_return_type_of_a_JSX_element_constructor_must_return_an_object_type: DiagnosticMessage;
         JSX_element_implicitly_has_type_any_because_the_global_type_JSX_Element_does_not_exist: DiagnosticMessage;
@@ -7264,7 +7268,7 @@ declare namespace ts {
     function updateSpreadAssignment(node: SpreadAssignment, expression: Expression): SpreadAssignment;
     function createEnumMember(name: string | PropertyName, initializer?: Expression): EnumMember;
     function updateEnumMember(node: EnumMember, name: PropertyName, initializer: Expression | undefined): EnumMember;
-    function updateSourceFileNode(node: SourceFile, statements: ReadonlyArray<Statement>, isDeclarationFile?: boolean, referencedFiles?: SourceFile["referencedFiles"], typeReferences?: SourceFile["typeReferenceDirectives"]): SourceFile;
+    function updateSourceFileNode(node: SourceFile, statements: ReadonlyArray<Statement>, isDeclarationFile?: boolean, referencedFiles?: SourceFile["referencedFiles"], typeReferences?: SourceFile["typeReferenceDirectives"], hasNoDefaultLib?: boolean): SourceFile;
     /**
      * Creates a shallow, memberwise clone of a node for mutation.
      */
@@ -8043,6 +8047,7 @@ declare namespace ts {
      * Determines if program structure is upto date or needs to be recreated
      */
     function isProgramUptoDate(program: Program | undefined, rootFileNames: string[], newOptions: CompilerOptions, getSourceVersion: (path: Path) => string, fileExists: (fileName: string) => boolean, hasInvalidatedResolution: HasInvalidatedResolution, hasChangedAutomaticTypeDirectiveNames: boolean): boolean;
+    function getConfigFileParsingDiagnostics(configFileParseResult: ParsedCommandLine): ReadonlyArray<Diagnostic>;
     /**
      * Create a new 'Program' instance. A Program is an immutable collection of 'SourceFile's and a 'CompilerOptions'
      * that represent a compilation unit.
@@ -8054,9 +8059,10 @@ declare namespace ts {
      * @param options - The compiler options which should be used.
      * @param host - The host interacts with the underlying file system.
      * @param oldProgram - Reuses an old program structure.
+     * @param configFileParsingDiagnostics - error during config file parsing
      * @returns A 'Program' object.
      */
-    function createProgram(rootNames: ReadonlyArray<string>, options: CompilerOptions, host?: CompilerHost, oldProgram?: Program): Program;
+    function createProgram(rootNames: ReadonlyArray<string>, options: CompilerOptions, host?: CompilerHost, oldProgram?: Program, configFileParsingDiagnostics?: ReadonlyArray<Diagnostic>): Program;
     /**
      * Returns a DiagnosticMessage if we won't include a resolved module due to its extension.
      * The DiagnosticMessage's parameters are the imported module name, and the filename it resolved to.
@@ -8189,8 +8195,9 @@ declare namespace ts {
         newProgram: Program;
         host: BuilderProgramHost;
         oldProgram: BuilderProgram | undefined;
+        configFileParsingDiagnostics: ReadonlyArray<Diagnostic>;
     }
-    function getBuilderCreationParameters(newProgramOrRootNames: Program | ReadonlyArray<string>, hostOrOptions: BuilderProgramHost | CompilerOptions, oldProgramOrHost?: CompilerHost | BuilderProgram, oldProgram?: BuilderProgram): BuilderCreationParameters;
+    function getBuilderCreationParameters(newProgramOrRootNames: Program | ReadonlyArray<string> | undefined, hostOrOptions: BuilderProgramHost | CompilerOptions | undefined, oldProgramOrHost?: BuilderProgram | CompilerHost, configFileParsingDiagnosticsOrOldProgram?: ReadonlyArray<Diagnostic> | BuilderProgram, configFileParsingDiagnostics?: ReadonlyArray<Diagnostic>): BuilderCreationParameters;
     function createBuilderProgram(kind: BuilderProgramKind.SemanticDiagnosticsBuilderProgram, builderCreationParameters: BuilderCreationParameters): SemanticDiagnosticsBuilderProgram;
     function createBuilderProgram(kind: BuilderProgramKind.EmitAndSemanticDiagnosticsBuilderProgram, builderCreationParameters: BuilderCreationParameters): EmitAndSemanticDiagnosticsBuilderProgram;
 }
@@ -8243,6 +8250,10 @@ declare namespace ts {
          * Get the diagnostics that dont belong to any file
          */
         getGlobalDiagnostics(cancellationToken?: CancellationToken): ReadonlyArray<Diagnostic>;
+        /**
+         * Get the diagnostics from config file parsing
+         */
+        getConfigFileParsingDiagnostics(): ReadonlyArray<Diagnostic>;
         /**
          * Get the syntax diagnostics, for all source files if source file is not supplied
          */
@@ -8302,19 +8313,19 @@ declare namespace ts {
     /**
      * Create the builder to manage semantic diagnostics and cache them
      */
-    function createSemanticDiagnosticsBuilderProgram(newProgram: Program, host: BuilderProgramHost, oldProgram?: SemanticDiagnosticsBuilderProgram): SemanticDiagnosticsBuilderProgram;
-    function createSemanticDiagnosticsBuilderProgram(rootNames: ReadonlyArray<string>, options: CompilerOptions, host?: CompilerHost, oldProgram?: SemanticDiagnosticsBuilderProgram): SemanticDiagnosticsBuilderProgram;
+    function createSemanticDiagnosticsBuilderProgram(newProgram: Program, host: BuilderProgramHost, oldProgram?: SemanticDiagnosticsBuilderProgram, configFileParsingDiagnostics?: ReadonlyArray<Diagnostic>): SemanticDiagnosticsBuilderProgram;
+    function createSemanticDiagnosticsBuilderProgram(rootNames: ReadonlyArray<string>, options: CompilerOptions, host?: CompilerHost, oldProgram?: SemanticDiagnosticsBuilderProgram, configFileParsingDiagnostics?: ReadonlyArray<Diagnostic>): SemanticDiagnosticsBuilderProgram;
     /**
      * Create the builder that can handle the changes in program and iterate through changed files
      * to emit the those files and manage semantic diagnostics cache as well
      */
-    function createEmitAndSemanticDiagnosticsBuilderProgram(newProgram: Program, host: BuilderProgramHost, oldProgram?: EmitAndSemanticDiagnosticsBuilderProgram): EmitAndSemanticDiagnosticsBuilderProgram;
-    function createEmitAndSemanticDiagnosticsBuilderProgram(rootNames: ReadonlyArray<string>, options: CompilerOptions, host?: CompilerHost, oldProgram?: EmitAndSemanticDiagnosticsBuilderProgram): EmitAndSemanticDiagnosticsBuilderProgram;
+    function createEmitAndSemanticDiagnosticsBuilderProgram(newProgram: Program, host: BuilderProgramHost, oldProgram?: EmitAndSemanticDiagnosticsBuilderProgram, configFileParsingDiagnostics?: ReadonlyArray<Diagnostic>): EmitAndSemanticDiagnosticsBuilderProgram;
+    function createEmitAndSemanticDiagnosticsBuilderProgram(rootNames: ReadonlyArray<string>, options: CompilerOptions, host?: CompilerHost, oldProgram?: EmitAndSemanticDiagnosticsBuilderProgram, configFileParsingDiagnostics?: ReadonlyArray<Diagnostic>): EmitAndSemanticDiagnosticsBuilderProgram;
     /**
      * Creates a builder thats just abstraction over program and can be used with watch
      */
-    function createAbstractBuilder(newProgram: Program, host: BuilderProgramHost, oldProgram?: BuilderProgram): BuilderProgram;
-    function createAbstractBuilder(rootNames: ReadonlyArray<string>, options: CompilerOptions, host?: CompilerHost, oldProgram?: BuilderProgram): BuilderProgram;
+    function createAbstractBuilder(newProgram: Program, host: BuilderProgramHost, oldProgram?: BuilderProgram, configFileParsingDiagnostics?: ReadonlyArray<Diagnostic>): BuilderProgram;
+    function createAbstractBuilder(rootNames: ReadonlyArray<string>, options: CompilerOptions, host?: CompilerHost, oldProgram?: BuilderProgram, configFileParsingDiagnostics?: ReadonlyArray<Diagnostic>): BuilderProgram;
 }
 declare namespace ts {
     const compileOnSaveCommandLineOption: CommandLineOption;
@@ -8547,6 +8558,7 @@ declare namespace ts {
         getOptionsDiagnostics(): ReadonlyArray<Diagnostic>;
         getGlobalDiagnostics(): ReadonlyArray<Diagnostic>;
         getSemanticDiagnostics(): ReadonlyArray<Diagnostic>;
+        getConfigFileParsingDiagnostics(): ReadonlyArray<Diagnostic>;
         emit(): EmitResult;
     }
     /**
@@ -8565,7 +8577,8 @@ declare namespace ts {
 declare namespace ts {
     type DiagnosticReporter = (diagnostic: Diagnostic) => void;
     type WatchStatusReporter = (diagnostic: Diagnostic, newLine: string, options: CompilerOptions) => void;
-    type CreateProgram<T extends BuilderProgram> = (rootNames: ReadonlyArray<string>, options: CompilerOptions, host?: CompilerHost, oldProgram?: T) => T;
+    /** Create the program with rootNames and options, if they are undefined, oldProgram and new configFile diagnostics create new program */
+    type CreateProgram<T extends BuilderProgram> = (rootNames: ReadonlyArray<string> | undefined, options: CompilerOptions | undefined, host?: CompilerHost, oldProgram?: T, configFileParsingDiagnostics?: ReadonlyArray<Diagnostic>) => T;
     interface WatchCompilerHost<T extends BuilderProgram> {
         /**
          * Used to create the program when need for program creation or recreation detected
@@ -8637,10 +8650,6 @@ declare namespace ts {
      */
     interface ConfigFileDiagnosticsReporter {
         /**
-         * Reports the diagnostics in reading/writing or parsing of the config file
-         */
-        onConfigFileDiagnostic: DiagnosticReporter;
-        /**
          * Reports unrecoverable error when parsing config file
          */
         onUnRecoverableConfigFileDiagnostic: DiagnosticReporter;
@@ -8663,11 +8672,8 @@ declare namespace ts {
      * Host to create watch with config file that is already parsed (from tsc)
      */
     interface WatchCompilerHostOfConfigFile<T extends BuilderProgram> extends WatchCompilerHost<T> {
-        rootFiles?: string[];
-        options?: CompilerOptions;
         optionsToExtend?: CompilerOptions;
-        configFileSpecs?: ConfigFileSpecs;
-        configFileWildCardDirectories?: MapLike<WatchDirectoryFlags>;
+        configFileParsingResult?: ParsedCommandLine;
     }
     interface Watch<T> {
         /** Synchronize with host and get updated program */
@@ -9638,6 +9644,7 @@ declare namespace ts {
     function nodeSeenTracker<T extends Node>(): (node: T) => boolean;
     function getSnapshotText(snap: IScriptSnapshot): string;
     function repeatString(str: string, count: number): string;
+    function skipConstraint(type: Type): Type;
 }
 declare namespace ts {
     function isFirstDeclarationOfSymbolParameter(symbol: Symbol): boolean;
