@@ -507,10 +507,11 @@ declare namespace ts {
         Loop = 2,
         Unique = 3,
         Node = 4,
-        OptimisticUnique = 5,
         KindMask = 7,
         SkipNameGenerationScope = 8,
-        ReservedInNestedScopes = 16
+        ReservedInNestedScopes = 16,
+        Optimistic = 32,
+        FileLevel = 64
     }
     interface Identifier extends PrimaryExpression, Declaration {
         kind: SyntaxKind.Identifier;
@@ -3489,9 +3490,11 @@ declare namespace ts {
     interface EmitHelper {
         readonly name: string;
         readonly scoped: boolean;
-        readonly text: string;
+        readonly text: string | ((node: EmitHelperUniqueNameCallback) => string);
         readonly priority?: number;
     }
+    type UniqueNameHandler = (baseName: string, checkFn?: (name: string) => boolean, optimistic?: boolean) => string;
+    type EmitHelperUniqueNameCallback = (name: string) => string;
     /**
      * Used by the checker, this enum keeps track of external emit helpers that should be type
      * checked.
@@ -3707,7 +3710,6 @@ declare namespace ts {
         onEmitSourceMapOfNode?: (hint: EmitHint, node: Node, emitCallback: (hint: EmitHint, node: Node) => void) => void;
         onEmitSourceMapOfToken?: (node: Node, token: SyntaxKind, writer: (s: string) => void, pos: number, emitCallback: (token: SyntaxKind, writer: (s: string) => void, pos: number) => number) => number;
         onEmitSourceMapOfPosition?: (pos: number) => void;
-        onEmitHelpers?: (node: Node, writeLines: (text: string) => void) => void;
         onSetSourceFile?: (node: SourceFile) => void;
         onBeforeEmitNodeArray?: (nodes: NodeArray<any>) => void;
         onAfterEmitNodeArray?: (nodes: NodeArray<any>) => void;
@@ -3718,6 +3720,9 @@ declare namespace ts {
         removeComments?: boolean;
         newLine?: NewLineKind;
         omitTrailingSemicolon?: boolean;
+        noEmitHelpers?: boolean;
+        module?: CompilerOptions["module"];
+        target?: CompilerOptions["target"];
         sourceMap?: boolean;
         inlineSourceMap?: boolean;
         extendedDiagnostics?: boolean;
@@ -4440,7 +4445,10 @@ declare namespace ts {
     function isUrl(path: string): boolean;
     function pathIsRelative(path: string): boolean;
     function getEmitScriptTarget(compilerOptions: CompilerOptions): ScriptTarget;
-    function getEmitModuleKind(compilerOptions: CompilerOptions): ModuleKind;
+    function getEmitModuleKind(compilerOptions: {
+        module?: CompilerOptions["module"];
+        target?: CompilerOptions["target"];
+    }): ModuleKind;
     function getEmitModuleResolutionKind(compilerOptions: CompilerOptions): ModuleResolutionKind;
     function getAreDeclarationMapsEnabled(options: CompilerOptions): boolean;
     function getAllowSyntheticDefaultImports(compilerOptions: CompilerOptions): boolean;
@@ -4752,6 +4760,10 @@ declare namespace ts {
     function getStartPositionOfLine(line: number, sourceFile: SourceFileLike): number;
     function nodePosToString(node: Node): string;
     function getEndLinePosition(line: number, sourceFile: SourceFileLike): number;
+    /**
+     * Returns a value indicating whether a name is unique globally or within the current file
+     */
+    function isFileLevelUniqueName(currentSourceFile: SourceFile, name: string, hasGlobalName?: PrintHandlers["hasGlobalName"]): boolean;
     function nodeIsMissing(node: Node): boolean;
     function nodeIsPresent(node: Node): boolean;
     /**
@@ -7002,6 +7014,8 @@ declare namespace ts {
     function createUniqueName(text: string): Identifier;
     /** Create a unique name based on the supplied text. */
     function createOptimisticUniqueName(text: string): Identifier;
+    /** Create a unique name based on the supplied text. This does not consider names injected by the transformer. */
+    function createFileLevelUniqueName(text: string): Identifier;
     /** Create a unique name generated for a node. */
     function getGeneratedNameForNode(node: Node): Identifier;
     function getGeneratedNameForNode(node: Node, shouldSkipNameGenerationScope?: boolean): Identifier;
@@ -7809,6 +7823,11 @@ declare namespace ts {
      *  - this is mostly subjective beyond the requirement that the expression not be sideeffecting
      */
     function isSimpleCopiableExpression(expression: Expression): boolean;
+    /**
+     * @param input Template string input strings
+     * @param args Names which need to be made file-level unique
+     */
+    function helperString(input: TemplateStringsArray, ...args: string[]): (uniqueName: EmitHelperUniqueNameCallback) => string;
 }
 declare namespace ts {
     enum FlattenLevel {
@@ -9188,6 +9207,7 @@ declare namespace ts {
         placeOpenBraceOnNewLineForFunctions?: boolean;
         placeOpenBraceOnNewLineForControlBlocks?: boolean;
         insertSpaceBeforeTypeAnnotation?: boolean;
+        indentMultiLineObjectLiteralBeginningOnBlankLine?: boolean;
     }
     interface DefinitionInfo {
         fileName: string;
@@ -9933,7 +9953,7 @@ declare namespace ts.GoToDefinition {
     function findReferenceInPosition(refs: ReadonlyArray<FileReference>, pos: number): FileReference | undefined;
 }
 declare namespace ts.JsDoc {
-    function getJsDocCommentsFromDeclarations(declarations?: Declaration[]): SymbolDisplayPart[];
+    function getJsDocCommentsFromDeclarations(declarations: ReadonlyArray<Declaration>): SymbolDisplayPart[];
     function getJsDocTagsFromDeclarations(declarations?: Declaration[]): JSDocTagInfo[];
     function getJSDocTagNameCompletions(): CompletionEntry[];
     const getJSDocTagNameCompletionDetails: typeof getJSDocTagCompletionDetails;
@@ -10295,12 +10315,12 @@ declare namespace ts.formatting {
             character: number;
         };
         function findFirstNonWhitespaceColumn(startPos: number, endPos: number, sourceFile: SourceFileLike, options: EditorSettings): number;
-        function nodeWillIndentChild(parent: TextRangeWithKind, child: TextRangeWithKind | undefined, indentByDefault: boolean): boolean;
+        function nodeWillIndentChild(settings: FormatCodeSettings | undefined, parent: TextRangeWithKind, child: TextRangeWithKind | undefined, sourceFile: SourceFileLike | undefined, indentByDefault: boolean): boolean;
         /**
          * True when the parent node should indent the given child by an explicit rule.
          * @param isNextChild If true, we are judging indent of a hypothetical child *after* this one, not the current child.
          */
-        function shouldIndentChildNode(parent: TextRangeWithKind, child?: TextRangeWithKind, isNextChild?: boolean): boolean;
+        function shouldIndentChildNode(settings: FormatCodeSettings | undefined, parent: TextRangeWithKind, child?: Node, sourceFile?: SourceFileLike, isNextChild?: boolean): boolean;
     }
 }
 declare namespace ts.textChanges {
