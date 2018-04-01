@@ -2777,7 +2777,7 @@ declare namespace ts {
         extendsType: Type;
         resolvedTrueType?: Type;
         resolvedFalseType?: Type;
-        resolvedInferredTrueType?: Type;
+        resolvedDefaultConstraint?: Type;
         mapper?: TypeMapper;
         combinedMapper?: TypeMapper;
     }
