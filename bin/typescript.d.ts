@@ -2696,6 +2696,7 @@ declare namespace ts {
         propertyCache: SymbolTable;
         resolvedProperties: Symbol[];
         resolvedIndexType: IndexType;
+        resolvedDeclaredIndexType: IndexType;
         resolvedBaseConstraint: Type;
         couldContainTypeVariables: boolean;
     }
@@ -2752,6 +2753,7 @@ declare namespace ts {
     interface InstantiableType extends Type {
         resolvedBaseConstraint?: Type;
         resolvedIndexType?: IndexType;
+        resolvedDeclaredIndexType?: IndexType;
     }
     interface TypeParameter extends InstantiableType {
         /** Retrieve using getConstraintFromTypeParameter */
@@ -2769,6 +2771,7 @@ declare namespace ts {
     }
     type TypeVariable = TypeParameter | IndexedAccessType;
     interface IndexType extends InstantiableType {
+        isDeclaredType?: boolean;
         type: InstantiableType | UnionOrIntersectionType;
     }
     interface ConditionalRoot {
@@ -6619,6 +6622,8 @@ declare namespace ts {
         Found_package_json_at_0_Package_ID_is_1: DiagnosticMessage;
         Whether_to_keep_outdated_console_output_in_watch_mode_instead_of_clearing_the_screen: DiagnosticMessage;
         All_imports_in_import_declaration_are_unused: DiagnosticMessage;
+        Found_1_error: DiagnosticMessage;
+        Found_0_errors: DiagnosticMessage;
         Variable_0_implicitly_has_an_1_type: DiagnosticMessage;
         Parameter_0_implicitly_has_an_1_type: DiagnosticMessage;
         Member_0_implicitly_has_an_1_type: DiagnosticMessage;
@@ -8571,6 +8576,8 @@ declare namespace ts {
      * Create a function that reports error by writing to the system and handles the formating of the diagnostic
      */
     function createDiagnosticReporter(system: System, pretty?: boolean): DiagnosticReporter;
+    /** @internal */
+    const nonClearingMessageCodes: number[];
     /**
      * Create a function that reports watch status by writing to the system and handles the formating of the diagnostic
      */
@@ -8601,10 +8608,11 @@ declare namespace ts {
         getConfigFileParsingDiagnostics(): ReadonlyArray<Diagnostic>;
         emit(): EmitResult;
     }
+    type ReportEmitErrorSummary = (errorCount: number) => void;
     /**
      * Helper that emit files, report diagnostics and lists emitted and/or source files depending on compiler options
      */
-    function emitFilesAndReportErrors(program: ProgramToEmitFilesAndReportErrors, reportDiagnostic: DiagnosticReporter, writeFileName?: (s: string) => void): ExitStatus;
+    function emitFilesAndReportErrors(program: ProgramToEmitFilesAndReportErrors, reportDiagnostic: DiagnosticReporter, writeFileName?: (s: string) => void, reportSummary?: ReportEmitErrorSummary): ExitStatus;
     /**
      * Creates the watch compiler host from system for config file in watch mode
      */
@@ -8796,6 +8804,15 @@ declare namespace ts {
         getNonNullableType(): Type;
         getConstraint(): Type | undefined;
         getDefault(): Type | undefined;
+        isUnion(): this is UnionType;
+        isIntersection(): this is IntersectionType;
+        isUnionOrIntersection(): this is UnionOrIntersectionType;
+        isLiteral(): this is LiteralType;
+        isStringLiteral(): this is StringLiteralType;
+        isNumberLiteral(): this is NumberLiteralType;
+        isTypeParameter(): this is TypeParameter;
+        isClassOrInterface(): this is InterfaceType;
+        isClass(): this is InterfaceType;
     }
     interface Signature {
         getDeclaration(): SignatureDeclaration;
@@ -10740,7 +10757,7 @@ declare namespace ts {
         readFile?: (path: string) => string;
         fileExists?: (path: string) => boolean;
     }): SourceFileLikeCache;
-    function createLanguageService(host: LanguageServiceHost, documentRegistry?: DocumentRegistry): LanguageService;
+    function createLanguageService(host: LanguageServiceHost, documentRegistry?: DocumentRegistry, syntaxOnly?: boolean): LanguageService;
     /** Names in the name table are escaped, so an identifier `__foo` will have a name table entry `___foo`. */
     function getNameTable(sourceFile: SourceFile): UnderscoreEscapedMap<number>;
     /**
