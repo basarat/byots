@@ -1974,6 +1974,10 @@ declare namespace ts {
         getSymbolsInScope(location: Node, meaning: SymbolFlags): Symbol[];
         getSymbolAtLocation(node: Node): Symbol | undefined;
         getSymbolsOfParameterPropertyDeclaration(parameter: ParameterDeclaration, parameterName: string): Symbol[];
+        /**
+         * The function returns the value (local variable) symbol of an identifier in the short-hand property assignment.
+         * This is necessary as an identifier in short-hand property assignment can contains two meaning: property name and property value.
+         */
         getShorthandAssignmentValueSymbol(location: Node): Symbol | undefined;
         getExportSpecifierLocalTargetSymbol(location: ExportSpecifier): Symbol | undefined;
         /**
@@ -2830,7 +2834,7 @@ declare namespace ts {
     interface IndexInfo {
         type: Type;
         isReadonly: boolean;
-        declaration?: SignatureDeclaration;
+        declaration?: IndexSignatureDeclaration;
     }
     type TypeMapper = (t: TypeParameter) => Type;
     enum InferencePriority {
@@ -4492,6 +4496,7 @@ declare namespace ts {
      * Adds a trailing directory separator to a path, if it does not already have one.
      * @param path The path.
      */
+    function ensureTrailingDirectorySeparator(path: Path): Path;
     function ensureTrailingDirectorySeparator(path: string): string;
     function comparePaths(a: string, b: string, currentDirectory: string, ignoreCase?: boolean): Comparison;
     function containsPath(parent: string, child: string, currentDirectory: string, ignoreCase?: boolean): boolean;
@@ -6250,6 +6255,7 @@ declare namespace ts {
         Enum_declarations_can_only_merge_with_namespace_or_other_enum_declarations: DiagnosticMessage;
         Type_0_is_not_an_array_type_Use_compiler_option_downlevelIteration_to_allow_iterating_of_iterators: DiagnosticMessage;
         Type_0_is_not_an_array_type_or_a_string_type_Use_compiler_option_downlevelIteration_to_allow_iterating_of_iterators: DiagnosticMessage;
+        Property_0_does_not_exist_on_type_1_Did_you_forget_to_use_await: DiagnosticMessage;
         JSX_element_attributes_type_0_may_not_be_a_union_type: DiagnosticMessage;
         The_return_type_of_a_JSX_element_constructor_must_return_an_object_type: DiagnosticMessage;
         JSX_element_implicitly_has_type_any_because_the_global_type_JSX_Element_does_not_exist: DiagnosticMessage;
@@ -6937,6 +6943,9 @@ declare namespace ts {
     interface Push<T> {
         push(value: T): void;
     }
+    function readJson(path: string, host: {
+        readFile(fileName: string): string | undefined;
+    }): object;
     interface GetEffectiveTypeRootsHost {
         directoryExists?(directoryName: string): boolean;
         getCurrentDirectory?(): string;
