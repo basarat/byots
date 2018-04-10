@@ -2252,9 +2252,10 @@ declare namespace ts {
     type RequireOrImportCall = CallExpression & {
         arguments: [StringLiteralLike];
     };
+    type LateVisibilityPaintedStatement = AnyImportSyntax | VariableStatement;
     interface SymbolVisibilityResult {
         accessibility: SymbolAccessibility;
-        aliasesToMakeVisible?: AnyImportSyntax[];
+        aliasesToMakeVisible?: LateVisibilityPaintedStatement[];
         errorSymbolName?: string;
         errorNode?: Node;
     }
@@ -4837,6 +4838,7 @@ declare namespace ts {
     function isBlockScope(node: Node, parentNode: Node): boolean;
     function isDeclarationWithTypeParameters(node: Node): node is DeclarationWithTypeParameters;
     function isAnyImportSyntax(node: Node): node is AnyImportSyntax;
+    function isLateVisibilityPaintedStatement(node: Node): node is LateVisibilityPaintedStatement;
     function isAnyImportOrReExport(node: Node): node is AnyImportOrReExport;
     function getEnclosingBlockScopeContainer(node: Node): Node;
     function declarationNameToString(name: DeclarationName | QualifiedName): string;
@@ -5660,6 +5662,7 @@ declare namespace ts {
     function isAccessor(node: Node): node is AccessorDeclaration;
     function isMethodOrAccessor(node: Node): node is MethodDeclaration | AccessorDeclaration;
     function isTypeElement(node: Node): node is TypeElement;
+    function isClassOrTypeElement(node: Node): node is ClassElement | TypeElement;
     function isObjectLiteralElementLike(node: Node): node is ObjectLiteralElementLike;
     /**
      * Node test that determines whether a node is a valid type node.
@@ -9994,7 +9997,7 @@ declare namespace ts.FindAllReferences.Core {
     function getReferenceEntriesForShorthandPropertyAssignment(node: Node, checker: TypeChecker, addReference: (node: Node) => void): void;
 }
 declare namespace ts.GoToDefinition {
-    function getDefinitionAtPosition(program: Program, sourceFile: SourceFile, position: number): DefinitionInfo[];
+    function getDefinitionAtPosition(program: Program, sourceFile: SourceFile, position: number): DefinitionInfo[] | undefined;
     function getReferenceAtPosition(sourceFile: SourceFile, position: number, program: Program): {
         fileName: string;
         file: SourceFile;
@@ -10558,28 +10561,6 @@ declare namespace ts.codefix {
 declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
-}
-declare namespace ts.codefix {
-}
-declare namespace ts.codefix {
-}
-declare namespace ts.codefix {
-}
-declare namespace ts.codefix {
-}
-declare namespace ts.codefix {
-}
-declare namespace ts.codefix {
-}
-declare namespace ts.codefix {
-}
-declare namespace ts.codefix {
-}
-declare namespace ts.codefix {
-}
-declare namespace ts.codefix {
-}
-declare namespace ts.codefix {
     type ImportDeclarationMap = ExistingImportInfo[][];
     interface SymbolContext extends textChanges.TextChangesContext {
         sourceFile: SourceFile;
@@ -10612,6 +10593,28 @@ declare namespace ts.codefix {
     function forEachExternalModuleToImportFrom(checker: TypeChecker, from: SourceFile, allSourceFiles: ReadonlyArray<SourceFile>, cb: (module: Symbol) => void): void;
     function moduleSymbolToValidIdentifier(moduleSymbol: Symbol, target: ScriptTarget): string;
     function moduleSpecifierToValidIdentifier(moduleSpecifier: string, target: ScriptTarget): string;
+}
+declare namespace ts.codefix {
+}
+declare namespace ts.codefix {
+}
+declare namespace ts.codefix {
+}
+declare namespace ts.codefix {
+}
+declare namespace ts.codefix {
+}
+declare namespace ts.codefix {
+}
+declare namespace ts.codefix {
+}
+declare namespace ts.codefix {
+}
+declare namespace ts.codefix {
+}
+declare namespace ts.codefix {
+}
+declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
 }
