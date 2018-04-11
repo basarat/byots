@@ -2910,7 +2910,7 @@ declare namespace ts {
         category: DiagnosticCategory;
         code: number;
         message: string;
-        unused?: {};
+        reportsUnnecessary?: {};
     }
     /**
      * A linked list of formatted diagnostic messages to be used as part of a multiline message.
@@ -4277,9 +4277,7 @@ declare namespace ts {
     /** Copy entries from `source` to `target`. */
     function copyEntries<T>(source: ReadonlyUnderscoreEscapedMap<T>, target: UnderscoreEscapedMap<T>): void;
     function copyEntries<T>(source: ReadonlyMap<T>, target: Map<T>): void;
-    function assign<T1 extends MapLike<{}>, T2, T3>(t: T1, arg1: T2, arg2: T3): T1 & T2 & T3;
-    function assign<T1 extends MapLike<{}>, T2>(t: T1, arg1: T2): T1 & T2;
-    function assign<T1 extends MapLike<{}>>(t: T1, ...args: any[]): any;
+    function assign<T extends object>(t: T, ...args: T[]): T;
     /**
      * Performs a shallow equality comparison of the contents of two map-likes.
      *
@@ -4648,7 +4646,7 @@ declare namespace ts {
     function getAnyExtensionFromPath(path: string): string | undefined;
     function isCheckJsEnabledForFile(sourceFile: SourceFile, compilerOptions: CompilerOptions): boolean;
     function and<T>(f: (arg: T) => boolean, g: (arg: T) => boolean): (arg: T) => boolean;
-    function or<T>(f: (arg: T) => boolean, g: (arg: T) => boolean): (arg: T) => boolean;
+    function or<T>(f: (arg: T) => boolean, g: (arg: T) => boolean, ...others: ((arg: T) => boolean)[]): (arg: T) => boolean;
     function assertTypeIsNever(_: never): void;
     const emptyFileSystemEntries: FileSystemEntries;
     function singleElementArray<T>(t: T | undefined): T[] | undefined;
@@ -5352,7 +5350,7 @@ declare namespace ts {
      */
     function collapseTextChangeRangesAcrossMultipleVersions(changes: ReadonlyArray<TextChangeRange>): TextChangeRange;
     function getTypeParameterOwner(d: Declaration): Declaration;
-    function isParameterPropertyDeclaration(node: Node): boolean;
+    function isParameterPropertyDeclaration(node: Node): node is ParameterDeclaration;
     function isEmptyBindingPattern(node: BindingName): node is BindingPattern;
     function isEmptyBindingElement(node: BindingElement): boolean;
     function getCombinedModifierFlags(node: Node): ModifierFlags;
@@ -6793,6 +6791,7 @@ declare namespace ts {
         Annotate_everything_with_types_from_JSDoc: DiagnosticMessage;
         Add_to_all_uncalled_decorators: DiagnosticMessage;
         Convert_all_constructor_functions_to_classes: DiagnosticMessage;
+        Generate_get_and_set_accessors: DiagnosticMessage;
     };
 }
 declare namespace ts {
@@ -8928,6 +8927,7 @@ declare namespace ts {
         installPackage?(options: InstallPackageOptions): Promise<ApplyCodeActionCommandResult>;
     }
     interface UserPreferences {
+        readonly disableSuggestions?: boolean;
         readonly quotePreference?: "double" | "single";
         readonly includeCompletionsForModuleExports?: boolean;
         readonly includeCompletionsWithInsertText?: boolean;
@@ -9771,6 +9771,13 @@ declare namespace ts {
      * Sets EmitFlags to suppress trailing trivia on the node.
      */
     function suppressTrailingTrivia(node: Node): void;
+    function getUniqueName(baseName: string, fileText: string): string;
+    /**
+     * @return The index of the (only) reference to the extracted symbol.  We want the cursor
+     * to be on the reference, rather than the declaration, because it's closer to where the
+     * user was before extracting it.
+     */
+    function getRenameLocation(edits: ReadonlyArray<FileTextChanges>, renameFilename: string, name: string, isDeclaredBeforeUse: boolean): number;
 }
 declare namespace ts {
     function createClassifier(): Classifier;
@@ -10147,7 +10154,7 @@ declare namespace ts {
         getMatches(candidateContainers: string[], candidate: string): PatternMatch[] | undefined;
         patternContainsDots: boolean;
     }
-    function createPatternMatcher(pattern: string): PatternMatcher;
+    function createPatternMatcher(pattern: string): PatternMatcher | undefined;
     function breakIntoCharacterSpans(identifier: string): TextSpan[];
     function breakIntoWordSpans(identifier: string): TextSpan[];
 }
@@ -10453,6 +10460,7 @@ declare namespace ts.textChanges {
         private replaceRangeWithNodes;
         replaceNodeWithNodes(sourceFile: SourceFile, oldNode: Node, newNodes: ReadonlyArray<Node>, options?: ChangeNodeOptions): this;
         replaceNodeRangeWithNodes(sourceFile: SourceFile, startNode: Node, endNode: Node, newNodes: ReadonlyArray<Node>, options?: ChangeNodeOptions): this;
+        replacePropertyAssignment(sourceFile: SourceFile, oldNode: PropertyAssignment, newNode: PropertyAssignment): this;
         private insertNodeAt;
         private insertNodesAt;
         insertNodeAtTopOfFile(sourceFile: SourceFile, newNode: Statement, blankLineBetween: boolean): void;
@@ -10711,6 +10719,8 @@ declare namespace ts.refactor.extractSymbol {
         Read = 1,
         Write = 2
     }
+}
+declare namespace ts.refactor.generateGetAccessorAndSetAccessor {
 }
 declare namespace ts.sourcemaps {
     interface SourceMapData {
