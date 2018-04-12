@@ -1741,7 +1741,7 @@ declare namespace ts {
         /**
          * If two source files are for the same version of the same package, one will redirect to the other.
          * (See `createRedirectSourceFile` in program.ts.)
-         * The redirect will have this set. The other will not have anything set, but see Program#sourceFileIsRedirectedTo.
+         * The redirect will have this set. The redirected-to source file will be in `redirectTargetsSet`.
          */
         redirectInfo?: RedirectInfo | undefined;
         amdDependencies: ReadonlyArray<AmdDependency>;
@@ -4398,6 +4398,7 @@ declare namespace ts {
      * To compare strings, use any of the `compareStrings` functions.
      */
     function compareValues(a: number, b: number): Comparison;
+    function min<T>(a: T, b: T, compare: Comparer<T>): T;
     /**
      * Compare two strings using a case-insensitive ordinal comparison.
      *
@@ -4646,7 +4647,7 @@ declare namespace ts {
     function getAnyExtensionFromPath(path: string): string | undefined;
     function isCheckJsEnabledForFile(sourceFile: SourceFile, compilerOptions: CompilerOptions): boolean;
     function and<T>(f: (arg: T) => boolean, g: (arg: T) => boolean): (arg: T) => boolean;
-    function or<T>(f: (arg: T) => boolean, g: (arg: T) => boolean, ...others: ((arg: T) => boolean)[]): (arg: T) => boolean;
+    function or<T>(f: (arg: T) => boolean, g: (arg: T) => boolean): (arg: T) => boolean;
     function assertTypeIsNever(_: never): void;
     const emptyFileSystemEntries: FileSystemEntries;
     function singleElementArray<T>(t: T | undefined): T[] | undefined;
@@ -9887,7 +9888,7 @@ declare namespace ts.FindAllReferences {
     }
     type ImportTracker = (exportSymbol: Symbol, exportInfo: ExportInfo, isForRename: boolean) => ImportsResult;
     /** Creates the imports map and returns an ImportTracker that uses it. Call this lazily to avoid calling `getDirectImportsMap` unnecessarily.  */
-    function createImportTracker(sourceFiles: ReadonlyArray<SourceFile>, checker: TypeChecker, cancellationToken: CancellationToken): ImportTracker;
+    function createImportTracker(sourceFiles: ReadonlyArray<SourceFile>, sourceFilesSet: ReadonlyMap<true>, checker: TypeChecker, cancellationToken: CancellationToken): ImportTracker;
     /** Info about an exported symbol to perform recursive search on. */
     interface ExportInfo {
         exportingModuleSymbol: Symbol;
@@ -9980,7 +9981,7 @@ declare namespace ts.FindAllReferences {
     function findReferencedSymbols(program: Program, cancellationToken: CancellationToken, sourceFiles: ReadonlyArray<SourceFile>, sourceFile: SourceFile, position: number): ReferencedSymbol[] | undefined;
     function getImplementationsAtPosition(program: Program, cancellationToken: CancellationToken, sourceFiles: ReadonlyArray<SourceFile>, sourceFile: SourceFile, position: number): ImplementationLocation[];
     function findReferencedEntries(program: Program, cancellationToken: CancellationToken, sourceFiles: ReadonlyArray<SourceFile>, sourceFile: SourceFile, position: number, options?: Options): ReferenceEntry[] | undefined;
-    function getReferenceEntriesForNode(position: number, node: Node, program: Program, sourceFiles: ReadonlyArray<SourceFile>, cancellationToken: CancellationToken, options?: Options): Entry[] | undefined;
+    function getReferenceEntriesForNode(position: number, node: Node, program: Program, sourceFiles: ReadonlyArray<SourceFile>, cancellationToken: CancellationToken, options?: Options, sourceFilesSet?: ReadonlyMap<true>): Entry[] | undefined;
     function toHighlightSpan(entry: Entry): {
         fileName: string;
         span: HighlightSpan;
@@ -9989,7 +9990,7 @@ declare namespace ts.FindAllReferences {
 /** Encapsulates the core find-all-references algorithm. */
 declare namespace ts.FindAllReferences.Core {
     /** Core find-all-references algorithm. Handles special cases before delegating to `getReferencedSymbolsForSymbol`. */
-    function getReferencedSymbolsForNode(position: number, node: Node, program: Program, sourceFiles: ReadonlyArray<SourceFile>, cancellationToken: CancellationToken, options?: Options): SymbolAndEntries[] | undefined;
+    function getReferencedSymbolsForNode(position: number, node: Node, program: Program, sourceFiles: ReadonlyArray<SourceFile>, cancellationToken: CancellationToken, options?: Options, sourceFilesSet?: ReadonlyMap<true>): SymbolAndEntries[] | undefined;
     /** Used as a quick check for whether a symbol is used at all in a file (besides its definition). */
     function isSymbolReferencedInFile(definition: Identifier, checker: TypeChecker, sourceFile: SourceFile): boolean;
     /**
@@ -10150,8 +10151,8 @@ declare namespace ts {
         isCaseSensitive: boolean;
     }
     interface PatternMatcher {
-        getMatchesForLastSegmentOfPattern(candidate: string): PatternMatch[];
-        getMatches(candidateContainers: string[], candidate: string): PatternMatch[] | undefined;
+        getMatchForLastSegmentOfPattern(candidate: string): PatternMatch | undefined;
+        getFullMatch(candidateContainers: ReadonlyArray<string>, candidate: string): PatternMatch | undefined;
         patternContainsDots: boolean;
     }
     function createPatternMatcher(pattern: string): PatternMatcher | undefined;
