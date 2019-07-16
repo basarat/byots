@@ -5,7 +5,7 @@
 
 **Use the latest** [**TypeScript**](https://github.com/Microsoft/TypeScript), **with complete access to the compiler API** 🌹
 
-[![NPM](https://nodei.co/npm-dl/byots.png)](https://nodei.co/npm/byots/)
+[![NPM](https://nodei.co/npm-dl/byots.png)](https://nodei.co/npm/byots/) [![Greenkeeper badge](https://badges.greenkeeper.io/basarat/byots.svg)](https://greenkeeper.io/)
 
 
 **Still Just TypeScript**
