@@ -1,7 +1,6 @@
 # Bring your own TypeScript
 [![Downloads](http://img.shields.io/npm/dm/byots.svg)](https://npmjs.org/package/byots)
-
-# I HAVE PARKED THIS PROJECT and just use the public api from TypeScript as it is sufficient for my current experiments ❤️
+[![BuildStatus](https://travis-ci.org/basarat/byots.svg)](https://travis-ci.org/basarat/byots)
 
 **Use the latest** [**TypeScript**](https://github.com/Microsoft/TypeScript), **with complete access to the compiler API** 🌹
 
