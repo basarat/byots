@@ -75,10 +75,6 @@ const fixesForFiles: IFixForFile[] = [
     filePath: '../TypeScript/src/services/codefixes/importFixes.ts',
     fixes: [
       {
-        orig: 'interface SymbolContext',
-        new: 'export interface SymbolContext'
-      },
-      {
         orig: 'type ImportDeclarationMap',
         new: 'export type ImportDeclarationMap'
       },
