@@ -75,10 +75,6 @@ const fixesForFiles: IFixForFile[] = [
     filePath: '../TypeScript/src/services/codefixes/importFixes.ts',
     fixes: [
       {
-        orig: 'interface ExistingImportInfo',
-        new: 'export interface ExistingImportInfo'
-      },
-      {
         orig: 'const enum ImportKind',
         new: 'export const enum ImportKind'
       },
