@@ -63,15 +63,6 @@ const fixesForFiles: IFixForFile[] = [
     ]
   },
   {
-    filePath: '../TypeScript/src/services/codeFixProvider.ts',
-    fixes: [
-      {
-        orig: 'type DiagnosticAndArguments',
-        new: 'export type DiagnosticAndArguments'
-      },
-    ]
-  },
-  {
     filePath: '../TypeScript/src/services/codefixes/importFixes.ts',
     fixes: [
       {
