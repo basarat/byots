@@ -43,6 +43,14 @@ export function stringify(object: Object, eol: string = '\n'): string {
 const dtsFilePath = '../bin/typescript.d.ts';
 writeFile(dtsFilePath, readFile(dtsFilePath).replace(/const enum /g, 'enum '));
 
+/** 
+ * Don't want preflogger 
+ */
+writeFile(dtsFilePath, readFile(dtsFilePath).replace(`type PerfLogger = typeof import("@microsoft/typescript-etw");
+/** Performance logger that will generate ETW events if possible */
+export const perfLogger: PerfLogger;
+export {};`, ''));
+
 /**
  * Also get the version number for current ts nightly and use it to power our version number
  */
