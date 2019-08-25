@@ -2,7 +2,9 @@
 set -e
 
 # Get the latest typescript built version
-# Helps with getting the version numbers
+# Helps with 
+#  - getting the version numbers
+#  - compiling our code
 npm install typescript@next --save-dev --save-exact
 
 #
@@ -21,19 +23,13 @@ git reset --hard origin/master
 npm install
 
 # Build our scripts using official nightly TypeScript
-../node_modules/.bin/tsc -p ../scripts/tsconfig.json
+../node_modules/.bin/tsc -p ../tsconfig.json
 
 # Some pre build fixes
-node ../scripts/preBuild.js
+node ../lib/preBuild.js
 
 # Run a jake task to get the `diagnosticInformationMap.generated.ts` file
 npm run build:compiler
-
-# Copy our tsconfig.json to do the building
-cp ../src/tsconfig.json ./src/tsconfig.json
-
-# Now build the compiler with our tsconfig.json using official nightly typescript to get new definitions
-../node_modules/.bin/tsc -p ./src
 
 # Finally just take the new typescript.d.ts
 mv ./built/local/typescriptServices.d.ts ../bin/typescript.d.ts
