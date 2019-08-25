@@ -2,51 +2,19 @@
  * We use this script to do some minor post build cleanups
  */
 
-/**
- * Utilities
- */
-declare var require, __dirname;
-var fs = require('fs');
-var EOL: string = require('os').EOL;
-export function readFile(filePath: string): string {
-    return fs.readFileSync(__dirname + '/' + filePath, 'utf8');
-}
-export function writeFile(filePath: string, content: string) {
-    fs.writeFileSync(__dirname + '/' + filePath, content);
-}
-export function stringify(object: Object, eol: string = '\n'): string {
-    var cache = [];
-    var value = JSON.stringify(object,
-        // fixup circular reference
-        function(key, value) {
-            if (typeof value === 'object' && value !== null) {
-                if (cache.indexOf(value) !== -1) {
-                    // Circular reference found, discard key
-                    return;
-                }
-                // Store value in our collection
-                cache.push(value);
-            }
-            return value;
-        },
-        // indent 2 spaces
-        2);
-    value = value.split('\n').join(eol) + eol;
-    cache = null;
-    return value;
-}
+import * as utils from './utils';
 
 /**
  * I think the `const enum` causes more pain than its worth for dev tools (everything needs to be rebuilt).
  * So change to enum to prevent inlining
  */
 const dtsFilePath = '../bin/typescript.d.ts';
-writeFile(dtsFilePath, readFile(dtsFilePath).replace(/const enum /g, 'enum '));
+utils.writeFile(dtsFilePath, utils.readFile(dtsFilePath).replace(/const enum /g, 'enum '));
 
 /** 
  * Don't want preflogger 
  */
-writeFile(dtsFilePath, readFile(dtsFilePath).replace(`type PerfLogger = typeof import("@microsoft/typescript-etw");
+utils.writeFile(dtsFilePath, utils.readFile(dtsFilePath).replace(`type PerfLogger = typeof import("@microsoft/typescript-etw");
 /** Performance logger that will generate ETW events if possible */
 export const perfLogger: PerfLogger;
 export {};`, ''));
@@ -63,7 +31,10 @@ const now = new Date();
 const ourVersion = tsVersion + '.' + now.getUTCHours() + '.' + now.getUTCMinutes();
 pkg.version = ourVersion;
 
-// Write it out
-writeFile(packageJsonFilePath,stringify(pkg));
-// Also write to kicktravis for usage
-writeFile('../kicktravis',ourVersion);
+utils.writeFile(packageJsonFilePath, utils.stringify(pkg));
+
+
+/** 
+ * Also write to kicktravis for easy debugging
+ */
+utils.writeFile('../kicktravis', ourVersion);
