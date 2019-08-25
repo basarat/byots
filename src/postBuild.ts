@@ -4,20 +4,29 @@
 
 import * as utils from './utils';
 
-/**
- * I think the `const enum` causes more pain than its worth for dev tools (everything needs to be rebuilt).
- * So change to enum to prevent inlining
- */
 const fixesForFiles: utils.FixesForFile[] = [
-    {
-        filePath: '../bin/typescript.d.ts',
-        fixes: [
-          {
-            orig: /const enum /g,
-            new: 'enum '
-          }
-        ]
+  {
+    filePath: '../bin/typescript.d.ts',
+    fixes: [
+      /**
+       * I think the `const enum` causes more pain than its worth for dev tools (everything needs to be rebuilt).
+       * So change to enum to prevent inlining
+       */
+      {
+        orig: /const enum /g,
+        new: 'enum '
       },
+      /** 
+       * Don't depend on `@microsoft/typescript-etw`
+       */
+      {
+        orig: 'type PerfLogger = typeof import("@microsoft/typescript-etw");', new: '',
+      },
+      {
+        orig: 'export const perfLogger: PerfLogger;', new: '',
+      }
+    ]
+  },
 ]
 
 utils.runFixesforFiles(fixesForFiles);

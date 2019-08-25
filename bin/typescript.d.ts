@@ -635,9 +635,9 @@ declare namespace ts.performance {
     function disable(): void;
 }
 declare namespace ts {
-    type PerfLogger = typeof import("@microsoft/typescript-etw");
+    
     /** Performance logger that will generate ETW events if possible */
-    export const perfLogger: PerfLogger;
+    
     export {};
 }
 declare namespace ts {
