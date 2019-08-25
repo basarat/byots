@@ -61,5 +61,3 @@ after_success:
   * This should setup `deploy` (with `provider`,`email`,`api_key`,`on`) in your `.travis.yml`
 * Since we want to deploy the `build` directory which is git ignored set `deploy.skip_cleanup: true`.
 
-## Nighly
-* Cron job setup using https://nightli.es/.
