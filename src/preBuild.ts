@@ -23,6 +23,21 @@ interface IFixForFile {
   additions?: string,
 }
 const fixesForFiles: IFixForFile[] = [
+  /** 
+   * Tsconfig expose internal
+   */
+  {
+    filePath: '../TypeScript/src/tsconfig-library-base.json',
+    fixes: [
+      {
+        orig: '"stripInternal":  true',
+        new: '"stripInternal":  false'
+      }
+    ]
+  },
+  /** 
+   * Code expose internal
+   */
   {
     filePath: '../TypeScript/src/services/refactors/extractSymbol.ts',
     fixes: [

@@ -35,7 +35,7 @@ npm run build:compiler
 mv ./built/local/typescriptServices.d.ts ../bin/typescript.d.ts
 
 # Some post build fixes
-node ../scripts/postBuild.js
+node ../lib/postBuild.js
 
 # Reset sub typescript
 git reset --hard origin/master
