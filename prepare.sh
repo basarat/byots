@@ -28,7 +28,7 @@ npm install
 # Some pre build fixes
 node ../lib/preBuild.js
 
-# Run a jake task to get the `diagnosticInformationMap.generated.ts` file
+# Build the compiler
 npm run build:compiler
 
 # Finally just take the new typescript.d.ts
