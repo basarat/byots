@@ -3,7 +3,7 @@
   "version": "3.7.0-dev.20190824.5.20",
   "description": "Bring your own TypeScript",
   "main": "bin/byots.js",
-  "typings": "bin/byots.d.ts",
+  "types": "bin/byots.d.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
