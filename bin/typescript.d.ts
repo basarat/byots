@@ -1,4 +1,4 @@
-/*! *****************************************************************************
+export = ts/*! *****************************************************************************
 Copyright (c) Microsoft Corporation. All rights reserved. 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use
 this file except in compliance with the License. You may obtain a copy of the
@@ -636,7 +636,7 @@ declare namespace ts.performance {
 }
 declare namespace ts {
     
-    /** Performance logger that will generate ETW events if possible */
+    /** Performance logger that will generate ETW events if possible - check for `logEvent` member, as `etwModule` will be `{}` when browserified */
     
     export {};
 }
@@ -4208,6 +4208,7 @@ declare namespace ts {
         affectsBindDiagnostics?: true;
         affectsSemanticDiagnostics?: true;
         affectsEmit?: true;
+        transpileOptionValue?: boolean | undefined;
     }
     export interface CommandLineOptionOfPrimitiveType extends CommandLineOptionBase {
         type: "string" | "number" | "boolean";
@@ -6707,6 +6708,7 @@ declare namespace ts {
         Remove_all_unnecessary_uses_of_await: DiagnosticMessage;
         Enable_the_jsx_flag_in_your_configuration_file: DiagnosticMessage;
         Add_await_to_initializers: DiagnosticMessage;
+        Extract_to_interface: DiagnosticMessage;
         No_value_exists_in_scope_for_the_shorthand_property_0_Either_declare_one_or_provide_an_initializer: DiagnosticMessage;
         Classes_may_not_have_a_field_named_constructor: DiagnosticMessage;
         JSX_expressions_may_not_use_the_comma_operator_Did_you_mean_to_write_an_array: DiagnosticMessage;
@@ -7219,6 +7221,10 @@ declare namespace ts {
     function getIndentString(level: number): string;
     function getIndentSize(): number;
     function createTextWriter(newLine: string): EmitTextWriter;
+    interface TrailingSemicolonDeferringWriter extends EmitTextWriter {
+        resetPendingTrailingSemicolon(): void;
+    }
+    function getTrailingSemicolonDeferringWriter(writer: EmitTextWriter): TrailingSemicolonDeferringWriter;
     function getTrailingSemicolonOmittingWriter(writer: EmitTextWriter): EmitTextWriter;
     function getResolvedExternalModuleName(host: EmitHost, file: SourceFile, referenceFile?: SourceFile): string;
     function getExternalModuleNameFromDeclaration(host: EmitHost, resolver: EmitResolver, declaration: ImportEqualsDeclaration | ImportDeclaration | ExportDeclaration | ModuleDeclaration | ImportTypeNode): string | undefined;
@@ -8369,6 +8375,7 @@ declare namespace ts {
     export const affectsEmitOptionDeclarations: ReadonlyArray<CommandLineOption>;
     export const moduleResolutionOptionDeclarations: ReadonlyArray<CommandLineOption>;
     export const sourceFileAffectingCompilerOptions: ReadonlyArray<CommandLineOption>;
+    export const transpileOptionValueCompilerOptions: ReadonlyArray<CommandLineOption>;
     export const buildOpts: CommandLineOption[];
     export const typeAcquisitionDeclarations: CommandLineOption[];
     export interface OptionNameMap {
@@ -10268,7 +10275,7 @@ declare namespace ts {
          */
         emittedBuildInfo?: boolean;
         /**
-         * Already seen affected files
+         * Already seen emitted files
          */
         seenEmittedFiles: Map<true> | undefined;
         /**
@@ -10608,13 +10615,13 @@ declare namespace ts {
         createProgram?: CreateProgram<T>;
     }
     function createIncrementalProgram<T extends BuilderProgram = EmitAndSemanticDiagnosticsBuilderProgram>({ rootNames, options, configFileParsingDiagnostics, projectReferences, host, createProgram }: IncrementalProgramOptions<T>): T;
-    type WatchStatusReporter = (diagnostic: Diagnostic, newLine: string, options: CompilerOptions) => void;
+    type WatchStatusReporter = (diagnostic: Diagnostic, newLine: string, options: CompilerOptions, errorCount?: number) => void;
     /** Create the program with rootNames and options, if they are undefined, oldProgram and new configFile diagnostics create new program */
     type CreateProgram<T extends BuilderProgram> = (rootNames: ReadonlyArray<string> | undefined, options: CompilerOptions | undefined, host?: CompilerHost, oldProgram?: T, configFileParsingDiagnostics?: ReadonlyArray<Diagnostic>, projectReferences?: ReadonlyArray<ProjectReference> | undefined) => T;
     /** Host that has watch functionality used in --watch mode */
     interface WatchHost {
         /** If provided, called with Diagnostic message that informs about change in watch status */
-        onWatchStatusChange?(diagnostic: Diagnostic, newLine: string, options: CompilerOptions): void;
+        onWatchStatusChange?(diagnostic: Diagnostic, newLine: string, options: CompilerOptions, errorCount?: number): void;
         /** Used to watch changes in source files, missing files needed to update the program or config file */
         watchFile(path: string, callback: FileWatcherCallback, pollingInterval?: number): FileWatcher;
         /** Used to watch resolved module's failed lookup locations, config file specs, type roots where auto type reference directives are added */
@@ -12350,20 +12357,25 @@ declare namespace ts.Completions.StringCompletions {
 declare namespace ts.Completions {
     export enum SortText {
         LocationPriority = "0",
-        SuggestedClassMembers = "1",
-        GlobalsOrKeywords = "2",
-        AutoImportSuggestions = "3",
-        JavascriptIdentifiers = "4"
+        OptionalMember = "1",
+        MemberDeclaredBySpreadAssignment = "2",
+        SuggestedClassMembers = "3",
+        GlobalsOrKeywords = "4",
+        AutoImportSuggestions = "5",
+        JavascriptIdentifiers = "6"
     }
     export type Log = (message: string) => void;
     enum SymbolOriginInfoKind {
         ThisType = 0,
         SymbolMemberNoExport = 1,
         SymbolMemberExport = 2,
-        Export = 3
+        Export = 3,
+        Promise = 4
     }
     type SymbolOriginInfo = {
         kind: SymbolOriginInfoKind.ThisType;
+    } | {
+        kind: SymbolOriginInfoKind.Promise;
     } | {
         kind: SymbolOriginInfoKind.SymbolMemberNoExport;
     } | SymbolOriginInfoExport;
@@ -12379,7 +12391,7 @@ declare namespace ts.Completions {
     type SymbolOriginInfoMap = (SymbolOriginInfo | undefined)[];
     type SymbolSortTextMap = (SortText | undefined)[];
     export function getCompletionsAtPosition(host: LanguageServiceHost, program: Program, log: Log, sourceFile: SourceFile, position: number, preferences: UserPreferences, triggerCharacter: CompletionsTriggerCharacter | undefined): CompletionInfo | undefined;
-    export function getCompletionEntriesFromSymbols(symbols: ReadonlyArray<Symbol>, entries: Push<CompletionEntry>, location: Node | undefined, sourceFile: SourceFile, typeChecker: TypeChecker, target: ScriptTarget, log: Log, kind: CompletionKind, preferences: UserPreferences, propertyAccessToConvert?: PropertyAccessExpression | undefined, isJsxInitializer?: IsJsxInitializer, recommendedCompletion?: Symbol, symbolToOriginInfoMap?: SymbolOriginInfoMap, symbolToSortTextMap?: SymbolSortTextMap): Map<true>;
+    export function getCompletionEntriesFromSymbols(symbols: ReadonlyArray<Symbol>, entries: Push<CompletionEntry>, location: Node | undefined, sourceFile: SourceFile, typeChecker: TypeChecker, target: ScriptTarget, log: Log, kind: CompletionKind, preferences: UserPreferences, propertyAccessToConvert?: PropertyAccessExpression, isJsxInitializer?: IsJsxInitializer, recommendedCompletion?: Symbol, symbolToOriginInfoMap?: SymbolOriginInfoMap, symbolToSortTextMap?: SymbolSortTextMap): Map<true>;
     export interface CompletionEntryIdentifier {
         name: string;
         source?: string;
