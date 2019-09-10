@@ -25,6 +25,11 @@ const fixesForFiles: utils.FixesForFile[] = [
       {
         orig: 'export const perfLogger: PerfLogger;', new: '',
       }
+      // Prevent global pollution
+      {
+        orig: '', new: 'export = ts',
+      }
+      
     ]
   },
 ]
