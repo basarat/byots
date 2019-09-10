@@ -1,2 +1,2 @@
-/// <reference path="./typescript.d.ts"/>
+import * as ts from './typescript';
 export = ts;
