@@ -6857,7 +6857,7 @@ declare namespace ts {
         Invalid_value_for_reactNamespace_0_is_not_a_valid_identifier: DiagnosticMessage;
         Option_paths_cannot_be_used_without_specifying_baseUrl_option: DiagnosticMessage;
         Pattern_0_can_have_at_most_one_Asterisk_character: DiagnosticMessage;
-        Substitution_0_in_pattern_1_in_can_have_at_most_one_Asterisk_character: DiagnosticMessage;
+        Substitution_0_in_pattern_1_can_have_at_most_one_Asterisk_character: DiagnosticMessage;
         Substitutions_for_pattern_0_should_be_an_array: DiagnosticMessage;
         Substitution_0_for_pattern_1_has_incorrect_type_expected_string_got_2: DiagnosticMessage;
         File_specification_cannot_contain_a_parent_directory_that_appears_after_a_recursive_directory_wildcard_Asterisk_Asterisk_Colon_0: DiagnosticMessage;
