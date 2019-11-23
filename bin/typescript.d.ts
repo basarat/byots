@@ -7180,20 +7180,18 @@ declare namespace ts {
         _0_which_lacks_return_type_annotation_implicitly_has_an_1_yield_type: DiagnosticMessage;
         You_cannot_rename_this_element: DiagnosticMessage;
         You_cannot_rename_elements_that_are_defined_in_the_standard_TypeScript_library: DiagnosticMessage;
-        import_can_only_be_used_in_a_ts_file: DiagnosticMessage;
-        export_can_only_be_used_in_a_ts_file: DiagnosticMessage;
-        type_parameter_declarations_can_only_be_used_in_a_ts_file: DiagnosticMessage;
-        implements_clauses_can_only_be_used_in_a_ts_file: DiagnosticMessage;
-        interface_declarations_can_only_be_used_in_a_ts_file: DiagnosticMessage;
-        module_declarations_can_only_be_used_in_a_ts_file: DiagnosticMessage;
-        type_aliases_can_only_be_used_in_a_ts_file: DiagnosticMessage;
-        _0_can_only_be_used_in_a_ts_file: DiagnosticMessage;
-        types_can_only_be_used_in_a_ts_file: DiagnosticMessage;
-        type_arguments_can_only_be_used_in_a_ts_file: DiagnosticMessage;
-        parameter_modifiers_can_only_be_used_in_a_ts_file: DiagnosticMessage;
-        non_null_assertions_can_only_be_used_in_a_ts_file: DiagnosticMessage;
-        enum_declarations_can_only_be_used_in_a_ts_file: DiagnosticMessage;
-        type_assertion_expressions_can_only_be_used_in_a_ts_file: DiagnosticMessage;
+        import_can_only_be_used_in_TypeScript_files: DiagnosticMessage;
+        export_can_only_be_used_in_TypeScript_files: DiagnosticMessage;
+        Type_parameter_declarations_can_only_be_used_in_TypeScript_files: DiagnosticMessage;
+        implements_clauses_can_only_be_used_in_TypeScript_files: DiagnosticMessage;
+        _0_declarations_can_only_be_used_in_TypeScript_files: DiagnosticMessage;
+        Type_aliases_can_only_be_used_in_TypeScript_files: DiagnosticMessage;
+        The_0_modifier_can_only_be_used_in_TypeScript_files: DiagnosticMessage;
+        Type_annotations_can_only_be_used_in_TypeScript_files: DiagnosticMessage;
+        Type_arguments_can_only_be_used_in_TypeScript_files: DiagnosticMessage;
+        Parameter_modifiers_can_only_be_used_in_TypeScript_files: DiagnosticMessage;
+        Non_null_assertions_can_only_be_used_in_TypeScript_files: DiagnosticMessage;
+        Type_assertion_expressions_can_only_be_used_in_TypeScript_files: DiagnosticMessage;
         Octal_literal_types_must_use_ES2015_syntax_Use_the_syntax_0: DiagnosticMessage;
         Octal_literals_are_not_allowed_in_enums_members_initializer_Use_the_syntax_0: DiagnosticMessage;
         Report_errors_in_js_files: DiagnosticMessage;
@@ -10228,9 +10226,9 @@ declare namespace ts {
     /**
      * Transforms ECMAScript Class Syntax.
      * TypeScript parameter property syntax is transformed in the TypeScript transformer.
-     * For now, this transforms public field declarations using TypeScript class semantics
-     * (where the declarations get elided and initializers are transformed as assignments in the constructor).
-     * Eventually, this transform will change to the ECMAScript semantics (with Object.defineProperty).
+     * For now, this transforms public field declarations using TypeScript class semantics,
+     * where declarations are elided and initializers are transformed as assignments in the constructor.
+     * When --useDefineForClassFields is on, this transforms to ECMAScript semantics, with Object.defineProperty.
      */
     function transformClassFields(context: TransformationContext): (x: SourceFile | Bundle) => SourceFile | Bundle;
 }
