@@ -1093,6 +1093,7 @@ declare namespace ts {
         Ambient = 8388608,
         InWithStatement = 16777216,
         JsonFile = 33554432,
+        TypeCached = 67108864,
         BlockScoped = 3,
         ReachabilityCheckFlags = 768,
         ReachabilityAndEmitFlags = 2816,
@@ -2505,8 +2506,6 @@ declare namespace ts {
         Shared = 2048,
         PreFinally = 4096,
         AfterFinally = 8192,
-        /** @internal */
-        Cached = 16384,
         Label = 12,
         Condition = 96
     }
