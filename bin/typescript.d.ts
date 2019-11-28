@@ -22,8 +22,6 @@ declare namespace ts {
     const versionMajorMinor = "3.8";
     /** The version of the TypeScript compiler release */
     const version: string;
-}
-declare namespace ts {
     /**
      * Type of objects whose values are all of the same type.
      * The `in` and `for-in` operators can *not* be safely used,
@@ -84,8 +82,6 @@ declare namespace ts {
      * Returns the native Map implementation if it is available and compatible (i.e. supports iteration).
      */
     function tryGetNativeMap(): MapConstructor | undefined;
-}
-declare namespace ts {
     const emptyArray: never[];
     const Map: MapConstructor;
     /** Create a new map. */
@@ -4835,12 +4831,16 @@ declare namespace ts {
         Unspecified = 4,
         EmbeddedStatement = 5
     }
-    export interface EmitHost extends ScriptReferenceHost, ModuleSpecifierResolutionHost {
+    export interface SourceFileMayBeEmittedHost {
+        getCompilerOptions(): CompilerOptions;
+        isSourceFileFromExternalLibrary(file: SourceFile): boolean;
+        getResolvedProjectReferenceToRedirect(fileName: string): ResolvedProjectReference | undefined;
+        isSourceOfProjectReferenceRedirect(fileName: string): boolean;
+    }
+    export interface EmitHost extends ScriptReferenceHost, ModuleSpecifierResolutionHost, SourceFileMayBeEmittedHost {
         getSourceFiles(): readonly SourceFile[];
         useCaseSensitiveFileNames(): boolean;
         getCurrentDirectory(): string;
-        isSourceFileFromExternalLibrary(file: SourceFile): boolean;
-        getResolvedProjectReferenceToRedirect(fileName: string): ResolvedProjectReference | undefined;
         getLibFileFromReference(ref: FileReference): SourceFile | undefined;
         getCommonSourceDirectory(): string;
         getCanonicalFileName(fileName: string): string;
@@ -7453,6 +7453,500 @@ declare namespace ts {
 declare namespace ts {
     function isExternalModuleNameRelative(moduleName: string): boolean;
     function sortAndDeduplicateDiagnostics<T extends Diagnostic>(diagnostics: readonly T[]): SortedReadonlyArray<T>;
+    function getDefaultLibFileName(options: CompilerOptions): string;
+    function textSpanEnd(span: TextSpan): number;
+    function textSpanIsEmpty(span: TextSpan): boolean;
+    function textSpanContainsPosition(span: TextSpan, position: number): boolean;
+    function textRangeContainsPositionInclusive(span: TextRange, position: number): boolean;
+    function textSpanContainsTextSpan(span: TextSpan, other: TextSpan): boolean;
+    function textSpanOverlapsWith(span: TextSpan, other: TextSpan): boolean;
+    function textSpanOverlap(span1: TextSpan, span2: TextSpan): TextSpan | undefined;
+    function textSpanIntersectsWithTextSpan(span: TextSpan, other: TextSpan): boolean;
+    function textSpanIntersectsWith(span: TextSpan, start: number, length: number): boolean;
+    function decodedTextSpanIntersectsWith(start1: number, length1: number, start2: number, length2: number): boolean;
+    function textSpanIntersectsWithPosition(span: TextSpan, position: number): boolean;
+    function textSpanIntersection(span1: TextSpan, span2: TextSpan): TextSpan | undefined;
+    function createTextSpan(start: number, length: number): TextSpan;
+    function createTextSpanFromBounds(start: number, end: number): TextSpan;
+    function textChangeRangeNewSpan(range: TextChangeRange): TextSpan;
+    function textChangeRangeIsUnchanged(range: TextChangeRange): boolean;
+    function createTextChangeRange(span: TextSpan, newLength: number): TextChangeRange;
+    let unchangedTextChangeRange: TextChangeRange;
+    /**
+     * Called to merge all the changes that occurred across several versions of a script snapshot
+     * into a single change.  i.e. if a user keeps making successive edits to a script we will
+     * have a text change from V1 to V2, V2 to V3, ..., Vn.
+     *
+     * This function will then merge those changes into a single change range valid between V1 and
+     * Vn.
+     */
+    function collapseTextChangeRangesAcrossMultipleVersions(changes: readonly TextChangeRange[]): TextChangeRange;
+    function getTypeParameterOwner(d: Declaration): Declaration | undefined;
+    type ParameterPropertyDeclaration = ParameterDeclaration & {
+        parent: ConstructorDeclaration;
+        name: Identifier;
+    };
+    function isParameterPropertyDeclaration(node: Node, parent: Node): node is ParameterPropertyDeclaration;
+    function isEmptyBindingPattern(node: BindingName): node is BindingPattern;
+    function isEmptyBindingElement(node: BindingElement): boolean;
+    function walkUpBindingElementsAndPatterns(binding: BindingElement): VariableDeclaration | ParameterDeclaration;
+    function getCombinedModifierFlags(node: Declaration): ModifierFlags;
+    function getCombinedNodeFlags(node: Node): NodeFlags;
+    /**
+     * Checks to see if the locale is in the appropriate format,
+     * and if it is, attempts to set the appropriate language.
+     */
+    function validateLocaleAndSetLanguage(locale: string, sys: {
+        getExecutingFilePath(): string;
+        resolvePath(path: string): string;
+        fileExists(fileName: string): boolean;
+        readFile(fileName: string): string | undefined;
+    }, errors?: Push<Diagnostic>): void;
+    function getOriginalNode(node: Node): Node;
+    function getOriginalNode<T extends Node>(node: Node, nodeTest: (node: Node) => node is T): T;
+    function getOriginalNode(node: Node | undefined): Node | undefined;
+    function getOriginalNode<T extends Node>(node: Node | undefined, nodeTest: (node: Node | undefined) => node is T): T | undefined;
+    /**
+     * Gets a value indicating whether a node originated in the parse tree.
+     *
+     * @param node The node to test.
+     */
+    function isParseTreeNode(node: Node): boolean;
+    /**
+     * Gets the original parse tree node for a node.
+     *
+     * @param node The original node.
+     * @returns The original parse tree node if found; otherwise, undefined.
+     */
+    function getParseTreeNode(node: Node): Node;
+    /**
+     * Gets the original parse tree node for a node.
+     *
+     * @param node The original node.
+     * @param nodeTest A callback used to ensure the correct type of parse tree node is returned.
+     * @returns The original parse tree node if found; otherwise, undefined.
+     */
+    function getParseTreeNode<T extends Node>(node: Node | undefined, nodeTest?: (node: Node) => node is T): T | undefined;
+    /** Add an extra underscore to identifiers that start with two underscores to avoid issues with magic names like '__proto__' */
+    function escapeLeadingUnderscores(identifier: string): __String;
+    /**
+     * Remove extra underscore from escaped identifier text content.
+     *
+     * @param identifier The escaped identifier text.
+     * @returns The unescaped identifier text.
+     */
+    function unescapeLeadingUnderscores(identifier: __String): string;
+    function idText(identifier: Identifier): string;
+    function symbolName(symbol: Symbol): string;
+    /** @internal */
+    function nodeHasName(statement: Node, name: Identifier): boolean;
+    function getNameOfJSDocTypedef(declaration: JSDocTypedefTag): Identifier | undefined;
+    /** @internal */
+    function isNamedDeclaration(node: Node): node is NamedDeclaration & {
+        name: DeclarationName;
+    };
+    /** @internal */
+    function getNonAssignedNameOfDeclaration(declaration: Declaration | Expression): DeclarationName | undefined;
+    function getNameOfDeclaration(declaration: Declaration | Expression): DeclarationName | undefined;
+    /**
+     * Gets the JSDoc parameter tags for the node if present.
+     *
+     * @remarks Returns any JSDoc param tag whose name matches the provided
+     * parameter, whether a param tag on a containing function
+     * expression, or a param tag on a variable declaration whose
+     * initializer is the containing function. The tags closest to the
+     * node are returned first, so in the previous example, the param
+     * tag on the containing function expression would be first.
+     *
+     * For binding patterns, parameter tags are matched by position.
+     */
+    function getJSDocParameterTags(param: ParameterDeclaration): readonly JSDocParameterTag[];
+    /**
+     * Gets the JSDoc type parameter tags for the node if present.
+     *
+     * @remarks Returns any JSDoc template tag whose names match the provided
+     * parameter, whether a template tag on a containing function
+     * expression, or a template tag on a variable declaration whose
+     * initializer is the containing function. The tags closest to the
+     * node are returned first, so in the previous example, the template
+     * tag on the containing function expression would be first.
+     */
+    function getJSDocTypeParameterTags(param: TypeParameterDeclaration): readonly JSDocTemplateTag[];
+    /**
+     * Return true if the node has JSDoc parameter tags.
+     *
+     * @remarks Includes parameter tags that are not directly on the node,
+     * for example on a variable declaration whose initializer is a function expression.
+     */
+    function hasJSDocParameterTags(node: FunctionLikeDeclaration | SignatureDeclaration): boolean;
+    /** Gets the JSDoc augments tag for the node if present */
+    function getJSDocAugmentsTag(node: Node): JSDocAugmentsTag | undefined;
+    /** Gets the JSDoc class tag for the node if present */
+    function getJSDocClassTag(node: Node): JSDocClassTag | undefined;
+    /** Gets the JSDoc enum tag for the node if present */
+    function getJSDocEnumTag(node: Node): JSDocEnumTag | undefined;
+    /** Gets the JSDoc this tag for the node if present */
+    function getJSDocThisTag(node: Node): JSDocThisTag | undefined;
+    /** Gets the JSDoc return tag for the node if present */
+    function getJSDocReturnTag(node: Node): JSDocReturnTag | undefined;
+    /** Gets the JSDoc template tag for the node if present */
+    function getJSDocTemplateTag(node: Node): JSDocTemplateTag | undefined;
+    /** Gets the JSDoc type tag for the node if present and valid */
+    function getJSDocTypeTag(node: Node): JSDocTypeTag | undefined;
+    /**
+     * Gets the type node for the node if provided via JSDoc.
+     *
+     * @remarks The search includes any JSDoc param tag that relates
+     * to the provided parameter, for example a type tag on the
+     * parameter itself, or a param tag on a containing function
+     * expression, or a param tag on a variable declaration whose
+     * initializer is the containing function. The tags closest to the
+     * node are examined first, so in the previous example, the type
+     * tag directly on the node would be returned.
+     */
+    function getJSDocType(node: Node): TypeNode | undefined;
+    /**
+     * Gets the return type node for the node if provided via JSDoc return tag or type tag.
+     *
+     * @remarks `getJSDocReturnTag` just gets the whole JSDoc tag. This function
+     * gets the type from inside the braces, after the fat arrow, etc.
+     */
+    function getJSDocReturnType(node: Node): TypeNode | undefined;
+    /** Get all JSDoc tags related to a node, including those on parent nodes. */
+    function getJSDocTags(node: Node): readonly JSDocTag[];
+    /** Gets all JSDoc tags of a specified kind, or undefined if not present. */
+    function getAllJSDocTagsOfKind(node: Node, kind: SyntaxKind): readonly JSDocTag[];
+    /**
+     * Gets the effective type parameters. If the node was parsed in a
+     * JavaScript file, gets the type parameters from the `@template` tag from JSDoc.
+     */
+    function getEffectiveTypeParameterDeclarations(node: DeclarationWithTypeParameters): readonly TypeParameterDeclaration[];
+    function getEffectiveConstraintOfTypeParameter(node: TypeParameterDeclaration): TypeNode | undefined;
+    function isNumericLiteral(node: Node): node is NumericLiteral;
+    function isBigIntLiteral(node: Node): node is BigIntLiteral;
+    function isStringLiteral(node: Node): node is StringLiteral;
+    function isJsxText(node: Node): node is JsxText;
+    function isRegularExpressionLiteral(node: Node): node is RegularExpressionLiteral;
+    function isNoSubstitutionTemplateLiteral(node: Node): node is NoSubstitutionTemplateLiteral;
+    function isTemplateHead(node: Node): node is TemplateHead;
+    function isTemplateMiddle(node: Node): node is TemplateMiddle;
+    function isTemplateTail(node: Node): node is TemplateTail;
+    function isIdentifier(node: Node): node is Identifier;
+    function isQualifiedName(node: Node): node is QualifiedName;
+    function isComputedPropertyName(node: Node): node is ComputedPropertyName;
+    function isTypeParameterDeclaration(node: Node): node is TypeParameterDeclaration;
+    function isParameter(node: Node): node is ParameterDeclaration;
+    function isDecorator(node: Node): node is Decorator;
+    function isPropertySignature(node: Node): node is PropertySignature;
+    function isPropertyDeclaration(node: Node): node is PropertyDeclaration;
+    function isMethodSignature(node: Node): node is MethodSignature;
+    function isMethodDeclaration(node: Node): node is MethodDeclaration;
+    function isConstructorDeclaration(node: Node): node is ConstructorDeclaration;
+    function isGetAccessorDeclaration(node: Node): node is GetAccessorDeclaration;
+    function isSetAccessorDeclaration(node: Node): node is SetAccessorDeclaration;
+    function isCallSignatureDeclaration(node: Node): node is CallSignatureDeclaration;
+    function isConstructSignatureDeclaration(node: Node): node is ConstructSignatureDeclaration;
+    function isIndexSignatureDeclaration(node: Node): node is IndexSignatureDeclaration;
+    function isGetOrSetAccessorDeclaration(node: Node): node is AccessorDeclaration;
+    function isTypePredicateNode(node: Node): node is TypePredicateNode;
+    function isTypeReferenceNode(node: Node): node is TypeReferenceNode;
+    function isFunctionTypeNode(node: Node): node is FunctionTypeNode;
+    function isConstructorTypeNode(node: Node): node is ConstructorTypeNode;
+    function isTypeQueryNode(node: Node): node is TypeQueryNode;
+    function isTypeLiteralNode(node: Node): node is TypeLiteralNode;
+    function isArrayTypeNode(node: Node): node is ArrayTypeNode;
+    function isTupleTypeNode(node: Node): node is TupleTypeNode;
+    function isUnionTypeNode(node: Node): node is UnionTypeNode;
+    function isIntersectionTypeNode(node: Node): node is IntersectionTypeNode;
+    function isConditionalTypeNode(node: Node): node is ConditionalTypeNode;
+    function isInferTypeNode(node: Node): node is InferTypeNode;
+    function isParenthesizedTypeNode(node: Node): node is ParenthesizedTypeNode;
+    function isThisTypeNode(node: Node): node is ThisTypeNode;
+    function isTypeOperatorNode(node: Node): node is TypeOperatorNode;
+    function isIndexedAccessTypeNode(node: Node): node is IndexedAccessTypeNode;
+    function isMappedTypeNode(node: Node): node is MappedTypeNode;
+    function isLiteralTypeNode(node: Node): node is LiteralTypeNode;
+    function isImportTypeNode(node: Node): node is ImportTypeNode;
+    function isObjectBindingPattern(node: Node): node is ObjectBindingPattern;
+    function isArrayBindingPattern(node: Node): node is ArrayBindingPattern;
+    function isBindingElement(node: Node): node is BindingElement;
+    function isArrayLiteralExpression(node: Node): node is ArrayLiteralExpression;
+    function isObjectLiteralExpression(node: Node): node is ObjectLiteralExpression;
+    function isPropertyAccessExpression(node: Node): node is PropertyAccessExpression;
+    function isPropertyAccessChain(node: Node): node is PropertyAccessChain;
+    function isElementAccessExpression(node: Node): node is ElementAccessExpression;
+    function isElementAccessChain(node: Node): node is ElementAccessChain;
+    function isCallExpression(node: Node): node is CallExpression;
+    function isCallChain(node: Node): node is CallChain;
+    function isOptionalChain(node: Node): node is PropertyAccessChain | ElementAccessChain | CallChain;
+    function isOptionalChainRoot(node: Node): node is OptionalChainRoot;
+    /**
+     * Determines whether a node is the expression preceding an optional chain (i.e. `a` in `a?.b`).
+     */
+    function isExpressionOfOptionalChainRoot(node: Node): node is Expression & {
+        parent: OptionalChainRoot;
+    };
+    /**
+     * Determines whether a node is the outermost `OptionalChain` in an ECMAScript `OptionalExpression`:
+     *
+     * 1. For `a?.b.c`, the outermost chain is `a?.b.c` (`c` is the end of the chain starting at `a?.`)
+     * 2. For `(a?.b.c).d`, the outermost chain is `a?.b.c` (`c` is the end of the chain starting at `a?.` since parens end the chain)
+     * 3. For `a?.b.c?.d`, both `a?.b.c` and `a?.b.c?.d` are outermost (`c` is the end of the chain starting at `a?.`, and `d` is
+     *   the end of the chain starting at `c?.`)
+     * 4. For `a?.(b?.c).d`, both `b?.c` and `a?.(b?.c)d` are outermost (`c` is the end of the chain starting at `b`, and `d` is
+     *   the end of the chain starting at `a?.`)
+     */
+    function isOutermostOptionalChain(node: OptionalChain): boolean;
+    function isNullishCoalesce(node: Node): boolean;
+    function isNewExpression(node: Node): node is NewExpression;
+    function isTaggedTemplateExpression(node: Node): node is TaggedTemplateExpression;
+    function isTypeAssertion(node: Node): node is TypeAssertion;
+    function isConstTypeReference(node: Node): boolean;
+    function isParenthesizedExpression(node: Node): node is ParenthesizedExpression;
+    function skipPartiallyEmittedExpressions(node: Expression): Expression;
+    function skipPartiallyEmittedExpressions(node: Node): Node;
+    function isFunctionExpression(node: Node): node is FunctionExpression;
+    function isArrowFunction(node: Node): node is ArrowFunction;
+    function isDeleteExpression(node: Node): node is DeleteExpression;
+    function isTypeOfExpression(node: Node): node is TypeOfExpression;
+    function isVoidExpression(node: Node): node is VoidExpression;
+    function isAwaitExpression(node: Node): node is AwaitExpression;
+    function isPrefixUnaryExpression(node: Node): node is PrefixUnaryExpression;
+    function isPostfixUnaryExpression(node: Node): node is PostfixUnaryExpression;
+    function isBinaryExpression(node: Node): node is BinaryExpression;
+    function isConditionalExpression(node: Node): node is ConditionalExpression;
+    function isTemplateExpression(node: Node): node is TemplateExpression;
+    function isYieldExpression(node: Node): node is YieldExpression;
+    function isSpreadElement(node: Node): node is SpreadElement;
+    function isClassExpression(node: Node): node is ClassExpression;
+    function isOmittedExpression(node: Node): node is OmittedExpression;
+    function isExpressionWithTypeArguments(node: Node): node is ExpressionWithTypeArguments;
+    function isAsExpression(node: Node): node is AsExpression;
+    function isNonNullExpression(node: Node): node is NonNullExpression;
+    function isMetaProperty(node: Node): node is MetaProperty;
+    function isTemplateSpan(node: Node): node is TemplateSpan;
+    function isSemicolonClassElement(node: Node): node is SemicolonClassElement;
+    function isBlock(node: Node): node is Block;
+    function isVariableStatement(node: Node): node is VariableStatement;
+    function isEmptyStatement(node: Node): node is EmptyStatement;
+    function isExpressionStatement(node: Node): node is ExpressionStatement;
+    function isIfStatement(node: Node): node is IfStatement;
+    function isDoStatement(node: Node): node is DoStatement;
+    function isWhileStatement(node: Node): node is WhileStatement;
+    function isForStatement(node: Node): node is ForStatement;
+    function isForInStatement(node: Node): node is ForInStatement;
+    function isForOfStatement(node: Node): node is ForOfStatement;
+    function isContinueStatement(node: Node): node is ContinueStatement;
+    function isBreakStatement(node: Node): node is BreakStatement;
+    function isBreakOrContinueStatement(node: Node): node is BreakOrContinueStatement;
+    function isReturnStatement(node: Node): node is ReturnStatement;
+    function isWithStatement(node: Node): node is WithStatement;
+    function isSwitchStatement(node: Node): node is SwitchStatement;
+    function isLabeledStatement(node: Node): node is LabeledStatement;
+    function isThrowStatement(node: Node): node is ThrowStatement;
+    function isTryStatement(node: Node): node is TryStatement;
+    function isDebuggerStatement(node: Node): node is DebuggerStatement;
+    function isVariableDeclaration(node: Node): node is VariableDeclaration;
+    function isVariableDeclarationList(node: Node): node is VariableDeclarationList;
+    function isFunctionDeclaration(node: Node): node is FunctionDeclaration;
+    function isClassDeclaration(node: Node): node is ClassDeclaration;
+    function isInterfaceDeclaration(node: Node): node is InterfaceDeclaration;
+    function isTypeAliasDeclaration(node: Node): node is TypeAliasDeclaration;
+    function isEnumDeclaration(node: Node): node is EnumDeclaration;
+    function isModuleDeclaration(node: Node): node is ModuleDeclaration;
+    function isModuleBlock(node: Node): node is ModuleBlock;
+    function isCaseBlock(node: Node): node is CaseBlock;
+    function isNamespaceExportDeclaration(node: Node): node is NamespaceExportDeclaration;
+    function isImportEqualsDeclaration(node: Node): node is ImportEqualsDeclaration;
+    function isImportDeclaration(node: Node): node is ImportDeclaration;
+    function isImportClause(node: Node): node is ImportClause;
+    function isNamespaceImport(node: Node): node is NamespaceImport;
+    function isNamedImports(node: Node): node is NamedImports;
+    function isImportSpecifier(node: Node): node is ImportSpecifier;
+    function isExportAssignment(node: Node): node is ExportAssignment;
+    function isExportDeclaration(node: Node): node is ExportDeclaration;
+    function isNamedExports(node: Node): node is NamedExports;
+    function isExportSpecifier(node: Node): node is ExportSpecifier;
+    function isMissingDeclaration(node: Node): node is MissingDeclaration;
+    function isExternalModuleReference(node: Node): node is ExternalModuleReference;
+    function isJsxElement(node: Node): node is JsxElement;
+    function isJsxSelfClosingElement(node: Node): node is JsxSelfClosingElement;
+    function isJsxOpeningElement(node: Node): node is JsxOpeningElement;
+    function isJsxClosingElement(node: Node): node is JsxClosingElement;
+    function isJsxFragment(node: Node): node is JsxFragment;
+    function isJsxOpeningFragment(node: Node): node is JsxOpeningFragment;
+    function isJsxClosingFragment(node: Node): node is JsxClosingFragment;
+    function isJsxAttribute(node: Node): node is JsxAttribute;
+    function isJsxAttributes(node: Node): node is JsxAttributes;
+    function isJsxSpreadAttribute(node: Node): node is JsxSpreadAttribute;
+    function isJsxExpression(node: Node): node is JsxExpression;
+    function isCaseClause(node: Node): node is CaseClause;
+    function isDefaultClause(node: Node): node is DefaultClause;
+    function isHeritageClause(node: Node): node is HeritageClause;
+    function isCatchClause(node: Node): node is CatchClause;
+    function isPropertyAssignment(node: Node): node is PropertyAssignment;
+    function isShorthandPropertyAssignment(node: Node): node is ShorthandPropertyAssignment;
+    function isSpreadAssignment(node: Node): node is SpreadAssignment;
+    function isEnumMember(node: Node): node is EnumMember;
+    function isSourceFile(node: Node): node is SourceFile;
+    function isBundle(node: Node): node is Bundle;
+    function isUnparsedSource(node: Node): node is UnparsedSource;
+    function isUnparsedPrepend(node: Node): node is UnparsedPrepend;
+    function isUnparsedTextLike(node: Node): node is UnparsedTextLike;
+    function isUnparsedNode(node: Node): node is UnparsedNode;
+    function isJSDocTypeExpression(node: Node): node is JSDocTypeExpression;
+    function isJSDocAllType(node: Node): node is JSDocAllType;
+    function isJSDocUnknownType(node: Node): node is JSDocUnknownType;
+    function isJSDocNullableType(node: Node): node is JSDocNullableType;
+    function isJSDocNonNullableType(node: Node): node is JSDocNonNullableType;
+    function isJSDocOptionalType(node: Node): node is JSDocOptionalType;
+    function isJSDocFunctionType(node: Node): node is JSDocFunctionType;
+    function isJSDocVariadicType(node: Node): node is JSDocVariadicType;
+    function isJSDoc(node: Node): node is JSDoc;
+    function isJSDocAuthorTag(node: Node): node is JSDocAuthorTag;
+    function isJSDocAugmentsTag(node: Node): node is JSDocAugmentsTag;
+    function isJSDocClassTag(node: Node): node is JSDocClassTag;
+    function isJSDocEnumTag(node: Node): node is JSDocEnumTag;
+    function isJSDocThisTag(node: Node): node is JSDocThisTag;
+    function isJSDocParameterTag(node: Node): node is JSDocParameterTag;
+    function isJSDocReturnTag(node: Node): node is JSDocReturnTag;
+    function isJSDocTypeTag(node: Node): node is JSDocTypeTag;
+    function isJSDocTemplateTag(node: Node): node is JSDocTemplateTag;
+    function isJSDocTypedefTag(node: Node): node is JSDocTypedefTag;
+    function isJSDocPropertyTag(node: Node): node is JSDocPropertyTag;
+    function isJSDocPropertyLikeTag(node: Node): node is JSDocPropertyLikeTag;
+    function isJSDocTypeLiteral(node: Node): node is JSDocTypeLiteral;
+    function isJSDocCallbackTag(node: Node): node is JSDocCallbackTag;
+    function isJSDocSignature(node: Node): node is JSDocSignature;
+    function isSyntaxList(n: Node): n is SyntaxList;
+    function isNode(node: Node): boolean;
+    function isNodeKind(kind: SyntaxKind): boolean;
+    /**
+     * True if node is of some token syntax kind.
+     * For example, this is true for an IfKeyword but not for an IfStatement.
+     * Literals are considered tokens, except TemplateLiteral, but does include TemplateHead/Middle/Tail.
+     */
+    function isToken(n: Node): boolean;
+    function isNodeArray<T extends Node>(array: readonly T[]): array is NodeArray<T>;
+    function isLiteralKind(kind: SyntaxKind): boolean;
+    function isLiteralExpression(node: Node): node is LiteralExpression;
+    function isTemplateLiteralKind(kind: SyntaxKind): boolean;
+    type TemplateLiteralToken = NoSubstitutionTemplateLiteral | TemplateHead | TemplateMiddle | TemplateTail;
+    function isTemplateLiteralToken(node: Node): node is TemplateLiteralToken;
+    function isTemplateMiddleOrTemplateTail(node: Node): node is TemplateMiddle | TemplateTail;
+    function isImportOrExportSpecifier(node: Node): node is ImportSpecifier | ExportSpecifier;
+    function isStringTextContainingNode(node: Node): node is StringLiteral | TemplateLiteralToken;
+    function isGeneratedIdentifier(node: Node): node is GeneratedIdentifier;
+    function isModifierKind(token: SyntaxKind): token is Modifier["kind"];
+    function isParameterPropertyModifier(kind: SyntaxKind): boolean;
+    function isClassMemberModifier(idToken: SyntaxKind): boolean;
+    function isModifier(node: Node): node is Modifier;
+    function isEntityName(node: Node): node is EntityName;
+    function isPropertyName(node: Node): node is PropertyName;
+    function isBindingName(node: Node): node is BindingName;
+    function isFunctionLike(node: Node): node is SignatureDeclaration;
+    function isFunctionLikeDeclaration(node: Node): node is FunctionLikeDeclaration;
+    function isFunctionLikeKind(kind: SyntaxKind): boolean;
+    function isFunctionOrModuleBlock(node: Node): boolean;
+    function isClassElement(node: Node): node is ClassElement;
+    function isClassLike(node: Node): node is ClassLikeDeclaration;
+    function isAccessor(node: Node): node is AccessorDeclaration;
+    function isMethodOrAccessor(node: Node): node is MethodDeclaration | AccessorDeclaration;
+    function isTypeElement(node: Node): node is TypeElement;
+    function isClassOrTypeElement(node: Node): node is ClassElement | TypeElement;
+    function isObjectLiteralElementLike(node: Node): node is ObjectLiteralElementLike;
+    /**
+     * Node test that determines whether a node is a valid type node.
+     * This differs from the `isPartOfTypeNode` function which determines whether a node is *part*
+     * of a TypeNode.
+     */
+    function isTypeNode(node: Node): node is TypeNode;
+    function isFunctionOrConstructorTypeNode(node: Node): node is FunctionTypeNode | ConstructorTypeNode;
+    function isBindingPattern(node: Node | undefined): node is BindingPattern;
+    function isAssignmentPattern(node: Node): node is AssignmentPattern;
+    function isArrayBindingElement(node: Node): node is ArrayBindingElement;
+    /**
+     * Determines whether the BindingOrAssignmentElement is a BindingElement-like declaration
+     */
+    function isDeclarationBindingElement(bindingElement: BindingOrAssignmentElement): bindingElement is VariableDeclaration | ParameterDeclaration | BindingElement;
+    /**
+     * Determines whether a node is a BindingOrAssignmentPattern
+     */
+    function isBindingOrAssignmentPattern(node: BindingOrAssignmentElementTarget): node is BindingOrAssignmentPattern;
+    /**
+     * Determines whether a node is an ObjectBindingOrAssignmentPattern
+     */
+    function isObjectBindingOrAssignmentPattern(node: BindingOrAssignmentElementTarget): node is ObjectBindingOrAssignmentPattern;
+    /**
+     * Determines whether a node is an ArrayBindingOrAssignmentPattern
+     */
+    function isArrayBindingOrAssignmentPattern(node: BindingOrAssignmentElementTarget): node is ArrayBindingOrAssignmentPattern;
+    function isPropertyAccessOrQualifiedNameOrImportTypeNode(node: Node): node is PropertyAccessExpression | QualifiedName | ImportTypeNode;
+    function isPropertyAccessOrQualifiedName(node: Node): node is PropertyAccessExpression | QualifiedName;
+    function isCallLikeExpression(node: Node): node is CallLikeExpression;
+    function isCallOrNewExpression(node: Node): node is CallExpression | NewExpression;
+    function isTemplateLiteral(node: Node): node is TemplateLiteral;
+    function isLeftHandSideExpression(node: Node): node is LeftHandSideExpression;
+    function isUnaryExpression(node: Node): node is UnaryExpression;
+    function isUnaryExpressionWithWrite(expr: Node): expr is PrefixUnaryExpression | PostfixUnaryExpression;
+    /**
+     * Determines whether a node is an expression based only on its kind.
+     * Use `isExpressionNode` if not in transforms.
+     */
+    function isExpression(node: Node): node is Expression;
+    function isAssertionExpression(node: Node): node is AssertionExpression;
+    function isPartiallyEmittedExpression(node: Node): node is PartiallyEmittedExpression;
+    function isNotEmittedStatement(node: Node): node is NotEmittedStatement;
+    function isSyntheticReference(node: Node): node is SyntheticReferenceExpression;
+    function isNotEmittedOrPartiallyEmittedNode(node: Node): node is NotEmittedStatement | PartiallyEmittedExpression;
+    function isIterationStatement(node: Node, lookInLabeledStatements: false): node is IterationStatement;
+    function isIterationStatement(node: Node, lookInLabeledStatements: boolean): node is IterationStatement | LabeledStatement;
+    function isScopeMarker(node: Node): boolean;
+    function hasScopeMarker(statements: readonly Statement[]): boolean;
+    function needsScopeMarker(result: Statement): boolean;
+    function isExternalModuleIndicator(result: Statement): boolean;
+    function isForInOrOfStatement(node: Node): node is ForInOrOfStatement;
+    function isConciseBody(node: Node): node is ConciseBody;
+    function isFunctionBody(node: Node): node is FunctionBody;
+    function isForInitializer(node: Node): node is ForInitializer;
+    function isModuleBody(node: Node): node is ModuleBody;
+    function isNamespaceBody(node: Node): node is NamespaceBody;
+    function isJSDocNamespaceBody(node: Node): node is JSDocNamespaceBody;
+    function isNamedImportBindings(node: Node): node is NamedImportBindings;
+    function isModuleOrEnumDeclaration(node: Node): node is ModuleDeclaration | EnumDeclaration;
+    function isDeclaration(node: Node): node is NamedDeclaration;
+    function isDeclarationStatement(node: Node): node is DeclarationStatement;
+    /**
+     * Determines whether the node is a statement that is not also a declaration
+     */
+    function isStatementButNotDeclaration(node: Node): node is Statement;
+    function isStatement(node: Node): node is Statement;
+    function isModuleReference(node: Node): node is ModuleReference;
+    function isJsxTagNameExpression(node: Node): node is JsxTagNameExpression;
+    function isJsxChild(node: Node): node is JsxChild;
+    function isJsxAttributeLike(node: Node): node is JsxAttributeLike;
+    function isStringLiteralOrJsxExpression(node: Node): node is StringLiteral | JsxExpression;
+    function isJsxOpeningLikeElement(node: Node): node is JsxOpeningLikeElement;
+    function isCaseOrDefaultClause(node: Node): node is CaseOrDefaultClause;
+    /** True if node is of some JSDoc syntax kind. */
+    function isJSDocNode(node: Node): boolean;
+    /** True if node is of a kind that may contain comment text. */
+    function isJSDocCommentContainingNode(node: Node): boolean;
+    function isJSDocTag(node: Node): node is JSDocTag;
+    function isSetAccessor(node: Node): node is SetAccessorDeclaration;
+    function isGetAccessor(node: Node): node is GetAccessorDeclaration;
+    /** True if has jsdoc nodes attached to it. */
+    function hasJSDocNodes(node: Node): node is HasJSDoc;
+    /** True if has type node attached to it. */
+    function hasType(node: Node): node is HasType;
+    /** True if has initializer node attached to it. */
+    function hasInitializer(node: Node): node is HasInitializer;
+    /** True if has initializer node attached to it. */
+    function hasOnlyExpressionInitializer(node: Node): node is HasExpressionInitializer;
+    function isObjectLiteralElement(node: Node): node is ObjectLiteralElement;
+    function isTypeReferenceType(node: Node): node is TypeReferenceType;
+    function guessIndentation(lines: string[]): number | undefined;
+    function isStringLiteralLike(node: Node): node is StringLiteralLike;
 }
 declare namespace ts {
     const resolvingEmptyArray: never[];
@@ -7932,9 +8426,9 @@ declare namespace ts {
      * @param host An EmitHost.
      * @param targetSourceFile An optional target source file to emit.
      */
-    function getSourceFilesToEmit(host: EmitHost, targetSourceFile?: SourceFile): readonly SourceFile[];
+    function getSourceFilesToEmit(host: EmitHost, targetSourceFile?: SourceFile, forceDtsEmit?: boolean): readonly SourceFile[];
     /** Don't call this for `--outFile`, just for `--outDir` or plain emit. `--outFile` needs additional checks. */
-    function sourceFileMayBeEmitted(sourceFile: SourceFile, options: CompilerOptions, isSourceFileFromExternalLibrary: (file: SourceFile) => boolean, getResolvedProjectReferenceToRedirect: (fileName: string) => ResolvedProjectReference | undefined): boolean;
+    function sourceFileMayBeEmitted(sourceFile: SourceFile, host: SourceFileMayBeEmittedHost, forceDtsEmit?: boolean): boolean;
     function getSourceFilePathInNewDir(fileName: string, host: EmitHost, newDirPath: string): string;
     function getSourceFilePathInNewDirWorker(fileName: string, newDirPath: string, currentDirectory: string, commonSourceDirectory: string, getCanonicalFileName: GetCanonicalFileName): string;
     function writeFile(host: {
@@ -8145,508 +8639,6 @@ declare namespace ts {
     function isAccessExpression(node: Node): node is AccessExpression;
     function isBundleFileTextLike(section: BundleFileSection): section is BundleFileTextLike;
     function getDotOrQuestionDotToken(node: PropertyAccessExpression): DotToken | QuestionDotToken;
-}
-declare namespace ts {
-    function getDefaultLibFileName(options: CompilerOptions): string;
-    function textSpanEnd(span: TextSpan): number;
-    function textSpanIsEmpty(span: TextSpan): boolean;
-    function textSpanContainsPosition(span: TextSpan, position: number): boolean;
-    function textRangeContainsPositionInclusive(span: TextRange, position: number): boolean;
-    function textSpanContainsTextSpan(span: TextSpan, other: TextSpan): boolean;
-    function textSpanOverlapsWith(span: TextSpan, other: TextSpan): boolean;
-    function textSpanOverlap(span1: TextSpan, span2: TextSpan): TextSpan | undefined;
-    function textSpanIntersectsWithTextSpan(span: TextSpan, other: TextSpan): boolean;
-    function textSpanIntersectsWith(span: TextSpan, start: number, length: number): boolean;
-    function decodedTextSpanIntersectsWith(start1: number, length1: number, start2: number, length2: number): boolean;
-    function textSpanIntersectsWithPosition(span: TextSpan, position: number): boolean;
-    function textSpanIntersection(span1: TextSpan, span2: TextSpan): TextSpan | undefined;
-    function createTextSpan(start: number, length: number): TextSpan;
-    function createTextSpanFromBounds(start: number, end: number): TextSpan;
-    function textChangeRangeNewSpan(range: TextChangeRange): TextSpan;
-    function textChangeRangeIsUnchanged(range: TextChangeRange): boolean;
-    function createTextChangeRange(span: TextSpan, newLength: number): TextChangeRange;
-    let unchangedTextChangeRange: TextChangeRange;
-    /**
-     * Called to merge all the changes that occurred across several versions of a script snapshot
-     * into a single change.  i.e. if a user keeps making successive edits to a script we will
-     * have a text change from V1 to V2, V2 to V3, ..., Vn.
-     *
-     * This function will then merge those changes into a single change range valid between V1 and
-     * Vn.
-     */
-    function collapseTextChangeRangesAcrossMultipleVersions(changes: readonly TextChangeRange[]): TextChangeRange;
-    function getTypeParameterOwner(d: Declaration): Declaration | undefined;
-    type ParameterPropertyDeclaration = ParameterDeclaration & {
-        parent: ConstructorDeclaration;
-        name: Identifier;
-    };
-    function isParameterPropertyDeclaration(node: Node, parent: Node): node is ParameterPropertyDeclaration;
-    function isEmptyBindingPattern(node: BindingName): node is BindingPattern;
-    function isEmptyBindingElement(node: BindingElement): boolean;
-    function walkUpBindingElementsAndPatterns(binding: BindingElement): VariableDeclaration | ParameterDeclaration;
-    function getCombinedModifierFlags(node: Declaration): ModifierFlags;
-    function getCombinedNodeFlags(node: Node): NodeFlags;
-    /**
-     * Checks to see if the locale is in the appropriate format,
-     * and if it is, attempts to set the appropriate language.
-     */
-    function validateLocaleAndSetLanguage(locale: string, sys: {
-        getExecutingFilePath(): string;
-        resolvePath(path: string): string;
-        fileExists(fileName: string): boolean;
-        readFile(fileName: string): string | undefined;
-    }, errors?: Push<Diagnostic>): void;
-    function getOriginalNode(node: Node): Node;
-    function getOriginalNode<T extends Node>(node: Node, nodeTest: (node: Node) => node is T): T;
-    function getOriginalNode(node: Node | undefined): Node | undefined;
-    function getOriginalNode<T extends Node>(node: Node | undefined, nodeTest: (node: Node | undefined) => node is T): T | undefined;
-    /**
-     * Gets a value indicating whether a node originated in the parse tree.
-     *
-     * @param node The node to test.
-     */
-    function isParseTreeNode(node: Node): boolean;
-    /**
-     * Gets the original parse tree node for a node.
-     *
-     * @param node The original node.
-     * @returns The original parse tree node if found; otherwise, undefined.
-     */
-    function getParseTreeNode(node: Node): Node;
-    /**
-     * Gets the original parse tree node for a node.
-     *
-     * @param node The original node.
-     * @param nodeTest A callback used to ensure the correct type of parse tree node is returned.
-     * @returns The original parse tree node if found; otherwise, undefined.
-     */
-    function getParseTreeNode<T extends Node>(node: Node | undefined, nodeTest?: (node: Node) => node is T): T | undefined;
-    /** Add an extra underscore to identifiers that start with two underscores to avoid issues with magic names like '__proto__' */
-    function escapeLeadingUnderscores(identifier: string): __String;
-    /**
-     * Remove extra underscore from escaped identifier text content.
-     *
-     * @param identifier The escaped identifier text.
-     * @returns The unescaped identifier text.
-     */
-    function unescapeLeadingUnderscores(identifier: __String): string;
-    function idText(identifier: Identifier): string;
-    function symbolName(symbol: Symbol): string;
-    /** @internal */
-    function nodeHasName(statement: Node, name: Identifier): boolean;
-    function getNameOfJSDocTypedef(declaration: JSDocTypedefTag): Identifier | undefined;
-    /** @internal */
-    function isNamedDeclaration(node: Node): node is NamedDeclaration & {
-        name: DeclarationName;
-    };
-    /** @internal */
-    function getNonAssignedNameOfDeclaration(declaration: Declaration | Expression): DeclarationName | undefined;
-    function getNameOfDeclaration(declaration: Declaration | Expression): DeclarationName | undefined;
-    /**
-     * Gets the JSDoc parameter tags for the node if present.
-     *
-     * @remarks Returns any JSDoc param tag whose name matches the provided
-     * parameter, whether a param tag on a containing function
-     * expression, or a param tag on a variable declaration whose
-     * initializer is the containing function. The tags closest to the
-     * node are returned first, so in the previous example, the param
-     * tag on the containing function expression would be first.
-     *
-     * For binding patterns, parameter tags are matched by position.
-     */
-    function getJSDocParameterTags(param: ParameterDeclaration): readonly JSDocParameterTag[];
-    /**
-     * Gets the JSDoc type parameter tags for the node if present.
-     *
-     * @remarks Returns any JSDoc template tag whose names match the provided
-     * parameter, whether a template tag on a containing function
-     * expression, or a template tag on a variable declaration whose
-     * initializer is the containing function. The tags closest to the
-     * node are returned first, so in the previous example, the template
-     * tag on the containing function expression would be first.
-     */
-    function getJSDocTypeParameterTags(param: TypeParameterDeclaration): readonly JSDocTemplateTag[];
-    /**
-     * Return true if the node has JSDoc parameter tags.
-     *
-     * @remarks Includes parameter tags that are not directly on the node,
-     * for example on a variable declaration whose initializer is a function expression.
-     */
-    function hasJSDocParameterTags(node: FunctionLikeDeclaration | SignatureDeclaration): boolean;
-    /** Gets the JSDoc augments tag for the node if present */
-    function getJSDocAugmentsTag(node: Node): JSDocAugmentsTag | undefined;
-    /** Gets the JSDoc class tag for the node if present */
-    function getJSDocClassTag(node: Node): JSDocClassTag | undefined;
-    /** Gets the JSDoc enum tag for the node if present */
-    function getJSDocEnumTag(node: Node): JSDocEnumTag | undefined;
-    /** Gets the JSDoc this tag for the node if present */
-    function getJSDocThisTag(node: Node): JSDocThisTag | undefined;
-    /** Gets the JSDoc return tag for the node if present */
-    function getJSDocReturnTag(node: Node): JSDocReturnTag | undefined;
-    /** Gets the JSDoc template tag for the node if present */
-    function getJSDocTemplateTag(node: Node): JSDocTemplateTag | undefined;
-    /** Gets the JSDoc type tag for the node if present and valid */
-    function getJSDocTypeTag(node: Node): JSDocTypeTag | undefined;
-    /**
-     * Gets the type node for the node if provided via JSDoc.
-     *
-     * @remarks The search includes any JSDoc param tag that relates
-     * to the provided parameter, for example a type tag on the
-     * parameter itself, or a param tag on a containing function
-     * expression, or a param tag on a variable declaration whose
-     * initializer is the containing function. The tags closest to the
-     * node are examined first, so in the previous example, the type
-     * tag directly on the node would be returned.
-     */
-    function getJSDocType(node: Node): TypeNode | undefined;
-    /**
-     * Gets the return type node for the node if provided via JSDoc return tag or type tag.
-     *
-     * @remarks `getJSDocReturnTag` just gets the whole JSDoc tag. This function
-     * gets the type from inside the braces, after the fat arrow, etc.
-     */
-    function getJSDocReturnType(node: Node): TypeNode | undefined;
-    /** Get all JSDoc tags related to a node, including those on parent nodes. */
-    function getJSDocTags(node: Node): readonly JSDocTag[];
-    /** Gets all JSDoc tags of a specified kind, or undefined if not present. */
-    function getAllJSDocTagsOfKind(node: Node, kind: SyntaxKind): readonly JSDocTag[];
-    /**
-     * Gets the effective type parameters. If the node was parsed in a
-     * JavaScript file, gets the type parameters from the `@template` tag from JSDoc.
-     */
-    function getEffectiveTypeParameterDeclarations(node: DeclarationWithTypeParameters): readonly TypeParameterDeclaration[];
-    function getEffectiveConstraintOfTypeParameter(node: TypeParameterDeclaration): TypeNode | undefined;
-}
-declare namespace ts {
-    function isNumericLiteral(node: Node): node is NumericLiteral;
-    function isBigIntLiteral(node: Node): node is BigIntLiteral;
-    function isStringLiteral(node: Node): node is StringLiteral;
-    function isJsxText(node: Node): node is JsxText;
-    function isRegularExpressionLiteral(node: Node): node is RegularExpressionLiteral;
-    function isNoSubstitutionTemplateLiteral(node: Node): node is NoSubstitutionTemplateLiteral;
-    function isTemplateHead(node: Node): node is TemplateHead;
-    function isTemplateMiddle(node: Node): node is TemplateMiddle;
-    function isTemplateTail(node: Node): node is TemplateTail;
-    function isIdentifier(node: Node): node is Identifier;
-    function isQualifiedName(node: Node): node is QualifiedName;
-    function isComputedPropertyName(node: Node): node is ComputedPropertyName;
-    function isTypeParameterDeclaration(node: Node): node is TypeParameterDeclaration;
-    function isParameter(node: Node): node is ParameterDeclaration;
-    function isDecorator(node: Node): node is Decorator;
-    function isPropertySignature(node: Node): node is PropertySignature;
-    function isPropertyDeclaration(node: Node): node is PropertyDeclaration;
-    function isMethodSignature(node: Node): node is MethodSignature;
-    function isMethodDeclaration(node: Node): node is MethodDeclaration;
-    function isConstructorDeclaration(node: Node): node is ConstructorDeclaration;
-    function isGetAccessorDeclaration(node: Node): node is GetAccessorDeclaration;
-    function isSetAccessorDeclaration(node: Node): node is SetAccessorDeclaration;
-    function isCallSignatureDeclaration(node: Node): node is CallSignatureDeclaration;
-    function isConstructSignatureDeclaration(node: Node): node is ConstructSignatureDeclaration;
-    function isIndexSignatureDeclaration(node: Node): node is IndexSignatureDeclaration;
-    function isGetOrSetAccessorDeclaration(node: Node): node is AccessorDeclaration;
-    function isTypePredicateNode(node: Node): node is TypePredicateNode;
-    function isTypeReferenceNode(node: Node): node is TypeReferenceNode;
-    function isFunctionTypeNode(node: Node): node is FunctionTypeNode;
-    function isConstructorTypeNode(node: Node): node is ConstructorTypeNode;
-    function isTypeQueryNode(node: Node): node is TypeQueryNode;
-    function isTypeLiteralNode(node: Node): node is TypeLiteralNode;
-    function isArrayTypeNode(node: Node): node is ArrayTypeNode;
-    function isTupleTypeNode(node: Node): node is TupleTypeNode;
-    function isUnionTypeNode(node: Node): node is UnionTypeNode;
-    function isIntersectionTypeNode(node: Node): node is IntersectionTypeNode;
-    function isConditionalTypeNode(node: Node): node is ConditionalTypeNode;
-    function isInferTypeNode(node: Node): node is InferTypeNode;
-    function isParenthesizedTypeNode(node: Node): node is ParenthesizedTypeNode;
-    function isThisTypeNode(node: Node): node is ThisTypeNode;
-    function isTypeOperatorNode(node: Node): node is TypeOperatorNode;
-    function isIndexedAccessTypeNode(node: Node): node is IndexedAccessTypeNode;
-    function isMappedTypeNode(node: Node): node is MappedTypeNode;
-    function isLiteralTypeNode(node: Node): node is LiteralTypeNode;
-    function isImportTypeNode(node: Node): node is ImportTypeNode;
-    function isObjectBindingPattern(node: Node): node is ObjectBindingPattern;
-    function isArrayBindingPattern(node: Node): node is ArrayBindingPattern;
-    function isBindingElement(node: Node): node is BindingElement;
-    function isArrayLiteralExpression(node: Node): node is ArrayLiteralExpression;
-    function isObjectLiteralExpression(node: Node): node is ObjectLiteralExpression;
-    function isPropertyAccessExpression(node: Node): node is PropertyAccessExpression;
-    function isPropertyAccessChain(node: Node): node is PropertyAccessChain;
-    function isElementAccessExpression(node: Node): node is ElementAccessExpression;
-    function isElementAccessChain(node: Node): node is ElementAccessChain;
-    function isCallExpression(node: Node): node is CallExpression;
-    function isCallChain(node: Node): node is CallChain;
-    function isOptionalChain(node: Node): node is PropertyAccessChain | ElementAccessChain | CallChain;
-    function isOptionalChainRoot(node: Node): node is OptionalChainRoot;
-    /**
-     * Determines whether a node is the expression preceding an optional chain (i.e. `a` in `a?.b`).
-     */
-    function isExpressionOfOptionalChainRoot(node: Node): node is Expression & {
-        parent: OptionalChainRoot;
-    };
-    /**
-     * Determines whether a node is the outermost `OptionalChain` in an ECMAScript `OptionalExpression`:
-     *
-     * 1. For `a?.b.c`, the outermost chain is `a?.b.c` (`c` is the end of the chain starting at `a?.`)
-     * 2. For `(a?.b.c).d`, the outermost chain is `a?.b.c` (`c` is the end of the chain starting at `a?.` since parens end the chain)
-     * 3. For `a?.b.c?.d`, both `a?.b.c` and `a?.b.c?.d` are outermost (`c` is the end of the chain starting at `a?.`, and `d` is
-     *   the end of the chain starting at `c?.`)
-     * 4. For `a?.(b?.c).d`, both `b?.c` and `a?.(b?.c)d` are outermost (`c` is the end of the chain starting at `b`, and `d` is
-     *   the end of the chain starting at `a?.`)
-     */
-    function isOutermostOptionalChain(node: OptionalChain): boolean;
-    function isNullishCoalesce(node: Node): boolean;
-    function isNewExpression(node: Node): node is NewExpression;
-    function isTaggedTemplateExpression(node: Node): node is TaggedTemplateExpression;
-    function isTypeAssertion(node: Node): node is TypeAssertion;
-    function isConstTypeReference(node: Node): boolean;
-    function isParenthesizedExpression(node: Node): node is ParenthesizedExpression;
-    function skipPartiallyEmittedExpressions(node: Expression): Expression;
-    function skipPartiallyEmittedExpressions(node: Node): Node;
-    function isFunctionExpression(node: Node): node is FunctionExpression;
-    function isArrowFunction(node: Node): node is ArrowFunction;
-    function isDeleteExpression(node: Node): node is DeleteExpression;
-    function isTypeOfExpression(node: Node): node is TypeOfExpression;
-    function isVoidExpression(node: Node): node is VoidExpression;
-    function isAwaitExpression(node: Node): node is AwaitExpression;
-    function isPrefixUnaryExpression(node: Node): node is PrefixUnaryExpression;
-    function isPostfixUnaryExpression(node: Node): node is PostfixUnaryExpression;
-    function isBinaryExpression(node: Node): node is BinaryExpression;
-    function isConditionalExpression(node: Node): node is ConditionalExpression;
-    function isTemplateExpression(node: Node): node is TemplateExpression;
-    function isYieldExpression(node: Node): node is YieldExpression;
-    function isSpreadElement(node: Node): node is SpreadElement;
-    function isClassExpression(node: Node): node is ClassExpression;
-    function isOmittedExpression(node: Node): node is OmittedExpression;
-    function isExpressionWithTypeArguments(node: Node): node is ExpressionWithTypeArguments;
-    function isAsExpression(node: Node): node is AsExpression;
-    function isNonNullExpression(node: Node): node is NonNullExpression;
-    function isMetaProperty(node: Node): node is MetaProperty;
-    function isTemplateSpan(node: Node): node is TemplateSpan;
-    function isSemicolonClassElement(node: Node): node is SemicolonClassElement;
-    function isBlock(node: Node): node is Block;
-    function isVariableStatement(node: Node): node is VariableStatement;
-    function isEmptyStatement(node: Node): node is EmptyStatement;
-    function isExpressionStatement(node: Node): node is ExpressionStatement;
-    function isIfStatement(node: Node): node is IfStatement;
-    function isDoStatement(node: Node): node is DoStatement;
-    function isWhileStatement(node: Node): node is WhileStatement;
-    function isForStatement(node: Node): node is ForStatement;
-    function isForInStatement(node: Node): node is ForInStatement;
-    function isForOfStatement(node: Node): node is ForOfStatement;
-    function isContinueStatement(node: Node): node is ContinueStatement;
-    function isBreakStatement(node: Node): node is BreakStatement;
-    function isBreakOrContinueStatement(node: Node): node is BreakOrContinueStatement;
-    function isReturnStatement(node: Node): node is ReturnStatement;
-    function isWithStatement(node: Node): node is WithStatement;
-    function isSwitchStatement(node: Node): node is SwitchStatement;
-    function isLabeledStatement(node: Node): node is LabeledStatement;
-    function isThrowStatement(node: Node): node is ThrowStatement;
-    function isTryStatement(node: Node): node is TryStatement;
-    function isDebuggerStatement(node: Node): node is DebuggerStatement;
-    function isVariableDeclaration(node: Node): node is VariableDeclaration;
-    function isVariableDeclarationList(node: Node): node is VariableDeclarationList;
-    function isFunctionDeclaration(node: Node): node is FunctionDeclaration;
-    function isClassDeclaration(node: Node): node is ClassDeclaration;
-    function isInterfaceDeclaration(node: Node): node is InterfaceDeclaration;
-    function isTypeAliasDeclaration(node: Node): node is TypeAliasDeclaration;
-    function isEnumDeclaration(node: Node): node is EnumDeclaration;
-    function isModuleDeclaration(node: Node): node is ModuleDeclaration;
-    function isModuleBlock(node: Node): node is ModuleBlock;
-    function isCaseBlock(node: Node): node is CaseBlock;
-    function isNamespaceExportDeclaration(node: Node): node is NamespaceExportDeclaration;
-    function isImportEqualsDeclaration(node: Node): node is ImportEqualsDeclaration;
-    function isImportDeclaration(node: Node): node is ImportDeclaration;
-    function isImportClause(node: Node): node is ImportClause;
-    function isNamespaceImport(node: Node): node is NamespaceImport;
-    function isNamedImports(node: Node): node is NamedImports;
-    function isImportSpecifier(node: Node): node is ImportSpecifier;
-    function isExportAssignment(node: Node): node is ExportAssignment;
-    function isExportDeclaration(node: Node): node is ExportDeclaration;
-    function isNamedExports(node: Node): node is NamedExports;
-    function isExportSpecifier(node: Node): node is ExportSpecifier;
-    function isMissingDeclaration(node: Node): node is MissingDeclaration;
-    function isExternalModuleReference(node: Node): node is ExternalModuleReference;
-    function isJsxElement(node: Node): node is JsxElement;
-    function isJsxSelfClosingElement(node: Node): node is JsxSelfClosingElement;
-    function isJsxOpeningElement(node: Node): node is JsxOpeningElement;
-    function isJsxClosingElement(node: Node): node is JsxClosingElement;
-    function isJsxFragment(node: Node): node is JsxFragment;
-    function isJsxOpeningFragment(node: Node): node is JsxOpeningFragment;
-    function isJsxClosingFragment(node: Node): node is JsxClosingFragment;
-    function isJsxAttribute(node: Node): node is JsxAttribute;
-    function isJsxAttributes(node: Node): node is JsxAttributes;
-    function isJsxSpreadAttribute(node: Node): node is JsxSpreadAttribute;
-    function isJsxExpression(node: Node): node is JsxExpression;
-    function isCaseClause(node: Node): node is CaseClause;
-    function isDefaultClause(node: Node): node is DefaultClause;
-    function isHeritageClause(node: Node): node is HeritageClause;
-    function isCatchClause(node: Node): node is CatchClause;
-    function isPropertyAssignment(node: Node): node is PropertyAssignment;
-    function isShorthandPropertyAssignment(node: Node): node is ShorthandPropertyAssignment;
-    function isSpreadAssignment(node: Node): node is SpreadAssignment;
-    function isEnumMember(node: Node): node is EnumMember;
-    function isSourceFile(node: Node): node is SourceFile;
-    function isBundle(node: Node): node is Bundle;
-    function isUnparsedSource(node: Node): node is UnparsedSource;
-    function isUnparsedPrepend(node: Node): node is UnparsedPrepend;
-    function isUnparsedTextLike(node: Node): node is UnparsedTextLike;
-    function isUnparsedNode(node: Node): node is UnparsedNode;
-    function isJSDocTypeExpression(node: Node): node is JSDocTypeExpression;
-    function isJSDocAllType(node: Node): node is JSDocAllType;
-    function isJSDocUnknownType(node: Node): node is JSDocUnknownType;
-    function isJSDocNullableType(node: Node): node is JSDocNullableType;
-    function isJSDocNonNullableType(node: Node): node is JSDocNonNullableType;
-    function isJSDocOptionalType(node: Node): node is JSDocOptionalType;
-    function isJSDocFunctionType(node: Node): node is JSDocFunctionType;
-    function isJSDocVariadicType(node: Node): node is JSDocVariadicType;
-    function isJSDoc(node: Node): node is JSDoc;
-    function isJSDocAuthorTag(node: Node): node is JSDocAuthorTag;
-    function isJSDocAugmentsTag(node: Node): node is JSDocAugmentsTag;
-    function isJSDocClassTag(node: Node): node is JSDocClassTag;
-    function isJSDocEnumTag(node: Node): node is JSDocEnumTag;
-    function isJSDocThisTag(node: Node): node is JSDocThisTag;
-    function isJSDocParameterTag(node: Node): node is JSDocParameterTag;
-    function isJSDocReturnTag(node: Node): node is JSDocReturnTag;
-    function isJSDocTypeTag(node: Node): node is JSDocTypeTag;
-    function isJSDocTemplateTag(node: Node): node is JSDocTemplateTag;
-    function isJSDocTypedefTag(node: Node): node is JSDocTypedefTag;
-    function isJSDocPropertyTag(node: Node): node is JSDocPropertyTag;
-    function isJSDocPropertyLikeTag(node: Node): node is JSDocPropertyLikeTag;
-    function isJSDocTypeLiteral(node: Node): node is JSDocTypeLiteral;
-    function isJSDocCallbackTag(node: Node): node is JSDocCallbackTag;
-    function isJSDocSignature(node: Node): node is JSDocSignature;
-}
-declare namespace ts {
-    function isSyntaxList(n: Node): n is SyntaxList;
-    function isNode(node: Node): boolean;
-    function isNodeKind(kind: SyntaxKind): boolean;
-    /**
-     * True if node is of some token syntax kind.
-     * For example, this is true for an IfKeyword but not for an IfStatement.
-     * Literals are considered tokens, except TemplateLiteral, but does include TemplateHead/Middle/Tail.
-     */
-    function isToken(n: Node): boolean;
-    function isNodeArray<T extends Node>(array: readonly T[]): array is NodeArray<T>;
-    function isLiteralKind(kind: SyntaxKind): boolean;
-    function isLiteralExpression(node: Node): node is LiteralExpression;
-    function isTemplateLiteralKind(kind: SyntaxKind): boolean;
-    type TemplateLiteralToken = NoSubstitutionTemplateLiteral | TemplateHead | TemplateMiddle | TemplateTail;
-    function isTemplateLiteralToken(node: Node): node is TemplateLiteralToken;
-    function isTemplateMiddleOrTemplateTail(node: Node): node is TemplateMiddle | TemplateTail;
-    function isImportOrExportSpecifier(node: Node): node is ImportSpecifier | ExportSpecifier;
-    function isStringTextContainingNode(node: Node): node is StringLiteral | TemplateLiteralToken;
-    function isGeneratedIdentifier(node: Node): node is GeneratedIdentifier;
-    function isModifierKind(token: SyntaxKind): token is Modifier["kind"];
-    function isParameterPropertyModifier(kind: SyntaxKind): boolean;
-    function isClassMemberModifier(idToken: SyntaxKind): boolean;
-    function isModifier(node: Node): node is Modifier;
-    function isEntityName(node: Node): node is EntityName;
-    function isPropertyName(node: Node): node is PropertyName;
-    function isBindingName(node: Node): node is BindingName;
-    function isFunctionLike(node: Node): node is SignatureDeclaration;
-    function isFunctionLikeDeclaration(node: Node): node is FunctionLikeDeclaration;
-    function isFunctionLikeKind(kind: SyntaxKind): boolean;
-    function isFunctionOrModuleBlock(node: Node): boolean;
-    function isClassElement(node: Node): node is ClassElement;
-    function isClassLike(node: Node): node is ClassLikeDeclaration;
-    function isAccessor(node: Node): node is AccessorDeclaration;
-    function isMethodOrAccessor(node: Node): node is MethodDeclaration | AccessorDeclaration;
-    function isTypeElement(node: Node): node is TypeElement;
-    function isClassOrTypeElement(node: Node): node is ClassElement | TypeElement;
-    function isObjectLiteralElementLike(node: Node): node is ObjectLiteralElementLike;
-    /**
-     * Node test that determines whether a node is a valid type node.
-     * This differs from the `isPartOfTypeNode` function which determines whether a node is *part*
-     * of a TypeNode.
-     */
-    function isTypeNode(node: Node): node is TypeNode;
-    function isFunctionOrConstructorTypeNode(node: Node): node is FunctionTypeNode | ConstructorTypeNode;
-    function isBindingPattern(node: Node | undefined): node is BindingPattern;
-    function isAssignmentPattern(node: Node): node is AssignmentPattern;
-    function isArrayBindingElement(node: Node): node is ArrayBindingElement;
-    /**
-     * Determines whether the BindingOrAssignmentElement is a BindingElement-like declaration
-     */
-    function isDeclarationBindingElement(bindingElement: BindingOrAssignmentElement): bindingElement is VariableDeclaration | ParameterDeclaration | BindingElement;
-    /**
-     * Determines whether a node is a BindingOrAssignmentPattern
-     */
-    function isBindingOrAssignmentPattern(node: BindingOrAssignmentElementTarget): node is BindingOrAssignmentPattern;
-    /**
-     * Determines whether a node is an ObjectBindingOrAssignmentPattern
-     */
-    function isObjectBindingOrAssignmentPattern(node: BindingOrAssignmentElementTarget): node is ObjectBindingOrAssignmentPattern;
-    /**
-     * Determines whether a node is an ArrayBindingOrAssignmentPattern
-     */
-    function isArrayBindingOrAssignmentPattern(node: BindingOrAssignmentElementTarget): node is ArrayBindingOrAssignmentPattern;
-    function isPropertyAccessOrQualifiedNameOrImportTypeNode(node: Node): node is PropertyAccessExpression | QualifiedName | ImportTypeNode;
-    function isPropertyAccessOrQualifiedName(node: Node): node is PropertyAccessExpression | QualifiedName;
-    function isCallLikeExpression(node: Node): node is CallLikeExpression;
-    function isCallOrNewExpression(node: Node): node is CallExpression | NewExpression;
-    function isTemplateLiteral(node: Node): node is TemplateLiteral;
-    function isLeftHandSideExpression(node: Node): node is LeftHandSideExpression;
-    function isUnaryExpression(node: Node): node is UnaryExpression;
-    function isUnaryExpressionWithWrite(expr: Node): expr is PrefixUnaryExpression | PostfixUnaryExpression;
-    /**
-     * Determines whether a node is an expression based only on its kind.
-     * Use `isExpressionNode` if not in transforms.
-     */
-    function isExpression(node: Node): node is Expression;
-    function isAssertionExpression(node: Node): node is AssertionExpression;
-    function isPartiallyEmittedExpression(node: Node): node is PartiallyEmittedExpression;
-    function isNotEmittedStatement(node: Node): node is NotEmittedStatement;
-    function isSyntheticReference(node: Node): node is SyntheticReferenceExpression;
-    function isNotEmittedOrPartiallyEmittedNode(node: Node): node is NotEmittedStatement | PartiallyEmittedExpression;
-    function isIterationStatement(node: Node, lookInLabeledStatements: false): node is IterationStatement;
-    function isIterationStatement(node: Node, lookInLabeledStatements: boolean): node is IterationStatement | LabeledStatement;
-    function isScopeMarker(node: Node): boolean;
-    function hasScopeMarker(statements: readonly Statement[]): boolean;
-    function needsScopeMarker(result: Statement): boolean;
-    function isExternalModuleIndicator(result: Statement): boolean;
-    function isForInOrOfStatement(node: Node): node is ForInOrOfStatement;
-    function isConciseBody(node: Node): node is ConciseBody;
-    function isFunctionBody(node: Node): node is FunctionBody;
-    function isForInitializer(node: Node): node is ForInitializer;
-    function isModuleBody(node: Node): node is ModuleBody;
-    function isNamespaceBody(node: Node): node is NamespaceBody;
-    function isJSDocNamespaceBody(node: Node): node is JSDocNamespaceBody;
-    function isNamedImportBindings(node: Node): node is NamedImportBindings;
-    function isModuleOrEnumDeclaration(node: Node): node is ModuleDeclaration | EnumDeclaration;
-    function isDeclaration(node: Node): node is NamedDeclaration;
-    function isDeclarationStatement(node: Node): node is DeclarationStatement;
-    /**
-     * Determines whether the node is a statement that is not also a declaration
-     */
-    function isStatementButNotDeclaration(node: Node): node is Statement;
-    function isStatement(node: Node): node is Statement;
-    function isModuleReference(node: Node): node is ModuleReference;
-    function isJsxTagNameExpression(node: Node): node is JsxTagNameExpression;
-    function isJsxChild(node: Node): node is JsxChild;
-    function isJsxAttributeLike(node: Node): node is JsxAttributeLike;
-    function isStringLiteralOrJsxExpression(node: Node): node is StringLiteral | JsxExpression;
-    function isJsxOpeningLikeElement(node: Node): node is JsxOpeningLikeElement;
-    function isCaseOrDefaultClause(node: Node): node is CaseOrDefaultClause;
-    /** True if node is of some JSDoc syntax kind. */
-    function isJSDocNode(node: Node): boolean;
-    /** True if node is of a kind that may contain comment text. */
-    function isJSDocCommentContainingNode(node: Node): boolean;
-    function isJSDocTag(node: Node): node is JSDocTag;
-    function isSetAccessor(node: Node): node is SetAccessorDeclaration;
-    function isGetAccessor(node: Node): node is GetAccessorDeclaration;
-    /** True if has jsdoc nodes attached to it. */
-    function hasJSDocNodes(node: Node): node is HasJSDoc;
-    /** True if has type node attached to it. */
-    function hasType(node: Node): node is HasType;
-    /** True if has initializer node attached to it. */
-    function hasInitializer(node: Node): node is HasInitializer;
-    /** True if has initializer node attached to it. */
-    function hasOnlyExpressionInitializer(node: Node): node is HasExpressionInitializer;
-    function isObjectLiteralElement(node: Node): node is ObjectLiteralElement;
-    function isTypeReferenceType(node: Node): node is TypeReferenceType;
-    function guessIndentation(lines: string[]): number | undefined;
-    function isStringLiteralLike(node: Node): node is StringLiteralLike;
-}
-declare namespace ts {
     function isNamedImportsOrExports(node: Node): node is NamedImportsOrExports;
     interface ObjectAllocator {
         getNodeConstructor(): new (kind: SyntaxKind, pos?: number, end?: number) => Node;
@@ -8690,8 +8682,6 @@ declare namespace ts {
     function getCompilerOptionValue(options: CompilerOptions, option: CommandLineOption): unknown;
     function hasZeroOrOneAsteriskCharacter(str: string): boolean;
     function discoverProbableSymlinks(files: readonly SourceFile[], getCanonicalFileName: GetCanonicalFileName, cwd: string): ReadonlyMap<string>;
-}
-declare namespace ts {
     function tryRemoveDirectoryPrefix(path: string, dirPath: string, getCanonicalFileName: GetCanonicalFileName): string | undefined;
     function regExpEscape(text: string): string;
     const commonPackageFolders: readonly string[];
@@ -9691,7 +9681,7 @@ declare namespace ts {
     /**
      * Sets the constant value to emit for an expression.
      */
-    function setConstantValue(node: PropertyAccessExpression | ElementAccessExpression, value: string | number): ElementAccessExpression | PropertyAccessExpression;
+    function setConstantValue(node: PropertyAccessExpression | ElementAccessExpression, value: string | number): PropertyAccessExpression | ElementAccessExpression;
     /**
      * Adds an EmitHelper to a node.
      */
@@ -10611,71 +10601,71 @@ declare namespace ts {
          */
         allFileNames?: readonly string[];
     }
-    function cloneMapOrUndefined<T>(map: ReadonlyMap<T> | undefined): Map<T> | undefined;
-}
-declare namespace ts.BuilderState {
-    /**
-     * Information about the source file: Its version and optional signature from last emit
-     */
-    interface FileInfo {
-        readonly version: string;
-        signature: string | undefined;
+    namespace BuilderState {
+        /**
+         * Information about the source file: Its version and optional signature from last emit
+         */
+        interface FileInfo {
+            readonly version: string;
+            signature: string | undefined;
+        }
+        /**
+         * Referenced files with values for the keys as referenced file's path to be true
+         */
+        type ReferencedSet = ReadonlyMap<true>;
+        /**
+         * Compute the hash to store the shape of the file
+         */
+        type ComputeHash = (data: string) => string;
+        /**
+         * Exported modules to from declaration emit being computed.
+         * This can contain false in the affected file path to specify that there are no exported module(types from other modules) for this file
+         */
+        type ComputingExportedModulesMap = Map<ReferencedSet | false>;
+        /**
+         * Returns true if oldState is reusable, that is the emitKind = module/non module has not changed
+         */
+        function canReuseOldState(newReferencedMap: ReadonlyMap<ReferencedSet> | undefined, oldState: Readonly<ReusableBuilderState> | undefined): boolean | undefined;
+        /**
+         * Creates the state of file references and signature for the new program from oldState if it is safe
+         */
+        function create(newProgram: Program, getCanonicalFileName: GetCanonicalFileName, oldState?: Readonly<ReusableBuilderState>): BuilderState;
+        /**
+         * Releases needed properties
+         */
+        function releaseCache(state: BuilderState): void;
+        /**
+         * Creates a clone of the state
+         */
+        function clone(state: Readonly<BuilderState>): BuilderState;
+        /**
+         * Gets the files affected by the path from the program
+         */
+        function getFilesAffectedBy(state: BuilderState, programOfThisState: Program, path: Path, cancellationToken: CancellationToken | undefined, computeHash: ComputeHash, cacheToUpdateSignature?: Map<string>, exportedModulesMapCache?: ComputingExportedModulesMap): readonly SourceFile[];
+        /**
+         * Updates the signatures from the cache into state's fileinfo signatures
+         * This should be called whenever it is safe to commit the state of the builder
+         */
+        function updateSignaturesFromCache(state: BuilderState, signatureCache: Map<string>): void;
+        /**
+         * Returns if the shape of the signature has changed since last emit
+         */
+        function updateShapeSignature(state: Readonly<BuilderState>, programOfThisState: Program, sourceFile: SourceFile, cacheToUpdateSignature: Map<string>, cancellationToken: CancellationToken | undefined, computeHash: ComputeHash, exportedModulesMapCache?: ComputingExportedModulesMap): boolean;
+        /**
+         * Updates the exported modules from cache into state's exported modules map
+         * This should be called whenever it is safe to commit the state of the builder
+         */
+        function updateExportedFilesMapFromCache(state: BuilderState, exportedModulesMapCache: ComputingExportedModulesMap | undefined): void;
+        /**
+         * Get all the dependencies of the sourceFile
+         */
+        function getAllDependencies(state: BuilderState, programOfThisState: Program, sourceFile: SourceFile): readonly string[];
+        /**
+         * Gets the files referenced by the the file path
+         */
+        function getReferencedByPaths(state: Readonly<BuilderState>, referencedFilePath: Path): Path[];
     }
-    /**
-     * Referenced files with values for the keys as referenced file's path to be true
-     */
-    type ReferencedSet = ReadonlyMap<true>;
-    /**
-     * Compute the hash to store the shape of the file
-     */
-    type ComputeHash = (data: string) => string;
-    /**
-     * Exported modules to from declaration emit being computed.
-     * This can contain false in the affected file path to specify that there are no exported module(types from other modules) for this file
-     */
-    type ComputingExportedModulesMap = Map<ReferencedSet | false>;
-    /**
-     * Returns true if oldState is reusable, that is the emitKind = module/non module has not changed
-     */
-    function canReuseOldState(newReferencedMap: ReadonlyMap<ReferencedSet> | undefined, oldState: Readonly<ReusableBuilderState> | undefined): boolean | undefined;
-    /**
-     * Creates the state of file references and signature for the new program from oldState if it is safe
-     */
-    function create(newProgram: Program, getCanonicalFileName: GetCanonicalFileName, oldState?: Readonly<ReusableBuilderState>): BuilderState;
-    /**
-     * Releases needed properties
-     */
-    function releaseCache(state: BuilderState): void;
-    /**
-     * Creates a clone of the state
-     */
-    function clone(state: Readonly<BuilderState>): BuilderState;
-    /**
-     * Gets the files affected by the path from the program
-     */
-    function getFilesAffectedBy(state: BuilderState, programOfThisState: Program, path: Path, cancellationToken: CancellationToken | undefined, computeHash: ComputeHash, cacheToUpdateSignature?: Map<string>, exportedModulesMapCache?: ComputingExportedModulesMap): readonly SourceFile[];
-    /**
-     * Updates the signatures from the cache into state's fileinfo signatures
-     * This should be called whenever it is safe to commit the state of the builder
-     */
-    function updateSignaturesFromCache(state: BuilderState, signatureCache: Map<string>): void;
-    /**
-     * Returns if the shape of the signature has changed since last emit
-     */
-    function updateShapeSignature(state: Readonly<BuilderState>, programOfThisState: Program, sourceFile: SourceFile, cacheToUpdateSignature: Map<string>, cancellationToken: CancellationToken | undefined, computeHash: ComputeHash, exportedModulesMapCache?: ComputingExportedModulesMap): boolean;
-    /**
-     * Updates the exported modules from cache into state's exported modules map
-     * This should be called whenever it is safe to commit the state of the builder
-     */
-    function updateExportedFilesMapFromCache(state: BuilderState, exportedModulesMapCache: ComputingExportedModulesMap | undefined): void;
-    /**
-     * Get all the dependencies of the sourceFile
-     */
-    function getAllDependencies(state: BuilderState, programOfThisState: Program, sourceFile: SourceFile): readonly string[];
-    /**
-     * Gets the files referenced by the the file path
-     */
-    function getReferencedByPaths(state: Readonly<BuilderState>, referencedFilePath: Path): Path[];
+    function cloneMapOrUndefined<T>(map: ReadonlyMap<T> | undefined): Map<T> | undefined;
 }
 declare namespace ts {
     interface ReusableDiagnostic extends ReusableDiagnosticRelatedInformation {
@@ -12858,8 +12848,6 @@ declare namespace ts {
      * If no such value is found, the callback is applied to each element of array and undefined is returned.
      */
     function forEachUnique<T, U>(array: readonly T[] | undefined, callback: (element: T, index: number) => U): U | undefined;
-}
-declare namespace ts {
     function isFirstDeclarationOfSymbolParameter(symbol: Symbol): boolean;
     function symbolPart(text: string, symbol: Symbol): SymbolDisplayPart;
     function displayPart(text: string, kind: SymbolDisplayPartKind): SymbolDisplayPart;
@@ -13252,26 +13240,26 @@ declare namespace ts.FindAllReferences {
         span: HighlightSpan;
     };
     function getTextSpanOfEntry(entry: Entry): TextSpan;
-}
-/** Encapsulates the core find-all-references algorithm. */
-declare namespace ts.FindAllReferences.Core {
-    /** Core find-all-references algorithm. Handles special cases before delegating to `getReferencedSymbolsForSymbol`. */
-    function getReferencedSymbolsForNode(position: number, node: Node, program: Program, sourceFiles: readonly SourceFile[], cancellationToken: CancellationToken, options?: Options, sourceFilesSet?: ReadonlyMap<true>): readonly SymbolAndEntries[] | undefined;
-    function eachExportReference(sourceFiles: readonly SourceFile[], checker: TypeChecker, cancellationToken: CancellationToken | undefined, exportSymbol: Symbol, exportingModuleSymbol: Symbol, exportName: string, isDefaultExport: boolean, cb: (ref: Identifier) => void): void;
-    /** Used as a quick check for whether a symbol is used at all in a file (besides its definition). */
-    function isSymbolReferencedInFile(definition: Identifier, checker: TypeChecker, sourceFile: SourceFile): boolean;
-    function eachSymbolReferenceInFile<T>(definition: Identifier, checker: TypeChecker, sourceFile: SourceFile, cb: (token: Identifier) => T): T | undefined;
-    function eachSignatureCall(signature: SignatureDeclaration, sourceFiles: readonly SourceFile[], checker: TypeChecker, cb: (call: CallExpression) => void): void;
-    /**
-     * Given an initial searchMeaning, extracted from a location, widen the search scope based on the declarations
-     * of the corresponding symbol. e.g. if we are searching for "Foo" in value position, but "Foo" references a class
-     * then we need to widen the search to include type positions as well.
-     * On the contrary, if we are searching for "Bar" in type position and we trace bar to an interface, and an uninstantiated
-     * module, we want to keep the search limited to only types, as the two declarations (interface and uninstantiated module)
-     * do not intersect in any of the three spaces.
-     */
-    function getIntersectingMeaningFromDeclarations(node: Node, symbol: Symbol): SemanticMeaning;
-    function getReferenceEntriesForShorthandPropertyAssignment(node: Node, checker: TypeChecker, addReference: (node: Node) => void): void;
+    /** Encapsulates the core find-all-references algorithm. */
+    namespace Core {
+        /** Core find-all-references algorithm. Handles special cases before delegating to `getReferencedSymbolsForSymbol`. */
+        function getReferencedSymbolsForNode(position: number, node: Node, program: Program, sourceFiles: readonly SourceFile[], cancellationToken: CancellationToken, options?: Options, sourceFilesSet?: ReadonlyMap<true>): readonly SymbolAndEntries[] | undefined;
+        function eachExportReference(sourceFiles: readonly SourceFile[], checker: TypeChecker, cancellationToken: CancellationToken | undefined, exportSymbol: Symbol, exportingModuleSymbol: Symbol, exportName: string, isDefaultExport: boolean, cb: (ref: Identifier) => void): void;
+        /** Used as a quick check for whether a symbol is used at all in a file (besides its definition). */
+        function isSymbolReferencedInFile(definition: Identifier, checker: TypeChecker, sourceFile: SourceFile): boolean;
+        function eachSymbolReferenceInFile<T>(definition: Identifier, checker: TypeChecker, sourceFile: SourceFile, cb: (token: Identifier) => T): T | undefined;
+        function eachSignatureCall(signature: SignatureDeclaration, sourceFiles: readonly SourceFile[], checker: TypeChecker, cb: (call: CallExpression) => void): void;
+        /**
+         * Given an initial searchMeaning, extracted from a location, widen the search scope based on the declarations
+         * of the corresponding symbol. e.g. if we are searching for "Foo" in value position, but "Foo" references a class
+         * then we need to widen the search to include type positions as well.
+         * On the contrary, if we are searching for "Bar" in type position and we trace bar to an interface, and an uninstantiated
+         * module, we want to keep the search limited to only types, as the two declarations (interface and uninstantiated module)
+         * do not intersect in any of the three spaces.
+         */
+        function getIntersectingMeaningFromDeclarations(node: Node, symbol: Symbol): SemanticMeaning;
+        function getReferenceEntriesForShorthandPropertyAssignment(node: Node, checker: TypeChecker, addReference: (node: Node) => void): void;
+    }
 }
 declare namespace ts {
     export function getEditsForFileRename(program: Program, oldFileOrDirPath: string, newFileOrDirPath: string, host: LanguageServiceHost, formatContext: formatting.FormatContext, preferences: UserPreferences, sourceMapper: SourceMapper): readonly FileTextChanges[];
@@ -14362,7 +14350,6 @@ declare namespace ts {
         unregisterShim(shim: Shim): void;
     }
 }
-declare namespace TypeScript.Services {
-    const TypeScriptServicesFactory: typeof ts.TypeScriptServicesFactory;
-}
-declare const toolsVersion = "3.8";
+declare const module: {
+    exports: {};
+};
