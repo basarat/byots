@@ -3092,7 +3092,6 @@ declare namespace ts {
         isArrayType(type: Type): boolean;
         isTupleType(type: Type): boolean;
         isArrayLikeType(type: Type): boolean;
-        getObjectFlags(type: Type): ObjectFlags;
         /**
          * True if `contextualType` should not be considered for completions because
          * e.g. it specifies `kind: "a"` and obj has `kind: "b"`.
@@ -5516,6 +5515,7 @@ declare namespace ts {
     export function getFileWatcherEventKind(oldTime: number, newTime: number): FileWatcherEventKind;
     export const ignoredPaths: string[];
     export let sysLog: (s: string) => void;
+    export function setSysLog(logger: typeof sysLog): void;
     export interface RecursiveDirectoryWatcherHost {
         watchDirectory: HostWatchDirectory;
         useCaseSensitiveFileNames: boolean;
@@ -8653,6 +8653,7 @@ declare namespace ts {
     let objectAllocator: ObjectAllocator;
     function formatStringFromArgs(text: string, args: ArrayLike<string | number>, baseIndex?: number): string;
     let localizedDiagnosticMessages: MapLike<string> | undefined;
+    function setLocalizedDiagnosticMessages(messages: typeof localizedDiagnosticMessages): void;
     function getLocaleSpecificMessage(message: DiagnosticMessage): string;
     function createFileDiagnostic(file: SourceFile, start: number, length: number, message: DiagnosticMessage, ...args: (string | number | undefined)[]): DiagnosticWithLocation;
     function formatMessage(_dummy: any, message: DiagnosticMessage, ...args: (string | number | undefined)[]): string;
@@ -9085,10 +9086,6 @@ declare namespace ts {
 declare namespace ts {
     function trace(host: ModuleResolutionHost, message: DiagnosticMessage, ...args: any[]): void;
     function isTraceEnabled(compilerOptions: CompilerOptions, host: ModuleResolutionHost): boolean;
-    /** Array that is only intended to be pushed to, never read. */
-    interface Push<T> {
-        push(value: T): void;
-    }
     function getPackageJsonTypesVersionsPaths(typesVersions: MapLike<MapLike<string[]>>): {
         version: string;
         paths: MapLike<string[]>;
@@ -11520,6 +11517,13 @@ declare namespace ts {
     type InvalidatedProject<T extends BuilderProgram> = UpdateOutputFileStampsProject | BuildInvalidedProject<T> | UpdateBundleProject<T>;
 }
 declare namespace ts.server {
+    type ActionSet = "action::set";
+    type ActionInvalidate = "action::invalidate";
+    type ActionPackageInstalled = "action::packageInstalled";
+    type EventTypesRegistry = "event::typesRegistry";
+    type EventBeginInstallTypes = "event::beginInstallTypes";
+    type EventEndInstallTypes = "event::endInstallTypes";
+    type EventInitializationFailed = "event::initializationFailed";
     const ActionSet: ActionSet;
     const ActionInvalidate: ActionInvalidate;
     const ActionPackageInstalled: ActionPackageInstalled;
@@ -11549,13 +11553,6 @@ declare namespace ts.server {
     function nowString(): string;
 }
 declare namespace ts.server {
-    type ActionSet = "action::set";
-    type ActionInvalidate = "action::invalidate";
-    type ActionPackageInstalled = "action::packageInstalled";
-    type EventTypesRegistry = "event::typesRegistry";
-    type EventBeginInstallTypes = "event::beginInstallTypes";
-    type EventEndInstallTypes = "event::endInstallTypes";
-    type EventInitializationFailed = "event::initializationFailed";
     interface TypingInstallerResponse {
         readonly kind: ActionSet | ActionInvalidate | EventTypesRegistry | ActionPackageInstalled | EventBeginInstallTypes | EventEndInstallTypes | EventInitializationFailed;
     }
