@@ -3682,7 +3682,7 @@ declare namespace ts {
         InstantiablePrimitive = 4194304,
         Instantiable = 63176704,
         StructuredOrInstantiable = 66846720,
-        ObjectFlagsType = 3899392,
+        ObjectFlagsType = 3899393,
         Simplifiable = 25165824,
         Narrowable = 133970943,
         NotUnionOrUnit = 67637251,
@@ -8651,6 +8651,7 @@ declare namespace ts {
         getSourceMapSourceConstructor(): new (fileName: string, text: string, skipTrivia?: (pos: number) => number) => SourceMapSource;
     }
     let objectAllocator: ObjectAllocator;
+    function setObjectAllocator(alloc: ObjectAllocator): void;
     function formatStringFromArgs(text: string, args: ArrayLike<string | number>, baseIndex?: number): string;
     let localizedDiagnosticMessages: MapLike<string> | undefined;
     function setLocalizedDiagnosticMessages(messages: typeof localizedDiagnosticMessages): void;
@@ -11088,13 +11089,15 @@ declare namespace ts {
     export function emitFilesAndReportErrorsAndGetExitStatus(program: ProgramToEmitFilesAndReportErrors, reportDiagnostic: DiagnosticReporter, writeFileName?: (s: string) => void, reportSummary?: ReportEmitErrorSummary, writeFile?: WriteFileCallback, cancellationToken?: CancellationToken, emitOnlyDtsFiles?: boolean, customTransformers?: CustomTransformers): ExitStatus.Success | ExitStatus.DiagnosticsPresent_OutputsSkipped | ExitStatus.DiagnosticsPresent_OutputsGenerated;
     export const noopFileWatcher: FileWatcher;
     export function createWatchHost(system?: System, reportWatchStatus?: WatchStatusReporter): WatchHost;
-    export enum WatchType {
-        ConfigFile = "Config file",
-        SourceFile = "Source file",
-        MissingFile = "Missing file",
-        WildcardDirectory = "Wild card directory",
-        FailedLookupLocations = "Failed Lookup Locations",
-        TypeRoots = "Type roots"
+    export type WatchType = WatchTypeRegistry[keyof WatchTypeRegistry];
+    export const WatchType: WatchTypeRegistry;
+    export interface WatchTypeRegistry {
+        ConfigFile: "Config file";
+        SourceFile: "Source file";
+        MissingFile: "Missing file";
+        WildcardDirectory: "Wild card directory";
+        FailedLookupLocations: "Failed Lookup Locations";
+        TypeRoots: "Type roots";
     }
     interface WatchFactory<X, Y = undefined> extends ts.WatchFactory<X, Y> {
         writeLog: (s: string) => void;
@@ -11104,7 +11107,7 @@ declare namespace ts {
     }, options: {
         extendedDiagnostics?: boolean;
         diagnostics?: boolean;
-    }): WatchFactory<WatchType, Y>;
+    }): WatchFactory<"Config file" | "Source file" | "Missing file" | "Wild card directory" | "Failed Lookup Locations" | "Type roots", Y>;
     export function createCompilerHostFromProgramHost(host: ProgramHost<any>, getCompilerOptions: () => CompilerOptions, directoryStructureHost?: DirectoryStructureHost): CompilerHost;
     export function setGetSourceFileAsHashVersioned(compilerHost: CompilerHost, host: {
         createHash?(data: string): string;
@@ -12187,10 +12190,6 @@ declare namespace ts {
         kind: ScriptElementKind;
         displayParts: SymbolDisplayPart[];
     }
-    interface DocumentHighlights {
-        fileName: string;
-        highlightSpans: HighlightSpan[];
-    }
     enum HighlightSpanKind {
         none = "none",
         definition = "definition",
@@ -12655,6 +12654,45 @@ declare namespace ts {
         jsxAttributeStringLiteralValue = 24,
         bigintLiteral = 25
     }
+    /** @internal */
+    interface CodeFixRegistration {
+        errorCodes: readonly number[];
+        getCodeActions(context: CodeFixContext): CodeFixAction[] | undefined;
+        fixIds?: readonly string[];
+        getAllCodeActions?(context: CodeFixAllContext): CombinedCodeActions;
+    }
+    /** @internal */
+    interface CodeFixContextBase extends textChanges.TextChangesContext {
+        sourceFile: SourceFile;
+        program: Program;
+        cancellationToken: CancellationToken;
+        preferences: UserPreferences;
+    }
+    /** @internal */
+    interface CodeFixAllContext extends CodeFixContextBase {
+        fixId: {};
+    }
+    /** @internal */
+    interface CodeFixContext extends CodeFixContextBase {
+        errorCode: number;
+        span: TextSpan;
+    }
+    /** @internal */
+    interface Refactor {
+        /** Compute the associated code actions */
+        getEditsForAction(context: RefactorContext, actionName: string): RefactorEditInfo | undefined;
+        /** Compute (quickly) which actions are available here */
+        getAvailableActions(context: RefactorContext): readonly ApplicableRefactorInfo[];
+    }
+    /** @internal */
+    interface RefactorContext extends textChanges.TextChangesContext {
+        file: SourceFile;
+        startPosition: number;
+        endPosition?: number;
+        program: Program;
+        cancellationToken?: CancellationToken;
+        preferences: UserPreferences;
+    }
 }
 interface PromiseConstructor {
     new <T>(executor: (resolve: (value?: T | PromiseLike<T>) => void, reject: (reason?: any) => void) => void): Promise<T>;
@@ -12935,6 +12973,7 @@ declare namespace ts {
     function createPackageJsonInfo(fileName: string, host: LanguageServiceHost): PackageJsonInfo | false | undefined;
     function consumesNodeCoreModules(sourceFile: SourceFile): boolean;
     function isInsideNodeModules(fileOrDirectory: string): boolean;
+    function getRefactorContextSpan({ startPosition, endPosition }: RefactorContext): TextSpan;
 }
 declare namespace ts {
     /** The classifier is used for syntactic highlighting in editors via the TSServer */
@@ -13017,8 +13056,14 @@ declare namespace ts.Completions {
     }
     export {};
 }
-declare namespace ts.DocumentHighlights {
-    function getDocumentHighlights(program: Program, cancellationToken: CancellationToken, sourceFile: SourceFile, position: number, sourceFilesToSearch: readonly SourceFile[]): DocumentHighlights[] | undefined;
+declare namespace ts {
+    interface DocumentHighlights {
+        fileName: string;
+        highlightSpans: HighlightSpan[];
+    }
+    namespace DocumentHighlights {
+        function getDocumentHighlights(program: Program, cancellationToken: CancellationToken, sourceFile: SourceFile, position: number, sourceFilesToSearch: readonly SourceFile[]): DocumentHighlights[] | undefined;
+    }
 }
 declare namespace ts {
     /**
@@ -13759,62 +13804,24 @@ declare namespace ts.textChanges {
     /** Warning: This deletes comments too. See `copyComments` in `convertFunctionToEs6Class`. */
     function deleteNode(changes: ChangeTracker, sourceFile: SourceFile, node: Node, options?: ConfigurableStartEnd): void;
 }
-declare namespace ts {
-    interface CodeFixRegistration {
-        errorCodes: readonly number[];
-        getCodeActions(context: CodeFixContext): CodeFixAction[] | undefined;
-        fixIds?: readonly string[];
-        getAllCodeActions?(context: CodeFixAllContext): CombinedCodeActions;
-    }
-    interface CodeFixContextBase extends textChanges.TextChangesContext {
-        sourceFile: SourceFile;
-        program: Program;
-        cancellationToken: CancellationToken;
-        preferences: UserPreferences;
-    }
-    interface CodeFixAllContext extends CodeFixContextBase {
-        fixId: {};
-    }
-    interface CodeFixContext extends CodeFixContextBase {
-        errorCode: number;
-        span: TextSpan;
-    }
-    namespace codefix {
-        type DiagnosticAndArguments = DiagnosticMessage | [DiagnosticMessage, string] | [DiagnosticMessage, string, string];
-        function createCodeFixActionNoFixId(fixName: string, changes: FileTextChanges[], description: DiagnosticAndArguments): CodeFixAction;
-        function createCodeFixAction(fixName: string, changes: FileTextChanges[], description: DiagnosticAndArguments, fixId: {}, fixAllDescription: DiagnosticAndArguments, command?: CodeActionCommand): CodeFixAction;
-        function registerCodeFix(reg: CodeFixRegistration): void;
-        function getSupportedErrorCodes(): string[];
-        function getFixes(context: CodeFixContext): readonly CodeFixAction[];
-        function getAllFixes(context: CodeFixAllContext): CombinedCodeActions;
-        function createCombinedCodeActions(changes: FileTextChanges[], commands?: CodeActionCommand[]): CombinedCodeActions;
-        function createFileTextChanges(fileName: string, textChanges: TextChange[]): FileTextChanges;
-        function codeFixAll(context: CodeFixAllContext, errorCodes: number[], use: (changes: textChanges.ChangeTracker, error: DiagnosticWithLocation, commands: Push<CodeActionCommand>) => void): CombinedCodeActions;
-        function eachDiagnostic({ program, sourceFile, cancellationToken }: CodeFixAllContext, errorCodes: readonly number[], cb: (diag: DiagnosticWithLocation) => void): void;
-    }
+declare namespace ts.codefix {
+    type DiagnosticAndArguments = DiagnosticMessage | [DiagnosticMessage, string] | [DiagnosticMessage, string, string];
+    function createCodeFixActionNoFixId(fixName: string, changes: FileTextChanges[], description: DiagnosticAndArguments): CodeFixAction;
+    function createCodeFixAction(fixName: string, changes: FileTextChanges[], description: DiagnosticAndArguments, fixId: {}, fixAllDescription: DiagnosticAndArguments, command?: CodeActionCommand): CodeFixAction;
+    function registerCodeFix(reg: CodeFixRegistration): void;
+    function getSupportedErrorCodes(): string[];
+    function getFixes(context: CodeFixContext): readonly CodeFixAction[];
+    function getAllFixes(context: CodeFixAllContext): CombinedCodeActions;
+    function createCombinedCodeActions(changes: FileTextChanges[], commands?: CodeActionCommand[]): CombinedCodeActions;
+    function createFileTextChanges(fileName: string, textChanges: TextChange[]): FileTextChanges;
+    function codeFixAll(context: CodeFixAllContext, errorCodes: number[], use: (changes: textChanges.ChangeTracker, error: DiagnosticWithLocation, commands: Push<CodeActionCommand>) => void): CombinedCodeActions;
+    function eachDiagnostic({ program, sourceFile, cancellationToken }: CodeFixAllContext, errorCodes: readonly number[], cb: (diag: DiagnosticWithLocation) => void): void;
 }
-declare namespace ts {
-    interface Refactor {
-        /** Compute the associated code actions */
-        getEditsForAction(context: RefactorContext, actionName: string): RefactorEditInfo | undefined;
-        /** Compute (quickly) which actions are available here */
-        getAvailableActions(context: RefactorContext): readonly ApplicableRefactorInfo[];
-    }
-    interface RefactorContext extends textChanges.TextChangesContext {
-        file: SourceFile;
-        startPosition: number;
-        endPosition?: number;
-        program: Program;
-        cancellationToken?: CancellationToken;
-        preferences: UserPreferences;
-    }
-    namespace refactor {
-        /** @param name An unique code associated with each refactor. Does not have to be human-readable. */
-        function registerRefactor(name: string, refactor: Refactor): void;
-        function getApplicableRefactors(context: RefactorContext): ApplicableRefactorInfo[];
-        function getEditsForRefactor(context: RefactorContext, refactorName: string, actionName: string): RefactorEditInfo | undefined;
-    }
-    function getRefactorContextSpan({ startPosition, endPosition }: RefactorContext): TextSpan;
+declare namespace ts.refactor {
+    /** @param name An unique code associated with each refactor. Does not have to be human-readable. */
+    function registerRefactor(name: string, refactor: Refactor): void;
+    function getApplicableRefactors(context: RefactorContext): ApplicableRefactorInfo[];
+    function getEditsForRefactor(context: RefactorContext, refactorName: string, actionName: string): RefactorEditInfo | undefined;
 }
 declare namespace ts.codefix {
 }
@@ -14347,6 +14354,7 @@ declare namespace ts {
         unregisterShim(shim: Shim): void;
     }
 }
+declare var window: {};
 declare const module: {
     exports: {};
 };
