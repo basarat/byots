@@ -14,9 +14,29 @@ and limitations under the License.
 ***************************************************************************** */
 
 declare namespace ts {
-    interface Map<T> {
+    interface IteratorShim<T> {
+        next(): {
+            value: T;
+            done?: false;
+        } | {
+            value: never;
+            done: true;
+        };
     }
-    function createMapShim(): new <T>() => Map<T>;
+    interface MapShim<T> {
+        readonly size: number;
+        get(key: string): T | undefined;
+        set(key: string, value: T): this;
+        has(key: string): boolean;
+        delete(key: string): boolean;
+        clear(): void;
+        keys(): IteratorShim<string>;
+        values(): IteratorShim<T>;
+        entries(): IteratorShim<[string, T]>;
+        forEach(action: (value: T, key: string) => void): void;
+    }
+    export function createMapShim(): new <T>() => MapShim<T>;
+    export {};
 }
 declare namespace ts {
     const versionMajorMinor = "3.8";
@@ -55,6 +75,11 @@ declare namespace ts {
     interface MapConstructor {
         new <T>(): Map<T>;
     }
+    /**
+     * Returns the native Map implementation if it is available and compatible (i.e. supports iteration).
+     */
+    function tryGetNativeMap(): MapConstructor | undefined;
+    const Map: MapConstructor;
     /** ES6 Iterator type. */
     interface Iterator<T> {
         next(): {
@@ -78,12 +103,7 @@ declare namespace ts {
     }
 }
 declare namespace ts {
-    /**
-     * Returns the native Map implementation if it is available and compatible (i.e. supports iteration).
-     */
-    function tryGetNativeMap(): MapConstructor | undefined;
     const emptyArray: never[];
-    const Map: MapConstructor;
     /** Create a new map. */
     function createMap<T>(): Map<T>;
     /** Create a new map from an array of entries. */
@@ -12699,7 +12719,7 @@ interface PromiseConstructor {
     reject(reason: any): Promise<never>;
     all<T>(values: (T | PromiseLike<T>)[]): Promise<T[]>;
 }
-declare let Promise: PromiseConstructor;
+declare var Promise: PromiseConstructor;
 declare namespace ts {
     const scanner: Scanner;
     enum SemanticMeaning {
@@ -14041,7 +14061,6 @@ declare namespace ts {
     function getDefaultCompilerOptions(): CompilerOptions;
     function getSupportedCodeFixes(): string[];
     function createLanguageServiceSourceFile(fileName: string, scriptSnapshot: IScriptSnapshot, scriptTarget: ScriptTarget, version: string, setNodeParents: boolean, scriptKind?: ScriptKind): SourceFile;
-    let disableIncrementalParsing: boolean;
     function updateLanguageServiceSourceFile(sourceFile: SourceFile, scriptSnapshot: IScriptSnapshot, version: string, textChangeRange: TextChangeRange | undefined, aggressiveChecks?: boolean): SourceFile;
     /** A cancellation that throttles calls to the host */
     class ThrottledCancellationToken implements CancellationToken {
