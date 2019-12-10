@@ -6073,6 +6073,7 @@ declare namespace ts {
         Identifier_expected: DiagnosticMessage;
         _0_expected: DiagnosticMessage;
         A_file_cannot_have_a_reference_to_itself: DiagnosticMessage;
+        The_parser_expected_to_find_a_to_match_the_token_here: DiagnosticMessage;
         Trailing_comma_not_allowed: DiagnosticMessage;
         Asterisk_Slash_expected: DiagnosticMessage;
         An_element_access_expression_should_take_an_argument: DiagnosticMessage;
