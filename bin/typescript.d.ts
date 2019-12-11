@@ -2792,6 +2792,7 @@ declare namespace ts {
         TypeReferenceDirective = 2
     }
     export interface RefFile {
+        referencedFileName: string;
         kind: RefFileKind;
         index: number;
         file: Path;
@@ -2831,6 +2832,8 @@ declare namespace ts {
         getDeclarationDiagnostics(sourceFile?: SourceFile, cancellationToken?: CancellationToken): readonly DiagnosticWithLocation[];
         getConfigFileParsingDiagnostics(): readonly Diagnostic[];
         getSuggestionDiagnostics(sourceFile: SourceFile, cancellationToken?: CancellationToken): readonly DiagnosticWithLocation[];
+        getBindAndCheckDiagnostics(sourceFile: SourceFile, cancellationToken?: CancellationToken): readonly Diagnostic[];
+        getProgramDiagnostics(sourceFile: SourceFile, cancellationToken?: CancellationToken): readonly Diagnostic[];
         /**
          * Gets a type checker that can be used to semantically analyze source files in the program.
          */
@@ -6283,6 +6286,7 @@ declare namespace ts {
         Definite_assignment_assertions_can_only_be_used_along_with_a_type_annotation: DiagnosticMessage;
         Module_0_can_only_be_default_imported_using_the_1_flag: DiagnosticMessage;
         Keywords_cannot_contain_escape_characters: DiagnosticMessage;
+        Already_included_file_name_0_differs_from_file_name_1_only_in_casing: DiagnosticMessage;
         with_statements_are_not_allowed_in_an_async_function_block: DiagnosticMessage;
         await_expression_is_only_allowed_within_an_async_function: DiagnosticMessage;
         can_only_be_used_in_an_object_literal_property_inside_a_destructuring_assignment: DiagnosticMessage;
@@ -10704,7 +10708,7 @@ declare namespace ts {
     type ReusableDiagnosticMessageChain = DiagnosticMessageChain;
     interface ReusableBuilderProgramState extends ReusableBuilderState {
         /**
-         * Cache of semantic diagnostics for files with their Path being the key
+         * Cache of bind and check diagnostics for files with their Path being the key
          */
         semanticDiagnosticsPerFile?: ReadonlyMap<readonly ReusableDiagnostic[] | readonly Diagnostic[]> | undefined;
         /**
@@ -10763,7 +10767,7 @@ declare namespace ts {
      */
     interface BuilderProgramState extends BuilderState {
         /**
-         * Cache of semantic diagnostics for files with their Path being the key
+         * Cache of bind and check diagnostics for files with their Path being the key
          */
         semanticDiagnosticsPerFile: Map<readonly Diagnostic[]> | undefined;
         /**
