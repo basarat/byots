@@ -10606,6 +10606,7 @@ declare namespace ts {
      * @returns A 'Program' object.
      */
     export function createProgram(rootNames: readonly string[], options: CompilerOptions, host?: CompilerHost, oldProgram?: Program, configFileParsingDiagnostics?: readonly Diagnostic[]): Program;
+    export function handleNoEmitOptions(program: ProgramToEmitFilesAndReportErrors, sourceFile: SourceFile | undefined, cancellationToken: CancellationToken | undefined): EmitResult | undefined;
     interface CompilerHostLike {
         useCaseSensitiveFileNames(): boolean;
         getCurrentDirectory(): string;
@@ -11172,6 +11173,7 @@ declare namespace ts {
         getOptionsDiagnostics(cancellationToken?: CancellationToken): readonly Diagnostic[];
         getGlobalDiagnostics(cancellationToken?: CancellationToken): readonly Diagnostic[];
         getSemanticDiagnostics(sourceFile?: SourceFile, cancellationToken?: CancellationToken): readonly Diagnostic[];
+        getDeclarationDiagnostics(sourceFile?: SourceFile, cancellationToken?: CancellationToken): readonly DiagnosticWithLocation[];
         getConfigFileParsingDiagnostics(): readonly Diagnostic[];
         emit(targetSourceFile?: SourceFile, writeFile?: WriteFileCallback, cancellationToken?: CancellationToken, emitOnlyDtsFiles?: boolean, customTransformers?: CustomTransformers): EmitResult;
     }
@@ -11181,7 +11183,7 @@ declare namespace ts {
      */
     export function emitFilesAndReportErrors(program: ProgramToEmitFilesAndReportErrors, reportDiagnostic: DiagnosticReporter, writeFileName?: (s: string) => void, reportSummary?: ReportEmitErrorSummary, writeFile?: WriteFileCallback, cancellationToken?: CancellationToken, emitOnlyDtsFiles?: boolean, customTransformers?: CustomTransformers): {
         emitResult: EmitResult;
-        diagnostics: Diagnostic[];
+        diagnostics: SortedReadonlyArray<Diagnostic>;
     };
     export function emitFilesAndReportErrorsAndGetExitStatus(program: ProgramToEmitFilesAndReportErrors, reportDiagnostic: DiagnosticReporter, writeFileName?: (s: string) => void, reportSummary?: ReportEmitErrorSummary, writeFile?: WriteFileCallback, cancellationToken?: CancellationToken, emitOnlyDtsFiles?: boolean, customTransformers?: CustomTransformers): ExitStatus.Success | ExitStatus.DiagnosticsPresent_OutputsSkipped | ExitStatus.DiagnosticsPresent_OutputsGenerated;
     export const noopFileWatcher: FileWatcher;
