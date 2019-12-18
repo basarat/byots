@@ -7542,6 +7542,7 @@ declare namespace ts {
     function isIdentifierPart(ch: number, languageVersion: ScriptTarget | undefined): boolean;
     function isIdentifierText(name: string, languageVersion: ScriptTarget | undefined): boolean;
     function createScanner(languageVersion: ScriptTarget, skipTrivia: boolean, languageVariant?: LanguageVariant, textInitial?: string, onError?: ErrorCallback, start?: number, length?: number): Scanner;
+    function utf16EncodeAsString(codePoint: number): string;
 }
 declare namespace ts {
     function isExternalModuleNameRelative(moduleName: string): boolean;
