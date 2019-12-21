@@ -984,73 +984,75 @@ declare namespace ts {
         ExportAssignment = 258,
         ExportDeclaration = 259,
         NamedExports = 260,
-        ExportSpecifier = 261,
-        MissingDeclaration = 262,
-        ExternalModuleReference = 263,
-        JsxElement = 264,
-        JsxSelfClosingElement = 265,
-        JsxOpeningElement = 266,
-        JsxClosingElement = 267,
-        JsxFragment = 268,
-        JsxOpeningFragment = 269,
-        JsxClosingFragment = 270,
-        JsxAttribute = 271,
-        JsxAttributes = 272,
-        JsxSpreadAttribute = 273,
-        JsxExpression = 274,
-        CaseClause = 275,
-        DefaultClause = 276,
-        HeritageClause = 277,
-        CatchClause = 278,
-        PropertyAssignment = 279,
-        ShorthandPropertyAssignment = 280,
-        SpreadAssignment = 281,
-        EnumMember = 282,
-        UnparsedPrologue = 283,
-        UnparsedPrepend = 284,
-        UnparsedText = 285,
-        UnparsedInternalText = 286,
-        UnparsedSyntheticReference = 287,
-        SourceFile = 288,
-        Bundle = 289,
-        UnparsedSource = 290,
-        InputFiles = 291,
-        JSDocTypeExpression = 292,
-        JSDocAllType = 293,
-        JSDocUnknownType = 294,
-        JSDocNullableType = 295,
-        JSDocNonNullableType = 296,
-        JSDocOptionalType = 297,
-        JSDocFunctionType = 298,
-        JSDocVariadicType = 299,
-        JSDocNamepathType = 300,
-        JSDocComment = 301,
-        JSDocTypeLiteral = 302,
-        JSDocSignature = 303,
-        JSDocTag = 304,
-        JSDocAugmentsTag = 305,
-        JSDocAuthorTag = 306,
-        JSDocClassTag = 307,
-        JSDocPublicTag = 308,
-        JSDocPrivateTag = 309,
-        JSDocProtectedTag = 310,
-        JSDocCallbackTag = 311,
-        JSDocEnumTag = 312,
-        JSDocParameterTag = 313,
-        JSDocReturnTag = 314,
-        JSDocThisTag = 315,
-        JSDocTypeTag = 316,
-        JSDocTemplateTag = 317,
-        JSDocTypedefTag = 318,
-        JSDocPropertyTag = 319,
-        SyntaxList = 320,
-        NotEmittedStatement = 321,
-        PartiallyEmittedExpression = 322,
-        CommaListExpression = 323,
-        MergeDeclarationMarker = 324,
-        EndOfDeclarationMarker = 325,
-        SyntheticReferenceExpression = 326,
-        Count = 327,
+        NamespaceExport = 261,
+        ExportSpecifier = 262,
+        MissingDeclaration = 263,
+        ExternalModuleReference = 264,
+        JsxElement = 265,
+        JsxSelfClosingElement = 266,
+        JsxOpeningElement = 267,
+        JsxClosingElement = 268,
+        JsxFragment = 269,
+        JsxOpeningFragment = 270,
+        JsxClosingFragment = 271,
+        JsxAttribute = 272,
+        JsxAttributes = 273,
+        JsxSpreadAttribute = 274,
+        JsxExpression = 275,
+        CaseClause = 276,
+        DefaultClause = 277,
+        HeritageClause = 278,
+        CatchClause = 279,
+        PropertyAssignment = 280,
+        ShorthandPropertyAssignment = 281,
+        SpreadAssignment = 282,
+        EnumMember = 283,
+        UnparsedPrologue = 284,
+        UnparsedPrepend = 285,
+        UnparsedText = 286,
+        UnparsedInternalText = 287,
+        UnparsedSyntheticReference = 288,
+        SourceFile = 289,
+        Bundle = 290,
+        UnparsedSource = 291,
+        InputFiles = 292,
+        JSDocTypeExpression = 293,
+        JSDocAllType = 294,
+        JSDocUnknownType = 295,
+        JSDocNullableType = 296,
+        JSDocNonNullableType = 297,
+        JSDocOptionalType = 298,
+        JSDocFunctionType = 299,
+        JSDocVariadicType = 300,
+        JSDocNamepathType = 301,
+        JSDocComment = 302,
+        JSDocTypeLiteral = 303,
+        JSDocSignature = 304,
+        JSDocTag = 305,
+        JSDocAugmentsTag = 306,
+        JSDocAuthorTag = 307,
+        JSDocClassTag = 308,
+        JSDocPublicTag = 309,
+        JSDocPrivateTag = 310,
+        JSDocProtectedTag = 311,
+        JSDocReadonlyTag = 312,
+        JSDocCallbackTag = 313,
+        JSDocEnumTag = 314,
+        JSDocParameterTag = 315,
+        JSDocReturnTag = 316,
+        JSDocThisTag = 317,
+        JSDocTypeTag = 318,
+        JSDocTemplateTag = 319,
+        JSDocTypedefTag = 320,
+        JSDocPropertyTag = 321,
+        SyntaxList = 322,
+        NotEmittedStatement = 323,
+        PartiallyEmittedExpression = 324,
+        CommaListExpression = 325,
+        MergeDeclarationMarker = 326,
+        EndOfDeclarationMarker = 327,
+        SyntheticReferenceExpression = 328,
+        Count = 329,
         FirstAssignment = 62,
         LastAssignment = 74,
         FirstCompoundAssignment = 63,
@@ -1078,10 +1080,10 @@ declare namespace ts {
         FirstStatement = 224,
         LastStatement = 240,
         FirstNode = 152,
-        FirstJSDocNode = 292,
-        LastJSDocNode = 319,
-        FirstJSDocTagNode = 304,
-        LastJSDocTagNode = 319,
+        FirstJSDocNode = 293,
+        LastJSDocNode = 321,
+        FirstJSDocTagNode = 305,
+        LastJSDocTagNode = 321,
         FirstContextualKeyword = 121,
         LastContextualKeyword = 151
     }
@@ -2310,6 +2312,7 @@ declare namespace ts {
         moduleSpecifier: Expression;
     }
     export type NamedImportBindings = NamespaceImport | NamedImports;
+    export type NamedExportBindings = NamespaceExport | NamedExports;
     export interface ImportClause extends NamedDeclaration {
         kind: SyntaxKind.ImportClause;
         parent: ImportDeclaration;
@@ -2321,6 +2324,11 @@ declare namespace ts {
         parent: ImportClause;
         name: Identifier;
     }
+    export interface NamespaceExport extends NamedDeclaration {
+        kind: SyntaxKind.NamespaceExport;
+        parent: ExportDeclaration;
+        name: Identifier;
+    }
     export interface NamespaceExportDeclaration extends DeclarationStatement {
         kind: SyntaxKind.NamespaceExportDeclaration;
         name: Identifier;
@@ -2329,7 +2337,7 @@ declare namespace ts {
         kind: SyntaxKind.ExportDeclaration;
         parent: SourceFile | ModuleBlock;
         /** Will not be assigned in the case of `export * from "foo";` */
-        exportClause?: NamedExports;
+        exportClause?: NamedExportBindings;
         /** If this is not a StringLiteral it will be a grammar error. */
         moduleSpecifier?: Expression;
     }
@@ -2458,6 +2466,9 @@ declare namespace ts {
     }
     export interface JSDocProtectedTag extends JSDocTag {
         kind: SyntaxKind.JSDocProtectedTag;
+    }
+    export interface JSDocReadonlyTag extends JSDocTag {
+        kind: SyntaxKind.JSDocReadonlyTag;
     }
     export interface JSDocEnumTag extends JSDocTag, Declaration {
         parent: JSDoc;
@@ -2826,6 +2837,7 @@ declare namespace ts {
          */
         getMissingFilePaths(): readonly Path[];
         getRefFileMap(): MultiMap<RefFile> | undefined;
+        getFilesByNameMap(): Map<SourceFile | false | undefined>;
         /**
          * Emits the JavaScript and declaration files.  If targetSourceFile is not specified, then
          * the JavaScript and declaration files will be produced for all the files in this program.
@@ -2864,6 +2876,7 @@ declare namespace ts {
             assignable: number;
             identity: number;
             subtype: number;
+            strictSubtype: number;
         };
         getFileProcessingDiagnostics(): DiagnosticCollection;
         getResolvedTypeReferenceDirectives(): Map<ResolvedTypeReferenceDirective | undefined>;
@@ -3125,6 +3138,7 @@ declare namespace ts {
             assignable: number;
             identity: number;
             subtype: number;
+            strictSubtype: number;
         };
         isArrayType(type: Type): boolean;
         isTupleType(type: Type): boolean;
@@ -4346,6 +4360,7 @@ declare namespace ts {
         UMD = 3,
         System = 4,
         ES2015 = 5,
+        ES2020 = 6,
         ESNext = 99
     }
     export enum JsxEmit {
@@ -6371,7 +6386,7 @@ declare namespace ts {
         Type_of_await_operand_must_either_be_a_valid_promise_or_must_not_contain_a_callable_then_member: DiagnosticMessage;
         Type_of_yield_operand_in_an_async_generator_must_either_be_a_valid_promise_or_must_not_contain_a_callable_then_member: DiagnosticMessage;
         Type_of_iterated_elements_of_a_yield_Asterisk_operand_must_either_be_a_valid_promise_or_must_not_contain_a_callable_then_member: DiagnosticMessage;
-        Dynamic_imports_are_only_supported_when_the_module_flag_is_set_to_esnext_commonjs_amd_system_or_umd: DiagnosticMessage;
+        Dynamic_imports_are_only_supported_when_the_module_flag_is_set_to_es2020_esnext_commonjs_amd_system_or_umd: DiagnosticMessage;
         Dynamic_import_must_have_one_specifier_as_an_argument: DiagnosticMessage;
         Specifier_of_dynamic_import_cannot_be_spread_element: DiagnosticMessage;
         Dynamic_import_cannot_have_type_arguments: DiagnosticMessage;
@@ -7695,6 +7710,8 @@ declare namespace ts {
     function getJSDocPrivateTag(node: Node): JSDocPrivateTag | undefined;
     /** Gets the JSDoc protected tag for the node if present */
     function getJSDocProtectedTag(node: Node): JSDocProtectedTag | undefined;
+    /** Gets the JSDoc protected tag for the node if present */
+    function getJSDocReadonlyTag(node: Node): JSDocReadonlyTag | undefined;
     /** Gets the JSDoc enum tag for the node if present */
     function getJSDocEnumTag(node: Node): JSDocEnumTag | undefined;
     /** Gets the JSDoc this tag for the node if present */
@@ -7873,6 +7890,8 @@ declare namespace ts {
     function isImportDeclaration(node: Node): node is ImportDeclaration;
     function isImportClause(node: Node): node is ImportClause;
     function isNamespaceImport(node: Node): node is NamespaceImport;
+    function isNamespaceExport(node: Node): node is NamespaceExport;
+    function isNamedExportBindings(node: Node): node is NamedExportBindings;
     function isNamedImports(node: Node): node is NamedImports;
     function isImportSpecifier(node: Node): node is ImportSpecifier;
     function isExportAssignment(node: Node): node is ExportAssignment;
@@ -7921,6 +7940,7 @@ declare namespace ts {
     function isJSDocPublicTag(node: Node): node is JSDocPublicTag;
     function isJSDocPrivateTag(node: Node): node is JSDocPrivateTag;
     function isJSDocProtectedTag(node: Node): node is JSDocProtectedTag;
+    function isJSDocReadonlyTag(node: Node): node is JSDocReadonlyTag;
     function isJSDocEnumTag(node: Node): node is JSDocEnumTag;
     function isJSDocThisTag(node: Node): node is JSDocThisTag;
     function isJSDocParameterTag(node: Node): node is JSDocParameterTag;
@@ -8369,7 +8389,7 @@ declare namespace ts {
     function importFromModuleSpecifier(node: StringLiteralLike): AnyValidImportOrReExport;
     function tryGetImportFromModuleSpecifier(node: StringLiteralLike): AnyValidImportOrReExport | undefined;
     function getExternalModuleName(node: AnyImportOrReExport | ImportTypeNode): Expression | undefined;
-    function getNamespaceDeclarationNode(node: ImportDeclaration | ImportEqualsDeclaration | ExportDeclaration): ImportEqualsDeclaration | NamespaceImport | undefined;
+    function getNamespaceDeclarationNode(node: ImportDeclaration | ImportEqualsDeclaration | ExportDeclaration): ImportEqualsDeclaration | NamespaceImport | NamespaceExport | undefined;
     function isDefaultImport(node: ImportDeclaration | ImportEqualsDeclaration | ExportDeclaration): boolean;
     function hasQuestionToken(node: Node): boolean;
     function isJSDocConstructSignature(node: Node): boolean;
@@ -9598,15 +9618,17 @@ declare namespace ts {
     function createImportClause(name: Identifier | undefined, namedBindings: NamedImportBindings | undefined): ImportClause;
     function updateImportClause(node: ImportClause, name: Identifier | undefined, namedBindings: NamedImportBindings | undefined): ImportClause;
     function createNamespaceImport(name: Identifier): NamespaceImport;
+    function createNamespaceExport(name: Identifier): NamespaceExport;
     function updateNamespaceImport(node: NamespaceImport, name: Identifier): NamespaceImport;
+    function updateNamespaceExport(node: NamespaceExport, name: Identifier): NamespaceExport;
     function createNamedImports(elements: readonly ImportSpecifier[]): NamedImports;
     function updateNamedImports(node: NamedImports, elements: readonly ImportSpecifier[]): NamedImports;
     function createImportSpecifier(propertyName: Identifier | undefined, name: Identifier): ImportSpecifier;
     function updateImportSpecifier(node: ImportSpecifier, propertyName: Identifier | undefined, name: Identifier): ImportSpecifier;
     function createExportAssignment(decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, isExportEquals: boolean | undefined, expression: Expression): ExportAssignment;
     function updateExportAssignment(node: ExportAssignment, decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, expression: Expression): ExportAssignment;
-    function createExportDeclaration(decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, exportClause: NamedExports | undefined, moduleSpecifier?: Expression): ExportDeclaration;
-    function updateExportDeclaration(node: ExportDeclaration, decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, exportClause: NamedExports | undefined, moduleSpecifier: Expression | undefined): ExportDeclaration;
+    function createExportDeclaration(decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, exportClause: NamedExportBindings | undefined, moduleSpecifier?: Expression): ExportDeclaration;
+    function updateExportDeclaration(node: ExportDeclaration, decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, exportClause: NamedExportBindings | undefined, moduleSpecifier: Expression | undefined): ExportDeclaration;
     function createEmptyExports(): ExportDeclaration;
     function createNamedExports(elements: readonly ExportSpecifier[]): NamedExports;
     function updateNamedExports(node: NamedExports, elements: readonly ExportSpecifier[]): NamedExports;
@@ -10253,6 +10275,7 @@ declare namespace ts {
         hasExportStarsToExportValues: boolean;
     }
     function chainBundle(transformSourceFile: (x: SourceFile) => SourceFile): (x: SourceFile | Bundle) => SourceFile | Bundle;
+    function getExportNeedsImportStarHelper(node: ExportDeclaration): boolean;
     function getImportNeedsImportStarHelper(node: ImportDeclaration): boolean;
     function getImportNeedsImportDefaultHelper(node: ImportDeclaration): boolean;
     function collectExternalModuleInfo(sourceFile: SourceFile, resolver: EmitResolver, compilerOptions: CompilerOptions): ExternalModuleInfo;
@@ -10393,7 +10416,7 @@ declare namespace ts {
     function transformSystemModule(context: TransformationContext): (x: SourceFile | Bundle) => SourceFile | Bundle;
 }
 declare namespace ts {
-    function transformES2015Module(context: TransformationContext): (x: SourceFile | Bundle) => SourceFile | Bundle;
+    function transformECMAScriptModule(context: TransformationContext): (x: SourceFile | Bundle) => SourceFile | Bundle;
 }
 declare namespace ts {
     type GetSymbolAccessibilityDiagnostic = (symbolAccessibilityResult: SymbolAccessibilityResult) => (SymbolAccessibilityDiagnostic | undefined);
