@@ -220,6 +220,7 @@ declare namespace ts {
     function concatenate<T>(array1: readonly T[], array2: readonly T[]): readonly T[];
     function concatenate<T>(array1: T[] | undefined, array2: T[] | undefined): T[];
     function concatenate<T>(array1: readonly T[] | undefined, array2: readonly T[] | undefined): readonly T[];
+    function indicesOf(array: readonly unknown[]): number[];
     /**
      * Deduplicates an unsorted array.
      * @param equalityComparer An `EqualityComparer` used to determine if two values are duplicates.
@@ -390,6 +391,7 @@ declare namespace ts {
     function arrayToMultiMap<T>(values: readonly T[], makeKey: (value: T) => string): MultiMap<T>;
     function arrayToMultiMap<T, U>(values: readonly T[], makeKey: (value: T) => string, makeValue: (value: T) => U): MultiMap<U>;
     function group<T>(values: readonly T[], getGroupId: (value: T) => string): readonly (readonly T[])[];
+    function group<T, R>(values: readonly T[], getGroupId: (value: T) => string, resultSelector: (values: readonly T[]) => R): R[];
     function clone<T>(object: T): T;
     function extend<T1, T2>(first: T1, second: T2): T1 & T2;
     function copyProperties<T1 extends T2, T2>(first: T1, second: T2): void;
@@ -4769,9 +4771,10 @@ declare namespace ts {
         ContainsBlockScopedBinding = 32768,
         ContainsBindingPattern = 65536,
         ContainsYield = 131072,
-        ContainsHoistedDeclarationOrCompletion = 262144,
-        ContainsDynamicImport = 524288,
-        ContainsClassFields = 1048576,
+        ContainsAwait = 262144,
+        ContainsHoistedDeclarationOrCompletion = 524288,
+        ContainsDynamicImport = 1048576,
+        ContainsClassFields = 2097152,
         HasComputedFlags = 536870912,
         AssertTypeScript = 1,
         AssertJsx = 2,
@@ -4786,13 +4789,13 @@ declare namespace ts {
         OuterExpressionExcludes = 536870912,
         PropertyAccessExcludes = 536870912,
         NodeExcludes = 536870912,
-        ArrowFunctionExcludes = 537371648,
-        FunctionExcludes = 537373696,
-        ConstructorExcludes = 537372672,
-        MethodOrAccessorExcludes = 537372672,
+        ArrowFunctionExcludes = 537895936,
+        FunctionExcludes = 537897984,
+        ConstructorExcludes = 537896960,
+        MethodOrAccessorExcludes = 537896960,
         PropertyExcludes = 536872960,
         ClassExcludes = 536888320,
-        ModuleExcludes = 537168896,
+        ModuleExcludes = 537431040,
         TypeExcludes = -2,
         ObjectLiteralExcludes = 536896512,
         ArrayLiteralOrCallOrNewExcludes = 536875008,
@@ -6423,6 +6426,7 @@ declare namespace ts {
         Tagged_template_expressions_are_not_permitted_in_an_optional_chain: DiagnosticMessage;
         Identifier_expected_0_is_a_reserved_word_that_cannot_be_used_here: DiagnosticMessage;
         Did_you_mean_to_parenthesize_this_function_type: DiagnosticMessage;
+        await_outside_of_an_async_function_is_only_allowed_at_the_top_level_of_a_module_when_module_is_esnext_or_system_and_target_is_es2017_or_higher: DiagnosticMessage;
         The_types_of_0_are_incompatible_between_these_types: DiagnosticMessage;
         The_types_returned_by_0_are_incompatible_between_these_types: DiagnosticMessage;
         Call_signature_return_types_0_and_1_are_incompatible: DiagnosticMessage;
@@ -12066,6 +12070,9 @@ declare namespace ts {
         getNavigateToItems(searchValue: string, maxResultCount?: number, fileName?: string, excludeDtsFiles?: boolean): NavigateToItem[];
         getNavigationBarItems(fileName: string): NavigationBarItem[];
         getNavigationTree(fileName: string): NavigationTree;
+        prepareCallHierarchy(fileName: string, position: number): CallHierarchyItem | CallHierarchyItem[] | undefined;
+        provideCallHierarchyIncomingCalls(fileName: string, position: number): CallHierarchyIncomingCall[];
+        provideCallHierarchyOutgoingCalls(fileName: string, position: number): CallHierarchyOutgoingCall[];
         getOutliningSpans(fileName: string): OutliningSpan[];
         getTodoComments(fileName: string, descriptors: TodoCommentDescriptor[]): TodoComment[];
         getBraceMatchingAtPosition(fileName: string, position: number): TextSpan[];
@@ -12207,6 +12214,21 @@ declare namespace ts {
         nameSpan: TextSpan | undefined;
         /** Present if non-empty */
         childItems?: NavigationTree[];
+    }
+    interface CallHierarchyItem {
+        name: string;
+        kind: ScriptElementKind;
+        file: string;
+        span: TextSpan;
+        selectionSpan: TextSpan;
+    }
+    interface CallHierarchyIncomingCall {
+        from: CallHierarchyItem;
+        fromSpans: TextSpan[];
+    }
+    interface CallHierarchyOutgoingCall {
+        to: CallHierarchyItem;
+        fromSpans: TextSpan[];
     }
     interface TodoCommentDescriptor {
         text: string;
@@ -12863,10 +12885,14 @@ declare namespace ts {
     function getMeaningFromDeclaration(node: Node): SemanticMeaning;
     function getMeaningFromLocation(node: Node): SemanticMeaning;
     function isInRightSideOfInternalImportEqualsDeclaration(node: Node): boolean;
-    function isCallExpressionTarget(node: Node): boolean;
-    function isNewExpressionTarget(node: Node): boolean;
-    function isCallOrNewExpressionTarget(node: Node): boolean;
+    function isCallExpressionTarget(node: Node, includeElementAccess?: boolean, skipPastOuterExpressions?: boolean): boolean;
+    function isNewExpressionTarget(node: Node, includeElementAccess?: boolean, skipPastOuterExpressions?: boolean): boolean;
+    function isCallOrNewExpressionTarget(node: Node, includeElementAccess?: boolean, skipPastOuterExpressions?: boolean): boolean;
+    function isTaggedTemplateTag(node: Node, includeElementAccess?: boolean, skipPastOuterExpressions?: boolean): boolean;
+    function isDecoratorTarget(node: Node, includeElementAccess?: boolean, skipPastOuterExpressions?: boolean): boolean;
+    function isJsxOpeningLikeElementTagName(node: Node, includeElementAccess?: boolean, skipPastOuterExpressions?: boolean): boolean;
     function climbPastPropertyAccess(node: Node): Node;
+    function climbPastPropertyOrElementAccess(node: Node): Node;
     function getTargetLabel(referenceNode: Node, labelName: string): Identifier | undefined;
     function hasPropertyAccessExpressionWithName(node: CallExpression, funcName: string): boolean;
     function isJumpStatementTarget(node: Node): node is Identifier & {
@@ -12877,6 +12903,7 @@ declare namespace ts {
     function isTagName(node: Node): boolean;
     function isRightSideOfQualifiedName(node: Node): boolean;
     function isRightSideOfPropertyAccess(node: Node): boolean;
+    function isArgumentExpressionOfElementAccess(node: Node): boolean;
     function isNameOfModuleDeclaration(node: Node): boolean;
     function isNameOfFunctionDeclaration(node: Node): boolean;
     function isLiteralNameOfPropertyDeclarationOrIndexAccess(node: StringLiteral | NumericLiteral | NoSubstitutionTemplateLiteral): boolean;
@@ -13125,6 +13152,18 @@ declare namespace ts {
     function consumesNodeCoreModules(sourceFile: SourceFile): boolean;
     function isInsideNodeModules(fileOrDirectory: string): boolean;
     function getRefactorContextSpan({ startPosition, endPosition }: RefactorContext): TextSpan;
+    /**
+     * If the provided value is an array, the mapping function is applied to each element; otherwise, the mapping function is applied
+     * to the provided value itself.
+     */
+    function mapOneOrMany<T, U>(valueOrArray: T | readonly T[], f: (x: T, i: number) => U): U | U[];
+    function mapOneOrMany<T, U>(valueOrArray: T | readonly T[] | undefined, f: (x: T, i: number) => U): U | U[] | undefined;
+    function mapOneOrMany<T, U>(valueOrArray: T | readonly T[], f: (x: T, i: number) => U, resultSelector: (x: U[]) => U): U;
+    function mapOneOrMany<T, U>(valueOrArray: T | readonly T[] | undefined, f: (x: T, i: number) => U, resultSelector: (x: U[]) => U): U | undefined;
+    /**
+     * If the provided value is an array, the first element of the array is returned; otherwise, the provided value is returned instead.
+     */
+    function firstOrOnly<T>(valueOrArray: T | readonly T[]): T;
 }
 declare namespace ts {
     /** The classifier is used for syntactic highlighting in editors via the TSServer */
@@ -13453,6 +13492,40 @@ declare namespace ts.FindAllReferences {
         function getIntersectingMeaningFromDeclarations(node: Node, symbol: Symbol): SemanticMeaning;
         function getReferenceEntriesForShorthandPropertyAssignment(node: Node, checker: TypeChecker, addReference: (node: Node) => void): void;
     }
+}
+declare namespace ts.CallHierarchy {
+    type NamedExpression = ClassExpression & {
+        name: Identifier;
+    } | FunctionExpression & {
+        name: Identifier;
+    };
+    type ConstNamedExpression = ClassExpression & {
+        name: undefined;
+        parent: VariableDeclaration & {
+            name: Identifier;
+        };
+    } | FunctionExpression & {
+        name: undefined;
+        parent: VariableDeclaration & {
+            name: Identifier;
+        };
+    } | ArrowFunction & {
+        name: undefined;
+        parent: VariableDeclaration & {
+            name: Identifier;
+        };
+    };
+    type CallHierarchyDeclaration = SourceFile | ModuleDeclaration & {
+        name: Identifier;
+    } | FunctionDeclaration | ClassDeclaration | MethodDeclaration | GetAccessorDeclaration | SetAccessorDeclaration | NamedExpression | ConstNamedExpression;
+    /** Resolves the call hierarchy declaration for a node. */
+    function resolveCallHierarchyDeclaration(program: Program, location: Node): CallHierarchyDeclaration | CallHierarchyDeclaration[] | undefined;
+    /** Creates a `CallHierarchyItem` for a call hierarchy declaration. */
+    function createCallHierarchyItem(program: Program, node: CallHierarchyDeclaration): CallHierarchyItem;
+    /** Gets the call sites that call into the provided call hierarchy declaration. */
+    function getIncomingCalls(program: Program, declaration: CallHierarchyDeclaration, cancellationToken: CancellationToken): CallHierarchyIncomingCall[];
+    /** Gets the call sites that call out of the provided call hierarchy declaration. */
+    function getOutgoingCalls(program: Program, declaration: CallHierarchyDeclaration): CallHierarchyOutgoingCall[];
 }
 declare namespace ts {
     export function getEditsForFileRename(program: Program, oldFileOrDirPath: string, newFileOrDirPath: string, host: LanguageServiceHost, formatContext: formatting.FormatContext, preferences: UserPreferences, sourceMapper: SourceMapper): readonly FileTextChanges[];
@@ -14430,6 +14503,9 @@ declare namespace ts {
          * Returns a JSON-encoded TextSpan | undefined indicating the range of the enclosing comment, if it exists.
          */
         getSpanOfEnclosingComment(fileName: string, position: number, onlyMultiLine: boolean): string;
+        prepareCallHierarchy(fileName: string, position: number): string;
+        provideCallHierarchyIncomingCalls(fileName: string, position: number): string;
+        provideCallHierarchyOutgoingCalls(fileName: string, position: number): string;
         getEmitOutput(fileName: string): string;
         getEmitOutputObject(fileName: string): EmitOutput;
     }
