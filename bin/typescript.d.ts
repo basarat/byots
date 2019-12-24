@@ -4756,54 +4756,56 @@ declare namespace ts {
         ContainsTypeScript = 1,
         ContainsJsx = 2,
         ContainsESNext = 4,
-        ContainsES2019 = 8,
-        ContainsES2018 = 16,
-        ContainsES2017 = 32,
-        ContainsES2016 = 64,
-        ContainsES2015 = 128,
-        ContainsGenerator = 256,
-        ContainsDestructuringAssignment = 512,
-        ContainsTypeScriptClassSyntax = 1024,
-        ContainsLexicalThis = 2048,
-        ContainsRestOrSpread = 4096,
-        ContainsObjectRestOrSpread = 8192,
-        ContainsComputedPropertyName = 16384,
-        ContainsBlockScopedBinding = 32768,
-        ContainsBindingPattern = 65536,
-        ContainsYield = 131072,
-        ContainsAwait = 262144,
-        ContainsHoistedDeclarationOrCompletion = 524288,
-        ContainsDynamicImport = 1048576,
-        ContainsClassFields = 2097152,
+        ContainsES2020 = 8,
+        ContainsES2019 = 16,
+        ContainsES2018 = 32,
+        ContainsES2017 = 64,
+        ContainsES2016 = 128,
+        ContainsES2015 = 256,
+        ContainsGenerator = 512,
+        ContainsDestructuringAssignment = 1024,
+        ContainsTypeScriptClassSyntax = 2048,
+        ContainsLexicalThis = 4096,
+        ContainsRestOrSpread = 8192,
+        ContainsObjectRestOrSpread = 16384,
+        ContainsComputedPropertyName = 32768,
+        ContainsBlockScopedBinding = 65536,
+        ContainsBindingPattern = 131072,
+        ContainsYield = 262144,
+        ContainsAwait = 524288,
+        ContainsHoistedDeclarationOrCompletion = 1048576,
+        ContainsDynamicImport = 2097152,
+        ContainsClassFields = 4194304,
         HasComputedFlags = 536870912,
         AssertTypeScript = 1,
         AssertJsx = 2,
         AssertESNext = 4,
-        AssertES2019 = 8,
-        AssertES2018 = 16,
-        AssertES2017 = 32,
-        AssertES2016 = 64,
-        AssertES2015 = 128,
-        AssertGenerator = 256,
-        AssertDestructuringAssignment = 512,
+        AssertES2020 = 8,
+        AssertES2019 = 16,
+        AssertES2018 = 32,
+        AssertES2017 = 64,
+        AssertES2016 = 128,
+        AssertES2015 = 256,
+        AssertGenerator = 512,
+        AssertDestructuringAssignment = 1024,
         OuterExpressionExcludes = 536870912,
         PropertyAccessExcludes = 536870912,
         NodeExcludes = 536870912,
-        ArrowFunctionExcludes = 537895936,
-        FunctionExcludes = 537897984,
-        ConstructorExcludes = 537896960,
-        MethodOrAccessorExcludes = 537896960,
-        PropertyExcludes = 536872960,
-        ClassExcludes = 536888320,
-        ModuleExcludes = 537431040,
+        ArrowFunctionExcludes = 538920960,
+        FunctionExcludes = 538925056,
+        ConstructorExcludes = 538923008,
+        MethodOrAccessorExcludes = 538923008,
+        PropertyExcludes = 536875008,
+        ClassExcludes = 536905728,
+        ModuleExcludes = 537991168,
         TypeExcludes = -2,
-        ObjectLiteralExcludes = 536896512,
-        ArrayLiteralOrCallOrNewExcludes = 536875008,
-        VariableDeclarationListExcludes = 536944640,
+        ObjectLiteralExcludes = 536922112,
+        ArrayLiteralOrCallOrNewExcludes = 536879104,
+        VariableDeclarationListExcludes = 537018368,
         ParameterExcludes = 536870912,
-        CatchClauseExcludes = 536879104,
-        BindingPatternExcludes = 536875008,
-        PropertyNamePropagatingFlags = 2048
+        CatchClauseExcludes = 536887296,
+        BindingPatternExcludes = 536879104,
+        PropertyNamePropagatingFlags = 4096
     }
     export interface SourceMapRange extends TextRange {
         source?: SourceMapSource;
@@ -6813,7 +6815,7 @@ declare namespace ts {
         It_is_highly_likely_that_you_are_missing_a_semicolon: DiagnosticMessage;
         Did_you_mean_for_0_to_be_constrained_to_type_new_args_Colon_any_1: DiagnosticMessage;
         Operator_0_cannot_be_applied_to_type_1: DiagnosticMessage;
-        BigInt_literals_are_not_available_when_targeting_lower_than_ESNext: DiagnosticMessage;
+        BigInt_literals_are_not_available_when_targeting_lower_than_ES2020: DiagnosticMessage;
         An_outer_value_of_this_is_shadowed_by_this_container: DiagnosticMessage;
         Type_0_is_missing_the_following_properties_from_type_1_Colon_2: DiagnosticMessage;
         Type_0_is_missing_the_following_properties_from_type_1_Colon_2_and_3_more: DiagnosticMessage;
@@ -6991,6 +6993,7 @@ declare namespace ts {
         Unknown_watch_option_0: DiagnosticMessage;
         Unknown_watch_option_0_Did_you_mean_1: DiagnosticMessage;
         Watch_option_0_requires_a_value_of_type_1: DiagnosticMessage;
+        Cannot_find_a_tsconfig_json_file_at_the_current_directory_Colon_0: DiagnosticMessage;
         Generates_a_sourcemap_for_each_corresponding_d_ts_file: DiagnosticMessage;
         Concatenate_and_emit_output_to_single_file: DiagnosticMessage;
         Generates_corresponding_d_ts_file: DiagnosticMessage;
@@ -7006,8 +7009,8 @@ declare namespace ts {
         Skip_type_checking_of_declaration_files: DiagnosticMessage;
         Do_not_resolve_the_real_path_of_symlinks: DiagnosticMessage;
         Only_emit_d_ts_declaration_files: DiagnosticMessage;
-        Specify_ECMAScript_target_version_Colon_ES3_default_ES5_ES2015_ES2016_ES2017_ES2018_ES2019_or_ESNEXT: DiagnosticMessage;
-        Specify_module_code_generation_Colon_none_commonjs_amd_system_umd_es2015_or_ESNext: DiagnosticMessage;
+        Specify_ECMAScript_target_version_Colon_ES3_default_ES5_ES2015_ES2016_ES2017_ES2018_ES2019_ES2020_or_ESNEXT: DiagnosticMessage;
+        Specify_module_code_generation_Colon_none_commonjs_amd_system_umd_es2015_es2020_or_ESNext: DiagnosticMessage;
         Print_this_message: DiagnosticMessage;
         Print_the_compiler_s_version: DiagnosticMessage;
         Compile_the_project_given_the_path_to_its_configuration_file_or_to_a_folder_with_a_tsconfig_json: DiagnosticMessage;
@@ -10384,6 +10387,9 @@ declare namespace ts {
 }
 declare namespace ts {
     function transformES2019(context: TransformationContext): (x: SourceFile | Bundle) => SourceFile | Bundle;
+}
+declare namespace ts {
+    function transformES2020(context: TransformationContext): (x: SourceFile | Bundle) => SourceFile | Bundle;
 }
 declare namespace ts {
     function transformESNext(context: TransformationContext): (x: SourceFile | Bundle) => SourceFile | Bundle;
