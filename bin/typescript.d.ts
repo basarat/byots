@@ -7512,6 +7512,7 @@ declare namespace ts {
         Convert_const_to_let: DiagnosticMessage;
         Prefix_with_declare: DiagnosticMessage;
         Prefix_all_incorrect_property_declarations_with_declare: DiagnosticMessage;
+        Convert_to_template_string: DiagnosticMessage;
         No_value_exists_in_scope_for_the_shorthand_property_0_Either_declare_one_or_provide_an_initializer: DiagnosticMessage;
         Classes_may_not_have_a_field_named_constructor: DiagnosticMessage;
         JSX_expressions_may_not_use_the_comma_operator_Did_you_mean_to_write_an_array: DiagnosticMessage;
@@ -14318,6 +14319,8 @@ declare namespace ts.refactor {
 declare namespace ts.refactor.addOrRemoveBracesToArrowFunction {
 }
 declare namespace ts.refactor.convertParamsToDestructuredObject {
+}
+declare namespace ts.refactor.convertStringOrTemplateLiteral {
 }
 declare namespace ts {
     /** The version of the language service API */
