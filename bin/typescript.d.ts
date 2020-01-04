@@ -482,6 +482,10 @@ declare namespace ts {
      * To compare strings, use any of the `compareStrings` functions.
      */
     function compareValues(a: number | undefined, b: number | undefined): Comparison;
+    /**
+     * Compare two TextSpans, first by `start`, then by `length`.
+     */
+    function compareTextSpans(a: Partial<TextSpan> | undefined, b: Partial<TextSpan> | undefined): Comparison;
     function min<T>(a: T, b: T, compare: Comparer<T>): T;
     /**
      * Compare two strings using a case-insensitive ordinal comparison.
@@ -573,7 +577,7 @@ declare namespace ts {
     function removePrefix(str: string, prefix: string): string;
     function tryRemovePrefix(str: string, prefix: string, getCanonicalFileName?: GetCanonicalFileName): string | undefined;
     function and<T>(f: (arg: T) => boolean, g: (arg: T) => boolean): (arg: T) => boolean;
-    function or<T extends unknown>(...fs: ((arg: T) => boolean)[]): (arg: T) => boolean;
+    function or<T extends unknown[]>(...fs: ((...args: T) => boolean)[]): (...args: T) => boolean;
     function not<T extends unknown[]>(fn: (...args: T) => boolean): (...args: T) => boolean;
     function assertType<T>(_: T): void;
     function singleElementArray<T>(t: T | undefined): T[] | undefined;
@@ -2332,6 +2336,7 @@ declare namespace ts {
     export interface ImportClause extends NamedDeclaration {
         kind: SyntaxKind.ImportClause;
         parent: ImportDeclaration;
+        isTypeOnly: boolean;
         name?: Identifier;
         namedBindings?: NamedImportBindings;
     }
@@ -2352,6 +2357,7 @@ declare namespace ts {
     export interface ExportDeclaration extends DeclarationStatement, JSDocContainer {
         kind: SyntaxKind.ExportDeclaration;
         parent: SourceFile | ModuleBlock;
+        isTypeOnly: boolean;
         /** Will not be assigned in the case of `export * from "foo";` */
         exportClause?: NamedExportBindings;
         /** If this is not a StringLiteral it will be a grammar error. */
@@ -4278,6 +4284,7 @@ declare namespace ts {
         generateCpuProfile?: string;
         help?: boolean;
         importHelpers?: boolean;
+        importsNotUsedAsValue?: ImportsNotUsedAsValue;
         init?: boolean;
         inlineSourceMap?: boolean;
         inlineSources?: boolean;
@@ -4307,6 +4314,7 @@ declare namespace ts {
         noUnusedLocals?: boolean;
         noUnusedParameters?: boolean;
         noImplicitUseStrict?: boolean;
+        assumeChangesOnlyAffectDirectDependencies?: boolean;
         noLib?: boolean;
         noResolve?: boolean;
         out?: string;
@@ -4386,6 +4394,11 @@ declare namespace ts {
         Preserve = 1,
         React = 2,
         ReactNative = 3
+    }
+    export enum ImportsNotUsedAsValue {
+        Remove = 0,
+        Preserve = 1,
+        Error = 2
     }
     export enum NewLineKind {
         CarriageReturnLineFeed = 0,
@@ -6341,7 +6354,7 @@ declare namespace ts {
         Line_terminator_not_permitted_before_arrow: DiagnosticMessage;
         Import_assignment_cannot_be_used_when_targeting_ECMAScript_modules_Consider_using_import_Asterisk_as_ns_from_mod_import_a_from_mod_import_d_from_mod_or_another_module_format_instead: DiagnosticMessage;
         Export_assignment_cannot_be_used_when_targeting_ECMAScript_modules_Consider_using_export_default_or_another_module_format_instead: DiagnosticMessage;
-        Cannot_re_export_a_type_when_the_isolatedModules_flag_is_provided: DiagnosticMessage;
+        Re_exporting_a_type_when_the_isolatedModules_flag_is_provided_requires_using_export_type: DiagnosticMessage;
         Decorators_are_not_valid_here: DiagnosticMessage;
         Decorators_cannot_be_applied_to_multiple_get_Slashset_accessors_of_the_same_name: DiagnosticMessage;
         All_files_must_be_modules_when_the_isolatedModules_flag_is_provided: DiagnosticMessage;
@@ -6446,6 +6459,20 @@ declare namespace ts {
         Tagged_template_expressions_are_not_permitted_in_an_optional_chain: DiagnosticMessage;
         Identifier_expected_0_is_a_reserved_word_that_cannot_be_used_here: DiagnosticMessage;
         Did_you_mean_to_parenthesize_this_function_type: DiagnosticMessage;
+        Type_only_0_must_reference_a_type_but_1_is_a_value: DiagnosticMessage;
+        Enum_0_cannot_be_used_as_a_value_because_only_its_type_has_been_imported: DiagnosticMessage;
+        A_type_only_import_can_specify_a_default_import_or_named_bindings_but_not_both: DiagnosticMessage;
+        Convert_to_type_only_export: DiagnosticMessage;
+        Convert_all_re_exported_types_to_type_only_exports: DiagnosticMessage;
+        Split_into_two_separate_import_declarations: DiagnosticMessage;
+        Split_all_invalid_type_only_imports: DiagnosticMessage;
+        Specify_emit_Slashchecking_behavior_for_imports_that_are_only_used_for_types: DiagnosticMessage;
+        Did_you_mean_0: DiagnosticMessage;
+        Only_ECMAScript_imports_may_use_import_type: DiagnosticMessage;
+        This_import_is_never_used_as_a_value_and_must_use_import_type_because_the_importsNotUsedAsValue_is_set_to_error: DiagnosticMessage;
+        This_import_may_be_converted_to_a_type_only_import: DiagnosticMessage;
+        Convert_to_type_only_import: DiagnosticMessage;
+        Convert_all_imports_not_used_as_a_value_to_type_only_imports: DiagnosticMessage;
         await_outside_of_an_async_function_is_only_allowed_at_the_top_level_of_a_module_when_module_is_esnext_or_system_and_target_is_es2017_or_higher: DiagnosticMessage;
         The_types_of_0_are_incompatible_between_these_types: DiagnosticMessage;
         The_types_returned_by_0_are_incompatible_between_these_types: DiagnosticMessage;
@@ -7268,6 +7295,7 @@ declare namespace ts {
         Project_0_is_out_of_date_because_output_for_it_was_generated_with_version_1_that_differs_with_current_version_2: DiagnosticMessage;
         Skipping_build_of_project_0_because_its_dependency_1_was_not_built: DiagnosticMessage;
         Project_0_can_t_be_built_because_its_dependency_1_was_not_built: DiagnosticMessage;
+        Have_recompiles_in_incremental_and_watch_assume_that_changes_within_a_file_will_only_affect_files_directly_depending_on_it: DiagnosticMessage;
         The_expected_type_comes_from_property_0_which_is_declared_here_on_type_1: DiagnosticMessage;
         The_expected_type_comes_from_this_index_signature: DiagnosticMessage;
         The_expected_type_comes_from_the_return_type_of_this_signature: DiagnosticMessage;
@@ -8017,6 +8045,7 @@ declare namespace ts {
     function isTemplateLiteralToken(node: Node): node is TemplateLiteralToken;
     function isTemplateMiddleOrTemplateTail(node: Node): node is TemplateMiddle | TemplateTail;
     function isImportOrExportSpecifier(node: Node): node is ImportSpecifier | ExportSpecifier;
+    function isTypeOnlyImportOrExportName(node: Node): boolean;
     function isStringTextContainingNode(node: Node): node is StringLiteral | TemplateLiteralToken;
     function isGeneratedIdentifier(node: Node): node is GeneratedIdentifier;
     function isPrivateIdentifierPropertyDeclaration(node: Node): node is PrivateIdentifierPropertyDeclaration;
@@ -8143,6 +8172,11 @@ declare namespace ts {
     function createUnderscoreEscapedMap<T>(): UnderscoreEscapedMap<T>;
     function hasEntries(map: ReadonlyUnderscoreEscapedMap<any> | undefined): map is ReadonlyUnderscoreEscapedMap<any>;
     function createSymbolTable(symbols?: readonly Symbol[]): SymbolTable;
+    function isTransientSymbol(symbol: Symbol): symbol is TransientSymbol;
+    function isTypeOnlyAlias(symbol: Symbol): symbol is TransientSymbol & {
+        immediateTarget: Symbol;
+    };
+    function isTypeOnlyEnumAlias(symbol: Symbol): ReturnType<typeof isTypeOnlyAlias>;
     function changesAffectModuleResolution(oldOptions: CompilerOptions, newOptions: CompilerOptions): boolean;
     function optionsHaveModuleResolutionChanges(oldOptions: CompilerOptions, newOptions: CompilerOptions): boolean;
     /**
@@ -8360,7 +8394,9 @@ declare namespace ts {
     function isJSXTagName(node: Node): boolean;
     function isExpressionNode(node: Node): boolean;
     function isInExpressionContext(node: Node): boolean;
-    function isExternalModuleImportEqualsDeclaration(node: Node): boolean;
+    function isExternalModuleImportEqualsDeclaration(node: Node): node is ImportEqualsDeclaration & {
+        moduleReference: ExternalModuleReference;
+    };
     function getExternalModuleImportEqualsDeclarationExpression(node: Node): Expression;
     function isInternalModuleImportEqualsDeclaration(node: Node): node is ImportEqualsDeclaration;
     function isSourceFileJS(file: SourceFile): boolean;
@@ -8637,7 +8673,8 @@ declare namespace ts {
     function getAllAccessorDeclarations(declarations: readonly Declaration[], accessor: AccessorDeclaration): AllAccessorDeclarations;
     /**
      * Gets the effective type annotation of a variable, parameter, or property. If the node was
-     * parsed in a JavaScript file, gets the type annotation from JSDoc.
+     * parsed in a JavaScript file, gets the type annotation from JSDoc.  Also gets the type of
+     * functions only the JSDoc case.
      */
     function getEffectiveTypeAnnotationNode(node: Node): TypeNode | undefined;
     function getTypeAnnotationNode(node: Node): TypeNode | undefined;
@@ -9668,8 +9705,8 @@ declare namespace ts {
     function updateImportEqualsDeclaration(node: ImportEqualsDeclaration, decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, name: Identifier, moduleReference: ModuleReference): ImportEqualsDeclaration;
     function createImportDeclaration(decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, importClause: ImportClause | undefined, moduleSpecifier: Expression): ImportDeclaration;
     function updateImportDeclaration(node: ImportDeclaration, decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, importClause: ImportClause | undefined, moduleSpecifier: Expression): ImportDeclaration;
-    function createImportClause(name: Identifier | undefined, namedBindings: NamedImportBindings | undefined): ImportClause;
-    function updateImportClause(node: ImportClause, name: Identifier | undefined, namedBindings: NamedImportBindings | undefined): ImportClause;
+    function createImportClause(name: Identifier | undefined, namedBindings: NamedImportBindings | undefined, isTypeOnly?: boolean): ImportClause;
+    function updateImportClause(node: ImportClause, name: Identifier | undefined, namedBindings: NamedImportBindings | undefined, isTypeOnly: boolean): ImportClause;
     function createNamespaceImport(name: Identifier): NamespaceImport;
     function createNamespaceExport(name: Identifier): NamespaceExport;
     function updateNamespaceImport(node: NamespaceImport, name: Identifier): NamespaceImport;
@@ -9680,8 +9717,8 @@ declare namespace ts {
     function updateImportSpecifier(node: ImportSpecifier, propertyName: Identifier | undefined, name: Identifier): ImportSpecifier;
     function createExportAssignment(decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, isExportEquals: boolean | undefined, expression: Expression): ExportAssignment;
     function updateExportAssignment(node: ExportAssignment, decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, expression: Expression): ExportAssignment;
-    function createExportDeclaration(decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, exportClause: NamedExportBindings | undefined, moduleSpecifier?: Expression): ExportDeclaration;
-    function updateExportDeclaration(node: ExportDeclaration, decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, exportClause: NamedExportBindings | undefined, moduleSpecifier: Expression | undefined): ExportDeclaration;
+    function createExportDeclaration(decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, exportClause: NamedExportBindings | undefined, moduleSpecifier?: Expression, isTypeOnly?: boolean): ExportDeclaration;
+    function updateExportDeclaration(node: ExportDeclaration, decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, exportClause: NamedExportBindings | undefined, moduleSpecifier: Expression | undefined, isTypeOnly: boolean): ExportDeclaration;
     function createEmptyExports(): ExportDeclaration;
     function createNamedExports(elements: readonly ExportSpecifier[]): NamedExports;
     function updateNamedExports(node: NamedExports, elements: readonly ExportSpecifier[]): NamedExports;
@@ -11634,6 +11671,7 @@ declare namespace ts {
         listFiles?: boolean;
         pretty?: boolean;
         incremental?: boolean;
+        assumeChangesOnlyAffectDirectDependencies?: boolean;
         traceResolution?: boolean;
         diagnostics?: boolean;
         extendedDiagnostics?: boolean;
@@ -13091,7 +13129,7 @@ declare namespace ts {
         useCaseSensitiveFileNames?(): boolean;
     }): GetCanonicalFileName;
     function makeImportIfNecessary(defaultImport: Identifier | undefined, namedImports: readonly ImportSpecifier[] | undefined, moduleSpecifier: string, quotePreference: QuotePreference): ImportDeclaration | undefined;
-    function makeImport(defaultImport: Identifier | undefined, namedImports: readonly ImportSpecifier[] | undefined, moduleSpecifier: string | Expression, quotePreference: QuotePreference): ImportDeclaration;
+    function makeImport(defaultImport: Identifier | undefined, namedImports: readonly ImportSpecifier[] | undefined, moduleSpecifier: string | Expression, quotePreference: QuotePreference, isTypeOnly?: boolean): ImportDeclaration;
     function makeStringLiteral(text: string, quotePreference: QuotePreference): StringLiteral;
     enum QuotePreference {
         Single = 0,
@@ -13203,7 +13241,7 @@ declare namespace ts {
     function syntaxRequiresTrailingFunctionBlockOrSemicolonOrASI(kind: SyntaxKind): boolean;
     function syntaxRequiresTrailingModuleBlockOrSemicolonOrASI(kind: SyntaxKind): boolean;
     function syntaxRequiresTrailingSemicolonOrASI(kind: SyntaxKind): boolean;
-    const syntaxMayBeASICandidate: (arg: SyntaxKind) => boolean;
+    const syntaxMayBeASICandidate: (kind: SyntaxKind) => boolean;
     function positionIsASICandidate(pos: number, context: Node, sourceFile: SourceFileLike): boolean;
     function probablyUsesSemicolons(sourceFile: SourceFile): boolean;
     function tryGetDirectories(host: Pick<LanguageServiceHost, "getDirectories">, directoryName: string): string[];
@@ -13218,6 +13256,9 @@ declare namespace ts {
     function createPackageJsonInfo(fileName: string, host: LanguageServiceHost): PackageJsonInfo | false | undefined;
     function consumesNodeCoreModules(sourceFile: SourceFile): boolean;
     function isInsideNodeModules(fileOrDirectory: string): boolean;
+    function isDiagnosticWithLocation(diagnostic: Diagnostic): diagnostic is DiagnosticWithLocation;
+    function findDiagnosticForNode(node: Node, sortedFileDiagnostics: readonly Diagnostic[]): DiagnosticWithLocation | undefined;
+    function getDiagnosticsWithinSpan(span: TextSpan, sortedFileDiagnostics: readonly Diagnostic[]): readonly DiagnosticWithLocation[];
     function getRefactorContextSpan({ startPosition, endPosition }: RefactorContext): TextSpan;
     /**
      * If the provided value is an array, the mapping function is applied to each element; otherwise, the mapping function is applied
@@ -14143,6 +14184,8 @@ declare namespace ts.codefix {
 declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
+}
+declare namespace ts.codefix {
     const importFixId = "fixMissingImport";
     enum ImportKind {
         Named = 0,
@@ -14210,6 +14253,8 @@ declare namespace ts.codefix {
     function setJsonCompilerOptionValue(changeTracker: textChanges.ChangeTracker, configFile: TsConfigSourceFile, optionName: string, optionValue: Expression): undefined;
     function createJsonPropertyAssignment(name: string, initializer: Expression): PropertyAssignment;
     function findJsonProperty(obj: ObjectLiteralExpression, name: string): PropertyAssignment | undefined;
+}
+declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
 }
