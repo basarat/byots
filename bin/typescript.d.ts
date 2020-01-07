@@ -4284,7 +4284,7 @@ declare namespace ts {
         generateCpuProfile?: string;
         help?: boolean;
         importHelpers?: boolean;
-        importsNotUsedAsValue?: ImportsNotUsedAsValue;
+        importsNotUsedAsValues?: importsNotUsedAsValues;
         init?: boolean;
         inlineSourceMap?: boolean;
         inlineSources?: boolean;
@@ -4395,7 +4395,7 @@ declare namespace ts {
         React = 2,
         ReactNative = 3
     }
-    export enum ImportsNotUsedAsValue {
+    export enum importsNotUsedAsValues {
         Remove = 0,
         Preserve = 1,
         Error = 2
@@ -6469,7 +6469,7 @@ declare namespace ts {
         Specify_emit_Slashchecking_behavior_for_imports_that_are_only_used_for_types: DiagnosticMessage;
         Did_you_mean_0: DiagnosticMessage;
         Only_ECMAScript_imports_may_use_import_type: DiagnosticMessage;
-        This_import_is_never_used_as_a_value_and_must_use_import_type_because_the_importsNotUsedAsValue_is_set_to_error: DiagnosticMessage;
+        This_import_is_never_used_as_a_value_and_must_use_import_type_because_the_importsNotUsedAsValues_is_set_to_error: DiagnosticMessage;
         This_import_may_be_converted_to_a_type_only_import: DiagnosticMessage;
         Convert_to_type_only_import: DiagnosticMessage;
         Convert_all_imports_not_used_as_a_value_to_type_only_imports: DiagnosticMessage;
