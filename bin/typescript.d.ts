@@ -6905,6 +6905,7 @@ declare namespace ts {
         The_left_hand_side_of_an_assignment_expression_may_not_be_an_optional_property_access: DiagnosticMessage;
         The_left_hand_side_of_a_for_in_statement_may_not_be_an_optional_property_access: DiagnosticMessage;
         The_left_hand_side_of_a_for_of_statement_may_not_be_an_optional_property_access: DiagnosticMessage;
+        _0_needs_an_explicit_type_annotation: DiagnosticMessage;
         Import_declaration_0_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_interface_has_or_is_using_private_name_1: DiagnosticMessage;
