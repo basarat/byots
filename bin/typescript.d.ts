@@ -8404,6 +8404,7 @@ declare namespace ts {
     function isSourceFileNotJS(file: SourceFile): boolean;
     function isInJSFile(node: Node | undefined): boolean;
     function isInJsonFile(node: Node | undefined): boolean;
+    function isSourceFileNotJson(file: SourceFile): boolean;
     function isInJSDoc(node: Node | undefined): boolean;
     function isJSDocIndexSignature(node: TypeReferenceNode | ExpressionWithTypeArguments): boolean | undefined;
     /**
