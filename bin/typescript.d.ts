@@ -11277,7 +11277,7 @@ declare namespace ts {
         getCurrentProgram(): Program | undefined;
         fileIsOpen(filePath: Path): boolean;
     }
-    export function isPathIgnored(path: Path): boolean;
+    export function removeIgnoredPath(path: Path): Path | undefined;
     /**
      * Filter out paths like
      * "/", "/user", "/user/username", "/user/username/folderAtRoot",
