@@ -619,7 +619,7 @@ declare namespace ts {
         const assertNotNode: (node: Node | undefined, test: ((node: Node | undefined) => boolean) | undefined, message?: string | undefined) => void;
         const assertOptionalNode: (node: Node, test: (node: Node) => boolean, message?: string | undefined) => void;
         const assertOptionalToken: (node: Node, kind: SyntaxKind, message?: string | undefined) => void;
-        const assertMissingNode: typeof noop;
+        const assertMissingNode: (node: Node, message?: string | undefined) => void;
         function printControlFlowGraph(flowNode: FlowNode): void;
         function formatControlFlowGraph(flowNode: FlowNode): string;
         function attachFlowNodeDebugInfo(flowNode: FlowNode): void;
