@@ -393,6 +393,11 @@ declare namespace ts {
     function group<T>(values: readonly T[], getGroupId: (value: T) => string): readonly (readonly T[])[];
     function group<T, R>(values: readonly T[], getGroupId: (value: T) => string, resultSelector: (values: readonly T[]) => R): R[];
     function clone<T>(object: T): T;
+    /**
+     * Creates a new object by adding the own properties of `second`, then the own properties of `first`.
+     *
+     * NOTE: This means that if a property exists in both `first` and `second`, the property in `first` will be chosen.
+     */
     function extend<T1, T2>(first: T1, second: T2): T1 & T2;
     function copyProperties<T1 extends T2, T2>(first: T1, second: T2): void;
     function maybeBind<T, A extends any[], R>(obj: T, fn: ((this: T, ...args: A) => R) | undefined): ((...args: A) => R) | undefined;
@@ -6413,7 +6418,7 @@ declare namespace ts {
         Keywords_cannot_contain_escape_characters: DiagnosticMessage;
         Already_included_file_name_0_differs_from_file_name_1_only_in_casing: DiagnosticMessage;
         with_statements_are_not_allowed_in_an_async_function_block: DiagnosticMessage;
-        await_expression_is_only_allowed_within_an_async_function: DiagnosticMessage;
+        await_expressions_are_only_allowed_within_async_functions_and_at_the_top_levels_of_modules: DiagnosticMessage;
         can_only_be_used_in_an_object_literal_property_inside_a_destructuring_assignment: DiagnosticMessage;
         The_body_of_an_if_statement_cannot_be_the_empty_statement: DiagnosticMessage;
         Global_module_exports_may_only_appear_in_module_files: DiagnosticMessage;
@@ -6476,7 +6481,8 @@ declare namespace ts {
         This_import_may_be_converted_to_a_type_only_import: DiagnosticMessage;
         Convert_to_type_only_import: DiagnosticMessage;
         Convert_all_imports_not_used_as_a_value_to_type_only_imports: DiagnosticMessage;
-        await_outside_of_an_async_function_is_only_allowed_at_the_top_level_of_a_module_when_module_is_esnext_or_system_and_target_is_es2017_or_higher: DiagnosticMessage;
+        await_expressions_are_only_allowed_at_the_top_level_of_a_file_when_that_file_is_a_module_but_this_file_has_no_imports_or_exports_Consider_adding_an_empty_export_to_make_this_file_a_module: DiagnosticMessage;
+        Top_level_await_expressions_are_only_allowed_when_the_module_option_is_set_to_esnext_or_system_and_the_target_option_is_set_to_es2017_or_higher: DiagnosticMessage;
         The_types_of_0_are_incompatible_between_these_types: DiagnosticMessage;
         The_types_returned_by_0_are_incompatible_between_these_types: DiagnosticMessage;
         Call_signature_return_types_0_and_1_are_incompatible: DiagnosticMessage;
@@ -7422,7 +7428,7 @@ declare namespace ts {
         Add_missing_super_call: DiagnosticMessage;
         Make_super_call_the_first_statement_in_the_constructor: DiagnosticMessage;
         Change_extends_to_implements: DiagnosticMessage;
-        Remove_declaration_for_Colon_0: DiagnosticMessage;
+        Remove_unused_declaration_for_Colon_0: DiagnosticMessage;
         Remove_import_from_0: DiagnosticMessage;
         Implement_interface_0: DiagnosticMessage;
         Implement_inherited_abstract_class: DiagnosticMessage;
@@ -7545,10 +7551,12 @@ declare namespace ts {
         Prefix_with_declare: DiagnosticMessage;
         Prefix_all_incorrect_property_declarations_with_declare: DiagnosticMessage;
         Convert_to_template_string: DiagnosticMessage;
+        Add_export_to_make_this_file_into_a_module: DiagnosticMessage;
+        Set_the_target_option_in_your_configuration_file_to_0: DiagnosticMessage;
+        Set_the_module_option_in_your_configuration_file_to_0: DiagnosticMessage;
         No_value_exists_in_scope_for_the_shorthand_property_0_Either_declare_one_or_provide_an_initializer: DiagnosticMessage;
         Classes_may_not_have_a_field_named_constructor: DiagnosticMessage;
         JSX_expressions_may_not_use_the_comma_operator_Did_you_mean_to_write_an_array: DiagnosticMessage;
-        can_only_be_used_at_the_start_of_a_file: DiagnosticMessage;
         Private_identifiers_cannot_be_used_as_parameters: DiagnosticMessage;
         An_accessibility_modifier_cannot_be_used_with_a_private_identifier: DiagnosticMessage;
         The_operand_of_a_delete_operator_cannot_be_a_private_identifier: DiagnosticMessage;
@@ -7563,6 +7571,7 @@ declare namespace ts {
         A_method_cannot_be_named_with_a_private_identifier: DiagnosticMessage;
         An_accessor_cannot_be_named_with_a_private_identifier: DiagnosticMessage;
         An_enum_member_cannot_be_named_with_a_private_identifier: DiagnosticMessage;
+        can_only_be_used_at_the_start_of_a_file: DiagnosticMessage;
         Compiler_reserves_name_0_when_emitting_private_identifier_downlevel: DiagnosticMessage;
         Private_identifiers_are_only_available_when_targeting_ECMAScript_2015_and_higher: DiagnosticMessage;
         Private_identifiers_are_not_allowed_in_variable_declarations: DiagnosticMessage;
@@ -14106,7 +14115,13 @@ declare namespace ts.textChanges {
         insertNodeAtClassStart(sourceFile: SourceFile, cls: ClassLikeDeclaration | InterfaceDeclaration, newElement: ClassElement): void;
         insertNodeAtObjectStart(sourceFile: SourceFile, obj: ObjectLiteralExpression, newElement: ObjectLiteralElementLike): void;
         private insertNodeAtStartWorker;
-        private getInsertNodeAtStartPrefixSuffix;
+        /**
+         * Tries to guess the indentation from the existing members of a class/interface/object. All members must be on
+         * new lines and must share the same indentation.
+         */
+        private guessIndentationFromExistingMembers;
+        private computeIndentationForNewMember;
+        private getInsertNodeAtStartInsertOptions;
         insertNodeAfterComma(sourceFile: SourceFile, after: Node, newNode: Node): void;
         insertNodeAfter(sourceFile: SourceFile, after: Node, newNode: Node): void;
         insertNodeAtEndOfList(sourceFile: SourceFile, list: NodeArray<Node>, newNode: Node): void;
@@ -14159,6 +14174,8 @@ declare namespace ts.refactor {
     function registerRefactor(name: string, refactor: Refactor): void;
     function getApplicableRefactors(context: RefactorContext): ApplicableRefactorInfo[];
     function getEditsForRefactor(context: RefactorContext, refactorName: string, actionName: string): RefactorEditInfo | undefined;
+}
+declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
 }
@@ -14242,6 +14259,8 @@ declare namespace ts.codefix {
 declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
+}
+declare namespace ts.codefix {
     /**
      * Finds members of the resolved type that are missing in the class pointed to by class decl
      * and generates source code for the missing members.
@@ -14255,7 +14274,8 @@ declare namespace ts.codefix {
         host: ModuleSpecifierResolutionHost;
     }
     function createMethodFromCallExpression(context: CodeFixContextBase, call: CallExpression, methodName: string, inJs: boolean, makeStatic: boolean, preferences: UserPreferences, contextNode: Node): MethodDeclaration;
-    function setJsonCompilerOptionValue(changeTracker: textChanges.ChangeTracker, configFile: TsConfigSourceFile, optionName: string, optionValue: Expression): undefined;
+    function setJsonCompilerOptionValues(changeTracker: textChanges.ChangeTracker, configFile: TsConfigSourceFile, options: [string, Expression][]): undefined;
+    function setJsonCompilerOptionValue(changeTracker: textChanges.ChangeTracker, configFile: TsConfigSourceFile, optionName: string, optionValue: Expression): void;
     function createJsonPropertyAssignment(name: string, initializer: Expression): PropertyAssignment;
     function findJsonProperty(obj: ObjectLiteralExpression, name: string): PropertyAssignment | undefined;
 }
