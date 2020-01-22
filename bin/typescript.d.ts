@@ -6466,7 +6466,6 @@ declare namespace ts {
         An_enum_member_name_must_be_followed_by_a_or: DiagnosticMessage;
         Tagged_template_expressions_are_not_permitted_in_an_optional_chain: DiagnosticMessage;
         Identifier_expected_0_is_a_reserved_word_that_cannot_be_used_here: DiagnosticMessage;
-        Did_you_mean_to_parenthesize_this_function_type: DiagnosticMessage;
         Type_only_0_must_reference_a_type_but_1_is_a_value: DiagnosticMessage;
         Enum_0_cannot_be_used_as_a_value_because_only_its_type_has_been_imported: DiagnosticMessage;
         A_type_only_import_can_specify_a_default_import_or_named_bindings_but_not_both: DiagnosticMessage;
@@ -6643,6 +6642,8 @@ declare namespace ts {
         Type_alias_0_circularly_references_itself: DiagnosticMessage;
         Type_alias_name_cannot_be_0: DiagnosticMessage;
         An_AMD_module_cannot_have_multiple_name_assignments: DiagnosticMessage;
+        Module_0_declares_1_locally_but_it_is_not_exported: DiagnosticMessage;
+        Module_0_declares_1_locally_but_it_is_exported_as_2: DiagnosticMessage;
         Type_0_is_not_an_array_type: DiagnosticMessage;
         A_rest_element_must_be_last_in_a_destructuring_pattern: DiagnosticMessage;
         A_binding_pattern_parameter_cannot_be_optional_in_an_implementation_signature: DiagnosticMessage;
