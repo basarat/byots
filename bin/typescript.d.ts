@@ -2392,6 +2392,7 @@ declare namespace ts {
         name: Identifier;
     }
     export type ImportOrExportSpecifier = ImportSpecifier | ExportSpecifier;
+    export type TypeOnlyCompatibleAliasDeclaration = ImportClause | NamespaceImport | ImportOrExportSpecifier;
     /**
      * This is either an `export =` or an `export default` declaration.
      * Unless `isExportEquals` is set, this node was parsed as an `export default`.
@@ -3550,6 +3551,7 @@ declare namespace ts {
         inferredClassSymbol?: Map<TransientSymbol>;
         mapper?: TypeMapper;
         referenced?: boolean;
+        constEnumReferenced?: boolean;
         containingType?: UnionOrIntersectionType;
         leftSpread?: Symbol;
         rightSpread?: Symbol;
@@ -3572,6 +3574,7 @@ declare namespace ts {
         deferralConstituents?: Type[];
         deferralParent?: Type;
         cjsExportMerged?: Symbol;
+        typeOnlyDeclaration?: TypeOnlyCompatibleAliasDeclaration | false;
     }
     export enum EnumKind {
         Numeric = 0,
@@ -4292,7 +4295,7 @@ declare namespace ts {
         generateCpuProfile?: string;
         help?: boolean;
         importHelpers?: boolean;
-        importsNotUsedAsValues?: importsNotUsedAsValues;
+        importsNotUsedAsValues?: ImportsNotUsedAsValues;
         init?: boolean;
         inlineSourceMap?: boolean;
         inlineSources?: boolean;
@@ -4403,7 +4406,7 @@ declare namespace ts {
         React = 2,
         ReactNative = 3
     }
-    export enum importsNotUsedAsValues {
+    export enum ImportsNotUsedAsValues {
         Remove = 0,
         Preserve = 1,
         Error = 2
@@ -6466,8 +6469,9 @@ declare namespace ts {
         An_enum_member_name_must_be_followed_by_a_or: DiagnosticMessage;
         Tagged_template_expressions_are_not_permitted_in_an_optional_chain: DiagnosticMessage;
         Identifier_expected_0_is_a_reserved_word_that_cannot_be_used_here: DiagnosticMessage;
-        Type_only_0_must_reference_a_type_but_1_is_a_value: DiagnosticMessage;
-        Enum_0_cannot_be_used_as_a_value_because_only_its_type_has_been_imported: DiagnosticMessage;
+        Did_you_mean_to_parenthesize_this_function_type: DiagnosticMessage;
+        _0_cannot_be_used_as_a_value_because_it_was_imported_using_import_type: DiagnosticMessage;
+        _0_cannot_be_used_as_a_value_because_it_was_exported_using_export_type: DiagnosticMessage;
         A_type_only_import_can_specify_a_default_import_or_named_bindings_but_not_both: DiagnosticMessage;
         Convert_to_type_only_export: DiagnosticMessage;
         Convert_all_re_exported_types_to_type_only_exports: DiagnosticMessage;
@@ -6477,10 +6481,11 @@ declare namespace ts {
         Did_you_mean_0: DiagnosticMessage;
         Only_ECMAScript_imports_may_use_import_type: DiagnosticMessage;
         This_import_is_never_used_as_a_value_and_must_use_import_type_because_the_importsNotUsedAsValues_is_set_to_error: DiagnosticMessage;
-        This_import_may_be_converted_to_a_type_only_import: DiagnosticMessage;
         Convert_to_type_only_import: DiagnosticMessage;
         Convert_all_imports_not_used_as_a_value_to_type_only_imports: DiagnosticMessage;
         await_expressions_are_only_allowed_at_the_top_level_of_a_file_when_that_file_is_a_module_but_this_file_has_no_imports_or_exports_Consider_adding_an_empty_export_to_make_this_file_a_module: DiagnosticMessage;
+        _0_was_imported_here: DiagnosticMessage;
+        _0_was_exported_here: DiagnosticMessage;
         Top_level_await_expressions_are_only_allowed_when_the_module_option_is_set_to_esnext_or_system_and_the_target_option_is_set_to_es2017_or_higher: DiagnosticMessage;
         The_types_of_0_are_incompatible_between_these_types: DiagnosticMessage;
         The_types_returned_by_0_are_incompatible_between_these_types: DiagnosticMessage;
@@ -8059,7 +8064,7 @@ declare namespace ts {
     function isTemplateLiteralToken(node: Node): node is TemplateLiteralToken;
     function isTemplateMiddleOrTemplateTail(node: Node): node is TemplateMiddle | TemplateTail;
     function isImportOrExportSpecifier(node: Node): node is ImportSpecifier | ExportSpecifier;
-    function isTypeOnlyImportOrExportName(node: Node): boolean;
+    function isTypeOnlyImportOrExportDeclaration(node: Node): node is TypeOnlyCompatibleAliasDeclaration;
     function isStringTextContainingNode(node: Node): node is StringLiteral | TemplateLiteralToken;
     function isGeneratedIdentifier(node: Node): node is GeneratedIdentifier;
     function isPrivateIdentifierPropertyDeclaration(node: Node): node is PrivateIdentifierPropertyDeclaration;
@@ -8187,10 +8192,6 @@ declare namespace ts {
     function hasEntries(map: ReadonlyUnderscoreEscapedMap<any> | undefined): map is ReadonlyUnderscoreEscapedMap<any>;
     function createSymbolTable(symbols?: readonly Symbol[]): SymbolTable;
     function isTransientSymbol(symbol: Symbol): symbol is TransientSymbol;
-    function isTypeOnlyAlias(symbol: Symbol): symbol is TransientSymbol & {
-        immediateTarget: Symbol;
-    };
-    function isTypeOnlyEnumAlias(symbol: Symbol): ReturnType<typeof isTypeOnlyAlias>;
     function changesAffectModuleResolution(oldOptions: CompilerOptions, newOptions: CompilerOptions): boolean;
     function optionsHaveModuleResolutionChanges(oldOptions: CompilerOptions, newOptions: CompilerOptions): boolean;
     /**
@@ -8408,6 +8409,8 @@ declare namespace ts {
     function isJSXTagName(node: Node): boolean;
     function isExpressionNode(node: Node): boolean;
     function isInExpressionContext(node: Node): boolean;
+    function isPartOfTypeQuery(node: Node): boolean;
+    function isPartOfPossiblyValidTypeOrAbstractComputedPropertyName(node: Node): boolean;
     function isExternalModuleImportEqualsDeclaration(node: Node): node is ImportEqualsDeclaration & {
         moduleReference: ExternalModuleReference;
     };
@@ -8491,6 +8494,7 @@ declare namespace ts {
     function getExternalModuleName(node: AnyImportOrReExport | ImportTypeNode): Expression | undefined;
     function getNamespaceDeclarationNode(node: ImportDeclaration | ImportEqualsDeclaration | ExportDeclaration): ImportEqualsDeclaration | NamespaceImport | NamespaceExport | undefined;
     function isDefaultImport(node: ImportDeclaration | ImportEqualsDeclaration | ExportDeclaration): boolean;
+    function forEachImportClauseDeclaration<T>(node: ImportClause, action: (declaration: ImportClause | NamespaceImport | ImportSpecifier) => T | undefined): T | undefined;
     function hasQuestionToken(node: Node): boolean;
     function isJSDocConstructSignature(node: Node): boolean;
     function isJSDocTypeAlias(node: Node): node is JSDocTypedefTag | JSDocCallbackTag | JSDocEnumTag;
@@ -8534,6 +8538,7 @@ declare namespace ts {
     function isLiteralComputedPropertyDeclarationName(node: Node): boolean;
     function isIdentifierName(node: Identifier): boolean;
     function isAliasSymbolDeclaration(node: Node): boolean;
+    function getTypeOnlyCompatibleAliasDeclarationFromName(node: Identifier): TypeOnlyCompatibleAliasDeclaration | undefined;
     function exportAssignmentIsAlias(node: ExportAssignment | BinaryExpression): boolean;
     function getExportAssignmentExpression(node: ExportAssignment | BinaryExpression): Expression;
     function getPropertyAssignmentAliasLikeExpression(node: PropertyAssignment | ShorthandPropertyAssignment | PropertyAccessExpression): Expression;
