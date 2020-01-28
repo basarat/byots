@@ -3249,6 +3249,7 @@ declare namespace ts {
         UseTypeOfFunction = 4096,
         OmitParameterModifiers = 8192,
         UseAliasDefinedOutsideCurrentScope = 16384,
+        UseSingleQuotesForStringLiteralType = 268435456,
         AllowThisInObjectLiteral = 32768,
         AllowQualifedNameInPlaceOfIdentifier = 65536,
         AllowAnonymousIdentifier = 131072,
@@ -3277,6 +3278,7 @@ declare namespace ts {
         UseTypeOfFunction = 4096,
         OmitParameterModifiers = 8192,
         UseAliasDefinedOutsideCurrentScope = 16384,
+        UseSingleQuotesForStringLiteralType = 268435456,
         AllowUniqueESSymbolType = 1048576,
         AddUndefined = 131072,
         WriteArrowStyleSignature = 262144,
@@ -3285,7 +3287,7 @@ declare namespace ts {
         InFirstTypeArgument = 4194304,
         InTypeAlias = 8388608,
         /** @deprecated */ WriteOwnNameForAnyLike = 0,
-        NodeBuilderFlagsMask = 9469291
+        NodeBuilderFlagsMask = 277904747
     }
     export enum SymbolFormatFlags {
         None = 0,
@@ -8423,6 +8425,7 @@ declare namespace ts {
     function isInExpressionContext(node: Node): boolean;
     function isPartOfTypeQuery(node: Node): boolean;
     function isPartOfPossiblyValidTypeOrAbstractComputedPropertyName(node: Node): boolean;
+    function isFirstIdentifierOfImplementsClause(node: Node): boolean;
     function isExternalModuleImportEqualsDeclaration(node: Node): node is ImportEqualsDeclaration & {
         moduleReference: ExternalModuleReference;
     };
@@ -9078,6 +9081,7 @@ declare namespace ts {
      */
     function parsePseudoBigInt(stringValue: string): string;
     function pseudoBigIntToString({ negative, base10Value }: PseudoBigInt): string;
+    function isValidTypeOnlyAliasUseSite(useSite: Node): boolean;
 }
 declare namespace ts {
     function createNode(kind: SyntaxKind, pos?: number, end?: number): Node;
@@ -12256,7 +12260,7 @@ declare namespace ts {
         fileName: string;
     }
     type OrganizeImportsScope = CombinedCodeFixScope;
-    type CompletionsTriggerCharacter = "." | '"' | "'" | "`" | "/" | "@" | "<";
+    type CompletionsTriggerCharacter = "." | '"' | "'" | "`" | "/" | "@" | "<" | "#";
     interface GetCompletionsAtPositionOptions extends UserPreferences {
         /**
          * If the editor is asking for completions because a certain character was typed
@@ -13143,6 +13147,7 @@ declare namespace ts {
     function createTextChange(span: TextSpan, newText: string): TextChange;
     const typeKeywords: readonly SyntaxKind[];
     function isTypeKeyword(kind: SyntaxKind): boolean;
+    function isTypeKeywordToken(node: Node): node is Token<SyntaxKind.TypeKeyword>;
     /** True if the symbol is for an external module, as opposed to a namespace. */
     function isExternalModuleSymbol(moduleSymbol: Symbol): boolean;
     /** Returns `true` the first time it encounters a node and `false` afterwards. */
@@ -13190,6 +13195,7 @@ declare namespace ts {
     function getParentNodeInSpan(node: Node | undefined, file: SourceFile, span: TextSpan): Node | undefined;
     function findModifier(node: Node, kind: Modifier["kind"]): Modifier | undefined;
     function insertImport(changes: textChanges.ChangeTracker, sourceFile: SourceFile, importDecl: Statement): void;
+    function getTypeKeywordOfTypeOnlyImport(importClause: ImportClause, sourceFile: SourceFile): Token<SyntaxKind.TypeKeyword>;
     function textSpansEqual(a: TextSpan | undefined, b: TextSpan | undefined): boolean;
     function documentSpansEqual(a: DocumentSpan, b: DocumentSpan): boolean;
     /**
