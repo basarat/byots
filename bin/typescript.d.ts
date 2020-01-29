@@ -725,6 +725,7 @@ declare namespace ts {
     export type Path = string & {
         __pathBrand: any;
     };
+    export type MatchingKeys<TRecord, TMatch, K extends keyof TRecord = keyof TRecord> = K extends (TRecord[K] extends TMatch ? K : never) ? K : never;
     export interface TextRange {
         pos: number;
         end: number;
@@ -3533,7 +3534,6 @@ declare namespace ts {
         mergeId?: number;
         parent?: Symbol;
         exportSymbol?: Symbol;
-        nameType?: Type;
         constEnumOnlyModule?: boolean;
         isReferenced?: SymbolFlags;
         isReplaceableByMethod?: boolean;
@@ -3544,6 +3544,7 @@ declare namespace ts {
         immediateTarget?: Symbol;
         target?: Symbol;
         type?: Type;
+        nameType?: Type;
         uniqueESSymbolType?: Type;
         declaredType?: Type;
         resolvedJSDocType?: Type;
@@ -12733,6 +12734,7 @@ declare namespace ts {
         hasAction?: true;
         source?: string;
         isRecommended?: true;
+        isFromUncheckedFile?: true;
     }
     interface CompletionEntryDetails {
         name: string;
