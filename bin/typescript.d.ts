@@ -6501,6 +6501,8 @@ declare namespace ts {
         _0_was_imported_here: DiagnosticMessage;
         _0_was_exported_here: DiagnosticMessage;
         Top_level_await_expressions_are_only_allowed_when_the_module_option_is_set_to_esnext_or_system_and_the_target_option_is_set_to_es2017_or_higher: DiagnosticMessage;
+        An_import_alias_cannot_reference_a_declaration_that_was_exported_using_export_type: DiagnosticMessage;
+        An_import_alias_cannot_reference_a_declaration_that_was_imported_using_import_type: DiagnosticMessage;
         The_types_of_0_are_incompatible_between_these_types: DiagnosticMessage;
         The_types_returned_by_0_are_incompatible_between_these_types: DiagnosticMessage;
         Call_signature_return_types_0_and_1_are_incompatible: DiagnosticMessage;
@@ -8425,8 +8427,6 @@ declare namespace ts {
     function isExpressionNode(node: Node): boolean;
     function isInExpressionContext(node: Node): boolean;
     function isPartOfTypeQuery(node: Node): boolean;
-    function isPartOfPossiblyValidTypeOrAbstractComputedPropertyName(node: Node): boolean;
-    function isFirstIdentifierOfImplementsClause(node: Node): boolean;
     function isExternalModuleImportEqualsDeclaration(node: Node): node is ImportEqualsDeclaration & {
         moduleReference: ExternalModuleReference;
     };
@@ -8554,7 +8554,8 @@ declare namespace ts {
     function isLiteralComputedPropertyDeclarationName(node: Node): boolean;
     function isIdentifierName(node: Identifier): boolean;
     function isAliasSymbolDeclaration(node: Node): boolean;
-    function getTypeOnlyCompatibleAliasDeclarationFromName(node: Identifier): TypeOnlyCompatibleAliasDeclaration | undefined;
+    function getAliasDeclarationFromName(node: EntityName): Declaration | undefined;
+    function isAliasableExpression(e: Expression): boolean;
     function exportAssignmentIsAlias(node: ExportAssignment | BinaryExpression): boolean;
     function getExportAssignmentExpression(node: ExportAssignment | BinaryExpression): Expression;
     function getPropertyAssignmentAliasLikeExpression(node: PropertyAssignment | ShorthandPropertyAssignment | PropertyAccessExpression): Expression;
