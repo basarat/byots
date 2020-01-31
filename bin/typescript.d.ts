@@ -4958,7 +4958,8 @@ declare namespace ts {
         IdentifierName = 2,
         MappedTypeParameter = 3,
         Unspecified = 4,
-        EmbeddedStatement = 5
+        EmbeddedStatement = 5,
+        JsxAttributeValue = 6
     }
     export interface SourceFileMayBeEmittedHost {
         getCompilerOptions(): CompilerOptions;
@@ -8298,7 +8299,7 @@ declare namespace ts {
      * Gets flags that control emit behavior of a node.
      */
     function getEmitFlags(node: Node): EmitFlags;
-    function getLiteralText(node: LiteralLikeNode, sourceFile: SourceFile, neverAsciiEscape: boolean | undefined): string;
+    function getLiteralText(node: LiteralLikeNode, sourceFile: SourceFile, neverAsciiEscape: boolean | undefined, jsxAttributeEscape: boolean): string;
     function getTextOfConstantValue(value: string | number): string;
     function makeIdentifierFromModuleName(moduleName: string): string;
     function isBlockOrCatchScoped(declaration: Declaration): boolean;
@@ -8644,6 +8645,8 @@ declare namespace ts {
      * Note that this doesn't actually wrap the input in double quotes.
      */
     function escapeString(s: string, quoteChar?: CharacterCodes.doubleQuote | CharacterCodes.singleQuote | CharacterCodes.backtick): string;
+    function escapeNonAsciiString(s: string, quoteChar?: CharacterCodes.doubleQuote | CharacterCodes.singleQuote | CharacterCodes.backtick): string;
+    function escapeJsxAttributeString(s: string, quoteChar?: CharacterCodes.doubleQuote | CharacterCodes.singleQuote): string;
     /**
      * Strip off existed surrounding single quotes, double quotes, or backticks from a given string
      *
@@ -8651,7 +8654,6 @@ declare namespace ts {
      */
     function stripQuotes(name: string): string;
     function isIntrinsicJsxName(name: __String | string): boolean;
-    function escapeNonAsciiString(s: string, quoteChar?: CharacterCodes.doubleQuote | CharacterCodes.singleQuote | CharacterCodes.backtick): string;
     function getIndentString(level: number): string;
     function getIndentSize(): number;
     function createTextWriter(newLine: string): EmitTextWriter;
@@ -13197,7 +13199,7 @@ declare namespace ts {
     function isMemberSymbolInBaseType(memberSymbol: Symbol, checker: TypeChecker): boolean;
     function getParentNodeInSpan(node: Node | undefined, file: SourceFile, span: TextSpan): Node | undefined;
     function findModifier(node: Node, kind: Modifier["kind"]): Modifier | undefined;
-    function insertImport(changes: textChanges.ChangeTracker, sourceFile: SourceFile, importDecl: Statement): void;
+    function insertImport(changes: textChanges.ChangeTracker, sourceFile: SourceFile, importDecl: Statement, blankLineBetween: boolean): void;
     function getTypeKeywordOfTypeOnlyImport(importClause: ImportClause, sourceFile: SourceFile): Token<SyntaxKind.TypeKeyword>;
     function textSpansEqual(a: TextSpan | undefined, b: TextSpan | undefined): boolean;
     function documentSpansEqual(a: DocumentSpan, b: DocumentSpan): boolean;
