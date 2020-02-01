@@ -443,6 +443,18 @@ declare namespace ts {
     function identity<T>(x: T): T;
     /** Returns lower case string */
     function toLowerCase(x: string): string;
+    /**
+     * Case insensitive file systems have descripencies in how they handle some characters (eg. turkish Upper case I with dot on top - \u0130)
+     * This function is used in places where we want to make file name as a key on these systems
+     * It is possible on mac to be able to refer to file name with I with dot on top as a fileName with its lower case form
+     * But on windows we cannot. Windows can have fileName with I with dot on top next to its lower case and they can not each be referred with the lowercase forms
+     * Technically we would want this function to be platform sepcific as well but
+     * our api has till now only taken caseSensitive as the only input and just for some characters we dont want to update API and ensure all customers use those api
+     * We could use upper case and we would still need to deal with the descripencies but
+     * we want to continue using lower case since in most cases filenames are lowercasewe and wont need any case changes and avoid having to store another string for the key
+     * So for this function purpose, we go ahead and assume character I with dot on top it as case sensitive since its very unlikely to use lower case form of that special character
+     */
+    function toFileNameLowerCase(x: string): string;
     /** Throws an error because a function is not implemented. */
     function notImplemented(): never;
     function memoize<T>(callback: () => T): () => T;
@@ -3231,7 +3243,7 @@ declare namespace ts {
         None = 0,
         Signature = 1,
         NoConstraints = 2,
-        BaseConstraint = 4
+        Completions = 4
     }
     export enum NodeBuilderFlags {
         None = 0,
@@ -3547,7 +3559,6 @@ declare namespace ts {
         nameType?: Type;
         uniqueESSymbolType?: Type;
         declaredType?: Type;
-        resolvedJSDocType?: Type;
         typeParameters?: TypeParameter[];
         outerTypeParameters?: TypeParameter[];
         instantiations?: Map<Type>;
@@ -3708,6 +3719,7 @@ declare namespace ts {
         jsxFlags: JsxFlags;
         resolvedJsxElementAttributesType?: Type;
         resolvedJsxElementAllAttributesType?: Type;
+        resolvedJSDocType?: Type;
         hasSuperCall?: boolean;
         superCall?: SuperCall;
         switchTypes?: Type[];
@@ -3718,6 +3730,7 @@ declare namespace ts {
         outerTypeParameters?: TypeParameter[];
         instantiations?: Map<Type>;
         isExhaustive?: boolean;
+        skipDirectInference?: true;
     }
     export enum TypeFlags {
         Any = 1,
@@ -13080,6 +13093,15 @@ declare namespace ts {
     function findChildOfKind<T extends Node>(n: Node, kind: T["kind"], sourceFile: SourceFileLike): T | undefined;
     function findContainingList(node: Node): SyntaxList | undefined;
     /**
+     * Adjusts the location used for "find references" and "go to definition" when the cursor was not
+     * on a property name.
+     */
+    function getAdjustedReferenceLocation(node: Node): Node;
+    /**
+     * Adjusts the location used for "rename" when the cursor was not on a property name.
+     */
+    function getAdjustedRenameLocation(node: Node): Node;
+    /**
      * Gets the token whose text has range [start, end) and
      * position >= start and (position < end or (position === end && token is literal or keyword or identifier))
      */
@@ -13594,14 +13616,26 @@ declare namespace ts.FindAllReferences {
     function toContextSpan(textSpan: TextSpan, sourceFile: SourceFile, context?: ContextNode): {
         contextSpan: TextSpan;
     } | undefined;
+    enum FindReferencesUse {
+        /**
+         * When searching for references to a symbol, the location will not be adjusted (this is the default behavior when not specified).
+         */
+        Other = 0,
+        /**
+         * When searching for references to a symbol, the location will be adjusted if the cursor was on a keyword.
+         */
+        References = 1,
+        /**
+         * When searching for references to a symbol, the location will be adjusted if the cursor was on a keyword.
+         * Unlike `References`, the location will only be adjusted keyword belonged to a declaration with a valid name.
+         * If set, we will find fewer references -- if it is referenced by several different names, we still only find references for the original name.
+         */
+        Rename = 2
+    }
     interface Options {
         readonly findInStrings?: boolean;
         readonly findInComments?: boolean;
-        /**
-         * True if we are renaming the symbol.
-         * If so, we will find fewer references -- if it is referenced by several different names, we still only find references for the original name.
-         */
-        readonly isForRename?: boolean;
+        readonly use?: FindReferencesUse;
         /** True if we are searching for implementations. We will have a different method of adding references if so. */
         readonly implementations?: boolean;
         /**
