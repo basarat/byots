@@ -1787,6 +1787,7 @@ declare namespace ts {
     }
     export interface NoSubstitutionTemplateLiteral extends LiteralExpression, TemplateLiteralLikeNode, Declaration {
         kind: SyntaxKind.NoSubstitutionTemplateLiteral;
+        templateFlags?: TokenFlags;
     }
     export enum TokenFlags {
         None = 0,
@@ -1801,6 +1802,7 @@ declare namespace ts {
         OctalSpecifier = 256,
         ContainsSeparator = 512,
         UnicodeEscape = 1024,
+        ContainsInvalidEscape = 2048,
         BinaryOrOctalSpecifier = 384,
         NumericLiteralFlags = 1008
     }
@@ -1814,14 +1816,17 @@ declare namespace ts {
     export interface TemplateHead extends TemplateLiteralLikeNode {
         kind: SyntaxKind.TemplateHead;
         parent: TemplateExpression;
+        templateFlags?: TokenFlags;
     }
     export interface TemplateMiddle extends TemplateLiteralLikeNode {
         kind: SyntaxKind.TemplateMiddle;
         parent: TemplateSpan;
+        templateFlags?: TokenFlags;
     }
     export interface TemplateTail extends TemplateLiteralLikeNode {
         kind: SyntaxKind.TemplateTail;
         parent: TemplateSpan;
+        templateFlags?: TokenFlags;
     }
     export type TemplateLiteral = TemplateExpression | NoSubstitutionTemplateLiteral;
     export interface TemplateExpression extends PrimaryExpression {
@@ -3787,6 +3792,7 @@ declare namespace ts {
         StructuredOrInstantiable = 66846720,
         ObjectFlagsType = 3899393,
         Simplifiable = 25165824,
+        Substructure = 66584576,
         Narrowable = 133970943,
         NotUnionOrUnit = 67637251,
         NotPrimitiveUnion = 66994211,
@@ -3794,8 +3800,7 @@ declare namespace ts {
         IncludesStructuredOrInstantiable = 262144,
         IncludesNonWideningType = 2097152,
         IncludesWildcard = 4194304,
-        IncludesEmptyObject = 8388608,
-        GenericMappedType = 131072
+        IncludesEmptyObject = 8388608
     }
     export type DestructuringPattern = BindingPattern | ObjectLiteralExpression | ArrayLiteralExpression;
     export interface Type {
@@ -3867,6 +3872,10 @@ declare namespace ts {
         ContainsWideningType = 524288,
         ContainsObjectOrArrayLiteral = 1048576,
         NonInferrableType = 2097152,
+        IsGenericObjectTypeComputed = 4194304,
+        IsGenericObjectType = 8388608,
+        IsGenericIndexTypeComputed = 16777216,
+        IsGenericIndexType = 33554432,
         ClassOrInterface = 3,
         RequiresWidening = 1572864,
         PropagatingFlags = 3670016
@@ -7635,7 +7644,8 @@ declare namespace ts {
         getTokenFlags(): TokenFlags;
         reScanGreaterToken(): SyntaxKind;
         reScanSlashToken(): SyntaxKind;
-        reScanTemplateToken(): SyntaxKind;
+        reScanTemplateToken(isTaggedTemplate: boolean): SyntaxKind;
+        reScanTemplateHeadOrNoSubstitutionTemplate(): SyntaxKind;
         scanJsxIdentifier(): SyntaxKind;
         scanJsxAttributeValue(): SyntaxKind;
         reScanJsxAttributeValue(): SyntaxKind;
@@ -8652,6 +8662,8 @@ declare namespace ts {
     function getOperatorPrecedence(nodeKind: SyntaxKind, operatorKind: SyntaxKind, hasArguments?: boolean): number;
     function getBinaryOperatorPrecedence(kind: SyntaxKind): number;
     function createDiagnosticCollection(): DiagnosticCollection;
+    /** @internal */
+    function hasInvalidEscape(template: TemplateLiteral): boolean;
     /**
      * Based heavily on the abstract 'Quote'/'QuoteJSONString' operation from ECMA-262 (24.3.2.2),
      * but augmented for a few select characters (e.g. lineSeparator, paragraphSeparator, nextLine)
@@ -10499,6 +10511,14 @@ declare namespace ts {
     const restHelper: UnscopedEmitHelper;
 }
 declare namespace ts {
+    enum ProcessLevel {
+        LiftRestriction = 0,
+        All = 1
+    }
+    function processTaggedTemplateExpression(context: TransformationContext, node: TaggedTemplateExpression, visitor: ((node: Node) => VisitResult<Node>) | undefined, currentSourceFile: SourceFile, recordTaggedTemplateString: (temp: Identifier) => void, level: ProcessLevel): CallExpression | TaggedTemplateExpression;
+    const templateObjectHelper: UnscopedEmitHelper;
+}
+declare namespace ts {
     function transformTypeScript(context: TransformationContext): (node: SourceFile | Bundle) => SourceFile | Bundle;
     const decorateHelper: UnscopedEmitHelper;
     const metadataHelper: UnscopedEmitHelper;
@@ -10551,7 +10571,6 @@ declare namespace ts {
 declare namespace ts {
     function transformES2015(context: TransformationContext): (x: SourceFile | Bundle) => SourceFile | Bundle;
     const extendsHelper: UnscopedEmitHelper;
-    const templateObjectHelper: UnscopedEmitHelper;
 }
 declare namespace ts {
     /**
