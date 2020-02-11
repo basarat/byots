@@ -13356,6 +13356,7 @@ declare namespace ts {
      * If the provided value is an array, the first element of the array is returned; otherwise, the provided value is returned instead.
      */
     function firstOrOnly<T>(valueOrArray: T | readonly T[]): T;
+    function getNameForExportedSymbol(symbol: Symbol, scriptTarget: ScriptTarget): string;
 }
 declare namespace ts {
     /** The classifier is used for syntactic highlighting in editors via the TSServer */
@@ -14291,6 +14292,12 @@ declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
     const importFixName = "import";
+    interface ImportAdder {
+        addImportFromDiagnostic: (diagnostic: DiagnosticWithLocation, context: CodeFixContextBase) => void;
+        addImportFromExportedSymbol: (exportedSymbol: Symbol, usageIsTypeOnly?: boolean) => void;
+        writeFixes: (changeTracker: textChanges.ChangeTracker) => void;
+    }
+    function createImportAdder(sourceFile: SourceFile, program: Program, preferences: UserPreferences, host: LanguageServiceHost): ImportAdder;
     enum ImportKind {
         Named = 0,
         Default = 1,
@@ -14347,19 +14354,29 @@ declare namespace ts.codefix {
      * Finds members of the resolved type that are missing in the class pointed to by class decl
      * and generates source code for the missing members.
      * @param possiblyMissingSymbols The collection of symbols to filter and then get insertions for.
+     * @param importAdder If provided, type annotations will use identifier type references instead of ImportTypeNodes, and the missing imports will be added to the importAdder.
      * @returns Empty string iff there are no member insertions.
      */
-    function createMissingMemberNodes(classDeclaration: ClassLikeDeclaration, possiblyMissingSymbols: readonly Symbol[], context: TypeConstructionContext, preferences: UserPreferences, out: (node: ClassElement) => void): void;
+    function createMissingMemberNodes(classDeclaration: ClassLikeDeclaration, possiblyMissingSymbols: readonly Symbol[], context: TypeConstructionContext, preferences: UserPreferences, importAdder: ImportAdder | undefined, addClassElement: (node: ClassElement) => void): void;
     function getNoopSymbolTrackerWithResolver(context: TypeConstructionContext): SymbolTracker;
     interface TypeConstructionContext {
         program: Program;
-        host: ModuleSpecifierResolutionHost;
+        host: LanguageServiceHost;
     }
     function createMethodFromCallExpression(context: CodeFixContextBase, call: CallExpression, methodName: string, inJs: boolean, makeStatic: boolean, preferences: UserPreferences, contextNode: Node): MethodDeclaration;
     function setJsonCompilerOptionValues(changeTracker: textChanges.ChangeTracker, configFile: TsConfigSourceFile, options: [string, Expression][]): undefined;
     function setJsonCompilerOptionValue(changeTracker: textChanges.ChangeTracker, configFile: TsConfigSourceFile, optionName: string, optionValue: Expression): void;
     function createJsonPropertyAssignment(name: string, initializer: Expression): PropertyAssignment;
     function findJsonProperty(obj: ObjectLiteralExpression, name: string): PropertyAssignment | undefined;
+    /**
+     * Given an ImportTypeNode 'import("./a").SomeType<import("./b").OtherType<...>>',
+     * returns an equivalent type reference node with any nested ImportTypeNodes also replaced
+     * with type references, and a list of symbols that must be imported to use the type reference.
+     */
+    function tryGetAutoImportableReferenceFromImportTypeNode(importTypeNode: TypeNode | undefined, type: Type | undefined, scriptTarget: ScriptTarget): {
+        symbols: Symbol[];
+        typeReference: TypeReferenceNode;
+    } | undefined;
 }
 declare namespace ts.codefix {
 }
