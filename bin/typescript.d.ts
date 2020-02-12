@@ -39,7 +39,7 @@ declare namespace ts {
     export {};
 }
 declare namespace ts {
-    const versionMajorMinor = "3.8";
+    const versionMajorMinor = "3.9";
     /** The version of the TypeScript compiler release */
     const version: string;
     /**
@@ -6526,6 +6526,8 @@ declare namespace ts {
         Top_level_await_expressions_are_only_allowed_when_the_module_option_is_set_to_esnext_or_system_and_the_target_option_is_set_to_es2017_or_higher: DiagnosticMessage;
         An_import_alias_cannot_reference_a_declaration_that_was_exported_using_export_type: DiagnosticMessage;
         An_import_alias_cannot_reference_a_declaration_that_was_imported_using_import_type: DiagnosticMessage;
+        Unexpected_token_Did_you_mean_or_rbrace: DiagnosticMessage;
+        Unexpected_token_Did_you_mean_or_gt: DiagnosticMessage;
         The_types_of_0_are_incompatible_between_these_types: DiagnosticMessage;
         The_types_returned_by_0_are_incompatible_between_these_types: DiagnosticMessage;
         Call_signature_return_types_0_and_1_are_incompatible: DiagnosticMessage;
@@ -6911,7 +6913,7 @@ declare namespace ts {
         Implicit_conversion_of_a_symbol_to_a_string_will_fail_at_runtime_Consider_wrapping_this_expression_in_String: DiagnosticMessage;
         Cannot_find_module_0_Consider_using_resolveJsonModule_to_import_module_with_json_extension: DiagnosticMessage;
         Property_0_was_also_declared_here: DiagnosticMessage;
-        It_is_highly_likely_that_you_are_missing_a_semicolon: DiagnosticMessage;
+        Are_you_missing_a_semicolon: DiagnosticMessage;
         Did_you_mean_for_0_to_be_constrained_to_type_new_args_Colon_any_1: DiagnosticMessage;
         Operator_0_cannot_be_applied_to_type_1: DiagnosticMessage;
         BigInt_literals_are_not_available_when_targeting_lower_than_ES2020: DiagnosticMessage;
@@ -6960,6 +6962,7 @@ declare namespace ts {
         The_left_hand_side_of_a_for_in_statement_may_not_be_an_optional_property_access: DiagnosticMessage;
         The_left_hand_side_of_a_for_of_statement_may_not_be_an_optional_property_access: DiagnosticMessage;
         _0_needs_an_explicit_type_annotation: DiagnosticMessage;
+        _0_is_specified_more_than_once_so_this_usage_will_be_overwritten: DiagnosticMessage;
         Import_declaration_0_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_interface_has_or_is_using_private_name_1: DiagnosticMessage;
@@ -7600,6 +7603,8 @@ declare namespace ts {
         Add_export_to_make_this_file_into_a_module: DiagnosticMessage;
         Set_the_target_option_in_your_configuration_file_to_0: DiagnosticMessage;
         Set_the_module_option_in_your_configuration_file_to_0: DiagnosticMessage;
+        Convert_invalid_character_to_its_html_entity_code: DiagnosticMessage;
+        Wrap_invalid_character_in_an_expression_container: DiagnosticMessage;
         No_value_exists_in_scope_for_the_shorthand_property_0_Either_declare_one_or_provide_an_initializer: DiagnosticMessage;
         Classes_may_not_have_a_field_named_constructor: DiagnosticMessage;
         JSX_expressions_may_not_use_the_comma_operator_Did_you_mean_to_write_an_array: DiagnosticMessage;
@@ -14312,6 +14317,8 @@ declare namespace ts.codefix {
     function forEachExternalModuleToImportFrom(program: Program, host: LanguageServiceHost, from: SourceFile, filterByPackageJson: boolean, cb: (module: Symbol) => void): void;
     function moduleSymbolToValidIdentifier(moduleSymbol: Symbol, target: ScriptTarget): string;
     function moduleSpecifierToValidIdentifier(moduleSpecifier: string, target: ScriptTarget): string;
+}
+declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
 }
