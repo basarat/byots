@@ -18,6 +18,7 @@ branches:
 deploy:
   skip_cleanup: true
   provider: npm
+  edge: true
   email: basaratali@gmail.com
   api_key: "$NPM_TOKEN"
   on:
