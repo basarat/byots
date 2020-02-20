@@ -601,6 +601,8 @@ declare namespace ts {
     function enumerateInsertsAndDeletes<T, U>(newItems: readonly T[], oldItems: readonly U[], comparer: (a: T, b: U) => Comparison, inserted: (newItem: T) => void, deleted: (oldItem: U) => void, unchanged?: (oldItem: U, newItem: T) => void): void;
     function fill<T>(length: number, cb: (index: number) => T): T[];
     function cartesianProduct<T>(arrays: readonly T[][]): T[][];
+    function padLeft(s: string, length: number): string;
+    function padRight(s: string, length: number): string;
 }
 declare namespace ts {
     namespace Debug {
@@ -5782,14 +5784,14 @@ declare namespace ts {
         writeFloatBE(value: number, offset: number): number;
         writeDoubleLE(value: number, offset: number): number;
         writeDoubleBE(value: number, offset: number): number;
-        readBigUInt64BE(offset?: number): bigint;
-        readBigUInt64LE(offset?: number): bigint;
-        readBigInt64BE(offset?: number): bigint;
-        readBigInt64LE(offset?: number): bigint;
-        writeBigInt64BE(value: bigint, offset?: number): number;
-        writeBigInt64LE(value: bigint, offset?: number): number;
-        writeBigUInt64BE(value: bigint, offset?: number): number;
-        writeBigUInt64LE(value: bigint, offset?: number): number;
+        readBigUInt64BE?(offset?: number): bigint;
+        readBigUInt64LE?(offset?: number): bigint;
+        readBigInt64BE?(offset?: number): bigint;
+        readBigInt64LE?(offset?: number): bigint;
+        writeBigInt64BE?(value: bigint, offset?: number): number;
+        writeBigInt64LE?(value: bigint, offset?: number): number;
+        writeBigUInt64BE?(value: bigint, offset?: number): number;
+        writeBigUInt64LE?(value: bigint, offset?: number): number;
         fill(value: string | Uint8Array | number, offset?: number, end?: number, encoding?: BufferEncoding): this;
         indexOf(value: string | number | Uint8Array, byteOffset?: number, encoding?: BufferEncoding): number;
         lastIndexOf(value: string | number | Uint8Array, byteOffset?: number, encoding?: BufferEncoding): number;
