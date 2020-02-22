@@ -14280,6 +14280,8 @@ declare namespace ts.codefix {
 declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
+}
+declare namespace ts.codefix {
     type DeclarationWithType = FunctionLikeDeclaration | VariableDeclaration | PropertySignature | PropertyDeclaration;
     function parameterShouldGetTypeFromJSDoc(node: Node): node is DeclarationWithType;
 }
