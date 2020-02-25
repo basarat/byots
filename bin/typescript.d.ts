@@ -606,18 +606,51 @@ declare namespace ts {
 }
 declare namespace ts {
     namespace Debug {
-        let currentAssertionLevel: AssertionLevel;
         let isDebugging: boolean;
+        function getAssertionLevel(): AssertionLevel;
+        function setAssertionLevel(level: AssertionLevel): void;
         function shouldAssert(level: AssertionLevel): boolean;
-        function assert(expression: boolean, message?: string, verboseDebugInfo?: string | (() => string), stackCrawlMark?: AnyFunction): void;
-        function assertEqual<T>(a: T, b: T, msg?: string, msg2?: string): void;
-        function assertLessThan(a: number, b: number, msg?: string): void;
-        function assertLessThanOrEqual(a: number, b: number): void;
-        function assertGreaterThanOrEqual(a: number, b: number): void;
         function fail(message?: string, stackCrawlMark?: AnyFunction): never;
-        function assertDefined<T>(value: T | null | undefined, message?: string): T;
-        function assertEachDefined<T, A extends readonly T[]>(value: A, message?: string): A;
+        function failBadSyntaxKind(node: Node, message?: string, stackCrawlMark?: AnyFunction): never;
+        function assert(expression: boolean, message?: string, verboseDebugInfo?: string | (() => string), stackCrawlMark?: AnyFunction): asserts expression;
+        function assertEqual<T>(a: T, b: T, msg?: string, msg2?: string, stackCrawlMark?: AnyFunction): void;
+        function assertLessThan(a: number, b: number, msg?: string, stackCrawlMark?: AnyFunction): void;
+        function assertLessThanOrEqual(a: number, b: number, stackCrawlMark?: AnyFunction): void;
+        function assertGreaterThanOrEqual(a: number, b: number, stackCrawlMark?: AnyFunction): void;
+        function assertIsDefined<T>(value: T, message?: string, stackCrawlMark?: AnyFunction): asserts value is NonNullable<T>;
+        function checkDefined<T>(value: T | null | undefined, message?: string, stackCrawlMark?: AnyFunction): T;
+        /**
+         * @deprecated Use `checkDefined` to check whether a value is defined inline. Use `assertIsDefined` to check whether
+         * a value is defined at the statement level.
+         */
+        const assertDefined: typeof checkDefined;
+        function assertEachIsDefined<T extends Node>(value: NodeArray<T>, message?: string, stackCrawlMark?: AnyFunction): asserts value is NodeArray<T>;
+        function assertEachIsDefined<T>(value: readonly T[], message?: string, stackCrawlMark?: AnyFunction): asserts value is readonly NonNullable<T>[];
+        function checkEachDefined<T, A extends readonly T[]>(value: A, message?: string, stackCrawlMark?: AnyFunction): A;
+        /**
+         * @deprecated Use `checkEachDefined` to check whether the elements of an array are defined inline. Use `assertEachIsDefined` to check whether
+         * the elements of an array are defined at the statement level.
+         */
+        const assertEachDefined: typeof checkEachDefined;
         function assertNever(member: never, message?: string, stackCrawlMark?: AnyFunction): never;
+        function assertEachNode<T extends Node, U extends T>(nodes: NodeArray<T>, test: (node: T) => node is U, message?: string, stackCrawlMark?: AnyFunction): asserts nodes is NodeArray<U>;
+        function assertEachNode<T extends Node, U extends T>(nodes: readonly T[], test: (node: T) => node is U, message?: string, stackCrawlMark?: AnyFunction): asserts nodes is readonly U[];
+        function assertEachNode(nodes: readonly Node[], test: (node: Node) => boolean, message?: string, stackCrawlMark?: AnyFunction): void;
+        function assertNode<T extends Node, U extends T>(node: T | undefined, test: (node: T) => node is U, message?: string, stackCrawlMark?: AnyFunction): asserts node is U;
+        function assertNode(node: Node | undefined, test: ((node: Node) => boolean) | undefined, message?: string, stackCrawlMark?: AnyFunction): void;
+        function assertNotNode<T extends Node, U extends T>(node: T | undefined, test: (node: T) => node is U, message?: string, stackCrawlMark?: AnyFunction): asserts node is Exclude<T, U>;
+        function assertNotNode(node: Node | undefined, test: ((node: Node) => boolean) | undefined, message?: string, stackCrawlMark?: AnyFunction): void;
+        function assertOptionalNode<T extends Node, U extends T>(node: T, test: (node: T) => node is U, message?: string, stackCrawlMark?: AnyFunction): asserts node is U;
+        function assertOptionalNode<T extends Node, U extends T>(node: T | undefined, test: (node: T) => node is U, message?: string, stackCrawlMark?: AnyFunction): asserts node is U | undefined;
+        function assertOptionalNode(node: Node | undefined, test: ((node: Node) => boolean) | undefined, message?: string, stackCrawlMark?: AnyFunction): void;
+        function assertOptionalToken<T extends Node, K extends SyntaxKind>(node: T, kind: K, message?: string, stackCrawlMark?: AnyFunction): asserts node is Extract<T, {
+            readonly kind: K;
+        }>;
+        function assertOptionalToken<T extends Node, K extends SyntaxKind>(node: T | undefined, kind: K, message?: string, stackCrawlMark?: AnyFunction): asserts node is Extract<T, {
+            readonly kind: K;
+        }> | undefined;
+        function assertOptionalToken(node: Node | undefined, kind: SyntaxKind | undefined, message?: string, stackCrawlMark?: AnyFunction): void;
+        function assertMissingNode(node: Node | undefined, message?: string, stackCrawlMark?: AnyFunction): asserts node is undefined;
         function getFunctionName(func: AnyFunction): any;
         function formatSymbol(symbol: Symbol): string;
         /**
@@ -632,13 +665,6 @@ declare namespace ts {
         function formatSymbolFlags(flags: SymbolFlags | undefined): string;
         function formatTypeFlags(flags: TypeFlags | undefined): string;
         function formatObjectFlags(flags: ObjectFlags | undefined): string;
-        function failBadSyntaxKind(node: Node, message?: string): never;
-        const assertEachNode: (nodes: Node[], test: (node: Node) => boolean, message?: string | undefined) => void;
-        const assertNode: (node: Node | undefined, test: ((node: Node | undefined) => boolean) | undefined, message?: string | undefined) => void;
-        const assertNotNode: (node: Node | undefined, test: ((node: Node | undefined) => boolean) | undefined, message?: string | undefined) => void;
-        const assertOptionalNode: (node: Node, test: (node: Node) => boolean, message?: string | undefined) => void;
-        const assertOptionalToken: (node: Node, kind: SyntaxKind, message?: string | undefined) => void;
-        const assertMissingNode: (node: Node, message?: string | undefined) => void;
         function printControlFlowGraph(flowNode: FlowNode): void;
         function formatControlFlowGraph(flowNode: FlowNode): string;
         function attachFlowNodeDebugInfo(flowNode: FlowNode): void;
@@ -3878,6 +3904,8 @@ declare namespace ts {
         IsGenericObjectType = 8388608,
         IsGenericIndexTypeComputed = 16777216,
         IsGenericIndexType = 33554432,
+        CouldContainTypeVariablesComputed = 67108864,
+        CouldContainTypeVariables = 134217728,
         ClassOrInterface = 3,
         RequiresWidening = 1572864,
         PropagatingFlags = 3670016
@@ -3962,7 +3990,6 @@ declare namespace ts {
         resolvedIndexType: IndexType;
         resolvedStringIndexType: IndexType;
         resolvedBaseConstraint: Type;
-        couldContainTypeVariables: boolean;
     }
     export interface UnionType extends UnionOrIntersectionType {
     }
@@ -4935,6 +4962,7 @@ declare namespace ts {
         readonly scoped: boolean;
         readonly text: string | ((node: EmitHelperUniqueNameCallback) => string);
         readonly priority?: number;
+        readonly dependencies?: EmitHelper[];
     }
     export interface UnscopedEmitHelper extends EmitHelper {
         readonly scoped: false;
@@ -4968,8 +4996,10 @@ declare namespace ts {
         MakeTemplateObject = 131072,
         ClassPrivateFieldGet = 262144,
         ClassPrivateFieldSet = 524288,
+        CreateBinding = 1048576,
+        SetModuleDefault = 2097152,
         FirstEmitHelper = 1,
-        LastEmitHelper = 524288,
+        LastEmitHelper = 2097152,
         ForOfIncludes = 256,
         ForAwaitOfIncludes = 32768,
         AsyncGeneratorIncludes = 12288,
@@ -8932,6 +8962,7 @@ declare namespace ts {
     function isObjectTypeDeclaration(node: Node): node is ObjectTypeDeclaration;
     function isTypeNodeKind(kind: SyntaxKind): boolean;
     function isAccessExpression(node: Node): node is AccessExpression;
+    function getNameOfAccessExpression(node: AccessExpression): Expression | PrivateIdentifier;
     function isBundleFileTextLike(section: BundleFileSection): section is BundleFileTextLike;
     function getDotOrQuestionDotToken(node: PropertyAccessExpression): DotToken | QuestionDotToken;
     function isNamedImportsOrExports(node: Node): node is NamedImportsOrExports;
@@ -10593,6 +10624,8 @@ declare namespace ts {
 }
 declare namespace ts {
     function transformModule(context: TransformationContext): (x: SourceFile | Bundle) => SourceFile | Bundle;
+    const createBindingHelper: UnscopedEmitHelper;
+    const setModuleDefaultHelper: UnscopedEmitHelper;
     const importStarHelper: UnscopedEmitHelper;
     const importDefaultHelper: UnscopedEmitHelper;
 }
