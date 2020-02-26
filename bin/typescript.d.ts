@@ -2617,10 +2617,9 @@ declare namespace ts {
         SwitchClause = 128,
         ArrayMutation = 256,
         Call = 512,
-        Referenced = 1024,
-        Shared = 2048,
-        PreFinally = 4096,
-        AfterFinally = 8192,
+        ReduceLabel = 1024,
+        Referenced = 2048,
+        Shared = 4096,
         Label = 12,
         Condition = 96
     }
@@ -2665,6 +2664,11 @@ declare namespace ts {
     }
     export interface FlowArrayMutation extends FlowNodeBase {
         node: CallExpression | BinaryExpression;
+        antecedent: FlowNode;
+    }
+    export interface FlowReduceLabel extends FlowNodeBase {
+        target: FlowLabel;
+        antecedents: FlowNode[];
         antecedent: FlowNode;
     }
     export type FlowType = Type | IncompleteType;
@@ -4997,9 +5001,8 @@ declare namespace ts {
         ClassPrivateFieldGet = 262144,
         ClassPrivateFieldSet = 524288,
         CreateBinding = 1048576,
-        SetModuleDefault = 2097152,
         FirstEmitHelper = 1,
-        LastEmitHelper = 2097152,
+        LastEmitHelper = 1048576,
         ForOfIncludes = 256,
         ForAwaitOfIncludes = 32768,
         AsyncGeneratorIncludes = 12288,
@@ -7343,6 +7346,7 @@ declare namespace ts {
         Specify_strategy_for_watching_directory_on_platforms_that_don_t_support_recursive_watching_natively_Colon_UseFsEvents_default_FixedPollingInterval_DynamicPriorityPolling: DiagnosticMessage;
         Specify_strategy_for_creating_a_polling_watch_when_it_fails_to_create_using_file_system_events_Colon_FixedInterval_default_PriorityInterval_DynamicPriority: DiagnosticMessage;
         Synchronously_call_callbacks_and_update_the_state_of_directory_watchers_on_platforms_that_don_t_support_recursive_watching_natively: DiagnosticMessage;
+        Tag_0_expects_at_least_1_arguments_but_the_JSX_factory_2_provides_at_most_3: DiagnosticMessage;
         Projects_to_reference: DiagnosticMessage;
         Enable_project_compilation: DiagnosticMessage;
         Composite_projects_may_not_disable_declaration_emit: DiagnosticMessage;
@@ -8398,7 +8402,7 @@ declare namespace ts {
     function declarationNameToString(name: DeclarationName | QualifiedName | undefined): string;
     function getNameFromIndexInfo(info: IndexInfo): string | undefined;
     function getTextOfPropertyName(name: PropertyName | NoSubstitutionTemplateLiteral): __String;
-    function entityNameToString(name: EntityNameOrEntityNameExpression): string;
+    function entityNameToString(name: EntityNameOrEntityNameExpression | JsxTagNameExpression | PrivateIdentifier): string;
     function createDiagnosticForNode(node: Node, message: DiagnosticMessage, arg0?: string | number, arg1?: string | number, arg2?: string | number, arg3?: string | number): DiagnosticWithLocation;
     function createDiagnosticForNodeArray(sourceFile: SourceFile, nodes: NodeArray<Node>, message: DiagnosticMessage, arg0?: string | number, arg1?: string | number, arg2?: string | number, arg3?: string | number): DiagnosticWithLocation;
     function createDiagnosticForNodeInSourceFile(sourceFile: SourceFile, node: Node, message: DiagnosticMessage, arg0?: string | number, arg1?: string | number, arg2?: string | number, arg3?: string | number): DiagnosticWithLocation;
@@ -9167,6 +9171,21 @@ declare namespace ts {
      * that they appear in the source code. The language service depends on this property to locate nodes by position.
      */
     function forEachChild<T>(node: Node, cbNode: (node: Node) => T | undefined, cbNodes?: (nodes: NodeArray<Node>) => T | undefined): T | undefined;
+    /** @internal */
+    /**
+     * Invokes a callback for each child of the given node. The 'cbNode' callback is invoked for all child nodes
+     * stored in properties. If a 'cbNodes' callback is specified, it is invoked for embedded arrays; additionally,
+     * unlike `forEachChild`, embedded arrays are flattened and the 'cbNode' callback is invoked for each element.
+     *  If a callback returns a truthy value, iteration stops and that value is returned. Otherwise, undefined is returned.
+     *
+     * @param node a given node to visit its children
+     * @param cbNode a callback to be invoked for all child nodes
+     * @param cbNodes a callback to be invoked for embedded array
+     *
+     * @remarks Unlike `forEachChild`, `forEachChildRecursively` handles recursively invoking the traversal on each child node found,
+     * and while doing so, handles traversing the structure without relying on the callstack to encode the tree structure.
+     */
+    function forEachChildRecursively<T>(rootNode: Node, cbNode: (node: Node, parent: Node) => T | "skip" | undefined, cbNodes?: (nodes: NodeArray<Node>, parent: Node) => T | "skip" | undefined): T | undefined;
     function createSourceFile(fileName: string, sourceText: string, languageVersion: ScriptTarget, setParentNodes?: boolean, scriptKind?: ScriptKind): SourceFile;
     function parseIsolatedEntityName(text: string, languageVersion: ScriptTarget): EntityName | undefined;
     /**
@@ -10841,7 +10860,7 @@ declare namespace ts {
     /**
      * Determines if program structure is upto date or needs to be recreated
      */
-    export function isProgramUptoDate(program: Program | undefined, rootFileNames: string[], newOptions: CompilerOptions, getSourceVersion: (path: Path) => string | undefined, fileExists: (fileName: string) => boolean, hasInvalidatedResolution: HasInvalidatedResolution, hasChangedAutomaticTypeDirectiveNames: boolean, projectReferences: readonly ProjectReference[] | undefined): boolean;
+    export function isProgramUptoDate(program: Program | undefined, rootFileNames: string[], newOptions: CompilerOptions, getSourceVersion: (path: Path, fileName: string) => string | undefined, fileExists: (fileName: string) => boolean, hasInvalidatedResolution: HasInvalidatedResolution, hasChangedAutomaticTypeDirectiveNames: boolean, projectReferences: readonly ProjectReference[] | undefined): boolean;
     export function getConfigFileParsingDiagnostics(configFileParseResult: ParsedCommandLine): readonly Diagnostic[];
     /**
      * Create a new 'Program' instance. A Program is an immutable collection of 'SourceFile's and a 'CompilerOptions'
@@ -12308,6 +12327,8 @@ declare namespace ts {
         toLineColumnOffset?(fileName: string, position: number): LineAndCharacter;
         /** @internal */
         getSourceMapper(): SourceMapper;
+        /** @internal */
+        clearSourceMapperCache(): void;
         getCodeFixesAtPosition(fileName: string, start: number, end: number, errorCodes: readonly number[], formatOptions: FormatCodeSettings, preferences: UserPreferences): readonly CodeFixAction[];
         getCombinedCodeFix(scope: CombinedCodeFixScope, fixId: {}, formatOptions: FormatCodeSettings, preferences: UserPreferences): CombinedCodeActions;
         applyCodeActionCommand(action: CodeActionCommand, formatSettings?: FormatCodeSettings): Promise<ApplyCodeActionCommandResult>;
