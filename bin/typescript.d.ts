@@ -1083,29 +1083,30 @@ declare namespace ts {
         JSDocSignature = 305,
         JSDocTag = 306,
         JSDocAugmentsTag = 307,
-        JSDocAuthorTag = 308,
-        JSDocClassTag = 309,
-        JSDocPublicTag = 310,
-        JSDocPrivateTag = 311,
-        JSDocProtectedTag = 312,
-        JSDocReadonlyTag = 313,
-        JSDocCallbackTag = 314,
-        JSDocEnumTag = 315,
-        JSDocParameterTag = 316,
-        JSDocReturnTag = 317,
-        JSDocThisTag = 318,
-        JSDocTypeTag = 319,
-        JSDocTemplateTag = 320,
-        JSDocTypedefTag = 321,
-        JSDocPropertyTag = 322,
-        SyntaxList = 323,
-        NotEmittedStatement = 324,
-        PartiallyEmittedExpression = 325,
-        CommaListExpression = 326,
-        MergeDeclarationMarker = 327,
-        EndOfDeclarationMarker = 328,
-        SyntheticReferenceExpression = 329,
-        Count = 330,
+        JSDocImplementsTag = 308,
+        JSDocAuthorTag = 309,
+        JSDocClassTag = 310,
+        JSDocPublicTag = 311,
+        JSDocPrivateTag = 312,
+        JSDocProtectedTag = 313,
+        JSDocReadonlyTag = 314,
+        JSDocCallbackTag = 315,
+        JSDocEnumTag = 316,
+        JSDocParameterTag = 317,
+        JSDocReturnTag = 318,
+        JSDocThisTag = 319,
+        JSDocTypeTag = 320,
+        JSDocTemplateTag = 321,
+        JSDocTypedefTag = 322,
+        JSDocPropertyTag = 323,
+        SyntaxList = 324,
+        NotEmittedStatement = 325,
+        PartiallyEmittedExpression = 326,
+        CommaListExpression = 327,
+        MergeDeclarationMarker = 328,
+        EndOfDeclarationMarker = 329,
+        SyntheticReferenceExpression = 330,
+        Count = 331,
         FirstAssignment = 62,
         LastAssignment = 74,
         FirstCompoundAssignment = 63,
@@ -1134,9 +1135,9 @@ declare namespace ts {
         LastStatement = 241,
         FirstNode = 153,
         FirstJSDocNode = 294,
-        LastJSDocNode = 322,
+        LastJSDocNode = 323,
         FirstJSDocTagNode = 306,
-        LastJSDocTagNode = 322,
+        LastJSDocTagNode = 323,
         FirstContextualKeyword = 122,
         LastContextualKeyword = 152
     }
@@ -2003,7 +2004,7 @@ declare namespace ts {
     }
     export interface ExpressionWithTypeArguments extends NodeWithTypeArguments {
         kind: SyntaxKind.ExpressionWithTypeArguments;
-        parent: HeritageClause | JSDocAugmentsTag;
+        parent: HeritageClause | JSDocAugmentsTag | JSDocImplementsTag;
         expression: LeftHandSideExpression;
     }
     export interface NewExpression extends PrimaryExpression, Declaration {
@@ -2522,6 +2523,12 @@ declare namespace ts {
      */
     export interface JSDocAugmentsTag extends JSDocTag {
         kind: SyntaxKind.JSDocAugmentsTag;
+        class: ExpressionWithTypeArguments & {
+            expression: Identifier | PropertyAccessEntityNameExpression;
+        };
+    }
+    export interface JSDocImplementsTag extends JSDocTag {
+        kind: SyntaxKind.JSDocImplementsTag;
         class: ExpressionWithTypeArguments & {
             expression: Identifier | PropertyAccessEntityNameExpression;
         };
@@ -6565,6 +6572,7 @@ declare namespace ts {
         An_import_alias_cannot_reference_a_declaration_that_was_imported_using_import_type: DiagnosticMessage;
         Unexpected_token_Did_you_mean_or_rbrace: DiagnosticMessage;
         Unexpected_token_Did_you_mean_or_gt: DiagnosticMessage;
+        Only_named_exports_may_use_export_type: DiagnosticMessage;
         The_types_of_0_are_incompatible_between_these_types: DiagnosticMessage;
         The_types_returned_by_0_are_incompatible_between_these_types: DiagnosticMessage;
         Call_signature_return_types_0_and_1_are_incompatible: DiagnosticMessage;
@@ -7879,6 +7887,8 @@ declare namespace ts {
     function hasJSDocParameterTags(node: FunctionLikeDeclaration | SignatureDeclaration): boolean;
     /** Gets the JSDoc augments tag for the node if present */
     function getJSDocAugmentsTag(node: Node): JSDocAugmentsTag | undefined;
+    /** Gets the JSDoc implements tags for the node if present */
+    function getJSDocImplementsTags(node: Node): readonly JSDocImplementsTag[];
     /** Gets the JSDoc class tag for the node if present */
     function getJSDocClassTag(node: Node): JSDocClassTag | undefined;
     /** Gets the JSDoc public tag for the node if present */
@@ -7920,7 +7930,9 @@ declare namespace ts {
     function getJSDocReturnType(node: Node): TypeNode | undefined;
     /** Get all JSDoc tags related to a node, including those on parent nodes. */
     function getJSDocTags(node: Node): readonly JSDocTag[];
-    /** Gets all JSDoc tags of a specified kind, or undefined if not present. */
+    /** Gets all JSDoc tags that match a specified predicate */
+    function getAllJSDocTags<T extends JSDocTag>(node: Node, predicate: (tag: JSDocTag) => tag is T): readonly T[];
+    /** Gets all JSDoc tags of a specified kind */
     function getAllJSDocTagsOfKind(node: Node, kind: SyntaxKind): readonly JSDocTag[];
     /**
      * Gets the effective type parameters. If the node was parsed in a
@@ -8115,6 +8127,7 @@ declare namespace ts {
     function isJSDoc(node: Node): node is JSDoc;
     function isJSDocAuthorTag(node: Node): node is JSDocAuthorTag;
     function isJSDocAugmentsTag(node: Node): node is JSDocAugmentsTag;
+    function isJSDocImplementsTag(node: Node): node is JSDocImplementsTag;
     function isJSDocClassTag(node: Node): node is JSDocClassTag;
     function isJSDocPublicTag(node: Node): node is JSDocPublicTag;
     function isJSDocPrivateTag(node: Node): node is JSDocPrivateTag;
@@ -8629,7 +8642,7 @@ declare namespace ts {
     function getPropertyAssignmentAliasLikeExpression(node: PropertyAssignment | ShorthandPropertyAssignment | PropertyAccessExpression): Expression;
     function getEffectiveBaseTypeNode(node: ClassLikeDeclaration | InterfaceDeclaration): ExpressionWithTypeArguments | undefined;
     function getClassExtendsHeritageElement(node: ClassLikeDeclaration | InterfaceDeclaration): ExpressionWithTypeArguments | undefined;
-    function getClassImplementsHeritageClauseElements(node: ClassLikeDeclaration): NodeArray<ExpressionWithTypeArguments> | undefined;
+    function getEffectiveImplementsTypeNodes(node: ClassLikeDeclaration): undefined | readonly ExpressionWithTypeArguments[];
     /** Returns the node in an `extends` or `implements` clause of a class or interface. */
     function getAllSuperTypeNodes(node: Node): readonly TypeNode[];
     function getInterfaceBaseTypeNodes(node: InterfaceDeclaration): NodeArray<ExpressionWithTypeArguments> | undefined;
@@ -9156,6 +9169,7 @@ declare namespace ts {
     function parsePseudoBigInt(stringValue: string): string;
     function pseudoBigIntToString({ negative, base10Value }: PseudoBigInt): string;
     function isValidTypeOnlyAliasUseSite(useSite: Node): boolean;
+    function typeOnlyDeclarationIsExport(typeOnlyDeclaration: Node): boolean;
 }
 declare namespace ts {
     function createNode(kind: SyntaxKind, pos?: number, end?: number): Node;
