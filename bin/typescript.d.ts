@@ -3258,6 +3258,7 @@ declare namespace ts {
          */
         getAccessibleSymbolChain(symbol: Symbol, enclosingDeclaration: Node | undefined, meaning: SymbolFlags, useOnlyExternalAliasing: boolean): Symbol[] | undefined;
         getTypePredicateOfSignature(signature: Signature): TypePredicate | undefined;
+        resolveExternalModuleName(moduleSpecifier: Expression): Symbol | undefined;
         /**
          * An external module with an 'export =' declaration resolves to the target of the 'export =' declaration,
          * and an external module with no 'export =' declaration resolves to the module itself.
@@ -3427,6 +3428,7 @@ declare namespace ts {
     }
     export type TypePredicate = ThisTypePredicate | IdentifierTypePredicate | AssertsThisTypePredicate | AssertsIdentifierTypePredicate;
     export type AnyImportSyntax = ImportDeclaration | ImportEqualsDeclaration;
+    export type AnyImportOrRequire = AnyImportSyntax | RequireVariableDeclaration;
     export type AnyImportOrReExport = AnyImportSyntax | ExportDeclaration;
     export interface ValidImportTypeNode extends ImportTypeNode {
         argument: LiteralTypeNode & {
@@ -3441,8 +3443,12 @@ declare namespace ts {
         };
     } | RequireOrImportCall | ValidImportTypeNode;
     export type RequireOrImportCall = CallExpression & {
+        expression: Identifier;
         arguments: [StringLiteralLike];
     };
+    export interface RequireVariableDeclaration extends VariableDeclaration {
+        initializer: RequireOrImportCall;
+    }
     export type LateVisibilityPaintedStatement = AnyImportSyntax | VariableStatement | ClassDeclaration | FunctionDeclaration | ModuleDeclaration | TypeAliasDeclaration | InterfaceDeclaration | EnumDeclaration;
     export interface SymbolVisibilityResult {
         accessibility: SymbolAccessibility;
@@ -3658,12 +3664,19 @@ declare namespace ts {
         OptionalParameter = 16384,
         RestParameter = 32768,
         DeferredType = 65536,
+        HasNeverType = 131072,
+        Mapped = 262144,
+        StripOptional = 524288,
         Synthetic = 6,
         Discriminant = 192,
         Partial = 48
     }
     export interface TransientSymbol extends Symbol, SymbolLinks {
         checkFlags: CheckFlags;
+    }
+    export interface MappedSymbol extends TransientSymbol {
+        mappedType: MappedType;
+        mapper: TypeMapper;
     }
     export interface ReverseMappedSymbol extends TransientSymbol {
         propertyType: Type;
@@ -3837,11 +3850,11 @@ declare namespace ts {
         Narrowable = 133970943,
         NotUnionOrUnit = 67637251,
         NotPrimitiveUnion = 66994211,
-        IncludesMask = 68943871,
+        IncludesMask = 71041023,
         IncludesStructuredOrInstantiable = 262144,
-        IncludesNonWideningType = 2097152,
-        IncludesWildcard = 4194304,
-        IncludesEmptyObject = 8388608
+        IncludesNonWideningType = 4194304,
+        IncludesWildcard = 8388608,
+        IncludesEmptyObject = 16777216
     }
     export type DestructuringPattern = BindingPattern | ObjectLiteralExpression | ArrayLiteralExpression;
     export interface Type {
@@ -3919,6 +3932,9 @@ declare namespace ts {
         IsGenericIndexType = 33554432,
         CouldContainTypeVariablesComputed = 67108864,
         CouldContainTypeVariables = 134217728,
+        ContainsIntersections = 268435456,
+        IsNeverIntersectionComputed = 268435456,
+        IsNeverIntersection = 536870912,
         ClassOrInterface = 3,
         RequiresWidening = 1572864,
         PropagatingFlags = 3670016
@@ -4005,6 +4021,7 @@ declare namespace ts {
         resolvedBaseConstraint: Type;
     }
     export interface UnionType extends UnionOrIntersectionType {
+        resolvedReducedType: Type;
     }
     export interface IntersectionType extends UnionOrIntersectionType {
         resolvedApparentType: Type;
@@ -6876,6 +6893,7 @@ declare namespace ts {
         Property_0_will_overwrite_the_base_property_in_1_If_this_is_intentional_add_an_initializer_Otherwise_add_a_declare_modifier_or_remove_the_redundant_declaration: DiagnosticMessage;
         Module_0_has_no_default_export_Did_you_mean_to_use_import_1_from_0_instead: DiagnosticMessage;
         Module_0_has_no_exported_member_1_Did_you_mean_to_use_import_1_from_0_instead: DiagnosticMessage;
+        Type_of_property_0_circularly_references_itself_in_mapped_type_1: DiagnosticMessage;
         Cannot_augment_module_0_with_value_exports_because_it_resolves_to_a_non_module_entity: DiagnosticMessage;
         A_member_initializer_in_a_enum_declaration_cannot_reference_members_declared_after_it_including_members_defined_in_other_enums: DiagnosticMessage;
         Merged_declaration_0_cannot_include_a_default_export_declaration_Consider_adding_a_separate_export_default_0_declaration_instead: DiagnosticMessage;
@@ -8530,6 +8548,13 @@ declare namespace ts {
         arguments: [StringLiteralLike];
     };
     function isRequireCall(callExpression: Node, requireStringLiteralLikeArgument: boolean): callExpression is CallExpression;
+    /**
+     * Returns true if the node is a VariableDeclaration initialized to a require call (see `isRequireCall`).
+     * This function does not test if the node is in a JavaScript file or not.
+     */
+    function isRequireVariableDeclaration(node: Node, requireStringLiteralLikeArgument: true): node is RequireVariableDeclaration;
+    function isRequireVariableDeclaration(node: Node, requireStringLiteralLikeArgument: boolean): node is VariableDeclaration;
+    function isRequireVariableDeclarationStatement(node: Node, requireStringLiteralLikeArgument?: boolean): node is VariableStatement;
     function isSingleOrDoubleQuote(charCode: number): boolean;
     function isStringDoubleQuoted(str: StringLiteralLike, sourceFile: SourceFile): boolean;
     function getDeclarationOfExpando(node: Node): Node | undefined;
@@ -13295,6 +13320,7 @@ declare namespace ts {
     function repeatString(str: string, count: number): string;
     function skipConstraint(type: Type): Type;
     function getNameFromPropertyName(name: PropertyName): string | undefined;
+    function programContainsModules(program: Program): boolean;
     function programContainsEs6Modules(program: Program): boolean;
     function compilerOptionsIndicateEs6Modules(compilerOptions: CompilerOptions): boolean;
     function hostUsesCaseSensitiveFileNames(host: {
@@ -14396,8 +14422,7 @@ declare namespace ts.codefix {
         Named = 0,
         Default = 1,
         Namespace = 2,
-        Equals = 3,
-        ConstEquals = 4
+        CommonJS = 3
     }
     function getImportCompletionAction(exportedSymbol: Symbol, moduleSymbol: Symbol, sourceFile: SourceFile, symbolName: string, host: LanguageServiceHost, program: Program, formatContext: formatting.FormatContext, position: number, preferences: UserPreferences): {
         readonly moduleSpecifier: string;
