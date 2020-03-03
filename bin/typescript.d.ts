@@ -6300,6 +6300,7 @@ declare namespace ts {
      */
     function forEachAncestorDirectory<T>(directory: Path, callback: (directory: Path) => T | undefined): T | undefined;
     function forEachAncestorDirectory<T>(directory: string, callback: (directory: string) => T | undefined): T | undefined;
+    function isNodeModulesDirectory(dirPath: Path): boolean;
 }
 declare namespace ts {
     const Diagnostics: {
@@ -8626,7 +8627,8 @@ declare namespace ts {
     /** Does the opposite of `getJSDocParameterTags`: given a JSDoc parameter, finds the parameter corresponding to it. */
     function getParameterSymbolFromJSDoc(node: JSDocParameterTag): Symbol | undefined;
     function getHostSignatureFromJSDoc(node: Node): SignatureDeclaration | undefined;
-    function getHostSignatureFromJSDocHost(host: HasJSDoc): SignatureDeclaration | undefined;
+    function getEffectiveJSDocHost(node: Node): Node | undefined;
+    /** Use getEffectiveJSDocHost if you additionally need to look for jsdoc on parent nodes, like assignments.  */
     function getJSDocHost(node: Node): HasJSDoc;
     function getTypeParameterFromJsDoc(node: TypeParameterDeclaration & {
         parent: JSDocTemplateTag;
