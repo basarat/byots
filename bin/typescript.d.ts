@@ -2907,7 +2907,8 @@ declare namespace ts {
         index: number;
         file: Path;
     }
-    export interface Program extends ScriptReferenceHost {
+    export interface Program extends ScriptReferenceHost, ModuleSpecifierResolutionHost {
+        getCurrentDirectory(): string;
         /**
          * Get a list of root file names that were passed to a 'createProgram'
          */
@@ -7027,6 +7028,7 @@ declare namespace ts {
         The_left_hand_side_of_a_for_of_statement_may_not_be_an_optional_property_access: DiagnosticMessage;
         _0_needs_an_explicit_type_annotation: DiagnosticMessage;
         _0_is_specified_more_than_once_so_this_usage_will_be_overwritten: DiagnosticMessage;
+        get_and_set_accessors_cannot_declare_this_parameters: DiagnosticMessage;
         Import_declaration_0_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_interface_has_or_is_using_private_name_1: DiagnosticMessage;
