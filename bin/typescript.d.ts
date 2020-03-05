@@ -4149,6 +4149,7 @@ declare namespace ts {
         HasLiteralTypes = 2,
         IsInnerCallChain = 4,
         IsOuterCallChain = 8,
+        IsUntypedSignatureInJSFile = 16,
         PropagatingFlags = 3,
         CallChainFlags = 12
     }
@@ -9013,7 +9014,6 @@ declare namespace ts {
     function isAccessExpression(node: Node): node is AccessExpression;
     function getNameOfAccessExpression(node: AccessExpression): Expression | PrivateIdentifier;
     function isBundleFileTextLike(section: BundleFileSection): section is BundleFileTextLike;
-    function getDotOrQuestionDotToken(node: PropertyAccessExpression): DotToken | QuestionDotToken;
     function isNamedImportsOrExports(node: Node): node is NamedImportsOrExports;
     interface ObjectAllocator {
         getNodeConstructor(): new (kind: SyntaxKind, pos?: number, end?: number) => Node;
