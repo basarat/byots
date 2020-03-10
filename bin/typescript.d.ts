@@ -11673,7 +11673,6 @@ declare namespace ts {
     interface ProgramHost<T extends BuilderProgram> {
         createDirectory?(path: string): void;
         writeFile?(path: string, data: string, writeByteOrderMark?: boolean): void;
-        onCachedDirectoryStructureHostCreate?(host: CachedDirectoryStructureHost): void;
     }
     interface WatchCompilerHost<T extends BuilderProgram> extends ProgramHost<T>, WatchHost {
         /** If provided, callback to invoke after every new program creation */
