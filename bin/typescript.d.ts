@@ -4193,7 +4193,29 @@ declare namespace ts {
         isReadonly: boolean;
         declaration?: IndexSignatureDeclaration;
     }
-    export type TypeMapper = (t: TypeParameter) => Type;
+    export enum TypeMapKind {
+        Simple = 0,
+        Array = 1,
+        Function = 2,
+        Composite = 3,
+        Merged = 4
+    }
+    export type TypeMapper = {
+        kind: TypeMapKind.Simple;
+        source: Type;
+        target: Type;
+    } | {
+        kind: TypeMapKind.Array;
+        sources: readonly Type[];
+        targets: readonly Type[] | undefined;
+    } | {
+        kind: TypeMapKind.Function;
+        func: (t: Type) => Type;
+    } | {
+        kind: TypeMapKind.Composite | TypeMapKind.Merged;
+        mapper1: TypeMapper;
+        mapper2: TypeMapper;
+    };
     export enum InferencePriority {
         NakedTypeVariable = 1,
         HomomorphicMappedType = 2,
@@ -4838,7 +4860,7 @@ declare namespace ts {
     }
     export interface ResolvedModuleWithFailedLookupLocations {
         readonly resolvedModule: ResolvedModuleFull | undefined;
-        readonly failedLookupLocations: readonly string[];
+        readonly failedLookupLocations: string[];
     }
     export interface ResolvedTypeReferenceDirective {
         primary: boolean;
@@ -4849,7 +4871,7 @@ declare namespace ts {
     }
     export interface ResolvedTypeReferenceDirectiveWithFailedLookupLocations {
         readonly resolvedTypeReferenceDirective: ResolvedTypeReferenceDirective | undefined;
-        readonly failedLookupLocations: readonly string[];
+        readonly failedLookupLocations: string[];
     }
     export type HasInvalidatedResolution = (sourceFile: Path) => boolean;
     export interface CompilerHost extends ModuleResolutionHost {
@@ -7008,7 +7030,7 @@ declare namespace ts {
         This_JSX_tag_s_0_prop_expects_a_single_child_of_type_1_but_multiple_children_were_provided: DiagnosticMessage;
         _0_components_don_t_accept_text_as_child_elements_Text_in_JSX_has_the_type_string_but_the_expected_type_of_1_is_2: DiagnosticMessage;
         Cannot_access_ambient_const_enums_when_the_isolatedModules_flag_is_provided: DiagnosticMessage;
-        _0_refers_to_a_value_but_is_being_used_as_a_type_here: DiagnosticMessage;
+        _0_refers_to_a_value_but_is_being_used_as_a_type_here_Did_you_mean_typeof_0: DiagnosticMessage;
         The_implementation_signature_is_declared_here: DiagnosticMessage;
         Circularity_originates_in_type_at_this_location: DiagnosticMessage;
         The_first_export_default_is_here: DiagnosticMessage;
@@ -8896,6 +8918,7 @@ declare namespace ts {
     function getFirstIdentifier(node: EntityNameOrEntityNameExpression): Identifier;
     function isDottedName(node: Expression): boolean;
     function isPropertyAccessEntityNameExpression(node: Node): node is PropertyAccessEntityNameExpression;
+    function isConstructorAccessExpression(expr: Expression): expr is AccessExpression;
     function tryGetPropertyAccessOrIdentifierToString(expr: Expression): string | undefined;
     function isPrototypeAccess(node: Node): node is BindableStaticAccessExpression;
     function isRightSideOfQualifiedNameOrPropertyAccess(node: Node): boolean;
@@ -11461,9 +11484,10 @@ declare namespace ts {
         clear(): void;
     }
     interface ResolutionWithFailedLookupLocations {
-        readonly failedLookupLocations: readonly string[];
+        readonly failedLookupLocations: string[];
         isInvalidated?: boolean;
         refCount?: number;
+        files?: Path[];
     }
     interface CachedResolvedModuleWithFailedLookupLocations extends ResolvedModuleWithFailedLookupLocations, ResolutionWithFailedLookupLocations {
     }
@@ -11480,7 +11504,6 @@ declare namespace ts {
         getGlobalCache?(): string | undefined;
         globalCacheResolutionModuleName?(externalModuleName: string): string;
         writeLog(s: string): void;
-        maxNumberOfFilesToIterateForInvalidation?: number;
         getCurrentProgram(): Program | undefined;
         fileIsOpen(filePath: Path): boolean;
     }
@@ -11492,7 +11515,6 @@ declare namespace ts {
      * @param dirPath
      */
     export function canWatchDirectory(dirPath: Path): boolean;
-    export const maxNumberOfFilesToIterateForInvalidation = 256;
     export function createResolutionCache(resolutionHost: ResolutionCacheHost, rootDirForResolution: string | undefined, logChangesWhenResolvingModule: boolean): ResolutionCache;
     export {};
 }
@@ -11677,7 +11699,6 @@ declare namespace ts {
     interface WatchCompilerHost<T extends BuilderProgram> extends ProgramHost<T>, WatchHost {
         /** If provided, callback to invoke after every new program creation */
         afterProgramCreate?(program: T): void;
-        maxNumberOfFilesToIterateForInvalidation?: number;
     }
     /**
      * Host to create watch with root files and options
