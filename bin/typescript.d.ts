@@ -4897,7 +4897,6 @@ declare namespace ts {
         hasChangedAutomaticTypeDirectiveNames?: boolean;
         createHash?(data: string): string;
         getParsedCommandLine?(fileName: string): ParsedCommandLine | undefined;
-        setResolvedProjectReferenceCallbacks?(callbacks: ResolvedProjectReferenceCallbacks): void;
         useSourceOfProjectReferenceRedirect?(): boolean;
         createDirectory?(directory: string): void;
         getSymlinks?(): ReadonlyMap<string>;
@@ -6641,7 +6640,7 @@ declare namespace ts {
         Cannot_find_name_0: DiagnosticMessage;
         Module_0_has_no_exported_member_1: DiagnosticMessage;
         File_0_is_not_a_module: DiagnosticMessage;
-        Cannot_find_module_0: DiagnosticMessage;
+        Cannot_find_module_0_or_its_corresponding_type_declarations: DiagnosticMessage;
         Module_0_has_already_exported_a_member_named_1_Consider_explicitly_re_exporting_to_resolve_the_ambiguity: DiagnosticMessage;
         An_export_assignment_cannot_be_used_in_a_module_with_other_exported_elements: DiagnosticMessage;
         Type_0_recursively_references_itself_as_a_base_type: DiagnosticMessage;
@@ -7200,6 +7199,7 @@ declare namespace ts {
         Unknown_watch_option_0_Did_you_mean_1: DiagnosticMessage;
         Watch_option_0_requires_a_value_of_type_1: DiagnosticMessage;
         Cannot_find_a_tsconfig_json_file_at_the_current_directory_Colon_0: DiagnosticMessage;
+        _0_could_be_instantiated_with_an_arbitrary_type_which_could_be_unrelated_to_1: DiagnosticMessage;
         Generates_a_sourcemap_for_each_corresponding_d_ts_file: DiagnosticMessage;
         Concatenate_and_emit_output_to_single_file: DiagnosticMessage;
         Generates_corresponding_d_ts_file: DiagnosticMessage;
@@ -11506,6 +11506,7 @@ declare namespace ts {
         writeLog(s: string): void;
         getCurrentProgram(): Program | undefined;
         fileIsOpen(filePath: Path): boolean;
+        getCompilerHost?(): CompilerHost | undefined;
     }
     export function removeIgnoredPath(path: Path): Path | undefined;
     /**
@@ -11697,6 +11698,8 @@ declare namespace ts {
         writeFile?(path: string, data: string, writeByteOrderMark?: boolean): void;
     }
     interface WatchCompilerHost<T extends BuilderProgram> extends ProgramHost<T>, WatchHost {
+        /** Instead of using output d.ts file from project reference, use its source file */
+        useSourceOfProjectReferenceRedirect?(): boolean;
         /** If provided, callback to invoke after every new program creation */
         afterProgramCreate?(program: T): void;
     }
@@ -12358,7 +12361,7 @@ declare namespace ts {
         getSourceFileLike?(fileName: string): SourceFileLike | undefined;
         getPackageJsonsVisibleToFile?(fileName: string, rootDir?: string): readonly PackageJsonInfo[];
         getImportSuggestionsCache?(): Completions.ImportSuggestionsForFileCache;
-        setResolvedProjectReferenceCallbacks?(callbacks: ResolvedProjectReferenceCallbacks): void;
+        setCompilerHost?(host: CompilerHost): void;
         useSourceOfProjectReferenceRedirect?(): boolean;
     }
     const emptyOptions: {};
@@ -12776,6 +12779,7 @@ declare namespace ts {
         readonly insertSpaceAfterOpeningAndBeforeClosingNonemptyParenthesis?: boolean;
         readonly insertSpaceAfterOpeningAndBeforeClosingNonemptyBrackets?: boolean;
         readonly insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces?: boolean;
+        readonly insertSpaceAfterOpeningAndBeforeClosingEmptyBraces?: boolean;
         readonly insertSpaceAfterOpeningAndBeforeClosingTemplateStringBraces?: boolean;
         readonly insertSpaceAfterOpeningAndBeforeClosingJsxExpressionBraces?: boolean;
         readonly insertSpaceAfterTypeAssertion?: boolean;
@@ -14540,6 +14544,8 @@ declare namespace ts.codefix {
         symbols: Symbol[];
         typeReference: TypeReferenceNode;
     } | undefined;
+}
+declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
 }
