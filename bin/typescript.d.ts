@@ -11529,6 +11529,7 @@ declare namespace ts.moduleSpecifiers {
     /** Returns an import for each symlink and for the realpath. */
     function getModuleSpecifiers(moduleSymbol: Symbol, compilerOptions: CompilerOptions, importingSourceFile: SourceFile, host: ModuleSpecifierResolutionHost, files: readonly SourceFile[], userPreferences: UserPreferences, redirectTargetsMap: RedirectTargetsMap): readonly string[];
     function countPathComponents(path: string): number;
+    function forEachFileNameOfModule<T>(files: readonly SourceFile[], importingFileName: string, importedFileName: string, getCanonicalFileName: GetCanonicalFileName, host: ModuleSpecifierResolutionHost, redirectTargetsMap: RedirectTargetsMap, preferSymlinks: boolean, cb: (fileName: string) => T | undefined): T | undefined;
 }
 declare namespace ts {
     /**
