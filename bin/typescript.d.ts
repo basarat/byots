@@ -2916,7 +2916,7 @@ declare namespace ts {
         index: number;
         file: Path;
     }
-    export interface Program extends ScriptReferenceHost, ModuleSpecifierResolutionHost {
+    export interface Program extends ScriptReferenceHost {
         getCurrentDirectory(): string;
         /**
          * Get a list of root file names that were passed to a 'createProgram'
@@ -2998,6 +2998,8 @@ declare namespace ts {
         getProgramBuildInfo?(): ProgramBuildInfo | undefined;
         emitBuildInfo(writeFile?: WriteFileCallback, cancellationToken?: CancellationToken): EmitResult;
         getProbableSymlinks(): ReadonlyMap<string>;
+    }
+    export interface Program extends TypeCheckerHost, ModuleSpecifierResolutionHost {
     }
     export type RedirectTargetsMap = ReadonlyMap<readonly string[]>;
     export interface ResolvedProjectReference {
@@ -5463,12 +5465,15 @@ declare namespace ts {
         directoryExists?(directoryName: string): boolean;
         getCurrentDirectory?(): string;
     }
-    export interface ModuleSpecifierResolutionHost extends GetEffectiveTypeRootsHost {
+    export interface ModuleSpecifierResolutionHost {
         useCaseSensitiveFileNames?(): boolean;
         fileExists?(path: string): boolean;
+        getCurrentDirectory(): string;
         readFile?(path: string): string | undefined;
         getProbableSymlinks?(files: readonly SourceFile[]): ReadonlyMap<string>;
         getGlobalTypingsCacheLocation?(): string | undefined;
+        getSourceFiles(): readonly SourceFile[];
+        readonly redirectTargetsMap: RedirectTargetsMap;
     }
     export interface SymbolTracker {
         trackSymbol?(symbol: Symbol, enclosingDeclaration: Node | undefined, meaning: SymbolFlags): void;
@@ -5477,7 +5482,6 @@ declare namespace ts {
         reportInaccessibleUniqueSymbolError?(): void;
         reportLikelyUnsafeImportRequiredError?(specifier: string): void;
         moduleResolverHost?: ModuleSpecifierResolutionHost & {
-            getSourceFiles(): readonly SourceFile[];
             getCommonSourceDirectory(): string;
         };
         trackReferencedAmbientModule?(decl: ModuleDeclaration, symbol: Symbol): void;
@@ -6731,6 +6735,7 @@ declare namespace ts {
         Individual_declarations_in_merged_declaration_0_must_be_all_exported_or_all_local: DiagnosticMessage;
         Duplicate_identifier_arguments_Compiler_uses_arguments_to_initialize_rest_parameters: DiagnosticMessage;
         Declaration_name_conflicts_with_built_in_global_identifier_0: DiagnosticMessage;
+        constructor_cannot_be_used_as_a_parameter_property_name: DiagnosticMessage;
         Duplicate_identifier_this_Compiler_uses_variable_declaration_this_to_capture_this_reference: DiagnosticMessage;
         Expression_resolves_to_variable_declaration_this_that_compiler_uses_to_capture_this_reference: DiagnosticMessage;
         Duplicate_identifier_super_Compiler_uses_super_to_capture_base_class_reference: DiagnosticMessage;
@@ -7065,6 +7070,7 @@ declare namespace ts {
         _0_needs_an_explicit_type_annotation: DiagnosticMessage;
         _0_is_specified_more_than_once_so_this_usage_will_be_overwritten: DiagnosticMessage;
         get_and_set_accessors_cannot_declare_this_parameters: DiagnosticMessage;
+        This_spread_always_overwrites_this_property: DiagnosticMessage;
         Import_declaration_0_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_interface_has_or_is_using_private_name_1: DiagnosticMessage;
@@ -7416,6 +7422,7 @@ declare namespace ts {
         Synchronously_call_callbacks_and_update_the_state_of_directory_watchers_on_platforms_that_don_t_support_recursive_watching_natively: DiagnosticMessage;
         Tag_0_expects_at_least_1_arguments_but_the_JSX_factory_2_provides_at_most_3: DiagnosticMessage;
         Option_0_can_only_be_specified_in_tsconfig_json_file_or_set_to_false_or_null_on_command_line: DiagnosticMessage;
+        Could_not_resolve_the_path_0_with_the_extensions_Colon_1: DiagnosticMessage;
         Projects_to_reference: DiagnosticMessage;
         Enable_project_compilation: DiagnosticMessage;
         Composite_projects_may_not_disable_declaration_emit: DiagnosticMessage;
@@ -7713,6 +7720,12 @@ declare namespace ts {
         Set_the_module_option_in_your_configuration_file_to_0: DiagnosticMessage;
         Convert_invalid_character_to_its_html_entity_code: DiagnosticMessage;
         Wrap_invalid_character_in_an_expression_container: DiagnosticMessage;
+        Add_class_tag: DiagnosticMessage;
+        Add_this_tag: DiagnosticMessage;
+        Add_this_parameter: DiagnosticMessage;
+        Convert_function_expression_0_to_arrow_function: DiagnosticMessage;
+        Convert_function_declaration_0_to_arrow_function: DiagnosticMessage;
+        Fix_all_implicit_this_errors: DiagnosticMessage;
         No_value_exists_in_scope_for_the_shorthand_property_0_Either_declare_one_or_provide_an_initializer: DiagnosticMessage;
         Classes_may_not_have_a_field_named_constructor: DiagnosticMessage;
         JSX_expressions_may_not_use_the_comma_operator_Did_you_mean_to_write_an_array: DiagnosticMessage;
@@ -8813,6 +8826,12 @@ declare namespace ts {
     function getIndentSize(): number;
     function createTextWriter(newLine: string): EmitTextWriter;
     function getTrailingSemicolonDeferringWriter(writer: EmitTextWriter): EmitTextWriter;
+    function hostUsesCaseSensitiveFileNames(host: {
+        useCaseSensitiveFileNames?(): boolean;
+    }): boolean;
+    function hostGetCanonicalFileName(host: {
+        useCaseSensitiveFileNames?(): boolean;
+    }): GetCanonicalFileName;
     interface ResolveModuleNameResolutionHost {
         getCanonicalFileName(p: string): string;
         getCommonSourceDirectory(): string;
@@ -9958,6 +9977,7 @@ declare namespace ts {
     /** @internal */
     function createJSDocThisTag(typeExpression?: JSDocTypeExpression): JSDocThisTag;
     function createJSDocParamTag(name: EntityName, isBracketed: boolean, typeExpression?: JSDocTypeExpression, comment?: string): JSDocParameterTag;
+    function createJSDocClassTag(): JSDocClassTag;
     function createJSDocComment(comment?: string | undefined, tags?: NodeArray<JSDocTag> | undefined): JSDoc;
     function createJsxElement(openingElement: JsxOpeningElement, children: readonly JsxChild[], closingElement: JsxClosingElement): JsxElement;
     function updateJsxElement(node: JsxElement, openingElement: JsxOpeningElement, children: readonly JsxChild[], closingElement: JsxClosingElement): JsxElement;
@@ -11523,13 +11543,13 @@ declare namespace ts {
     export {};
 }
 declare namespace ts.moduleSpecifiers {
-    function updateModuleSpecifier(compilerOptions: CompilerOptions, importingSourceFileName: Path, toFileName: string, host: ModuleSpecifierResolutionHost, files: readonly SourceFile[], redirectTargetsMap: RedirectTargetsMap, oldImportSpecifier: string): string | undefined;
-    function getModuleSpecifier(compilerOptions: CompilerOptions, importingSourceFile: SourceFile, importingSourceFileName: Path, toFileName: string, host: ModuleSpecifierResolutionHost, files: readonly SourceFile[], preferences: UserPreferences | undefined, redirectTargetsMap: RedirectTargetsMap): string;
-    function getNodeModulesPackageName(compilerOptions: CompilerOptions, importingSourceFileName: Path, nodeModulesFileName: string, host: ModuleSpecifierResolutionHost, files: readonly SourceFile[], redirectTargetsMap: RedirectTargetsMap): string | undefined;
+    function updateModuleSpecifier(compilerOptions: CompilerOptions, importingSourceFileName: Path, toFileName: string, host: ModuleSpecifierResolutionHost, oldImportSpecifier: string): string | undefined;
+    function getModuleSpecifier(compilerOptions: CompilerOptions, importingSourceFile: SourceFile, importingSourceFileName: Path, toFileName: string, host: ModuleSpecifierResolutionHost, preferences?: UserPreferences): string;
+    function getNodeModulesPackageName(compilerOptions: CompilerOptions, importingSourceFileName: Path, nodeModulesFileName: string, host: ModuleSpecifierResolutionHost): string | undefined;
     /** Returns an import for each symlink and for the realpath. */
-    function getModuleSpecifiers(moduleSymbol: Symbol, compilerOptions: CompilerOptions, importingSourceFile: SourceFile, host: ModuleSpecifierResolutionHost, files: readonly SourceFile[], userPreferences: UserPreferences, redirectTargetsMap: RedirectTargetsMap): readonly string[];
+    function getModuleSpecifiers(moduleSymbol: Symbol, compilerOptions: CompilerOptions, importingSourceFile: SourceFile, host: ModuleSpecifierResolutionHost, userPreferences: UserPreferences): readonly string[];
     function countPathComponents(path: string): number;
-    function forEachFileNameOfModule<T>(files: readonly SourceFile[], importingFileName: string, importedFileName: string, getCanonicalFileName: GetCanonicalFileName, host: ModuleSpecifierResolutionHost, redirectTargetsMap: RedirectTargetsMap, preferSymlinks: boolean, cb: (fileName: string) => T | undefined): T | undefined;
+    function forEachFileNameOfModule<T>(importingFileName: string, importedFileName: string, host: ModuleSpecifierResolutionHost, preferSymlinks: boolean, cb: (fileName: string) => T | undefined): T | undefined;
 }
 declare namespace ts {
     /**
@@ -12326,7 +12346,7 @@ declare namespace ts {
         get(dependencyName: string, inGroups?: PackageJsonDependencyGroup): string | undefined;
         has(dependencyName: string, inGroups?: PackageJsonDependencyGroup): boolean;
     }
-    interface LanguageServiceHost extends ModuleSpecifierResolutionHost {
+    interface LanguageServiceHost extends GetEffectiveTypeRootsHost {
         getCompilationSettings(): CompilerOptions;
         getNewLine?(): string;
         getProjectVersion?(): string;
@@ -12342,6 +12362,7 @@ declare namespace ts {
         log?(s: string): void;
         trace?(s: string): void;
         error?(s: string): void;
+        useCaseSensitiveFileNames?(): boolean;
         readDirectory?(path: string, extensions?: readonly string[], exclude?: readonly string[], include?: readonly string[], depth?: number): string[];
         readFile?(path: string, encoding?: string): string | undefined;
         realpath?(path: string): string;
@@ -12353,6 +12374,7 @@ declare namespace ts {
         hasInvalidatedResolution?: HasInvalidatedResolution;
         hasChangedAutomaticTypeDirectiveNames?: boolean;
         getGlobalTypingsCacheLocation?(): string | undefined;
+        getProbableSymlinks?(files: readonly SourceFile[]): ReadonlyMap<string>;
         getDirectories?(directoryName: string): string[];
         /**
          * Gets a set of custom transformers to use during emit.
@@ -13437,12 +13459,8 @@ declare namespace ts {
     function programContainsModules(program: Program): boolean;
     function programContainsEs6Modules(program: Program): boolean;
     function compilerOptionsIndicateEs6Modules(compilerOptions: CompilerOptions): boolean;
-    function hostUsesCaseSensitiveFileNames(host: {
-        useCaseSensitiveFileNames?(): boolean;
-    }): boolean;
-    function hostGetCanonicalFileName(host: {
-        useCaseSensitiveFileNames?(): boolean;
-    }): GetCanonicalFileName;
+    function createModuleSpecifierResolutionHost(program: Program, host: LanguageServiceHost): ModuleSpecifierResolutionHost;
+    function getModuleSpecifierResolverHost(program: Program, host: LanguageServiceHost): SymbolTracker["moduleResolverHost"];
     function makeImportIfNecessary(defaultImport: Identifier | undefined, namedImports: readonly ImportSpecifier[] | undefined, moduleSpecifier: string, quotePreference: QuotePreference): ImportDeclaration | undefined;
     function makeImport(defaultImport: Identifier | undefined, namedImports: readonly ImportSpecifier[] | undefined, moduleSpecifier: string | Expression, quotePreference: QuotePreference, isTypeOnly?: boolean): ImportDeclaration;
     function makeStringLiteral(text: string, quotePreference: QuotePreference): StringLiteral;
@@ -13552,6 +13570,7 @@ declare namespace ts {
     function isStringLiteralOrTemplate(node: Node): node is StringLiteralLike | TemplateExpression | TaggedTemplateExpression;
     function hasIndexSignature(type: Type): boolean;
     function getSwitchedType(caseClause: CaseClause, checker: TypeChecker): Type | undefined;
+    const ANONYMOUS = "anonymous function";
     function getTypeNodeIfAccessible(type: Type, enclosingScope: Node, program: Program, host: LanguageServiceHost): TypeNode | undefined;
     function syntaxRequiresTrailingCommaOrSemicolonOrASI(kind: SyntaxKind): boolean;
     function syntaxRequiresTrailingFunctionBlockOrSemicolonOrASI(kind: SyntaxKind): boolean;
@@ -13916,8 +13935,8 @@ declare namespace ts.FindAllReferences {
         function getReferencedSymbolsForNode(position: number, node: Node, program: Program, sourceFiles: readonly SourceFile[], cancellationToken: CancellationToken, options?: Options, sourceFilesSet?: ReadonlyMap<true>): readonly SymbolAndEntries[] | undefined;
         function eachExportReference(sourceFiles: readonly SourceFile[], checker: TypeChecker, cancellationToken: CancellationToken | undefined, exportSymbol: Symbol, exportingModuleSymbol: Symbol, exportName: string, isDefaultExport: boolean, cb: (ref: Identifier) => void): void;
         /** Used as a quick check for whether a symbol is used at all in a file (besides its definition). */
-        function isSymbolReferencedInFile(definition: Identifier, checker: TypeChecker, sourceFile: SourceFile): boolean;
-        function eachSymbolReferenceInFile<T>(definition: Identifier, checker: TypeChecker, sourceFile: SourceFile, cb: (token: Identifier) => T): T | undefined;
+        function isSymbolReferencedInFile(definition: Identifier, checker: TypeChecker, sourceFile: SourceFile, searchContainer?: Node): boolean;
+        function eachSymbolReferenceInFile<T>(definition: Identifier, checker: TypeChecker, sourceFile: SourceFile, cb: (token: Identifier) => T, searchContainer?: Node): T | undefined;
         function eachSignatureCall(signature: SignatureDeclaration, sourceFiles: readonly SourceFile[], checker: TypeChecker, cb: (call: CallExpression) => void): void;
         /**
          * Given an initial searchMeaning, extracted from a location, widen the search scope based on the declarations
@@ -14412,6 +14431,7 @@ declare namespace ts.textChanges {
         insertNodeAt(sourceFile: SourceFile, pos: number, newNode: Node, options?: InsertNodeOptions): void;
         private insertNodesAt;
         insertNodeAtTopOfFile(sourceFile: SourceFile, newNode: Statement, blankLineBetween: boolean): void;
+        insertFirstParameter(sourceFile: SourceFile, parameters: NodeArray<ParameterDeclaration>, newParam: ParameterDeclaration): void;
         insertNodeBefore(sourceFile: SourceFile, before: Node, newNode: Node, blankLineBetween?: boolean): void;
         insertModifierBefore(sourceFile: SourceFile, modifier: SyntaxKind, before: Node): void;
         insertLastModifierBefore(sourceFile: SourceFile, modifier: SyntaxKind, before: Node): void;
@@ -14524,8 +14544,6 @@ declare namespace ts.codefix {
 declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
-}
-declare namespace ts.codefix {
     const importFixName = "import";
     interface ImportAdder {
         addImportFromDiagnostic: (diagnostic: DiagnosticWithLocation, context: CodeFixContextBase) => void;
@@ -14584,6 +14602,11 @@ declare namespace ts.codefix {
 declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
+}
+declare namespace ts.codefix {
+}
+declare namespace ts.codefix {
+    function addJSDocTags(changes: textChanges.ChangeTracker, sourceFile: SourceFile, parent: HasJSDoc, newTags: readonly JSDocTag[]): void;
 }
 declare namespace ts.codefix {
 }
