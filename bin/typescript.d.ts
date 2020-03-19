@@ -7719,13 +7719,15 @@ declare namespace ts {
         Set_the_target_option_in_your_configuration_file_to_0: DiagnosticMessage;
         Set_the_module_option_in_your_configuration_file_to_0: DiagnosticMessage;
         Convert_invalid_character_to_its_html_entity_code: DiagnosticMessage;
-        Wrap_invalid_character_in_an_expression_container: DiagnosticMessage;
+        Convert_all_invalid_characters_to_HTML_entity_code: DiagnosticMessage;
         Add_class_tag: DiagnosticMessage;
         Add_this_tag: DiagnosticMessage;
         Add_this_parameter: DiagnosticMessage;
         Convert_function_expression_0_to_arrow_function: DiagnosticMessage;
         Convert_function_declaration_0_to_arrow_function: DiagnosticMessage;
         Fix_all_implicit_this_errors: DiagnosticMessage;
+        Wrap_invalid_character_in_an_expression_container: DiagnosticMessage;
+        Wrap_all_invalid_characters_in_an_expression_container: DiagnosticMessage;
         No_value_exists_in_scope_for_the_shorthand_property_0_Either_declare_one_or_provide_an_initializer: DiagnosticMessage;
         Classes_may_not_have_a_field_named_constructor: DiagnosticMessage;
         JSX_expressions_may_not_use_the_comma_operator_Did_you_mean_to_write_an_array: DiagnosticMessage;
