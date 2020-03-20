@@ -2998,6 +2998,10 @@ declare namespace ts {
         getProgramBuildInfo?(): ProgramBuildInfo | undefined;
         emitBuildInfo(writeFile?: WriteFileCallback, cancellationToken?: CancellationToken): EmitResult;
         getProbableSymlinks(): ReadonlyMap<string>;
+        /**
+         * This implementation handles file exists to be true if file is source of project reference redirect when program is created using useSourceOfProjectReferenceRedirect
+         */
+        fileExists(fileName: string): boolean;
     }
     export interface Program extends TypeCheckerHost, ModuleSpecifierResolutionHost {
     }
@@ -3390,7 +3394,7 @@ declare namespace ts {
         writeParameter(text: string): void;
         writeProperty(text: string): void;
         writeSymbol(text: string, symbol: Symbol): void;
-        writeLine(): void;
+        writeLine(force?: boolean): void;
         increaseIndent(): void;
         decreaseIndent(): void;
         clear(): void;
@@ -5019,7 +5023,8 @@ declare namespace ts {
         Iterator = 8388608,
         NoAsciiEscaping = 16777216,
         TypeScriptClassWrapper = 33554432,
-        NeverApplyImportHelper = 67108864
+        NeverApplyImportHelper = 67108864,
+        IgnoreSourceNewlines = 134217728
     }
     export interface EmitHelper {
         readonly name: string;
@@ -5380,6 +5385,7 @@ declare namespace ts {
         writeBundleFileInfo?: boolean;
         recordInternalSection?: boolean;
         stripInternal?: boolean;
+        preserveSourceNewlines?: boolean;
         relativeToBuildInfo?: (path: string) => string;
     }
     export interface RawSourceMap {
@@ -5467,13 +5473,15 @@ declare namespace ts {
     }
     export interface ModuleSpecifierResolutionHost {
         useCaseSensitiveFileNames?(): boolean;
-        fileExists?(path: string): boolean;
+        fileExists(path: string): boolean;
         getCurrentDirectory(): string;
         readFile?(path: string): string | undefined;
         getProbableSymlinks?(files: readonly SourceFile[]): ReadonlyMap<string>;
         getGlobalTypingsCacheLocation?(): string | undefined;
         getSourceFiles(): readonly SourceFile[];
         readonly redirectTargetsMap: RedirectTargetsMap;
+        getProjectReferenceRedirect(fileName: string): string | undefined;
+        isSourceOfProjectReferenceRedirect(fileName: string): boolean;
     }
     export interface SymbolTracker {
         trackSymbol?(symbol: Symbol, enclosingDeclaration: Node | undefined, meaning: SymbolFlags): void;
@@ -7804,10 +7812,14 @@ declare namespace ts {
     function getPositionOfLineAndCharacter(sourceFile: SourceFileLike, line: number, character: number, allowEdits?: true): number;
     function computePositionOfLineAndCharacter(lineStarts: readonly number[], line: number, character: number, debugText?: string, allowEdits?: true): number;
     function getLineStarts(sourceFile: SourceFileLike): readonly number[];
+    function computeLineAndCharacterOfPosition(lineStarts: readonly number[], position: number): LineAndCharacter;
     /**
+     * @internal
      * We assume the first line starts at position 0 and 'position' is non-negative.
      */
-    function computeLineAndCharacterOfPosition(lineStarts: readonly number[], position: number): LineAndCharacter;
+    function computeLineOfPosition(lineStarts: readonly number[], position: number, lowerBound?: number): number;
+    /** @internal */
+    function getLinesBetweenPositions(sourceFile: SourceFileLike, pos1: number, pos2: number): number;
     function getLineAndCharacterOfPosition(sourceFile: SourceFileLike, position: number): LineAndCharacter;
     function isWhiteSpaceLike(ch: number): boolean;
     /** Does not include line breaks. For that, see isWhiteSpaceLike. */
@@ -8362,6 +8374,7 @@ declare namespace ts {
     const emptyUnderscoreEscapedMap: ReadonlyUnderscoreEscapedMap<never>;
     const externalHelpersModuleNameText = "tslib";
     const defaultMaximumTruncationLength = 160;
+    const noTruncationMaximumTruncationLength = 1000000;
     function getDeclarationOfKind<T extends Declaration>(symbol: Symbol, kind: T["kind"]): T | undefined;
     /** Create a new escaped identifier map. */
     function createUnderscoreEscapedMap<T>(): UnderscoreEscapedMap<T>;
@@ -8873,7 +8886,7 @@ declare namespace ts {
         writeFile: WriteFileCallback;
     }, diagnostics: DiagnosticCollection, fileName: string, data: string, writeByteOrderMark: boolean, sourceFiles?: readonly SourceFile[]): void;
     function writeFileEnsuringDirectories(path: string, data: string, writeByteOrderMark: boolean, writeFile: (path: string, data: string, writeByteOrderMark: boolean) => void, createDirectory: (path: string) => void, directoryExists: (path: string) => boolean): void;
-    function getLineOfLocalPosition(currentSourceFile: SourceFile, pos: number): number;
+    function getLineOfLocalPosition(sourceFile: SourceFile, pos: number): number;
     function getLineOfLocalPositionFromLineMap(lineMap: readonly number[], pos: number): number;
     function getFirstConstructorWithBody(node: ClassLikeDeclaration): ConstructorDeclaration & {
         body: FunctionBody;
@@ -9015,9 +9028,13 @@ declare namespace ts {
     function rangeEndPositionsAreOnSameLine(range1: TextRange, range2: TextRange, sourceFile: SourceFile): boolean;
     function rangeStartIsOnSameLineAsRangeEnd(range1: TextRange, range2: TextRange, sourceFile: SourceFile): boolean;
     function rangeEndIsOnSameLineAsRangeStart(range1: TextRange, range2: TextRange, sourceFile: SourceFile): boolean;
+    function getLinesBetweenRangeEndAndRangeStart(range1: TextRange, range2: TextRange, sourceFile: SourceFile, includeSecondRangeComments: boolean): number;
+    function getLinesBetweenRangeEndPositions(range1: TextRange, range2: TextRange, sourceFile: SourceFile): number;
     function isNodeArrayMultiLine(list: NodeArray<Node>, sourceFile: SourceFile): boolean;
     function positionsAreOnSameLine(pos1: number, pos2: number, sourceFile: SourceFile): boolean;
-    function getStartPositionOfRange(range: TextRange, sourceFile: SourceFile): number;
+    function getStartPositionOfRange(range: TextRange, sourceFile: SourceFile, includeComments: boolean): number;
+    function getLinesBetweenPositionAndPrecedingNonWhitespaceCharacter(pos: number, sourceFile: SourceFile, includeComments?: boolean): number;
+    function getLinesBetweenPositionAndNextNonWhitespaceCharacter(pos: number, sourceFile: SourceFile, includeComments?: boolean): number;
     /**
      * Determines whether a name was originally the declaration name of an enum or namespace
      * declaration.
@@ -10151,6 +10168,8 @@ declare namespace ts {
     function setSyntheticTrailingComments<T extends Node>(node: T, comments: SynthesizedComment[] | undefined): T;
     function addSyntheticTrailingComment<T extends Node>(node: T, kind: SyntaxKind.SingleLineCommentTrivia | SyntaxKind.MultiLineCommentTrivia, text: string, hasTrailingNewLine?: boolean): T;
     function moveSyntheticComments<T extends Node>(node: T, original: Node): T;
+    /** @internal */
+    function ignoreSourceNewlines<T extends Node>(node: T): T;
     /**
      * Gets the constant value to emit for an expression.
      */
@@ -11047,6 +11066,7 @@ declare namespace ts {
     interface EmitOutput {
         outputFiles: OutputFile[];
         emitSkipped: boolean;
+        diagnostics: readonly Diagnostic[];
         exportedModulesFromDeclarationEmit?: ExportedModulesFromDeclarationEmit;
     }
     interface OutputFile {
@@ -14532,6 +14552,8 @@ declare namespace ts.codefix {
 declare namespace ts.codefix {
     type DeclarationWithType = FunctionLikeDeclaration | VariableDeclaration | PropertySignature | PropertyDeclaration;
     function parameterShouldGetTypeFromJSDoc(node: Node): node is DeclarationWithType;
+}
+declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
 }
