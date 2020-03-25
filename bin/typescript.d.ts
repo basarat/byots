@@ -14156,7 +14156,9 @@ declare namespace ts {
 }
 declare namespace ts {
     function computeSuggestionDiagnostics(sourceFile: SourceFile, program: Program, cancellationToken: CancellationToken): DiagnosticWithLocation[];
-    function isReturnStatementWithFixablePromiseHandler(node: Node): node is ReturnStatement;
+    function isReturnStatementWithFixablePromiseHandler(node: Node): node is ReturnStatement & {
+        expression: CallExpression;
+    };
     function isFixablePromiseHandler(node: Node): boolean;
 }
 declare namespace ts.SymbolDisplay {
