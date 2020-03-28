@@ -6508,6 +6508,7 @@ declare namespace ts {
         Module_0_has_no_default_export: DiagnosticMessage;
         An_export_declaration_cannot_have_modifiers: DiagnosticMessage;
         Export_declarations_are_not_permitted_in_a_namespace: DiagnosticMessage;
+        export_Asterisk_does_not_re_export_a_default: DiagnosticMessage;
         Catch_clause_variable_cannot_have_a_type_annotation: DiagnosticMessage;
         Catch_clause_variable_cannot_have_an_initializer: DiagnosticMessage;
         An_extended_Unicode_escape_value_must_be_between_0x0_and_0x10FFFF_inclusive: DiagnosticMessage;
