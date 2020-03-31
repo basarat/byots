@@ -7090,6 +7090,10 @@ declare namespace ts {
         _0_is_specified_more_than_once_so_this_usage_will_be_overwritten: DiagnosticMessage;
         get_and_set_accessors_cannot_declare_this_parameters: DiagnosticMessage;
         This_spread_always_overwrites_this_property: DiagnosticMessage;
+        _0_cannot_be_used_as_a_JSX_component: DiagnosticMessage;
+        Its_return_type_0_is_not_a_valid_JSX_element: DiagnosticMessage;
+        Its_instance_type_0_is_not_a_valid_JSX_element: DiagnosticMessage;
+        Its_element_type_0_is_not_a_valid_JSX_element: DiagnosticMessage;
         Import_declaration_0_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_interface_has_or_is_using_private_name_1: DiagnosticMessage;
@@ -7748,6 +7752,7 @@ declare namespace ts {
         Fix_all_implicit_this_errors: DiagnosticMessage;
         Wrap_invalid_character_in_an_expression_container: DiagnosticMessage;
         Wrap_all_invalid_characters_in_an_expression_container: DiagnosticMessage;
+        Visit_https_Colon_Slash_Slashaka_ms_Slashtsconfig_json_to_read_more_about_this_file: DiagnosticMessage;
         No_value_exists_in_scope_for_the_shorthand_property_0_Either_declare_one_or_provide_an_initializer: DiagnosticMessage;
         Classes_may_not_have_a_field_named_constructor: DiagnosticMessage;
         JSX_expressions_may_not_use_the_comma_operator_Did_you_mean_to_write_an_array: DiagnosticMessage;
@@ -8969,7 +8974,6 @@ declare namespace ts {
     function getFirstIdentifier(node: EntityNameOrEntityNameExpression): Identifier;
     function isDottedName(node: Expression): boolean;
     function isPropertyAccessEntityNameExpression(node: Node): node is PropertyAccessEntityNameExpression;
-    function isConstructorAccessExpression(expr: Expression): expr is AccessExpression;
     function tryGetPropertyAccessOrIdentifierToString(expr: Expression): string | undefined;
     function isPrototypeAccess(node: Node): node is BindableStaticAccessExpression;
     function isRightSideOfQualifiedNameOrPropertyAccess(node: Node): boolean;
