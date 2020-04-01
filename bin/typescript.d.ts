@@ -3264,7 +3264,7 @@ declare namespace ts {
          * Does not include properties of primitive types.
          */
         getAllPossiblePropertiesOfTypes(type: readonly Type[]): Symbol[];
-        resolveName(name: string, location: Node, meaning: SymbolFlags, excludeGlobals: boolean): Symbol | undefined;
+        resolveName(name: string, location: Node | undefined, meaning: SymbolFlags, excludeGlobals: boolean): Symbol | undefined;
         getJsxNamespace(location?: Node): string;
         /**
          * Note that this will return undefined in the following case:
@@ -13660,6 +13660,8 @@ declare namespace ts {
     function firstOrOnly<T>(valueOrArray: T | readonly T[]): T;
     function getNameForExportedSymbol(symbol: Symbol, scriptTarget: ScriptTarget): string;
     function startsWithUnderscore(name: string): boolean;
+    function isGlobalDeclaration(declaration: Declaration): boolean;
+    function isNonGlobalDeclaration(declaration: Declaration): boolean;
 }
 declare namespace ts {
     /** The classifier is used for syntactic highlighting in editors via the TSServer */
@@ -13684,6 +13686,21 @@ declare namespace ts.Completions {
         JavascriptIdentifiers = "6"
     }
     export type Log = (message: string) => void;
+    /**
+     * Special values for `CompletionInfo['source']` used to disambiguate
+     * completion items with the same `name`. (Each completion item must
+     * have a unique name/source combination, because those two fields
+     * comprise `CompletionEntryIdentifier` in `getCompletionEntryDetails`.
+     *
+     * When the completion item is an auto-import suggestion, the source
+     * is the module specifier of the suggestion. To avoid collisions,
+     * the values here should not be a module specifier we would ever
+     * generate for an auto-import.
+     */
+    export enum CompletionSource {
+        /** Completions that require `this.` insertion text */
+        ThisProperty = "ThisProperty/"
+    }
     enum SymbolOriginInfoKind {
         ThisType = 1,
         SymbolMember = 2,
@@ -13700,6 +13717,10 @@ declare namespace ts.Completions {
         kind: SymbolOriginInfoKind;
         moduleSymbol: Symbol;
         isDefaultExport: boolean;
+    }
+    interface UniqueNameSet {
+        add(name: string): void;
+        has(name: string): boolean;
     }
     /**
      * Map from symbol id -> SymbolOriginInfo.
@@ -13721,7 +13742,7 @@ declare namespace ts.Completions {
     }
     export function createImportSuggestionsForFileCache(): ImportSuggestionsForFileCache;
     export function getCompletionsAtPosition(host: LanguageServiceHost, program: Program, log: Log, sourceFile: SourceFile, position: number, preferences: UserPreferences, triggerCharacter: CompletionsTriggerCharacter | undefined): CompletionInfo | undefined;
-    export function getCompletionEntriesFromSymbols(symbols: readonly Symbol[], entries: Push<CompletionEntry>, location: Node | undefined, sourceFile: SourceFile, typeChecker: TypeChecker, target: ScriptTarget, log: Log, kind: CompletionKind, preferences: UserPreferences, propertyAccessToConvert?: PropertyAccessExpression, jsxIdentifierExpected?: boolean, isJsxInitializer?: IsJsxInitializer, recommendedCompletion?: Symbol, symbolToOriginInfoMap?: SymbolOriginInfoMap, symbolToSortTextMap?: SymbolSortTextMap): Map<true>;
+    export function getCompletionEntriesFromSymbols(symbols: readonly Symbol[], entries: Push<CompletionEntry>, location: Node | undefined, sourceFile: SourceFile, typeChecker: TypeChecker, target: ScriptTarget, log: Log, kind: CompletionKind, preferences: UserPreferences, propertyAccessToConvert?: PropertyAccessExpression, jsxIdentifierExpected?: boolean, isJsxInitializer?: IsJsxInitializer, recommendedCompletion?: Symbol, symbolToOriginInfoMap?: SymbolOriginInfoMap, symbolToSortTextMap?: SymbolSortTextMap): UniqueNameSet;
     export interface CompletionEntryIdentifier {
         name: string;
         source?: string;
@@ -14397,7 +14418,16 @@ declare namespace ts.textChanges {
          * if there are no line breaks between the node and the previous token,
          * include all trivia between the node and the previous token
          */
-        IncludeAll = 1
+        IncludeAll = 1,
+        /**
+         * Include attached JSDoc comments
+         */
+        JSDoc = 2,
+        /**
+         * Only delete trivia on the same line as getStart().
+         * Used to avoid deleting leading comments
+         */
+        StartLine = 3
     }
     enum TrailingTriviaOption {
         /** Exclude all trailing trivia (use getEnd()) */
