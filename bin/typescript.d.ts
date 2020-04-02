@@ -6376,6 +6376,7 @@ declare namespace ts {
         An_index_signature_parameter_must_have_a_type_annotation: DiagnosticMessage;
         An_index_signature_parameter_type_must_be_either_string_or_number: DiagnosticMessage;
         readonly_modifier_can_only_appear_on_a_property_declaration_or_index_signature: DiagnosticMessage;
+        An_index_signature_cannot_have_a_trailing_comma: DiagnosticMessage;
         Accessibility_modifier_already_seen: DiagnosticMessage;
         _0_modifier_must_precede_1_modifier: DiagnosticMessage;
         _0_modifier_already_seen: DiagnosticMessage;
@@ -8678,6 +8679,7 @@ declare namespace ts {
     function getNameOfExpando(node: Declaration): DeclarationName | undefined;
     function getRightMostAssignedExpression(node: Expression): Expression;
     function isExportsIdentifier(node: Node): boolean;
+    function isModuleIdentifier(node: Node): boolean;
     function isModuleExportsAccessExpression(node: Node): node is LiteralLikeElementAccessExpression & {
         expression: Identifier;
     };
@@ -9447,7 +9449,7 @@ declare namespace ts {
     /**
      * Reads the config file, reports errors if any and exits if the config file cannot be found
      */
-    export function getParsedCommandLineOfConfigFile(configFileName: string, optionsToExtend: CompilerOptions, host: ParseConfigFileHost, extendedConfigCache?: Map<ExtendedConfigCacheEntry>, watchOptionsToExtend?: WatchOptions): ParsedCommandLine | undefined;
+    export function getParsedCommandLineOfConfigFile(configFileName: string, optionsToExtend: CompilerOptions, host: ParseConfigFileHost, extendedConfigCache?: Map<ExtendedConfigCacheEntry>, watchOptionsToExtend?: WatchOptions, extraFileExtensions?: readonly FileExtensionInfo[]): ParsedCommandLine | undefined;
     /**
      * Read tsconfig.json file
      * @param fileName The path to the config file
@@ -11674,14 +11676,32 @@ declare namespace ts {
      * Creates the watch compiler host that can be extended with config file or root file names and options host
      */
     export function createProgramHost<T extends BuilderProgram = EmitAndSemanticDiagnosticsBuilderProgram>(system: System, createProgram: CreateProgram<T> | undefined): ProgramHost<T>;
+    export interface CreateWatchCompilerHostInput<T extends BuilderProgram> {
+        system: System;
+        createProgram?: CreateProgram<T>;
+        reportDiagnostic?: DiagnosticReporter;
+        reportWatchStatus?: WatchStatusReporter;
+    }
+    export interface CreateWatchCompilerHostOfConfigFileInput<T extends BuilderProgram> extends CreateWatchCompilerHostInput<T> {
+        configFileName: string;
+        optionsToExtend?: CompilerOptions;
+        watchOptionsToExtend?: WatchOptions;
+        extraFileExtensions?: readonly FileExtensionInfo[];
+    }
     /**
      * Creates the watch compiler host from system for config file in watch mode
      */
-    export function createWatchCompilerHostOfConfigFile<T extends BuilderProgram = EmitAndSemanticDiagnosticsBuilderProgram>(configFileName: string, optionsToExtend: CompilerOptions | undefined, watchOptionsToExtend: WatchOptions | undefined, system: System, createProgram?: CreateProgram<T>, reportDiagnostic?: DiagnosticReporter, reportWatchStatus?: WatchStatusReporter): WatchCompilerHostOfConfigFile<T>;
+    export function createWatchCompilerHostOfConfigFile<T extends BuilderProgram = EmitAndSemanticDiagnosticsBuilderProgram>({ configFileName, optionsToExtend, watchOptionsToExtend, extraFileExtensions, system, createProgram, reportDiagnostic, reportWatchStatus }: CreateWatchCompilerHostOfConfigFileInput<T>): WatchCompilerHostOfConfigFile<T>;
+    export interface CreateWatchCompilerHostOfFilesAndCompilerOptionsInput<T extends BuilderProgram> extends CreateWatchCompilerHostInput<T> {
+        rootFiles: string[];
+        options: CompilerOptions;
+        watchOptions: WatchOptions | undefined;
+        projectReferences?: readonly ProjectReference[];
+    }
     /**
      * Creates the watch compiler host from system for compiling root files and options in watch mode
      */
-    export function createWatchCompilerHostOfFilesAndCompilerOptions<T extends BuilderProgram = EmitAndSemanticDiagnosticsBuilderProgram>(rootFiles: string[], options: CompilerOptions, watchOptions: WatchOptions | undefined, system: System, createProgram?: CreateProgram<T>, reportDiagnostic?: DiagnosticReporter, reportWatchStatus?: WatchStatusReporter, projectReferences?: readonly ProjectReference[]): WatchCompilerHostOfFilesAndCompilerOptions<T>;
+    export function createWatchCompilerHostOfFilesAndCompilerOptions<T extends BuilderProgram = EmitAndSemanticDiagnosticsBuilderProgram>({ rootFiles, options, watchOptions, projectReferences, system, createProgram, reportDiagnostic, reportWatchStatus }: CreateWatchCompilerHostOfFilesAndCompilerOptionsInput<T>): WatchCompilerHostOfFilesAndCompilerOptions<T>;
     export interface IncrementalCompilationOptions {
         rootNames: readonly string[];
         options: CompilerOptions;
@@ -11799,6 +11819,7 @@ declare namespace ts {
         /** Options to extend */
         optionsToExtend?: CompilerOptions;
         watchOptionsToExtend?: WatchOptions;
+        extraFileExtensions?: readonly FileExtensionInfo[];
         /**
          * Used to generate source file names from the config file and its include, exclude, files rules
          * and also to cache the directory stucture
@@ -11834,7 +11855,7 @@ declare namespace ts {
     /**
      * Create the watch compiler host for either configFile or fileNames and its options
      */
-    function createWatchCompilerHost<T extends BuilderProgram>(configFileName: string, optionsToExtend: CompilerOptions | undefined, system: System, createProgram?: CreateProgram<T>, reportDiagnostic?: DiagnosticReporter, reportWatchStatus?: WatchStatusReporter, watchOptionsToExtend?: WatchOptions): WatchCompilerHostOfConfigFile<T>;
+    function createWatchCompilerHost<T extends BuilderProgram>(configFileName: string, optionsToExtend: CompilerOptions | undefined, system: System, createProgram?: CreateProgram<T>, reportDiagnostic?: DiagnosticReporter, reportWatchStatus?: WatchStatusReporter, watchOptionsToExtend?: WatchOptions, extraFileExtensions?: readonly FileExtensionInfo[]): WatchCompilerHostOfConfigFile<T>;
     function createWatchCompilerHost<T extends BuilderProgram>(rootFiles: string[], options: CompilerOptions, system: System, createProgram?: CreateProgram<T>, reportDiagnostic?: DiagnosticReporter, reportWatchStatus?: WatchStatusReporter, projectReferences?: readonly ProjectReference[], watchOptions?: WatchOptions): WatchCompilerHostOfFilesAndCompilerOptions<T>;
     /**
      * Creates the watch from the host for root files and compiler options
@@ -13489,7 +13510,9 @@ declare namespace ts {
     function isArrayLiteralOrObjectLiteralDestructuringPattern(node: Node): boolean;
     function isInReferenceComment(sourceFile: SourceFile, position: number): boolean;
     function isInNonReferenceComment(sourceFile: SourceFile, position: number): boolean;
+    function getReplacementSpanForContextToken(contextToken: Node | undefined): TextSpan | undefined;
     function createTextSpanFromNode(node: Node, sourceFile?: SourceFile, endNode?: Node): TextSpan;
+    function createTextSpanFromStringLiteralLikeContent(node: StringLiteralLike): TextSpan | undefined;
     function createTextRangeFromNode(node: Node, sourceFile: SourceFile): TextRange;
     function createTextSpanFromRange(range: TextRange): TextSpan;
     function createTextRangeFromSpan(span: TextSpan): TextRange;
@@ -13742,7 +13765,7 @@ declare namespace ts.Completions {
     }
     export function createImportSuggestionsForFileCache(): ImportSuggestionsForFileCache;
     export function getCompletionsAtPosition(host: LanguageServiceHost, program: Program, log: Log, sourceFile: SourceFile, position: number, preferences: UserPreferences, triggerCharacter: CompletionsTriggerCharacter | undefined): CompletionInfo | undefined;
-    export function getCompletionEntriesFromSymbols(symbols: readonly Symbol[], entries: Push<CompletionEntry>, location: Node | undefined, sourceFile: SourceFile, typeChecker: TypeChecker, target: ScriptTarget, log: Log, kind: CompletionKind, preferences: UserPreferences, propertyAccessToConvert?: PropertyAccessExpression, jsxIdentifierExpected?: boolean, isJsxInitializer?: IsJsxInitializer, recommendedCompletion?: Symbol, symbolToOriginInfoMap?: SymbolOriginInfoMap, symbolToSortTextMap?: SymbolSortTextMap): UniqueNameSet;
+    export function getCompletionEntriesFromSymbols(symbols: readonly Symbol[], entries: Push<CompletionEntry>, contextToken: Node | undefined, location: Node | undefined, sourceFile: SourceFile, typeChecker: TypeChecker, target: ScriptTarget, log: Log, kind: CompletionKind, preferences: UserPreferences, propertyAccessToConvert?: PropertyAccessExpression, jsxIdentifierExpected?: boolean, isJsxInitializer?: IsJsxInitializer, recommendedCompletion?: Symbol, symbolToOriginInfoMap?: SymbolOriginInfoMap, symbolToSortTextMap?: SymbolSortTextMap): UniqueNameSet;
     export interface CompletionEntryIdentifier {
         name: string;
         source?: string;
