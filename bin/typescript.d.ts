@@ -3329,6 +3329,7 @@ declare namespace ts {
         OmitParameterModifiers = 8192,
         UseAliasDefinedOutsideCurrentScope = 16384,
         UseSingleQuotesForStringLiteralType = 268435456,
+        NoTypeReduction = 536870912,
         AllowThisInObjectLiteral = 32768,
         AllowQualifedNameInPlaceOfIdentifier = 65536,
         AllowAnonymousIdentifier = 131072,
@@ -3358,6 +3359,7 @@ declare namespace ts {
         OmitParameterModifiers = 8192,
         UseAliasDefinedOutsideCurrentScope = 16384,
         UseSingleQuotesForStringLiteralType = 268435456,
+        NoTypeReduction = 536870912,
         AllowUniqueESSymbolType = 1048576,
         AddUndefined = 131072,
         WriteArrowStyleSignature = 262144,
@@ -3366,7 +3368,7 @@ declare namespace ts {
         InFirstTypeArgument = 4194304,
         InTypeAlias = 8388608,
         /** @deprecated */ WriteOwnNameForAnyLike = 0,
-        NodeBuilderFlagsMask = 277904747
+        NodeBuilderFlagsMask = 814775659
     }
     export enum SymbolFormatFlags {
         None = 0,
@@ -4041,6 +4043,7 @@ declare namespace ts {
     }
     export interface UnionType extends UnionOrIntersectionType {
         resolvedReducedType: Type;
+        regularType: UnionType;
     }
     export interface IntersectionType extends UnionOrIntersectionType {
         resolvedApparentType: Type;
@@ -6890,7 +6893,6 @@ declare namespace ts {
         Duplicate_identifier_newTarget_Compiler_uses_variable_declaration_newTarget_to_capture_new_target_meta_property_reference: DiagnosticMessage;
         Expression_resolves_to_variable_declaration_newTarget_that_compiler_uses_to_capture_new_target_meta_property_reference: DiagnosticMessage;
         A_mixin_class_must_have_a_constructor_with_a_single_rest_parameter_of_type_any: DiagnosticMessage;
-        Property_0_has_conflicting_declarations_and_is_inaccessible_in_type_1: DiagnosticMessage;
         The_type_returned_by_the_0_method_of_an_async_iterator_must_be_a_promise_for_a_type_with_a_value_property: DiagnosticMessage;
         Type_0_is_not_an_array_type_or_does_not_have_a_Symbol_iterator_method_that_returns_an_iterator: DiagnosticMessage;
         Type_0_is_not_an_array_type_or_a_string_type_or_does_not_have_a_Symbol_iterator_method_that_returns_an_iterator: DiagnosticMessage;
@@ -7754,6 +7756,12 @@ declare namespace ts {
         Wrap_invalid_character_in_an_expression_container: DiagnosticMessage;
         Wrap_all_invalid_characters_in_an_expression_container: DiagnosticMessage;
         Visit_https_Colon_Slash_Slashaka_ms_Slashtsconfig_json_to_read_more_about_this_file: DiagnosticMessage;
+        Add_a_return_statement: DiagnosticMessage;
+        Remove_block_body_braces: DiagnosticMessage;
+        Wrap_the_following_body_with_parentheses_which_should_be_an_object_literal: DiagnosticMessage;
+        Add_all_missing_return_statement: DiagnosticMessage;
+        Remove_all_incorrect_body_block_braces: DiagnosticMessage;
+        Wrap_all_object_literal_with_parentheses: DiagnosticMessage;
         No_value_exists_in_scope_for_the_shorthand_property_0_Either_declare_one_or_provide_an_initializer: DiagnosticMessage;
         Classes_may_not_have_a_field_named_constructor: DiagnosticMessage;
         JSX_expressions_may_not_use_the_comma_operator_Did_you_mean_to_write_an_array: DiagnosticMessage;
@@ -7776,6 +7784,8 @@ declare namespace ts {
         Private_identifiers_are_only_available_when_targeting_ECMAScript_2015_and_higher: DiagnosticMessage;
         Private_identifiers_are_not_allowed_in_variable_declarations: DiagnosticMessage;
         An_optional_chain_cannot_contain_private_identifiers: DiagnosticMessage;
+        The_intersection_0_was_reduced_to_never_because_property_1_has_conflicting_types_in_some_constituents: DiagnosticMessage;
+        The_intersection_0_was_reduced_to_never_because_property_1_exists_in_multiple_constituents_and_is_private_in_some: DiagnosticMessage;
     };
 }
 declare namespace ts {
@@ -9972,6 +9982,7 @@ declare namespace ts {
     function updateVariableDeclarationList(node: VariableDeclarationList, declarations: readonly VariableDeclaration[]): VariableDeclarationList;
     function createFunctionDeclaration(decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, asteriskToken: AsteriskToken | undefined, name: string | Identifier | undefined, typeParameters: readonly TypeParameterDeclaration[] | undefined, parameters: readonly ParameterDeclaration[], type: TypeNode | undefined, body: Block | undefined): FunctionDeclaration;
     function updateFunctionDeclaration(node: FunctionDeclaration, decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, asteriskToken: AsteriskToken | undefined, name: Identifier | undefined, typeParameters: readonly TypeParameterDeclaration[] | undefined, parameters: readonly ParameterDeclaration[], type: TypeNode | undefined, body: Block | undefined): FunctionDeclaration;
+    function updateFunctionLikeBody(declaration: FunctionLikeDeclaration, body: Block): FunctionLikeDeclaration;
     function createClassDeclaration(decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, name: string | Identifier | undefined, typeParameters: readonly TypeParameterDeclaration[] | undefined, heritageClauses: readonly HeritageClause[] | undefined, members: readonly ClassElement[]): ClassDeclaration;
     function updateClassDeclaration(node: ClassDeclaration, decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, name: Identifier | undefined, typeParameters: readonly TypeParameterDeclaration[] | undefined, heritageClauses: readonly HeritageClause[] | undefined, members: readonly ClassElement[]): ClassDeclaration;
     function createInterfaceDeclaration(decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, name: string | Identifier, typeParameters: readonly TypeParameterDeclaration[] | undefined, heritageClauses: readonly HeritageClause[] | undefined, members: readonly TypeElement[]): InterfaceDeclaration;
@@ -13621,6 +13632,7 @@ declare namespace ts {
      * Sets EmitFlags to suppress trailing trivia on the node.
      */
     function suppressTrailingTrivia(node: Node): void;
+    function copyComments(sourceNode: Node, targetNode: Node): void;
     function getUniqueName(baseName: string, sourceFile: SourceFile): string;
     /**
      * @return The index of the (only) reference to the extracted symbol.  We want the cursor
@@ -13638,6 +13650,7 @@ declare namespace ts {
      * The comment refers to `a` but belongs to the `(` token, but we might want to copy it.
      */
     function copyTrailingAsLeadingComments(sourceNode: Node, targetNode: Node, sourceFile: SourceFile, commentKind?: CommentKind, hasTrailingNewLine?: boolean): void;
+    function needsParentheses(expression: Expression): boolean;
     function getContextualTypeFromParent(node: Expression, checker: TypeChecker): Type | undefined;
     function quote(text: string, preferences: UserPreferences): string;
     function isEqualityOperatorKind(kind: SyntaxKind): kind is EqualityOperator;
@@ -14672,6 +14685,8 @@ declare namespace ts.codefix {
     function forEachExternalModuleToImportFrom(program: Program, host: LanguageServiceHost, from: SourceFile, filterByPackageJson: boolean, cb: (module: Symbol) => void): void;
     function moduleSymbolToValidIdentifier(moduleSymbol: Symbol, target: ScriptTarget): string;
     function moduleSpecifierToValidIdentifier(moduleSpecifier: string, target: ScriptTarget): string;
+}
+declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
 }
