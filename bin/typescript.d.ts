@@ -417,6 +417,20 @@ declare namespace ts {
         remove(key: string, value: T): void;
     }
     function createMultiMap<T>(): MultiMap<T>;
+    interface UnderscoreEscapedMultiMap<T> extends UnderscoreEscapedMap<T[]> {
+        /**
+         * Adds the value to an array of values associated with the key, and returns the array.
+         * Creates the array if it does not already exist.
+         */
+        add(key: __String, value: T): T[];
+        /**
+         * Removes a value from an array of values associated with the key.
+         * Does not preserve the order of those values.
+         * Does nothing if `key` is not in `map`, or `value` is not in `map[key]`.
+         */
+        remove(key: __String, value: T): void;
+    }
+    function createUnderscoreEscapedMultiMap<T>(): UnderscoreEscapedMultiMap<T>;
     /**
      * Tests whether a value is an array.
      */
@@ -9311,6 +9325,10 @@ declare namespace ts {
     function pseudoBigIntToString({ negative, base10Value }: PseudoBigInt): string;
     function isValidTypeOnlyAliasUseSite(useSite: Node): boolean;
     function typeOnlyDeclarationIsExport(typeOnlyDeclaration: Node): boolean;
+    function isIdentifierTypeReference(node: Node): node is TypeReferenceNode & {
+        typeName: Identifier;
+    };
+    function arrayIsHomogeneous<T>(array: readonly T[], comparer?: EqualityComparer<T>): boolean;
 }
 declare namespace ts {
     function createNode(kind: SyntaxKind, pos?: number, end?: number): Node;
