@@ -6266,6 +6266,7 @@ declare namespace ts {
      *
      * ```ts
      * getNormalizedPathComponents("to/dir/../file.ext", "/path/") === ["/", "path", "to", "file.ext"]
+     * ```
      */
     function getNormalizedPathComponents(path: string, currentDirectory: string | undefined): string[];
     function getNormalizedAbsolutePath(fileName: string, currentDirectory: string | undefined): string;
