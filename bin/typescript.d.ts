@@ -5564,6 +5564,7 @@ declare namespace ts {
         NoInterveningComments = 262144,
         NoSpaceIfEmpty = 524288,
         SingleElement = 1048576,
+        SpaceAfterList = 2097152,
         Modifiers = 262656,
         HeritageClauses = 512,
         SingleLineTypeLiteralMembers = 768,
@@ -5595,7 +5596,7 @@ declare namespace ts {
         CaseOrDefaultClauseStatements = 163969,
         HeritageClauseTypes = 528,
         SourceFileStatements = 131073,
-        Decorators = 49153,
+        Decorators = 2146305,
         TypeArguments = 53776,
         TypeParameters = 53776,
         Parameters = 2576,
@@ -7802,6 +7803,7 @@ declare namespace ts {
         An_optional_chain_cannot_contain_private_identifiers: DiagnosticMessage;
         The_intersection_0_was_reduced_to_never_because_property_1_has_conflicting_types_in_some_constituents: DiagnosticMessage;
         The_intersection_0_was_reduced_to_never_because_property_1_exists_in_multiple_constituents_and_is_private_in_some: DiagnosticMessage;
+        Only_numeric_enums_can_have_computed_members_but_this_expression_has_type_0_If_you_do_not_need_exhaustiveness_checks_consider_using_an_object_literal_instead: DiagnosticMessage;
     };
 }
 declare namespace ts {
