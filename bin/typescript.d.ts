@@ -8557,6 +8557,7 @@ declare namespace ts {
     function getEnclosingBlockScopeContainer(node: Node): Node;
     function declarationNameToString(name: DeclarationName | QualifiedName | undefined): string;
     function getNameFromIndexInfo(info: IndexInfo): string | undefined;
+    function isComputedNonLiteralName(name: PropertyName): boolean;
     function getTextOfPropertyName(name: PropertyName | NoSubstitutionTemplateLiteral): __String;
     function entityNameToString(name: EntityNameOrEntityNameExpression | JsxTagNameExpression | PrivateIdentifier): string;
     function createDiagnosticForNode(node: Node, message: DiagnosticMessage, arg0?: string | number, arg1?: string | number, arg2?: string | number, arg3?: string | number): DiagnosticWithLocation;
