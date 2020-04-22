@@ -7114,6 +7114,7 @@ declare namespace ts {
         Its_return_type_0_is_not_a_valid_JSX_element: DiagnosticMessage;
         Its_instance_type_0_is_not_a_valid_JSX_element: DiagnosticMessage;
         Its_element_type_0_is_not_a_valid_JSX_element: DiagnosticMessage;
+        The_operand_of_a_delete_operator_must_be_optional: DiagnosticMessage;
         Import_declaration_0_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_interface_has_or_is_using_private_name_1: DiagnosticMessage;
@@ -9082,8 +9083,8 @@ declare namespace ts {
     function isNodeArrayMultiLine(list: NodeArray<Node>, sourceFile: SourceFile): boolean;
     function positionsAreOnSameLine(pos1: number, pos2: number, sourceFile: SourceFile): boolean;
     function getStartPositionOfRange(range: TextRange, sourceFile: SourceFile, includeComments: boolean): number;
-    function getLinesBetweenPositionAndPrecedingNonWhitespaceCharacter(pos: number, sourceFile: SourceFile, includeComments?: boolean): number;
-    function getLinesBetweenPositionAndNextNonWhitespaceCharacter(pos: number, sourceFile: SourceFile, includeComments?: boolean): number;
+    function getLinesBetweenPositionAndPrecedingNonWhitespaceCharacter(pos: number, stopPos: number, sourceFile: SourceFile, includeComments?: boolean): number;
+    function getLinesBetweenPositionAndNextNonWhitespaceCharacter(pos: number, stopPos: number, sourceFile: SourceFile, includeComments?: boolean): number;
     /**
      * Determines whether a name was originally the declaration name of an enum or namespace
      * declaration.
