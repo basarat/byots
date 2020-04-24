@@ -260,6 +260,20 @@ declare namespace ts {
     function append<T>(to: T[] | undefined, value: T | undefined): T[] | undefined;
     function append<T>(to: Push<T>, value: T | undefined): void;
     /**
+     * Combines two arrays, values, or undefineds into the smallest container that can accommodate the resulting set:
+     *
+     * ```
+     * undefined -> undefined -> undefined
+     * T -> undefined -> T
+     * T -> T -> T[]
+     * T[] -> undefined -> T[] (no-op)
+     * T[] -> T -> T[]         (append)
+     * T[] -> T[] -> T[]       (concatenate)
+     * ```
+     */
+    function combine<T>(xs: T | readonly T[] | undefined, ys: T | readonly T[] | undefined): T | readonly T[] | undefined;
+    function combine<T>(xs: T | T[] | undefined, ys: T | T[] | undefined): T | T[] | undefined;
+    /**
      * Appends a range of value to an array, returning the array.
      *
      * @param to The array to which `value` is to be appended. If `to` is `undefined`, a new array
@@ -3826,6 +3840,7 @@ declare namespace ts {
         instantiations?: Map<Type>;
         isExhaustive?: boolean;
         skipDirectInference?: true;
+        declarationRequiresScopeChange?: boolean;
     }
     export enum TypeFlags {
         Any = 1,
@@ -5133,6 +5148,11 @@ declare namespace ts {
         get?: Expression;
         set?: Expression;
     }
+    export enum LexicalEnvironmentFlags {
+        None = 0,
+        InParameters = 1,
+        VariablesHoistedInParameters = 2
+    }
     export interface TransformationContext {
         getEmitResolver(): EmitResolver;
         getEmitHost(): EmitHost;
@@ -5140,6 +5160,8 @@ declare namespace ts {
         getCompilerOptions(): CompilerOptions;
         /** Starts a new lexical environment. */
         startLexicalEnvironment(): void;
+        setLexicalEnvironmentFlags(flags: LexicalEnvironmentFlags, value: boolean): void;
+        getLexicalEnvironmentFlags(): LexicalEnvironmentFlags;
         /** Suspends the current lexical environment, usually after visiting a parameter list. */
         suspendLexicalEnvironment(): void;
         /** Resumes a suspended lexical environment, usually before visiting a function body. */
@@ -5150,6 +5172,8 @@ declare namespace ts {
         hoistFunctionDeclaration(node: FunctionDeclaration): void;
         /** Hoists a variable declaration to the containing scope. */
         hoistVariableDeclaration(node: Identifier): void;
+        /** Adds an initialization statement to the top of the lexical environment. */
+        addInitializationStatement(node: Statement): void;
         /** Records a request for a non-scoped emit helper in the current context. */
         requestEmitHelper(helper: EmitHelper): void;
         /** Gets and resets the requested non-scoped emit helpers. */
@@ -5515,6 +5539,7 @@ declare namespace ts {
         };
         trackReferencedAmbientModule?(decl: ModuleDeclaration, symbol: Symbol): void;
         trackExternalModuleSymbolOfImportTypeNode?(symbol: Symbol): void;
+        reportNonlocalAugmentation?(containingFile: SourceFile, parentSymbol: Symbol, augmentingSymbol: Symbol): void;
     }
     export interface TextSpan {
         start: number;
@@ -6743,8 +6768,8 @@ declare namespace ts {
         A_parameter_property_is_only_allowed_in_a_constructor_implementation: DiagnosticMessage;
         A_rest_parameter_must_be_of_an_array_type: DiagnosticMessage;
         A_parameter_initializer_is_only_allowed_in_a_function_or_constructor_implementation: DiagnosticMessage;
-        Parameter_0_cannot_be_referenced_in_its_initializer: DiagnosticMessage;
-        Initializer_of_parameter_0_cannot_reference_identifier_1_declared_after_it: DiagnosticMessage;
+        Parameter_0_cannot_reference_itself: DiagnosticMessage;
+        Parameter_0_cannot_reference_identifier_1_declared_after_it: DiagnosticMessage;
         Duplicate_string_index_signature: DiagnosticMessage;
         Duplicate_number_index_signature: DiagnosticMessage;
         A_super_call_must_be_the_first_statement_in_the_constructor_when_a_class_contains_initialized_properties_parameter_properties_or_private_identifiers: DiagnosticMessage;
@@ -7468,6 +7493,8 @@ declare namespace ts {
         Tag_0_expects_at_least_1_arguments_but_the_JSX_factory_2_provides_at_most_3: DiagnosticMessage;
         Option_0_can_only_be_specified_in_tsconfig_json_file_or_set_to_false_or_null_on_command_line: DiagnosticMessage;
         Could_not_resolve_the_path_0_with_the_extensions_Colon_1: DiagnosticMessage;
+        Declaration_augments_declaration_in_another_file_This_cannot_be_serialized: DiagnosticMessage;
+        This_is_the_declaration_being_augmented_Consider_moving_the_augmenting_declaration_into_the_same_file: DiagnosticMessage;
         Projects_to_reference: DiagnosticMessage;
         Enable_project_compilation: DiagnosticMessage;
         Composite_projects_may_not_disable_declaration_emit: DiagnosticMessage;
@@ -8579,6 +8606,9 @@ declare namespace ts {
     function isImportMeta(n: Node): n is ImportMetaProperty;
     function isLiteralImportTypeNode(n: Node): n is LiteralImportTypeNode;
     function isPrologueDirective(node: Node): node is PrologueDirective;
+    function isCustomPrologue(node: Statement): boolean;
+    function isHoistedFunction(node: Statement): boolean;
+    function isHoistedVariableStatement(node: Statement): boolean;
     function getLeadingCommentRangesOfNode(node: Node, sourceFileOfNode: SourceFile): CommentRange[] | undefined;
     function getJSDocCommentRanges(node: Node, text: string): CommentRange[] | undefined;
     const fullTripleSlashReferencePathRegEx: RegExp;
@@ -10398,8 +10428,8 @@ declare namespace ts {
      * This function needs to be called whenever we transform the statement
      * list of a source file, namespace, or function-like body.
      */
-    function addCustomPrologue(target: Statement[], source: readonly Statement[], statementOffset: number, visitor?: (node: Node) => VisitResult<Node>): number;
-    function addCustomPrologue(target: Statement[], source: readonly Statement[], statementOffset: number | undefined, visitor?: (node: Node) => VisitResult<Node>): number | undefined;
+    function addCustomPrologue(target: Statement[], source: readonly Statement[], statementOffset: number, visitor?: (node: Node) => VisitResult<Node>, filter?: (node: Node) => boolean): number;
+    function addCustomPrologue(target: Statement[], source: readonly Statement[], statementOffset: number | undefined, visitor?: (node: Node) => VisitResult<Node>, filter?: (node: Node) => boolean): number | undefined;
     function findUseStrictPrologue(statements: readonly Statement[]): Statement | undefined;
     function startsWithUseStrict(statements: readonly Statement[]): boolean;
     /**
@@ -10578,7 +10608,8 @@ declare namespace ts {
      * Starts a new lexical environment and visits a parameter list, suspending the lexical
      * environment upon completion.
      */
-    function visitParameterList(nodes: NodeArray<ParameterDeclaration> | undefined, visitor: Visitor, context: TransformationContext, nodesVisitor?: typeof visitNodes): NodeArray<ParameterDeclaration>;
+    function visitParameterList(nodes: NodeArray<ParameterDeclaration>, visitor: Visitor, context: TransformationContext, nodesVisitor?: <T extends Node>(nodes: NodeArray<T>, visitor: Visitor, test?: (node: Node) => boolean, start?: number, count?: number) => NodeArray<T>): NodeArray<ParameterDeclaration>;
+    function visitParameterList(nodes: NodeArray<ParameterDeclaration> | undefined, visitor: Visitor, context: TransformationContext, nodesVisitor?: <T extends Node>(nodes: NodeArray<T> | undefined, visitor: Visitor, test?: (node: Node) => boolean, start?: number, count?: number) => NodeArray<T> | undefined): NodeArray<ParameterDeclaration> | undefined;
     /**
      * Resumes a suspended lexical environment and visits a function body, ending the lexical
      * environment and merging hoisted declarations upon completion.
@@ -13599,7 +13630,7 @@ declare namespace ts {
     function isMemberSymbolInBaseType(memberSymbol: Symbol, checker: TypeChecker): boolean;
     function getParentNodeInSpan(node: Node | undefined, file: SourceFile, span: TextSpan): Node | undefined;
     function findModifier(node: Node, kind: Modifier["kind"]): Modifier | undefined;
-    function insertImport(changes: textChanges.ChangeTracker, sourceFile: SourceFile, importDecl: Statement, blankLineBetween: boolean): void;
+    function insertImports(changes: textChanges.ChangeTracker, sourceFile: SourceFile, imports: Statement | readonly Statement[], blankLineBetween: boolean): void;
     function getTypeKeywordOfTypeOnlyImport(importClause: ImportClause, sourceFile: SourceFile): Token<SyntaxKind.TypeKeyword>;
     function textSpansEqual(a: TextSpan | undefined, b: TextSpan | undefined): boolean;
     function documentSpansEqual(a: DocumentSpan, b: DocumentSpan): boolean;
@@ -13719,6 +13750,25 @@ declare namespace ts {
      */
     function firstOrOnly<T>(valueOrArray: T | readonly T[]): T;
     function getNameForExportedSymbol(symbol: Symbol, scriptTarget: ScriptTarget): string;
+    /**
+     * Useful to check whether a string contains another string at a specific index
+     * without allocating another string or traversing the entire contents of the outer string.
+     *
+     * This function is useful in place of either of the following:
+     *
+     * ```ts
+     * // Allocates
+     * haystack.substr(startIndex, needle.length) === needle
+     *
+     * // Full traversal
+     * haystack.indexOf(needle, startIndex) === startIndex
+     * ```
+     *
+     * @param haystack The string that potentially contains `needle`.
+     * @param needle The string whose content might sit within `haystack`.
+     * @param startIndex The index within `haystack` to start searching for `needle`.
+     */
+    function stringContainsAt(haystack: string, needle: string, startIndex: number): boolean;
     function startsWithUnderscore(name: string): boolean;
     function isGlobalDeclaration(declaration: Declaration): boolean;
     function isNonGlobalDeclaration(declaration: Declaration): boolean;
@@ -14574,6 +14624,8 @@ declare namespace ts.textChanges {
         insertNodeAt(sourceFile: SourceFile, pos: number, newNode: Node, options?: InsertNodeOptions): void;
         private insertNodesAt;
         insertNodeAtTopOfFile(sourceFile: SourceFile, newNode: Statement, blankLineBetween: boolean): void;
+        insertNodesAtTopOfFile(sourceFile: SourceFile, newNodes: readonly Statement[], blankLineBetween: boolean): void;
+        private insertAtTopOfFile;
         insertFirstParameter(sourceFile: SourceFile, parameters: NodeArray<ParameterDeclaration>, newParam: ParameterDeclaration): void;
         insertNodeBefore(sourceFile: SourceFile, before: Node, newNode: Node, blankLineBetween?: boolean): void;
         insertModifierBefore(sourceFile: SourceFile, modifier: SyntaxKind, before: Node): void;
