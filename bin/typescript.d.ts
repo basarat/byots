@@ -7139,7 +7139,6 @@ declare namespace ts {
         Its_return_type_0_is_not_a_valid_JSX_element: DiagnosticMessage;
         Its_instance_type_0_is_not_a_valid_JSX_element: DiagnosticMessage;
         Its_element_type_0_is_not_a_valid_JSX_element: DiagnosticMessage;
-        The_operand_of_a_delete_operator_must_be_optional: DiagnosticMessage;
         Import_declaration_0_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_interface_has_or_is_using_private_name_1: DiagnosticMessage;
@@ -8766,6 +8765,7 @@ declare namespace ts {
     function getInitializerOfBinaryExpression(expr: BinaryExpression): Expression;
     function isPrototypePropertyAssignment(node: Node): boolean;
     function isSpecialPropertyDeclaration(expr: PropertyAccessExpression | ElementAccessExpression): expr is PropertyAccessExpression | LiteralLikeElementAccessExpression;
+    function setValueDeclaration(symbol: Symbol, node: Declaration): void;
     function isFunctionSymbol(symbol: Symbol | undefined): boolean | undefined;
     function importFromModuleSpecifier(node: StringLiteralLike): AnyValidImportOrReExport;
     function tryGetImportFromModuleSpecifier(node: StringLiteralLike): AnyValidImportOrReExport | undefined;
