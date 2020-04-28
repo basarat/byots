@@ -39,7 +39,7 @@ declare namespace ts {
     export {};
 }
 declare namespace ts {
-    const versionMajorMinor = "3.9";
+    const versionMajorMinor = "4.0";
     /** The version of the TypeScript compiler release */
     const version: string;
     /**
@@ -7139,6 +7139,7 @@ declare namespace ts {
         Its_return_type_0_is_not_a_valid_JSX_element: DiagnosticMessage;
         Its_instance_type_0_is_not_a_valid_JSX_element: DiagnosticMessage;
         Its_element_type_0_is_not_a_valid_JSX_element: DiagnosticMessage;
+        The_operand_of_a_delete_operator_must_be_optional: DiagnosticMessage;
         Import_declaration_0_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_interface_has_or_is_using_private_name_1: DiagnosticMessage;
