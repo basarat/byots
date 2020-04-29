@@ -1509,6 +1509,7 @@ declare namespace ts {
         exclamationToken?: ExclamationToken;
         body?: Block | Expression;
         endFlowNode?: FlowNode;
+        returnFlowNode?: FlowNode;
     }
     export type FunctionLikeDeclaration = FunctionDeclaration | MethodDeclaration | GetAccessorDeclaration | SetAccessorDeclaration | ConstructorDeclaration | FunctionExpression | ArrowFunction;
     /** @deprecated Use SignatureDeclaration */
@@ -1533,7 +1534,6 @@ declare namespace ts {
         kind: SyntaxKind.Constructor;
         parent: ClassLikeDeclaration;
         body?: FunctionBody;
-        returnFlowNode?: FlowNode;
     }
     /** For when we encounter a semicolon in a class declaration. ES6 allows these as class elements. */
     export interface SemicolonClassElement extends ClassElement {
@@ -3691,6 +3691,7 @@ declare namespace ts {
         deferralParent?: Type;
         cjsExportMerged?: Symbol;
         typeOnlyDeclaration?: TypeOnlyCompatibleAliasDeclaration | false;
+        isConstructorDeclaredProperty?: boolean;
     }
     export enum EnumKind {
         Numeric = 0,
@@ -12247,6 +12248,7 @@ declare namespace ts.server {
     interface InitializationFailedResponse extends TypingInstallerResponse {
         readonly kind: EventInitializationFailed;
         readonly message: string;
+        readonly stack?: string;
     }
     interface ProjectResponse extends TypingInstallerResponse {
         readonly projectName: string;
