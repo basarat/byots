@@ -7697,6 +7697,7 @@ declare namespace ts {
         Declare_private_property_0: DiagnosticMessage;
         Replace_0_with_Promise_1: DiagnosticMessage;
         Fix_all_incorrect_return_type_of_an_async_functions: DiagnosticMessage;
+        Declare_private_method_0: DiagnosticMessage;
         Declare_a_private_field_named_0: DiagnosticMessage;
         Convert_function_to_an_ES2015_class: DiagnosticMessage;
         Convert_function_0_to_class: DiagnosticMessage;
@@ -10087,11 +10088,30 @@ declare namespace ts {
     function createJSDocTypeExpression(type: TypeNode): JSDocTypeExpression;
     function createJSDocTypeTag(typeExpression: JSDocTypeExpression, comment?: string): JSDocTypeTag;
     function createJSDocReturnTag(typeExpression?: JSDocTypeExpression, comment?: string): JSDocReturnTag;
-    /** @internal */
     function createJSDocThisTag(typeExpression?: JSDocTypeExpression): JSDocThisTag;
+    /**
+     * @deprecated Use `createJSDocParameterTag` to create jsDoc param tag.
+     */
     function createJSDocParamTag(name: EntityName, isBracketed: boolean, typeExpression?: JSDocTypeExpression, comment?: string): JSDocParameterTag;
-    function createJSDocClassTag(): JSDocClassTag;
+    function createJSDocClassTag(comment?: string): JSDocClassTag;
     function createJSDocComment(comment?: string | undefined, tags?: NodeArray<JSDocTag> | undefined): JSDoc;
+    function createJSDocTag<T extends JSDocTag>(kind: T["kind"], tagName: string, comment?: string): T;
+    function createJSDocAugmentsTag(classExpression: JSDocAugmentsTag["class"], comment?: string): JSDocAugmentsTag;
+    function createJSDocEnumTag(typeExpression?: JSDocTypeExpression, comment?: string): JSDocEnumTag;
+    function createJSDocTemplateTag(constraint: JSDocTypeExpression | undefined, typeParameters: readonly TypeParameterDeclaration[], comment?: string): JSDocTemplateTag;
+    function createJSDocTypedefTag(fullName?: JSDocNamespaceDeclaration | Identifier, name?: Identifier, comment?: string, typeExpression?: JSDocTypeExpression | JSDocTypeLiteral): JSDocTypedefTag;
+    function createJSDocCallbackTag(fullName: JSDocNamespaceDeclaration | Identifier | undefined, name: Identifier | undefined, comment: string | undefined, typeExpression: JSDocSignature): JSDocCallbackTag;
+    function createJSDocSignature(typeParameters: readonly JSDocTemplateTag[] | undefined, parameters: readonly JSDocParameterTag[], type?: JSDocReturnTag): JSDocSignature;
+    function createJSDocPropertyTag(typeExpression: JSDocTypeExpression | undefined, name: EntityName, isNameFirst: boolean, isBracketed: boolean, comment?: string): JSDocPropertyTag;
+    function createJSDocParameterTag(typeExpression: JSDocTypeExpression | undefined, name: EntityName, isNameFirst: boolean, isBracketed: boolean, comment?: string): JSDocParameterTag;
+    function createJSDocTypeLiteral(jsDocPropertyTags?: readonly JSDocPropertyLikeTag[], isArrayType?: boolean): JSDocTypeLiteral;
+    function createJSDocImplementsTag(classExpression: JSDocImplementsTag["class"], comment?: string): JSDocImplementsTag;
+    function createJSDocAuthorTag(comment?: string): JSDocTag;
+    function createJSDocPublicTag(): JSDocTag;
+    function createJSDocPrivateTag(): JSDocTag;
+    function createJSDocProtectedTag(): JSDocTag;
+    function createJSDocReadonlyTag(): JSDocTag;
+    function appendJSDocToContainer(node: JSDocContainer, jsdoc: JSDoc): JSDocContainer;
     function createJsxElement(openingElement: JsxOpeningElement, children: readonly JsxChild[], closingElement: JsxClosingElement): JsxElement;
     function updateJsxElement(node: JsxElement, openingElement: JsxOpeningElement, children: readonly JsxChild[], closingElement: JsxClosingElement): JsxElement;
     function createJsxSelfClosingElement(tagName: JsxTagNameExpression, typeArguments: readonly TypeNode[] | undefined, attributes: JsxAttributes): JsxSelfClosingElement;
@@ -12379,6 +12399,7 @@ declare namespace ts {
         getName(): string;
         getDeclarations(): Declaration[] | undefined;
         getDocumentationComment(typeChecker: TypeChecker | undefined): SymbolDisplayPart[];
+        getContextualDocumentationComment(context: Node | undefined, checker: TypeChecker | undefined): SymbolDisplayPart[];
         getJsDocTags(): JSDocTagInfo[];
     }
     interface Type {
@@ -14832,7 +14853,7 @@ declare namespace ts.codefix {
         program: Program;
         host: LanguageServiceHost;
     }
-    function createMethodFromCallExpression(context: CodeFixContextBase, call: CallExpression, methodName: string, inJs: boolean, makeStatic: boolean, contextNode: Node, importAdder: ImportAdder): MethodDeclaration;
+    function createMethodFromCallExpression(context: CodeFixContextBase, importAdder: ImportAdder, call: CallExpression, methodName: string, modifierFlags: ModifierFlags, contextNode: Node, inJs: boolean): MethodDeclaration;
     function typeToAutoImportableTypeNode(checker: TypeChecker, importAdder: ImportAdder, type: Type, contextNode: Node, scriptTarget: ScriptTarget, flags?: NodeBuilderFlags, tracker?: SymbolTracker): TypeNode | undefined;
     function setJsonCompilerOptionValues(changeTracker: textChanges.ChangeTracker, configFile: TsConfigSourceFile, options: [string, Expression][]): undefined;
     function setJsonCompilerOptionValue(changeTracker: textChanges.ChangeTracker, configFile: TsConfigSourceFile, optionName: string, optionValue: Expression): void;
