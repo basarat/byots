@@ -1218,6 +1218,7 @@ declare namespace ts {
         Async = 256,
         Default = 512,
         Const = 2048,
+        HasComputedJSDocModifiers = 4096,
         HasComputedFlags = 536870912,
         AccessibilityModifier = 28,
         ParameterPropertyModifier = 92,
@@ -7624,6 +7625,8 @@ declare namespace ts {
         The_type_of_a_function_declaration_must_match_the_function_s_signature: DiagnosticMessage;
         You_cannot_rename_a_module_via_a_global_import: DiagnosticMessage;
         Qualified_name_0_is_not_allowed_without_a_leading_param_object_1: DiagnosticMessage;
+        A_JSDoc_typedef_comment_may_not_contain_multiple_type_tags: DiagnosticMessage;
+        The_tag_was_first_specified_here: DiagnosticMessage;
         Only_identifiers_Slashqualified_names_with_optional_type_arguments_are_currently_supported_in_a_class_extends_clause: DiagnosticMessage;
         class_expressions_are_not_currently_supported: DiagnosticMessage;
         Language_service_is_disabled: DiagnosticMessage;
@@ -8037,6 +8040,7 @@ declare namespace ts {
      * For binding patterns, parameter tags are matched by position.
      */
     function getJSDocParameterTags(param: ParameterDeclaration): readonly JSDocParameterTag[];
+    function getJSDocParameterTagsNoCache(param: ParameterDeclaration): readonly JSDocParameterTag[];
     /**
      * Gets the JSDoc type parameter tags for the node if present.
      *
@@ -8048,6 +8052,7 @@ declare namespace ts {
      * tag on the containing function expression would be first.
      */
     function getJSDocTypeParameterTags(param: TypeParameterDeclaration): readonly JSDocTemplateTag[];
+    function getJSDocTypeParameterTagsNoCache(param: TypeParameterDeclaration): readonly JSDocTemplateTag[];
     /**
      * Return true if the node has JSDoc parameter tags.
      *
@@ -8063,12 +8068,16 @@ declare namespace ts {
     function getJSDocClassTag(node: Node): JSDocClassTag | undefined;
     /** Gets the JSDoc public tag for the node if present */
     function getJSDocPublicTag(node: Node): JSDocPublicTag | undefined;
+    function getJSDocPublicTagNoCache(node: Node): JSDocPublicTag | undefined;
     /** Gets the JSDoc private tag for the node if present */
     function getJSDocPrivateTag(node: Node): JSDocPrivateTag | undefined;
+    function getJSDocPrivateTagNoCache(node: Node): JSDocPrivateTag | undefined;
     /** Gets the JSDoc protected tag for the node if present */
     function getJSDocProtectedTag(node: Node): JSDocProtectedTag | undefined;
+    function getJSDocProtectedTagNoCache(node: Node): JSDocProtectedTag | undefined;
     /** Gets the JSDoc protected tag for the node if present */
     function getJSDocReadonlyTag(node: Node): JSDocReadonlyTag | undefined;
+    function getJSDocReadonlyTagNoCache(node: Node): JSDocReadonlyTag | undefined;
     /** Gets the JSDoc enum tag for the node if present */
     function getJSDocEnumTag(node: Node): JSDocEnumTag | undefined;
     /** Gets the JSDoc this tag for the node if present */
@@ -8100,6 +8109,7 @@ declare namespace ts {
     function getJSDocReturnType(node: Node): TypeNode | undefined;
     /** Get all JSDoc tags related to a node, including those on parent nodes. */
     function getJSDocTags(node: Node): readonly JSDocTag[];
+    function getJSDocTagsNoCache(node: Node): readonly JSDocTag[];
     /** Gets all JSDoc tags that match a specified predicate */
     function getAllJSDocTags<T extends JSDocTag>(node: Node, predicate: (tag: JSDocTag) => tag is T): readonly T[];
     /** Gets all JSDoc tags of a specified kind */
@@ -8785,7 +8795,7 @@ declare namespace ts {
     function isJSDocTypeAlias(node: Node): node is JSDocTypedefTag | JSDocCallbackTag | JSDocEnumTag;
     function isTypeAlias(node: Node): node is JSDocTypedefTag | JSDocCallbackTag | JSDocEnumTag | TypeAliasDeclaration;
     function getSingleInitializerOfVariableStatementOrPropertyDeclaration(node: Node): Expression | undefined;
-    function getJSDocCommentsAndTags(hostNode: Node): readonly (JSDoc | JSDocTag)[];
+    function getJSDocCommentsAndTags(hostNode: Node, noCache?: boolean): readonly (JSDoc | JSDocTag)[];
     /** Does the opposite of `getJSDocParameterTags`: given a JSDoc parameter, finds the parameter corresponding to it. */
     function getParameterSymbolFromJSDoc(node: JSDocParameterTag): Symbol | undefined;
     function getHostSignatureFromJSDoc(node: Node): SignatureDeclaration | undefined;
@@ -9018,13 +9028,39 @@ declare namespace ts {
         detachedCommentEndPos: number;
     } | undefined;
     function writeCommentRange(text: string, lineMap: readonly number[], writer: EmitTextWriter, commentPos: number, commentEnd: number, newLine: string): void;
-    function hasModifiers(node: Node): boolean;
-    function hasModifier(node: Node, flags: ModifierFlags): boolean;
+    function hasEffectiveModifiers(node: Node): boolean;
+    function hasSyntacticModifiers(node: Node): boolean;
+    function hasEffectiveModifier(node: Node, flags: ModifierFlags): boolean;
+    function hasSyntacticModifier(node: Node, flags: ModifierFlags): boolean;
     function hasStaticModifier(node: Node): boolean;
-    function hasReadonlyModifier(node: Node): boolean;
-    function getSelectedModifierFlags(node: Node, flags: ModifierFlags): ModifierFlags;
-    function getModifierFlags(node: Node): ModifierFlags;
-    function getModifierFlagsNoCache(node: Node): ModifierFlags;
+    function hasEffectiveReadonlyModifier(node: Node): boolean;
+    function getSelectedEffectiveModifierFlags(node: Node, flags: ModifierFlags): ModifierFlags;
+    function getSelectedSyntacticModifierFlags(node: Node, flags: ModifierFlags): ModifierFlags;
+    /**
+     * Gets the effective ModifierFlags for the provided node, including JSDoc modifiers. The modifiers will be cached on the node to improve performance.
+     *
+     * NOTE: This function may use `parent` pointers.
+     */
+    function getEffectiveModifierFlags(node: Node): ModifierFlags;
+    /**
+     * Gets the ModifierFlags for syntactic modifiers on the provided node. The modifiers will be cached on the node to improve performance.
+     *
+     * NOTE: This function does not use `parent` pointers and will not include modifiers from JSDoc.
+     */
+    function getSyntacticModifierFlags(node: Node): ModifierFlags;
+    /**
+     * Gets the effective ModifierFlags for the provided node, including JSDoc modifiers. The modifier flags cache on the node is ignored.
+     *
+     * NOTE: This function may use `parent` pointers.
+     */
+    function getEffectiveModifierFlagsNoCache(node: Node): ModifierFlags;
+    /**
+     * Gets the ModifierFlags for syntactic modifiers on the provided node. The modifier flags cache on the node is ignored.
+     *
+     * NOTE: This function does not use `parent` pointers and will not include modifiers from JSDoc.
+     */
+    function getSyntacticModifierFlagsNoCache(node: Node): ModifierFlags;
+    function modifiersToFlags(modifiers: NodeArray<Modifier> | undefined): ModifierFlags;
     function modifierToFlag(token: SyntaxKind): ModifierFlags;
     function isLogicalOperator(token: SyntaxKind): boolean;
     function isAssignmentOperator(token: SyntaxKind): boolean;
