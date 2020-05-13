@@ -128,6 +128,11 @@ declare namespace ts {
     function zipToIterator<T, U>(arrayA: readonly T[], arrayB: readonly U[]): Iterator<[T, U]>;
     function zipToMap<T>(keys: readonly string[], values: readonly T[]): Map<T>;
     /**
+     * Creates a new array with `element` interspersed in between each element of `input`
+     * if there is more than 1 value in `input`. Otherwise, returns the existing array.
+     */
+    function intersperse<T>(input: T[], element: T): T[];
+    /**
      * Iterates through `array` by index and performs the callback on each element of array until the callback
      * returns a falsey value, then returns false.
      * If no such value is found, the callback is applied to each element of array and `true` is returned.
@@ -7811,10 +7816,10 @@ declare namespace ts {
         Wrap_all_invalid_characters_in_an_expression_container: DiagnosticMessage;
         Visit_https_Colon_Slash_Slashaka_ms_Slashtsconfig_json_to_read_more_about_this_file: DiagnosticMessage;
         Add_a_return_statement: DiagnosticMessage;
-        Remove_block_body_braces: DiagnosticMessage;
+        Remove_braces_from_arrow_function_body: DiagnosticMessage;
         Wrap_the_following_body_with_parentheses_which_should_be_an_object_literal: DiagnosticMessage;
         Add_all_missing_return_statement: DiagnosticMessage;
-        Remove_all_incorrect_body_block_braces: DiagnosticMessage;
+        Remove_braces_from_all_arrow_function_bodies_with_relevant_issues: DiagnosticMessage;
         Wrap_all_object_literal_with_parentheses: DiagnosticMessage;
         No_value_exists_in_scope_for_the_shorthand_property_0_Either_declare_one_or_provide_an_initializer: DiagnosticMessage;
         Classes_may_not_have_a_field_named_constructor: DiagnosticMessage;
