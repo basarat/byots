@@ -10875,7 +10875,7 @@ declare namespace ts {
         LiftRestriction = 0,
         All = 1
     }
-    function processTaggedTemplateExpression(context: TransformationContext, node: TaggedTemplateExpression, visitor: ((node: Node) => VisitResult<Node>) | undefined, currentSourceFile: SourceFile, recordTaggedTemplateString: (temp: Identifier) => void, level: ProcessLevel): CallExpression | TaggedTemplateExpression;
+    function processTaggedTemplateExpression(context: TransformationContext, node: TaggedTemplateExpression, visitor: Visitor, currentSourceFile: SourceFile, recordTaggedTemplateString: (temp: Identifier) => void, level: ProcessLevel): CallExpression | TaggedTemplateExpression;
     const templateObjectHelper: UnscopedEmitHelper;
 }
 declare namespace ts {
@@ -14678,6 +14678,7 @@ declare namespace ts.textChanges {
         pushRaw(sourceFile: SourceFile, change: FileTextChanges): void;
         deleteRange(sourceFile: SourceFile, range: TextRange): void;
         delete(sourceFile: SourceFile, node: Node | NodeArray<TypeParameterDeclaration>): void;
+        deleteNode(sourceFile: SourceFile, node: Node, options?: ConfigurableStartEnd): void;
         deleteModifier(sourceFile: SourceFile, modifier: Modifier): void;
         deleteNodeRange(sourceFile: SourceFile, startNode: Node, endNode: Node, options?: ConfigurableStartEnd): void;
         deleteNodeRangeExcludingEnd(sourceFile: SourceFile, startNode: Node, afterEndNode: Node | undefined, options?: ConfigurableStartEnd): void;
