@@ -137,7 +137,7 @@ declare namespace ts {
      * returns a falsey value, then returns false.
      * If no such value is found, the callback is applied to each element of array and `true` is returned.
      */
-    function every<T>(array: readonly T[], callback: (element: T, index: number) => boolean): boolean;
+    function every<T>(array: readonly T[] | undefined, callback: (element: T, index: number) => boolean): boolean;
     /** Works like Array.prototype.find, returning `undefined` if no element satisfying the predicate is found. */
     function find<T, U extends T>(array: readonly T[], predicate: (element: T, index: number) => element is U): U | undefined;
     function find<T>(array: readonly T[], predicate: (element: T, index: number) => boolean): T | undefined;
@@ -2667,20 +2667,10 @@ declare namespace ts {
         Label = 12,
         Condition = 96
     }
-    export type FlowNode = AfterFinallyFlow | PreFinallyFlow | FlowStart | FlowLabel | FlowAssignment | FlowCall | FlowCondition | FlowSwitchClause | FlowArrayMutation;
+    export type FlowNode = FlowStart | FlowLabel | FlowAssignment | FlowCall | FlowCondition | FlowSwitchClause | FlowArrayMutation | FlowCall | FlowReduceLabel;
     export interface FlowNodeBase {
         flags: FlowFlags;
         id?: number;
-    }
-    export interface FlowLock {
-        locked?: boolean;
-    }
-    export interface AfterFinallyFlow extends FlowNodeBase, FlowLock {
-        antecedent: FlowNode;
-    }
-    export interface PreFinallyFlow extends FlowNodeBase {
-        antecedent: FlowNode;
-        lock: FlowLock;
     }
     export interface FlowStart extends FlowNodeBase {
         node?: FunctionExpression | ArrowFunction | MethodDeclaration;
@@ -3837,8 +3827,6 @@ declare namespace ts {
         resolvedJsxElementAttributesType?: Type;
         resolvedJsxElementAllAttributesType?: Type;
         resolvedJSDocType?: Type;
-        hasSuperCall?: boolean;
-        superCall?: SuperCall;
         switchTypes?: Type[];
         jsxNamespace?: Symbol | false;
         contextFreeType?: Type;
