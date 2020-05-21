@@ -7508,6 +7508,7 @@ declare namespace ts {
         Could_not_resolve_the_path_0_with_the_extensions_Colon_1: DiagnosticMessage;
         Declaration_augments_declaration_in_another_file_This_cannot_be_serialized: DiagnosticMessage;
         This_is_the_declaration_being_augmented_Consider_moving_the_augmenting_declaration_into_the_same_file: DiagnosticMessage;
+        This_expression_is_not_callable_because_it_is_a_get_accessor_Did_you_mean_to_use_it_without: DiagnosticMessage;
         Projects_to_reference: DiagnosticMessage;
         Enable_project_compilation: DiagnosticMessage;
         Composite_projects_may_not_disable_declaration_emit: DiagnosticMessage;
@@ -10155,11 +10156,11 @@ declare namespace ts {
     function createJSDocParameterTag(typeExpression: JSDocTypeExpression | undefined, name: EntityName, isNameFirst: boolean, isBracketed: boolean, comment?: string): JSDocParameterTag;
     function createJSDocTypeLiteral(jsDocPropertyTags?: readonly JSDocPropertyLikeTag[], isArrayType?: boolean): JSDocTypeLiteral;
     function createJSDocImplementsTag(classExpression: JSDocImplementsTag["class"], comment?: string): JSDocImplementsTag;
-    function createJSDocAuthorTag(comment?: string): JSDocTag;
-    function createJSDocPublicTag(): JSDocTag;
-    function createJSDocPrivateTag(): JSDocTag;
-    function createJSDocProtectedTag(): JSDocTag;
-    function createJSDocReadonlyTag(): JSDocTag;
+    function createJSDocAuthorTag(comment?: string): JSDocAuthorTag;
+    function createJSDocPublicTag(): JSDocPublicTag;
+    function createJSDocPrivateTag(): JSDocPrivateTag;
+    function createJSDocProtectedTag(): JSDocProtectedTag;
+    function createJSDocReadonlyTag(): JSDocReadonlyTag;
     function appendJSDocToContainer(node: JSDocContainer, jsdoc: JSDoc): JSDocContainer;
     function createJSDocVariadicType(type: TypeNode): JSDocVariadicType;
     function updateJSDocVariadicType(node: JSDocVariadicType, type: TypeNode): JSDocVariadicType;
