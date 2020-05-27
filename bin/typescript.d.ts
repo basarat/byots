@@ -7828,6 +7828,7 @@ declare namespace ts {
         Wrap_all_object_literal_with_parentheses: DiagnosticMessage;
         Move_labeled_tuple_element_modifiers_to_labels: DiagnosticMessage;
         Convert_overload_list_to_single_signature: DiagnosticMessage;
+        Generate_get_and_set_accessors_for_all_overriding_properties: DiagnosticMessage;
         No_value_exists_in_scope_for_the_shorthand_property_0_Either_declare_one_or_provide_an_initializer: DiagnosticMessage;
         Classes_may_not_have_a_field_named_constructor: DiagnosticMessage;
         JSX_expressions_may_not_use_the_comma_operator_Did_you_mean_to_write_an_array: DiagnosticMessage;
@@ -14893,6 +14894,8 @@ declare namespace ts.codefix {
 declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
+}
+declare namespace ts.codefix {
     function addJSDocTags(changes: textChanges.ChangeTracker, sourceFile: SourceFile, parent: HasJSDoc, newTags: readonly JSDocTag[]): void;
 }
 declare namespace ts.codefix {
@@ -14929,6 +14932,27 @@ declare namespace ts.codefix {
         typeReference: TypeReferenceNode;
     } | undefined;
     function importSymbols(importAdder: ImportAdder, symbols: readonly Symbol[]): void;
+}
+declare namespace ts.codefix {
+    type AcceptedDeclaration = ParameterPropertyDeclaration | PropertyDeclaration | PropertyAssignment;
+    type AcceptedNameType = Identifier | StringLiteral;
+    type ContainerDeclaration = ClassLikeDeclaration | ObjectLiteralExpression;
+    interface Info {
+        readonly container: ContainerDeclaration;
+        readonly isStatic: boolean;
+        readonly isReadonly: boolean;
+        readonly type: TypeNode | undefined;
+        readonly declaration: AcceptedDeclaration;
+        readonly fieldName: AcceptedNameType;
+        readonly accessorName: AcceptedNameType;
+        readonly originalName: string;
+        readonly renameAccessor: boolean;
+    }
+    export function generateAccessorFromProperty(file: SourceFile, start: number, end: number, context: textChanges.TextChangesContext, _actionName: string): FileTextChanges[] | undefined;
+    export function getAccessorConvertiblePropertyAtPosition(file: SourceFile, start: number, end: number): Info | undefined;
+    export function getAllSupers(decl: ClassOrInterface | undefined, checker: TypeChecker): readonly ClassOrInterface[];
+    export type ClassOrInterface = ClassLikeDeclaration | InterfaceDeclaration;
+    export {};
 }
 declare namespace ts.codefix {
 }
