@@ -7829,6 +7829,12 @@ declare namespace ts {
         Move_labeled_tuple_element_modifiers_to_labels: DiagnosticMessage;
         Convert_overload_list_to_single_signature: DiagnosticMessage;
         Generate_get_and_set_accessors_for_all_overriding_properties: DiagnosticMessage;
+        Wrap_in_JSX_fragment: DiagnosticMessage;
+        Wrap_all_unparented_JSX_in_JSX_fragment: DiagnosticMessage;
+        Convert_arrow_function_or_function_expression: DiagnosticMessage;
+        Convert_to_anonymous_function: DiagnosticMessage;
+        Convert_to_named_function: DiagnosticMessage;
+        Convert_to_arrow_function: DiagnosticMessage;
         No_value_exists_in_scope_for_the_shorthand_property_0_Either_declare_one_or_provide_an_initializer: DiagnosticMessage;
         Classes_may_not_have_a_field_named_constructor: DiagnosticMessage;
         JSX_expressions_may_not_use_the_comma_operator_Did_you_mean_to_write_an_array: DiagnosticMessage;
@@ -14976,6 +14982,8 @@ declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
 }
+declare namespace ts.codefix {
+}
 declare namespace ts.refactor {
 }
 declare namespace ts.refactor {
@@ -15070,6 +15078,8 @@ declare namespace ts.refactor.addOrRemoveBracesToArrowFunction {
 declare namespace ts.refactor.convertParamsToDestructuredObject {
 }
 declare namespace ts.refactor.convertStringOrTemplateLiteral {
+}
+declare namespace ts.refactor.convertArrowFunctionOrFunctionExpression {
 }
 declare namespace ts {
     /** The version of the language service API */
