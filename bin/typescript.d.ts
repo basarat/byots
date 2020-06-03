@@ -8978,6 +8978,7 @@ declare namespace ts {
     function getOwnEmitOutputFilePath(fileName: string, host: EmitHost, extension: string): string;
     function getDeclarationEmitOutputFilePath(fileName: string, host: EmitHost): string;
     function getDeclarationEmitOutputFilePathWorker(fileName: string, options: CompilerOptions, currentDirectory: string, commonSourceDirectory: string, getCanonicalFileName: GetCanonicalFileName): string;
+    function outFile(options: CompilerOptions): string | undefined;
     interface EmitFileNames {
         jsFilePath?: string | undefined;
         sourceMapFilePath?: string | undefined;
@@ -11209,7 +11210,8 @@ declare namespace ts {
      * @returns A 'Program' object.
      */
     export function createProgram(rootNames: readonly string[], options: CompilerOptions, host?: CompilerHost, oldProgram?: Program, configFileParsingDiagnostics?: readonly Diagnostic[]): Program;
-    export function handleNoEmitOptions(program: ProgramToEmitFilesAndReportErrors, sourceFile: SourceFile | undefined, cancellationToken: CancellationToken | undefined): EmitResult | undefined;
+    export const emitSkippedWithNoDiagnostics: EmitResult;
+    export function handleNoEmitOptions(program: ProgramToEmitFilesAndReportErrors, sourceFile: SourceFile | undefined, writeFile: WriteFileCallback | undefined, cancellationToken: CancellationToken | undefined): EmitResult | undefined;
     interface CompilerHostLike {
         useCaseSensitiveFileNames(): boolean;
         getCurrentDirectory(): string;
@@ -11513,7 +11515,7 @@ declare namespace ts {
         /**
          * true if build info is emitted
          */
-        emittedBuildInfo?: boolean;
+        buildInfoEmitPending: boolean;
         /**
          * Already seen emitted files
          */
@@ -11524,12 +11526,14 @@ declare namespace ts {
         programEmitComplete?: true;
     }
     type ProgramBuildInfoDiagnostic = string | [string, readonly ReusableDiagnostic[]];
+    type ProgramBuilderInfoFilePendingEmit = [string, BuilderFileEmit];
     interface ProgramBuildInfo {
         fileInfos: MapLike<BuilderState.FileInfo>;
         options: CompilerOptions;
         referencedMap?: MapLike<string[]>;
         exportedModulesMap?: MapLike<string[]>;
         semanticDiagnosticsPerFile?: ProgramBuildInfoDiagnostic[];
+        affectedFilesPendingEmit?: ProgramBuilderInfoFilePendingEmit[];
     }
     enum BuilderProgramKind {
         SemanticDiagnosticsBuilderProgram = 0,
@@ -11646,6 +11650,7 @@ declare namespace ts {
          * in that order would be used to write the files
          */
         emit(targetSourceFile?: SourceFile, writeFile?: WriteFileCallback, cancellationToken?: CancellationToken, emitOnlyDtsFiles?: boolean, customTransformers?: CustomTransformers): EmitResult;
+        emitBuildInfo(writeFile?: WriteFileCallback, cancellationToken?: CancellationToken): EmitResult;
         /**
          * Get the current directory of the program
          */
@@ -11788,6 +11793,7 @@ declare namespace ts {
         getDeclarationDiagnostics(sourceFile?: SourceFile, cancellationToken?: CancellationToken): readonly DiagnosticWithLocation[];
         getConfigFileParsingDiagnostics(): readonly Diagnostic[];
         emit(targetSourceFile?: SourceFile, writeFile?: WriteFileCallback, cancellationToken?: CancellationToken, emitOnlyDtsFiles?: boolean, customTransformers?: CustomTransformers): EmitResult;
+        emitBuildInfo(writeFile?: WriteFileCallback, cancellationToken?: CancellationToken): EmitResult;
     }
     export function listFiles(program: ProgramToEmitFilesAndReportErrors, writeFileName: (s: string) => void): void;
     /**
