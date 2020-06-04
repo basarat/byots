@@ -12765,7 +12765,7 @@ declare namespace ts {
         applyCodeActionCommand(fileName: string, action: CodeActionCommand[]): Promise<ApplyCodeActionCommandResult[]>;
         /** @deprecated `fileName` will be ignored */
         applyCodeActionCommand(fileName: string, action: CodeActionCommand | CodeActionCommand[]): Promise<ApplyCodeActionCommandResult | ApplyCodeActionCommandResult[]>;
-        getApplicableRefactors(fileName: string, positionOrRange: number | TextRange, preferences: UserPreferences | undefined): ApplicableRefactorInfo[];
+        getApplicableRefactors(fileName: string, positionOrRange: number | TextRange, preferences: UserPreferences | undefined, triggerReason?: RefactorTriggerReason): ApplicableRefactorInfo[];
         getEditsForRefactor(fileName: string, formatOptions: FormatCodeSettings, positionOrRange: number | TextRange, refactorName: string, actionName: string, preferences: UserPreferences | undefined): RefactorEditInfo | undefined;
         organizeImports(scope: OrganizeImportsScope, formatOptions: FormatCodeSettings, preferences: UserPreferences | undefined): readonly FileTextChanges[];
         getEditsForFileRename(oldFilePath: string, newFilePath: string, formatOptions: FormatCodeSettings, preferences: UserPreferences | undefined): readonly FileTextChanges[];
@@ -12991,6 +12991,7 @@ declare namespace ts {
         renameLocation?: number;
         commands?: CodeActionCommand[];
     }
+    type RefactorTriggerReason = "implicit" | "invoked";
     interface TextInsertion {
         newText: string;
         /** The position in newText the caret should point to after the insertion. */
@@ -13531,6 +13532,7 @@ declare namespace ts {
         program: Program;
         cancellationToken?: CancellationToken;
         preferences: UserPreferences;
+        triggerReason?: RefactorTriggerReason;
     }
 }
 interface PromiseConstructor {
@@ -14961,7 +14963,7 @@ declare namespace ts.codefix {
         readonly renameAccessor: boolean;
     }
     export function generateAccessorFromProperty(file: SourceFile, start: number, end: number, context: textChanges.TextChangesContext, _actionName: string): FileTextChanges[] | undefined;
-    export function getAccessorConvertiblePropertyAtPosition(file: SourceFile, start: number, end: number): Info | undefined;
+    export function getAccessorConvertiblePropertyAtPosition(file: SourceFile, start: number, end: number, considerEmptySpans?: boolean): Info | undefined;
     export function getAllSupers(decl: ClassOrInterface | undefined, checker: TypeChecker): readonly ClassOrInterface[];
     export type ClassOrInterface = ClassLikeDeclaration | InterfaceDeclaration;
     export {};
@@ -15067,7 +15069,7 @@ declare namespace ts.refactor.extractSymbol {
      * process may fail, in which case a set of errors is returned instead (these are currently
      * not shown to the user, but can be used by us diagnostically)
      */
-    function getRangeToExtract(sourceFile: SourceFile, span: TextSpan): RangeToExtract;
+    function getRangeToExtract(sourceFile: SourceFile, span: TextSpan, considerEmptySpans?: boolean): RangeToExtract;
     enum Usage {
         Read = 1,
         Write = 2
