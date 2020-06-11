@@ -6568,7 +6568,7 @@ declare namespace ts {
         An_export_declaration_cannot_have_modifiers: DiagnosticMessage;
         Export_declarations_are_not_permitted_in_a_namespace: DiagnosticMessage;
         export_Asterisk_does_not_re_export_a_default: DiagnosticMessage;
-        Catch_clause_variable_cannot_have_a_type_annotation: DiagnosticMessage;
+        Catch_clause_variable_type_annotation_must_be_any_or_unknown_if_specified: DiagnosticMessage;
         Catch_clause_variable_cannot_have_an_initializer: DiagnosticMessage;
         An_extended_Unicode_escape_value_must_be_between_0x0_and_0x10FFFF_inclusive: DiagnosticMessage;
         Unterminated_Unicode_escape_sequence: DiagnosticMessage;
@@ -8051,6 +8051,7 @@ declare namespace ts {
     /** @internal */
     function getNonAssignedNameOfDeclaration(declaration: Declaration | Expression): DeclarationName | undefined;
     function getNameOfDeclaration(declaration: Declaration | Expression): DeclarationName | undefined;
+    function getAssignedName(node: Node): DeclarationName | undefined;
     /**
      * Gets the JSDoc parameter tags for the node if present.
      *
@@ -12894,6 +12895,7 @@ declare namespace ts {
         file: string;
         span: TextSpan;
         selectionSpan: TextSpan;
+        containerName?: string;
     }
     interface CallHierarchyIncomingCall {
         from: CallHierarchyItem;
