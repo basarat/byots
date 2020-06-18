@@ -2920,7 +2920,9 @@ declare namespace ts {
         version: string;
         pragmas: ReadonlyPragmaMap;
         localJsxNamespace?: __String;
+        localJsxFragmentNamespace?: __String;
         localJsxFactory?: EntityName;
+        localJsxFragmentFactory?: EntityName;
         exportedModulesFromDeclarationEmit?: ExportedModulesFromDeclarationEmit;
     }
     export interface CommentDirective {
@@ -3677,6 +3679,7 @@ declare namespace ts {
         getTypeReferenceDirectivesForSymbol(symbol: Symbol, meaning?: SymbolFlags): string[] | undefined;
         isLiteralConstDeclaration(node: VariableDeclaration | PropertyDeclaration | PropertySignature | ParameterDeclaration): boolean;
         getJsxFactoryEntity(location?: Node): EntityName | undefined;
+        getJsxFragmentFactoryEntity(location?: Node): EntityName | undefined;
         getAllAccessorDeclarations(declaration: AccessorDeclaration): AllAccessorDeclarations;
         getSymbolOfExternalModuleSpecifier(node: StringLiteralLike): Symbol | undefined;
         isBindingCapturedByNode(node: Node, decl: VariableDeclaration | BindingElement): boolean;
@@ -4618,6 +4621,7 @@ declare namespace ts {
         pretty?: boolean;
         reactNamespace?: string;
         jsxFactory?: string;
+        jsxFragmentFactory?: string;
         composite?: boolean;
         incremental?: boolean;
         tsBuildInfoFile?: string;
@@ -6443,6 +6447,12 @@ declare namespace ts {
             readonly kind: PragmaKindFlags;
         };
         readonly jsx: {
+            readonly args: readonly [{
+                readonly name: "factory";
+            }];
+            readonly kind: PragmaKindFlags;
+        };
+        readonly jsxfrag: {
             readonly args: readonly [{
                 readonly name: "factory";
             }];
@@ -8393,8 +8403,8 @@ declare namespace ts {
         Meta_property_0_is_only_allowed_in_the_body_of_a_function_declaration_function_expression_or_constructor: DiagnosticMessage;
         JSX_fragment_has_no_corresponding_closing_tag: DiagnosticMessage;
         Expected_corresponding_closing_tag_for_JSX_fragment: DiagnosticMessage;
-        JSX_fragment_is_not_supported_when_using_jsxFactory: DiagnosticMessage;
-        JSX_fragment_is_not_supported_when_using_an_inline_JSX_factory_pragma: DiagnosticMessage;
+        The_jsxFragmentFactory_compiler_option_must_be_provided_to_use_JSX_fragments_with_the_jsxFactory_compiler_option: DiagnosticMessage;
+        An_jsxFrag_pragma_is_required_when_using_an_jsx_pragma_with_JSX_fragments: DiagnosticMessage;
         Unknown_type_acquisition_option_0_Did_you_mean_1: DiagnosticMessage;
         Circularity_detected_while_resolving_configuration_Colon_0: DiagnosticMessage;
         A_path_in_an_extends_option_must_be_relative_or_rooted_but_0_is_not: DiagnosticMessage;
@@ -8595,6 +8605,8 @@ declare namespace ts {
         The_intersection_0_was_reduced_to_never_because_property_1_has_conflicting_types_in_some_constituents: DiagnosticMessage;
         The_intersection_0_was_reduced_to_never_because_property_1_exists_in_multiple_constituents_and_is_private_in_some: DiagnosticMessage;
         Only_numeric_enums_can_have_computed_members_but_this_expression_has_type_0_If_you_do_not_need_exhaustiveness_checks_consider_using_an_object_literal_instead: DiagnosticMessage;
+        Specify_the_JSX_fragment_factory_function_to_use_when_targeting_react_JSX_emit_with_jsxFactory_compiler_option_is_specified_e_g_Fragment: DiagnosticMessage;
+        Invalid_value_for_jsxFragmentFactory_0_is_not_a_valid_identifier_or_qualified_name: DiagnosticMessage;
     };
 }
 declare namespace ts {
@@ -10473,7 +10485,7 @@ declare namespace ts {
     function createEmptyExports(factory: NodeFactory): ExportDeclaration;
     function createMemberAccessForPropertyName(factory: NodeFactory, target: Expression, memberName: PropertyName, location?: TextRange): MemberExpression;
     function createExpressionForJsxElement(factory: NodeFactory, jsxFactoryEntity: EntityName | undefined, reactNamespace: string, tagName: Expression, props: Expression | undefined, children: readonly Expression[] | undefined, parentElement: JsxOpeningLikeElement, location: TextRange): LeftHandSideExpression;
-    function createExpressionForJsxFragment(factory: NodeFactory, jsxFactoryEntity: EntityName | undefined, reactNamespace: string, children: readonly Expression[], parentElement: JsxOpeningFragment, location: TextRange): LeftHandSideExpression;
+    function createExpressionForJsxFragment(factory: NodeFactory, jsxFactoryEntity: EntityName | undefined, jsxFragmentFactoryEntity: EntityName | undefined, reactNamespace: string, children: readonly Expression[], parentElement: JsxOpeningFragment, location: TextRange): LeftHandSideExpression;
     function createForOfBindingStatement(factory: NodeFactory, node: ForInitializer, boundValue: Expression): Statement;
     function insertLeadingStatement(factory: NodeFactory, dest: Statement, source: Statement): Block;
     function createExpressionFromEntityName(factory: NodeFactory, node: EntityName | Expression): Expression;
