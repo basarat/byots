@@ -1156,28 +1156,29 @@ declare namespace ts {
         JSDocAugmentsTag = 311,
         JSDocImplementsTag = 312,
         JSDocAuthorTag = 313,
-        JSDocClassTag = 314,
-        JSDocPublicTag = 315,
-        JSDocPrivateTag = 316,
-        JSDocProtectedTag = 317,
-        JSDocReadonlyTag = 318,
-        JSDocCallbackTag = 319,
-        JSDocEnumTag = 320,
-        JSDocParameterTag = 321,
-        JSDocReturnTag = 322,
-        JSDocThisTag = 323,
-        JSDocTypeTag = 324,
-        JSDocTemplateTag = 325,
-        JSDocTypedefTag = 326,
-        JSDocPropertyTag = 327,
-        SyntaxList = 328,
-        NotEmittedStatement = 329,
-        PartiallyEmittedExpression = 330,
-        CommaListExpression = 331,
-        MergeDeclarationMarker = 332,
-        EndOfDeclarationMarker = 333,
-        SyntheticReferenceExpression = 334,
-        Count = 335,
+        JSDocDeprecatedTag = 314,
+        JSDocClassTag = 315,
+        JSDocPublicTag = 316,
+        JSDocPrivateTag = 317,
+        JSDocProtectedTag = 318,
+        JSDocReadonlyTag = 319,
+        JSDocCallbackTag = 320,
+        JSDocEnumTag = 321,
+        JSDocParameterTag = 322,
+        JSDocReturnTag = 323,
+        JSDocThisTag = 324,
+        JSDocTypeTag = 325,
+        JSDocTemplateTag = 326,
+        JSDocTypedefTag = 327,
+        JSDocPropertyTag = 328,
+        SyntaxList = 329,
+        NotEmittedStatement = 330,
+        PartiallyEmittedExpression = 331,
+        CommaListExpression = 332,
+        MergeDeclarationMarker = 333,
+        EndOfDeclarationMarker = 334,
+        SyntheticReferenceExpression = 335,
+        Count = 336,
         FirstAssignment = 62,
         LastAssignment = 77,
         FirstCompoundAssignment = 63,
@@ -1206,9 +1207,9 @@ declare namespace ts {
         LastStatement = 245,
         FirstNode = 156,
         FirstJSDocNode = 298,
-        LastJSDocNode = 327,
+        LastJSDocNode = 328,
         FirstJSDocTagNode = 310,
-        LastJSDocTagNode = 327,
+        LastJSDocTagNode = 328,
         FirstContextualKeyword = 125,
         LastContextualKeyword = 155
     }
@@ -1252,6 +1253,7 @@ declare namespace ts {
         InWithStatement = 16777216,
         JsonFile = 33554432,
         TypeCached = 67108864,
+        Deprecated = 134217728,
         BlockScoped = 3,
         ReachabilityCheckFlags = 768,
         ReachabilityAndEmitFlags = 2816,
@@ -1273,13 +1275,14 @@ declare namespace ts {
         Default = 512,
         Const = 2048,
         HasComputedJSDocModifiers = 4096,
+        Deprecated = 8192,
         HasComputedFlags = 536870912,
         AccessibilityModifier = 28,
         ParameterPropertyModifier = 92,
         NonPublicAccessibilityModifier = 24,
         TypeScriptModifier = 2270,
         ExportDefault = 513,
-        All = 3071
+        All = 11263
     }
     export enum JsxFlags {
         None = 0,
@@ -2410,7 +2413,7 @@ declare namespace ts {
     }
     export interface ThrowStatement extends Statement {
         readonly kind: SyntaxKind.ThrowStatement;
-        readonly expression?: Expression;
+        readonly expression: Expression;
     }
     export interface TryStatement extends Statement {
         readonly kind: SyntaxKind.TryStatement;
@@ -2687,6 +2690,9 @@ declare namespace ts {
     }
     export interface JSDocAuthorTag extends JSDocTag {
         readonly kind: SyntaxKind.JSDocAuthorTag;
+    }
+    export interface JSDocDeprecatedTag extends JSDocTag {
+        kind: SyntaxKind.JSDocDeprecatedTag;
     }
     export interface JSDocClassTag extends JSDocTag {
         readonly kind: SyntaxKind.JSDocClassTag;
@@ -3716,7 +3722,8 @@ declare namespace ts {
         Transient = 33554432,
         Assignment = 67108864,
         ModuleExports = 134217728,
-        All = 67108863,
+        Deprecated = 268435456,
+        All = 335544319,
         Enum = 384,
         Variable = 3,
         Value = 111551,
@@ -4459,6 +4466,7 @@ declare namespace ts {
         code: number;
         message: string;
         reportsUnnecessary?: {};
+        reportsDeprecated?: {};
         elidedInCompatabilityPyramid?: boolean;
     }
     /**
@@ -4476,8 +4484,10 @@ declare namespace ts {
     export interface Diagnostic extends DiagnosticRelatedInformation {
         /** May store more in future. For now, this will simply be `true` to indicate when a diagnostic is an unused-identifier diagnostic. */
         reportsUnnecessary?: {};
+        reportsDeprecated?: {};
         source?: string;
         relatedInformation?: DiagnosticRelatedInformation[];
+        skippedOn?: keyof CompilerOptions;
     }
     export interface DiagnosticRelatedInformation {
         category: DiagnosticCategory;
@@ -5098,6 +5108,7 @@ declare namespace ts {
         ContainsHoistedDeclarationOrCompletion = 1048576,
         ContainsDynamicImport = 2097152,
         ContainsClassFields = 4194304,
+        ContainsPossibleTopLevelAwait = 8388608,
         HasComputedFlags = 536870912,
         AssertTypeScript = 1,
         AssertJsx = 2,
@@ -5113,13 +5124,13 @@ declare namespace ts {
         OuterExpressionExcludes = 536870912,
         PropertyAccessExcludes = 536870912,
         NodeExcludes = 536870912,
-        ArrowFunctionExcludes = 538920960,
-        FunctionExcludes = 538925056,
-        ConstructorExcludes = 538923008,
+        ArrowFunctionExcludes = 547309568,
+        FunctionExcludes = 547313664,
+        ConstructorExcludes = 547311616,
         MethodOrAccessorExcludes = 538923008,
         PropertyExcludes = 536875008,
         ClassExcludes = 536905728,
-        ModuleExcludes = 537991168,
+        ModuleExcludes = 546379776,
         TypeExcludes = -2,
         ObjectLiteralExcludes = 536922112,
         ArrayLiteralOrCallOrNewExcludes = 536879104,
@@ -5657,6 +5668,8 @@ declare namespace ts {
         updateJSDocReadonlyTag(node: JSDocReadonlyTag, tagName: Identifier | undefined, comment: string | undefined): JSDocReadonlyTag;
         createJSDocUnknownTag(tagName: Identifier, comment?: string): JSDocUnknownTag;
         updateJSDocUnknownTag(node: JSDocUnknownTag, tagName: Identifier, comment: string | undefined): JSDocUnknownTag;
+        createJSDocDeprecatedTag(tagName: Identifier, comment?: string): JSDocDeprecatedTag;
+        updateJSDocDeprecatedTag(node: JSDocDeprecatedTag, tagName: Identifier, comment?: string): JSDocDeprecatedTag;
         createJSDocComment(comment?: string | undefined, tags?: readonly JSDocTag[] | undefined): JSDoc;
         updateJSDocComment(node: JSDoc, comment: string | undefined, tags: readonly JSDocTag[] | undefined): JSDoc;
         createJsxElement(openingElement: JsxOpeningElement, children: readonly JsxChild[], closingElement: JsxClosingElement): JsxElement;
@@ -7369,6 +7382,7 @@ declare namespace ts {
         Module_0_can_only_be_default_imported_using_the_1_flag: DiagnosticMessage;
         Keywords_cannot_contain_escape_characters: DiagnosticMessage;
         Already_included_file_name_0_differs_from_file_name_1_only_in_casing: DiagnosticMessage;
+        Identifier_expected_0_is_a_reserved_word_at_the_top_level_of_a_module: DiagnosticMessage;
         with_statements_are_not_allowed_in_an_async_function_block: DiagnosticMessage;
         await_expressions_are_only_allowed_within_async_functions_and_at_the_top_levels_of_modules: DiagnosticMessage;
         can_only_be_used_in_an_object_literal_property_inside_a_destructuring_assignment: DiagnosticMessage;
@@ -8262,6 +8276,7 @@ declare namespace ts {
         File_0_is_not_listed_within_the_file_list_of_project_1_Projects_must_list_all_files_or_use_an_include_pattern: DiagnosticMessage;
         Cannot_prepend_project_0_because_it_does_not_have_outFile_set: DiagnosticMessage;
         Output_file_0_from_project_1_does_not_exist: DiagnosticMessage;
+        Referenced_project_0_may_not_disable_emit: DiagnosticMessage;
         Project_0_is_out_of_date_because_oldest_output_1_is_older_than_newest_input_2: DiagnosticMessage;
         Project_0_is_up_to_date_because_newest_input_1_is_older_than_oldest_output_2: DiagnosticMessage;
         Project_0_is_out_of_date_because_output_file_1_does_not_exist: DiagnosticMessage;
@@ -8297,6 +8312,7 @@ declare namespace ts {
         Skipping_build_of_project_0_because_its_dependency_1_was_not_built: DiagnosticMessage;
         Project_0_can_t_be_built_because_its_dependency_1_was_not_built: DiagnosticMessage;
         Have_recompiles_in_incremental_and_watch_assume_that_changes_within_a_file_will_only_affect_files_directly_depending_on_it: DiagnosticMessage;
+        _0_is_deprecated: DiagnosticMessage;
         The_expected_type_comes_from_property_0_which_is_declared_here_on_type_1: DiagnosticMessage;
         The_expected_type_comes_from_this_index_signature: DiagnosticMessage;
         The_expected_type_comes_from_the_return_type_of_this_signature: DiagnosticMessage;
@@ -8580,6 +8596,7 @@ declare namespace ts {
         Convert_to_anonymous_function: DiagnosticMessage;
         Convert_to_named_function: DiagnosticMessage;
         Convert_to_arrow_function: DiagnosticMessage;
+        Remove_parentheses: DiagnosticMessage;
         No_value_exists_in_scope_for_the_shorthand_property_0_Either_declare_one_or_provide_an_initializer: DiagnosticMessage;
         Classes_may_not_have_a_field_named_constructor: DiagnosticMessage;
         JSX_expressions_may_not_use_the_comma_operator_Did_you_mean_to_write_an_array: DiagnosticMessage;
@@ -8738,6 +8755,7 @@ declare namespace ts {
     function isEmptyBindingElement(node: BindingElement): boolean;
     function walkUpBindingElementsAndPatterns(binding: BindingElement): VariableDeclaration | ParameterDeclaration;
     function getCombinedModifierFlags(node: Declaration): ModifierFlags;
+    function getCombinedNodeFlagsAlwaysIncludeJSDoc(node: Declaration): ModifierFlags;
     function getCombinedNodeFlags(node: Node): NodeFlags;
     /**
      * Checks to see if the locale is in the appropriate format,
@@ -8847,6 +8865,9 @@ declare namespace ts {
     /** Gets the JSDoc protected tag for the node if present */
     function getJSDocReadonlyTag(node: Node): JSDocReadonlyTag | undefined;
     function getJSDocReadonlyTagNoCache(node: Node): JSDocReadonlyTag | undefined;
+    /** Gets the JSDoc deprecated tag for the node if present */
+    function getJSDocDeprecatedTag(node: Node): JSDocDeprecatedTag | undefined;
+    function getJSDocDeprecatedTagNoCache(node: Node): JSDocDeprecatedTag | undefined;
     /** Gets the JSDoc enum tag for the node if present */
     function getJSDocEnumTag(node: Node): JSDocEnumTag | undefined;
     /** Gets the JSDoc this tag for the node if present */
@@ -9665,6 +9686,7 @@ declare namespace ts {
      * NOTE: This function may use `parent` pointers.
      */
     function getEffectiveModifierFlags(node: Node): ModifierFlags;
+    function getEffectiveModifierFlagsAlwaysIncludeJSDoc(node: Node): ModifierFlags;
     /**
      * Gets the ModifierFlags for syntactic modifiers on the provided node. The modifiers will be cached on the node to improve performance.
      *
@@ -10469,6 +10491,7 @@ declare namespace ts {
     function isJSDocPrivateTag(node: Node): node is JSDocPrivateTag;
     function isJSDocProtectedTag(node: Node): node is JSDocProtectedTag;
     function isJSDocReadonlyTag(node: Node): node is JSDocReadonlyTag;
+    function isJSDocDeprecatedTag(node: Node): node is JSDocDeprecatedTag;
     function isJSDocEnumTag(node: Node): node is JSDocEnumTag;
     function isJSDocParameterTag(node: Node): node is JSDocParameterTag;
     function isJSDocReturnTag(node: Node): node is JSDocReturnTag;
@@ -10563,6 +10586,7 @@ declare namespace ts {
     function getElementsOfBindingOrAssignmentPattern(name: BindingOrAssignmentPattern): readonly BindingOrAssignmentElement[];
     function getJSDocTypeAliasName(fullName: JSDocNamespaceBody | undefined): Identifier | undefined;
     function canHaveModifiers(node: Node): node is HasModifiers;
+    function isExportModifier(node: Modifier): node is ExportKeyword;
     function isAsyncModifier(node: Modifier): node is AsyncKeyword;
     function isStaticModifier(node: Modifier): node is StaticKeyword;
 }
@@ -11503,6 +11527,7 @@ declare namespace ts {
     export function createProgram(rootNames: readonly string[], options: CompilerOptions, host?: CompilerHost, oldProgram?: Program, configFileParsingDiagnostics?: readonly Diagnostic[]): Program;
     export const emitSkippedWithNoDiagnostics: EmitResult;
     export function handleNoEmitOptions(program: ProgramToEmitFilesAndReportErrors, sourceFile: SourceFile | undefined, writeFile: WriteFileCallback | undefined, cancellationToken: CancellationToken | undefined): EmitResult | undefined;
+    export function filterSemanticDiagnotics(diagnostic: readonly Diagnostic[], option: CompilerOptions): readonly Diagnostic[];
     interface CompilerHostLike {
         useCaseSensitiveFileNames(): boolean;
         getCurrentDirectory(): string;
@@ -11670,8 +11695,10 @@ declare namespace ts {
     interface ReusableDiagnostic extends ReusableDiagnosticRelatedInformation {
         /** May store more in future. For now, this will simply be `true` to indicate when a diagnostic is an unused-identifier diagnostic. */
         reportsUnnecessary?: {};
+        reportDeprecated?: {};
         source?: string;
         relatedInformation?: ReusableDiagnosticRelatedInformation[];
+        skippedOn?: keyof CompilerOptions;
     }
     interface ReusableDiagnosticRelatedInformation {
         category: DiagnosticCategory;
@@ -13176,6 +13203,7 @@ declare namespace ts {
     interface CallHierarchyItem {
         name: string;
         kind: ScriptElementKind;
+        kindModifiers?: string;
         file: string;
         span: TextSpan;
         selectionSpan: TextSpan;
@@ -13730,6 +13758,7 @@ declare namespace ts {
         staticModifier = "static",
         abstractModifier = "abstract",
         optionalModifier = "optional",
+        deprecatedModifier = "deprecated",
         dtsModifier = ".d.ts",
         tsModifier = ".ts",
         tsxModifier = ".tsx",
@@ -15288,6 +15317,8 @@ declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
 }
+declare namespace ts.codefix {
+}
 declare namespace ts.refactor {
 }
 declare namespace ts.refactor {
@@ -15698,6 +15729,7 @@ declare namespace ts {
         category: string;
         code: number;
         reportsUnnecessary?: {};
+        reportsDeprecated?: {};
     }
     function realizeDiagnostics(diagnostics: readonly Diagnostic[], newLine: string): RealizedDiagnostic[];
     class TypeScriptServicesFactory implements ShimFactory {
