@@ -3259,12 +3259,12 @@ declare namespace ts {
         typeToTypeNode(type: Type, enclosingDeclaration: Node | undefined, flags: NodeBuilderFlags | undefined): TypeNode | undefined;
         typeToTypeNode(type: Type, enclosingDeclaration: Node | undefined, flags: NodeBuilderFlags | undefined, tracker?: SymbolTracker): TypeNode | undefined;
         /** Note that the resulting nodes cannot be checked. */
-        signatureToSignatureDeclaration(signature: Signature, kind: SyntaxKind, enclosingDeclaration: Node | undefined, flags: NodeBuilderFlags | undefined): (SignatureDeclaration & {
+        signatureToSignatureDeclaration(signature: Signature, kind: SyntaxKind, enclosingDeclaration: Node | undefined, flags: NodeBuilderFlags | undefined): SignatureDeclaration & {
             typeArguments?: NodeArray<TypeNode>;
-        }) | undefined;
-        signatureToSignatureDeclaration(signature: Signature, kind: SyntaxKind, enclosingDeclaration: Node | undefined, flags: NodeBuilderFlags | undefined, tracker?: SymbolTracker): (SignatureDeclaration & {
+        } | undefined;
+        signatureToSignatureDeclaration(signature: Signature, kind: SyntaxKind, enclosingDeclaration: Node | undefined, flags: NodeBuilderFlags | undefined, tracker?: SymbolTracker): SignatureDeclaration & {
             typeArguments?: NodeArray<TypeNode>;
-        }) | undefined;
+        } | undefined;
         /** Note that the resulting nodes cannot be checked. */
         indexInfoToIndexSignatureDeclaration(indexInfo: IndexInfo, kind: IndexKind, enclosingDeclaration: Node | undefined, flags: NodeBuilderFlags | undefined): IndexSignatureDeclaration | undefined;
         indexInfoToIndexSignatureDeclaration(indexInfo: IndexInfo, kind: IndexKind, enclosingDeclaration: Node | undefined, flags: NodeBuilderFlags | undefined, tracker?: SymbolTracker): IndexSignatureDeclaration | undefined;
@@ -10529,9 +10529,9 @@ declare namespace ts {
     function isExportName(node: Identifier): boolean;
     function findUseStrictPrologue(statements: readonly Statement[]): Statement | undefined;
     function startsWithUseStrict(statements: readonly Statement[]): boolean;
-    function isCommaSequence(node: Expression): node is (BinaryExpression & {
+    function isCommaSequence(node: Expression): node is BinaryExpression & {
         operatorToken: Token<SyntaxKind.CommaToken>;
-    }) | CommaListExpression;
+    } | CommaListExpression;
     function isOuterExpression(node: Node, kinds?: OuterExpressionKinds): node is OuterExpression;
     function skipOuterExpressions(node: Expression, kinds?: OuterExpressionKinds): Expression;
     function skipOuterExpressions(node: Node, kinds?: OuterExpressionKinds): Node;
@@ -12146,7 +12146,7 @@ declare namespace ts {
     }, options: {
         extendedDiagnostics?: boolean;
         diagnostics?: boolean;
-    }): WatchFactory<"Config file" | "Source file" | "Missing file" | "Wild card directory" | "Failed Lookup Locations" | "Type roots", Y>;
+    }): WatchFactory<WatchType, Y>;
     export function createCompilerHostFromProgramHost(host: ProgramHost<any>, getCompilerOptions: () => CompilerOptions, directoryStructureHost?: DirectoryStructureHost): CompilerHost;
     export function setGetSourceFileAsHashVersioned(compilerHost: CompilerHost, host: {
         createHash?(data: string): string;
