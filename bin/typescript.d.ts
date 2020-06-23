@@ -383,6 +383,7 @@ declare namespace ts {
     function getOwnKeys<T>(map: MapLike<T>): string[];
     function getAllKeys(obj: object): string[];
     function getOwnValues<T>(sparseArray: T[]): T[];
+    function arrayOf<T>(count: number, f: (index: number) => T): T[];
     /** Shims `Array.from`. */
     function arrayFrom<T, U>(iterator: Iterator<T> | IterableIterator<T>, map: (t: T) => U): U[];
     function arrayFrom<T>(iterator: Iterator<T> | IterableIterator<T>): T[];
@@ -3354,6 +3355,7 @@ declare namespace ts {
         tryGetMemberInModuleExportsAndProperties(memberName: string, moduleSymbol: Symbol): Symbol | undefined;
         getApparentType(type: Type): Type;
         getSuggestedSymbolForNonexistentProperty(name: Identifier | PrivateIdentifier | string, containingType: Type): Symbol | undefined;
+        getSuggestedSymbolForNonexistentJSXAttribute(name: Identifier | string, containingType: Type): Symbol | undefined;
         getSuggestionForNonexistentProperty(name: Identifier | PrivateIdentifier | string, containingType: Type): string | undefined;
         getSuggestedSymbolForNonexistentSymbol(location: Node, name: string, meaning: SymbolFlags): Symbol | undefined;
         getSuggestionForNonexistentSymbol(location: Node, name: string, meaning: SymbolFlags): string | undefined;
@@ -4176,9 +4178,19 @@ declare namespace ts {
         instantiations: Map<TypeReference>;
         variances?: VarianceFlags[];
     }
+    export enum ElementFlags {
+        Required = 1,
+        Optional = 2,
+        Rest = 4,
+        Variadic = 8,
+        Variable = 12
+    }
     export interface TupleType extends GenericType {
+        elementFlags: readonly ElementFlags[];
         minLength: number;
+        fixedLength: number;
         hasRestElement: boolean;
+        combinedFlags: ElementFlags;
         readonly: boolean;
         labeledElementDeclarations?: readonly (NamedTupleMember | ParameterDeclaration)[];
     }
@@ -4403,6 +4415,7 @@ declare namespace ts {
         priority?: InferencePriority;
         topLevel: boolean;
         isFixed: boolean;
+        impliedArity?: number;
     }
     export enum InferenceFlags {
         None = 0,
@@ -6540,6 +6553,8 @@ declare namespace ts {
         readonly importModuleSpecifierEnding?: "auto" | "minimal" | "index" | "js";
         readonly allowTextChangesInNewFiles?: boolean;
         readonly providePrefixAndSuffixTextForRename?: boolean;
+        readonly includePackageJsonAutoImports?: "exclude-dev" | "all" | "none";
+        readonly provideRefactorNotApplicableReason?: boolean;
     }
     /** Represents a bigint literal value without requiring bigint support */
     export interface PseudoBigInt {
@@ -7767,6 +7782,11 @@ declare namespace ts {
         Type_of_property_0_circularly_references_itself_in_mapped_type_1: DiagnosticMessage;
         _0_can_only_be_imported_by_using_import_1_require_2_or_a_default_import: DiagnosticMessage;
         _0_can_only_be_imported_by_using_import_1_require_2_or_by_turning_on_the_esModuleInterop_flag_and_using_a_default_import: DiagnosticMessage;
+        Source_has_0_element_s_but_target_requires_1: DiagnosticMessage;
+        Source_has_0_element_s_but_target_allows_only_1: DiagnosticMessage;
+        Target_requires_0_element_s_but_source_may_have_fewer: DiagnosticMessage;
+        Target_allows_only_0_element_s_but_source_may_have_more: DiagnosticMessage;
+        Element_at_index_0_is_variadic_in_one_type_but_not_in_the_other: DiagnosticMessage;
         Cannot_augment_module_0_with_value_exports_because_it_resolves_to_a_non_module_entity: DiagnosticMessage;
         A_member_initializer_in_a_enum_declaration_cannot_reference_members_declared_after_it_including_members_defined_in_other_enums: DiagnosticMessage;
         Merged_declaration_0_cannot_include_a_default_export_declaration_Consider_adding_a_separate_export_default_0_declaration_instead: DiagnosticMessage;
@@ -8597,6 +8617,17 @@ declare namespace ts {
         Convert_to_named_function: DiagnosticMessage;
         Convert_to_arrow_function: DiagnosticMessage;
         Remove_parentheses: DiagnosticMessage;
+        Could_not_find_a_containing_arrow_function: DiagnosticMessage;
+        Containing_function_is_not_an_arrow_function: DiagnosticMessage;
+        Could_not_find_export_statement: DiagnosticMessage;
+        This_file_already_has_a_default_export: DiagnosticMessage;
+        Could_not_find_import_clause: DiagnosticMessage;
+        Could_not_find_namespace_import_or_named_imports: DiagnosticMessage;
+        Selection_is_not_a_valid_type_node: DiagnosticMessage;
+        No_type_could_be_extracted_from_this_type_node: DiagnosticMessage;
+        Could_not_find_property_for_which_to_generate_accessor: DiagnosticMessage;
+        Name_is_not_valid: DiagnosticMessage;
+        Can_only_convert_property_with_modifier: DiagnosticMessage;
         No_value_exists_in_scope_for_the_shorthand_property_0_Either_declare_one_or_provide_an_initializer: DiagnosticMessage;
         Classes_may_not_have_a_field_named_constructor: DiagnosticMessage;
         JSX_expressions_may_not_use_the_comma_operator_Did_you_mean_to_write_an_array: DiagnosticMessage;
@@ -10851,7 +10882,7 @@ declare namespace ts {
      */
     export function parseJsonSourceFileConfigFileContent(sourceFile: TsConfigSourceFile, host: ParseConfigHost, basePath: string, existingOptions?: CompilerOptions, configFileName?: string, resolutionStack?: Path[], extraFileExtensions?: readonly FileExtensionInfo[], extendedConfigCache?: Map<ExtendedConfigCacheEntry>, existingWatchOptions?: WatchOptions): ParsedCommandLine;
     export function setConfigFileInOptions(options: CompilerOptions, configFile: TsConfigSourceFile | undefined): void;
-    export function canJsonReportNoInutFiles(raw: any): boolean;
+    export function canJsonReportNoInputFiles(raw: any): boolean;
     export function updateErrorForNoInputFiles(result: ExpandResult, configFileName: string, configFileSpecs: ConfigFileSpecs, configParseDiagnostics: Diagnostic[], canJsonReportNoInutFiles: boolean): boolean;
     export interface ParsedTsconfig {
         raw: any;
@@ -12892,6 +12923,7 @@ declare namespace ts {
     }
     interface PackageJsonInfo {
         fileName: string;
+        parseable: boolean;
         dependencies?: Map<string>;
         devDependencies?: Map<string>;
         peerDependencies?: Map<string>;
@@ -12899,9 +12931,17 @@ declare namespace ts {
         get(dependencyName: string, inGroups?: PackageJsonDependencyGroup): string | undefined;
         has(dependencyName: string, inGroups?: PackageJsonDependencyGroup): boolean;
     }
-    /** @internal */
     interface FormattingHost {
         getNewLine?(): string;
+    }
+    enum PackageJsonAutoImportPreference {
+        None = 0,
+        ExcludeDevDependencies = 1,
+        All = 2
+    }
+    interface PerformanceEvent {
+        kind: "UpdateGraph" | "CreatePackageJsonAutoImportProvider";
+        durationMs: number;
     }
     interface LanguageServiceHost extends GetEffectiveTypeRootsHost {
         getCompilationSettings(): CompilerOptions;
@@ -12943,9 +12983,12 @@ declare namespace ts {
         getDocumentPositionMapper?(generatedFileName: string, sourceFileName?: string): DocumentPositionMapper | undefined;
         getSourceFileLike?(fileName: string): SourceFileLike | undefined;
         getPackageJsonsVisibleToFile?(fileName: string, rootDir?: string): readonly PackageJsonInfo[];
+        getPackageJsonsForAutoImport?(rootDir?: string): readonly PackageJsonInfo[];
         getImportSuggestionsCache?(): Completions.ImportSuggestionsForFileCache;
         setCompilerHost?(host: CompilerHost): void;
         useSourceOfProjectReferenceRedirect?(): boolean;
+        getPackageJsonAutoImportProvider?(): Program | undefined;
+        sendPerformanceEvent?(kind: PerformanceEvent["kind"], durationMs: number): void;
     }
     const emptyOptions: {};
     type WithMetadata<T> = T & {
@@ -13094,6 +13137,7 @@ declare namespace ts {
         getEmitOutput(fileName: string, emitOnlyDtsFiles?: boolean, forceDtsEmit?: boolean): EmitOutput;
         getProgram(): Program | undefined;
         getNonBoundSourceFile(fileName: string): SourceFile;
+        getAutoImportProvider(): Program | undefined;
         dispose(): void;
     }
     interface JsxClosingTagInfo {
@@ -13304,6 +13348,11 @@ declare namespace ts {
          * so this description should make sense by itself if the parent is inlineable=true
          */
         description: string;
+        /**
+         * A message to show to the user if the refactoring cannot be applied in
+         * the current context.
+         */
+        notApplicableReason?: string;
     }
     /**
      * A set of edits to make in response to a refactor action, plus an optional
@@ -13583,6 +13632,7 @@ declare namespace ts {
         source?: string;
         isRecommended?: true;
         isFromUncheckedFile?: true;
+        isPackageJsonImport?: true;
     }
     interface CompletionEntryDetails {
         name: string;
@@ -14083,8 +14133,7 @@ declare namespace ts {
     function symbolToDisplayParts(typeChecker: TypeChecker, symbol: Symbol, enclosingDeclaration?: Node, meaning?: SymbolFlags, flags?: SymbolFormatFlags): SymbolDisplayPart[];
     function signatureToDisplayParts(typechecker: TypeChecker, signature: Signature, enclosingDeclaration?: Node, flags?: TypeFormatFlags): SymbolDisplayPart[];
     function isImportOrExportSpecifierName(location: Node): location is Identifier;
-    function scriptKindIs(fileName: string, host: LanguageServiceHost, ...scriptKinds: ScriptKind[]): boolean;
-    function getScriptKind(fileName: string, host?: LanguageServiceHost): ScriptKind;
+    function getScriptKind(fileName: string, host: LanguageServiceHost): ScriptKind;
     function getSymbolTarget(symbol: Symbol, checker: TypeChecker): Symbol;
     function getUniqueSymbolId(symbol: Symbol, checker: TypeChecker): number;
     function getFirstNonSpaceCharacterPosition(text: string, position: number): number;
@@ -14154,7 +14203,9 @@ declare namespace ts {
     function findPackageJsons(startDirectory: string, host: Pick<LanguageServiceHost, "fileExists">, stopDirectory?: string): string[];
     function findPackageJson(directory: string, host: LanguageServiceHost): string | undefined;
     function getPackageJsonsVisibleToFile(fileName: string, host: LanguageServiceHost): readonly PackageJsonInfo[];
-    function createPackageJsonInfo(fileName: string, host: LanguageServiceHost): PackageJsonInfo | false | undefined;
+    function createPackageJsonInfo(fileName: string, host: {
+        readFile?(fileName: string): string | undefined;
+    }): PackageJsonInfo | undefined;
     function consumesNodeCoreModules(sourceFile: SourceFile): boolean;
     function isInsideNodeModules(fileOrDirectory: string): boolean;
     function isDiagnosticWithLocation(diagnostic: Diagnostic): diagnostic is DiagnosticWithLocation;
@@ -14251,6 +14302,7 @@ declare namespace ts.Completions {
         kind: SymbolOriginInfoKind;
         moduleSymbol: Symbol;
         isDefaultExport: boolean;
+        isFromPackageJson?: boolean;
     }
     interface UniqueNameSet {
         add(name: string): void;
@@ -15184,7 +15236,7 @@ declare namespace ts.codefix {
         readonly moduleSpecifier: string;
         readonly codeAction: CodeAction;
     };
-    function forEachExternalModuleToImportFrom(program: Program, host: LanguageServiceHost, from: SourceFile, filterByPackageJson: boolean, cb: (module: Symbol) => void): void;
+    function forEachExternalModuleToImportFrom(program: Program, host: LanguageServiceHost, from: SourceFile, filterByPackageJson: boolean, useAutoImportProvider: boolean, cb: (module: Symbol, moduleFile: SourceFile | undefined, program: Program, isFromPackageJson: boolean) => void): void;
     function moduleSymbolToValidIdentifier(moduleSymbol: Symbol, target: ScriptTarget): string;
     function moduleSpecifierToValidIdentifier(moduleSpecifier: string, target: ScriptTarget): string;
 }
@@ -15287,8 +15339,15 @@ declare namespace ts.codefix {
         readonly originalName: string;
         readonly renameAccessor: boolean;
     }
+    type InfoOrError = {
+        info: Info;
+        error?: never;
+    } | {
+        info?: never;
+        error: string;
+    };
     export function generateAccessorFromProperty(file: SourceFile, start: number, end: number, context: textChanges.TextChangesContext, _actionName: string): FileTextChanges[] | undefined;
-    export function getAccessorConvertiblePropertyAtPosition(file: SourceFile, start: number, end: number, considerEmptySpans?: boolean): Info | undefined;
+    export function getAccessorConvertiblePropertyAtPosition(file: SourceFile, start: number, end: number, considerEmptySpans?: boolean): InfoOrError | undefined;
     export function getAllSupers(decl: ClassOrInterface | undefined, checker: TypeChecker): readonly ClassOrInterface[];
     export type ClassOrInterface = ClassLikeDeclaration | InterfaceDeclaration;
     export {};
