@@ -9308,6 +9308,7 @@ declare namespace ts {
     function getContainingFunctionDeclaration(node: Node): FunctionLikeDeclaration | undefined;
     function getContainingClass(node: Node): ClassLikeDeclaration | undefined;
     function getThisContainer(node: Node, includeArrowFunctions: boolean): Node;
+    function isInTopLevelContext(node: Node): boolean;
     function getNewTargetContainer(node: Node): Node | undefined;
     /**
      * Given an super call/property node, returns the closest node where
@@ -11104,6 +11105,7 @@ declare namespace ts {
      * @param context A lexical environment context for the visitor.
      */
     function visitEachChild<T extends Node>(node: T, visitor: Visitor, context: TransformationContext): T;
+    function visitEachChild<T extends Node>(node: T, visitor: Visitor, context: TransformationContext, nodesVisitor?: NodesVisitor, tokenVisitor?: Visitor, nodeVisitor?: NodeVisitor): T;
     /**
      * Visits each child of a Node using the supplied visitor, possibly returning a new Node of the same kind in its place.
      *
