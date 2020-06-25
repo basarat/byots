@@ -3460,7 +3460,8 @@ declare namespace ts {
         None = 0,
         Signature = 1,
         NoConstraints = 2,
-        Completions = 4
+        Completions = 4,
+        SkipBindingPatterns = 8
     }
     export enum NodeBuilderFlags {
         None = 0,
