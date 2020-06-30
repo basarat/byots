@@ -4075,7 +4075,6 @@ declare namespace ts {
         Simplifiable = 25165824,
         Substructure = 66584576,
         Narrowable = 133970943,
-        NotUnionOrUnit = 67637251,
         NotPrimitiveUnion = 66994211,
         IncludesMask = 71041023,
         IncludesStructuredOrInstantiable = 262144,
@@ -7451,7 +7450,7 @@ declare namespace ts {
         Identifier_expected_0_is_a_reserved_word_at_the_top_level_of_a_module: DiagnosticMessage;
         with_statements_are_not_allowed_in_an_async_function_block: DiagnosticMessage;
         await_expressions_are_only_allowed_within_async_functions_and_at_the_top_levels_of_modules: DiagnosticMessage;
-        can_only_be_used_in_an_object_literal_property_inside_a_destructuring_assignment: DiagnosticMessage;
+        Did_you_mean_to_use_a_Colon_When_following_property_names_in_an_object_literal_implies_a_destructuring_assignment: DiagnosticMessage;
         The_body_of_an_if_statement_cannot_be_the_empty_statement: DiagnosticMessage;
         Global_module_exports_may_only_appear_in_module_files: DiagnosticMessage;
         Global_module_exports_may_only_appear_in_declaration_files: DiagnosticMessage;
@@ -8679,6 +8678,7 @@ declare namespace ts {
         Could_not_find_property_for_which_to_generate_accessor: DiagnosticMessage;
         Name_is_not_valid: DiagnosticMessage;
         Can_only_convert_property_with_modifier: DiagnosticMessage;
+        Switch_each_misused_0_to_1: DiagnosticMessage;
         No_value_exists_in_scope_for_the_shorthand_property_0_Either_declare_one_or_provide_an_initializer: DiagnosticMessage;
         Classes_may_not_have_a_field_named_constructor: DiagnosticMessage;
         JSX_expressions_may_not_use_the_comma_operator_Did_you_mean_to_write_an_array: DiagnosticMessage;
@@ -15288,6 +15288,8 @@ declare namespace ts.codefix {
     function forEachExternalModuleToImportFrom(program: Program, host: LanguageServiceHost, from: SourceFile, filterByPackageJson: boolean, useAutoImportProvider: boolean, cb: (module: Symbol, moduleFile: SourceFile | undefined, program: Program, isFromPackageJson: boolean) => void): void;
     function moduleSymbolToValidIdentifier(moduleSymbol: Symbol, target: ScriptTarget): string;
     function moduleSpecifierToValidIdentifier(moduleSpecifier: string, target: ScriptTarget): string;
+}
+declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
 }
