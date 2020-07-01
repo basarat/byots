@@ -8512,7 +8512,6 @@ declare namespace ts {
         Implement_interface_0: DiagnosticMessage;
         Implement_inherited_abstract_class: DiagnosticMessage;
         Add_0_to_unresolved_variable: DiagnosticMessage;
-        Remove_destructuring: DiagnosticMessage;
         Remove_variable_statement: DiagnosticMessage;
         Remove_template_tag: DiagnosticMessage;
         Remove_type_parameters: DiagnosticMessage;
@@ -8542,6 +8541,8 @@ declare namespace ts {
         Replace_0_with_Promise_1: DiagnosticMessage;
         Fix_all_incorrect_return_type_of_an_async_functions: DiagnosticMessage;
         Declare_private_method_0: DiagnosticMessage;
+        Remove_unused_destructuring_declaration: DiagnosticMessage;
+        Remove_unused_declarations_for_Colon_0: DiagnosticMessage;
         Declare_a_private_field_named_0: DiagnosticMessage;
         Convert_function_to_an_ES2015_class: DiagnosticMessage;
         Convert_function_0_to_class: DiagnosticMessage;
