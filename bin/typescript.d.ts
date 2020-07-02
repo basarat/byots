@@ -90,18 +90,30 @@ declare namespace ts {
         clear(): void;
     }
     /** ES6 Map interface, only read methods included. */
-    interface ReadonlyMap<K, V> extends ReadonlyCollection<K> {
+    interface ReadonlyESMap<K, V> extends ReadonlyCollection<K> {
         get(key: K): V | undefined;
         values(): Iterator<V>;
         entries(): Iterator<[K, V]>;
         forEach(action: (value: V, key: K) => void): void;
     }
+    /**
+     * ES6 Map interface, only read methods included.
+     * @deprecated Use `ts.ReadonlyESMap<K, V>` instead.
+     */
+    interface ReadonlyMap<T> extends ReadonlyESMap<string, T> {
+    }
     /** ES6 Map interface. */
-    interface Map<K, V> extends ReadonlyMap<K, V>, Collection<K> {
+    interface ESMap<K, V> extends ReadonlyESMap<K, V>, Collection<K> {
         set(key: K, value: V): this;
     }
+    /**
+     * ES6 Map interface.
+     * @deprecated Use `ts.ESMap<K, V>` instead.
+     */
+    interface Map<T> extends ESMap<string, T> {
+    }
     interface MapConstructor {
-        new <K, V>(iterable?: readonly (readonly [K, V])[] | ReadonlyMap<K, V>): Map<K, V>;
+        new <K, V>(iterable?: readonly (readonly [K, V])[] | ReadonlyESMap<K, V>): ESMap<K, V>;
     }
     /** ES6 Set interface, only read methods included. */
     interface ReadonlySet<T> extends ReadonlyCollection<T> {
@@ -154,17 +166,17 @@ declare namespace ts {
 declare namespace ts {
     const Map: MapConstructor;
     const Set: SetConstructor;
-    function getIterator<I extends readonly any[] | ReadonlySet<any> | ReadonlyMap<any, any> | undefined>(iterable: I): Iterator<I extends ReadonlyMap<infer K, infer V> ? [K, V] : I extends ReadonlySet<infer T> ? T : I extends readonly (infer T)[] ? T : I extends undefined ? undefined : never>;
-    function getIterator<K, V>(iterable: ReadonlyMap<K, V>): Iterator<[K, V]>;
-    function getIterator<K, V>(iterable: ReadonlyMap<K, V> | undefined): Iterator<[K, V]> | undefined;
+    function getIterator<I extends readonly any[] | ReadonlySet<any> | ReadonlyESMap<any, any> | undefined>(iterable: I): Iterator<I extends ReadonlyESMap<infer K, infer V> ? [K, V] : I extends ReadonlySet<infer T> ? T : I extends readonly (infer T)[] ? T : I extends undefined ? undefined : never>;
+    function getIterator<K, V>(iterable: ReadonlyESMap<K, V>): Iterator<[K, V]>;
+    function getIterator<K, V>(iterable: ReadonlyESMap<K, V> | undefined): Iterator<[K, V]> | undefined;
     function getIterator<T>(iterable: readonly T[] | ReadonlySet<T>): Iterator<T>;
     function getIterator<T>(iterable: readonly T[] | ReadonlySet<T> | undefined): Iterator<T> | undefined;
     const emptyArray: never[];
     /** Create a new map. */
-    function createMap<K, V>(): Map<K, V>;
-    function createMap<T>(): Map<string, T>;
+    function createMap<K, V>(): ESMap<K, V>;
+    function createMap<T>(): ESMap<string, T>;
     /** Create a new map from a template object is provided, the map will copy entries from it. */
-    function createMapFromTemplate<T>(template: MapLike<T>): Map<string, T>;
+    function createMapFromTemplate<T>(template: MapLike<T>): ESMap<string, T>;
     function length(array: readonly any[] | undefined): number;
     /**
      * Iterates through 'array' by index and performs the callback on each element of array until the callback
@@ -182,7 +194,7 @@ declare namespace ts {
     function reduceLeftIterator<T, U>(iterator: Iterator<T> | undefined, f: (memo: U, value: T, i: number) => U, initial: U): U;
     function zipWith<T, U, V>(arrayA: readonly T[], arrayB: readonly U[], callback: (a: T, b: U, index: number) => V): V[];
     function zipToIterator<T, U>(arrayA: readonly T[], arrayB: readonly U[]): Iterator<[T, U]>;
-    function zipToMap<K, V>(keys: readonly K[], values: readonly V[]): Map<K, V>;
+    function zipToMap<K, V>(keys: readonly K[], values: readonly V[]): ESMap<K, V>;
     /**
      * Creates a new array with `element` interspersed in between each element of `input`
      * if there is more than 1 value in `input`. Otherwise, returns the existing array.
@@ -259,8 +271,8 @@ declare namespace ts {
     function mapAllOrFail<T, U>(array: readonly T[], mapFn: (x: T, i: number) => U | undefined): U[] | undefined;
     function mapDefined<T, U>(array: readonly T[] | undefined, mapFn: (x: T, i: number) => U | undefined): U[];
     function mapDefinedIterator<T, U>(iter: Iterator<T>, mapFn: (x: T) => U | undefined): Iterator<U>;
-    function mapDefinedEntries<K1, V1, K2, V2>(map: ReadonlyMap<K1, V1>, f: (key: K1, value: V1) => readonly [K2, V2] | undefined): Map<K2, V2>;
-    function mapDefinedEntries<K1, V1, K2, V2>(map: ReadonlyMap<K1, V1> | undefined, f: (key: K1, value: V1) => readonly [K2 | undefined, V2 | undefined] | undefined): Map<K2, V2> | undefined;
+    function mapDefinedEntries<K1, V1, K2, V2>(map: ReadonlyESMap<K1, V1>, f: (key: K1, value: V1) => readonly [K2, V2] | undefined): ESMap<K2, V2>;
+    function mapDefinedEntries<K1, V1, K2, V2>(map: ReadonlyESMap<K1, V1> | undefined, f: (key: K1, value: V1) => readonly [K2 | undefined, V2 | undefined] | undefined): ESMap<K2, V2> | undefined;
     function mapDefinedValues<V1, V2>(set: ReadonlySet<V1>, f: (value: V1) => V2 | undefined): Set<V2>;
     function mapDefinedValues<V1, V2>(set: ReadonlySet<V1> | undefined, f: (value: V1) => V2 | undefined): Set<V2> | undefined;
     function tryAddToSet<T>(set: Set<T>, value: T): boolean;
@@ -275,8 +287,8 @@ declare namespace ts {
      */
     function spanMap<T, K, U>(array: readonly T[], keyfn: (x: T, i: number) => K, mapfn: (chunk: T[], key: K, start: number, end: number) => U): U[];
     function spanMap<T, K, U>(array: readonly T[] | undefined, keyfn: (x: T, i: number) => K, mapfn: (chunk: T[], key: K, start: number, end: number) => U): U[] | undefined;
-    function mapEntries<K1, V1, K2, V2>(map: ReadonlyMap<K1, V1>, f: (key: K1, value: V1) => readonly [K2, V2]): Map<K2, V2>;
-    function mapEntries<K1, V1, K2, V2>(map: ReadonlyMap<K1, V1> | undefined, f: (key: K1, value: V1) => readonly [K2, V2]): Map<K2, V2> | undefined;
+    function mapEntries<K1, V1, K2, V2>(map: ReadonlyESMap<K1, V1>, f: (key: K1, value: V1) => readonly [K2, V2]): ESMap<K2, V2>;
+    function mapEntries<K1, V1, K2, V2>(map: ReadonlyESMap<K1, V1> | undefined, f: (key: K1, value: V1) => readonly [K2, V2]): ESMap<K2, V2> | undefined;
     function some<T>(array: readonly T[] | undefined): array is readonly T[];
     function some<T>(array: readonly T[] | undefined, predicate: (value: T) => boolean): boolean;
     /** Calls the callback with (start, afterEnd) index pairs for each range where 'pred' is true. */
@@ -464,10 +476,10 @@ declare namespace ts {
      * the same key with the given 'makeKey' function, then the element with the higher
      * index in the array will be the one associated with the produced key.
      */
-    function arrayToMap<K, V>(array: readonly V[], makeKey: (value: V) => K | undefined): Map<K, V>;
-    function arrayToMap<K, V1, V2>(array: readonly V1[], makeKey: (value: V1) => K | undefined, makeValue: (value: V1) => V2): Map<K, V2>;
-    function arrayToMap<T>(array: readonly T[], makeKey: (value: T) => string | undefined): Map<string, T>;
-    function arrayToMap<T, U>(array: readonly T[], makeKey: (value: T) => string | undefined, makeValue: (value: T) => U): Map<string, U>;
+    function arrayToMap<K, V>(array: readonly V[], makeKey: (value: V) => K | undefined): ESMap<K, V>;
+    function arrayToMap<K, V1, V2>(array: readonly V1[], makeKey: (value: V1) => K | undefined, makeValue: (value: V1) => V2): ESMap<K, V2>;
+    function arrayToMap<T>(array: readonly T[], makeKey: (value: T) => string | undefined): ESMap<string, T>;
+    function arrayToMap<T, U>(array: readonly T[], makeKey: (value: T) => string | undefined, makeValue: (value: T) => U): ESMap<string, U>;
     function arrayToNumericMap<T>(array: readonly T[], makeKey: (value: T) => number): T[];
     function arrayToNumericMap<T, U>(array: readonly T[], makeKey: (value: T) => number, makeValue: (value: T) => U): U[];
     function arrayToMultiMap<K, V>(values: readonly V[], makeKey: (value: V) => K): MultiMap<K, V>;
@@ -483,7 +495,7 @@ declare namespace ts {
     function extend<T1, T2>(first: T1, second: T2): T1 & T2;
     function copyProperties<T1 extends T2, T2>(first: T1, second: T2): void;
     function maybeBind<T, A extends any[], R>(obj: T, fn: ((this: T, ...args: A) => R) | undefined): ((...args: A) => R) | undefined;
-    interface MultiMap<K, V> extends Map<K, V[]> {
+    interface MultiMap<K, V> extends ESMap<K, V[]> {
         /**
          * Adds the value to an array of values associated with the key, and returns the array.
          * Creates the array if it does not already exist.
@@ -2945,7 +2957,7 @@ declare namespace ts {
         libReferenceDirectives: readonly FileReference[];
         languageVariant: LanguageVariant;
         isDeclarationFile: boolean;
-        renamedDependencies?: ReadonlyMap<string, string>;
+        renamedDependencies?: ReadonlyESMap<string, string>;
         /**
          * lib.d.ts should have a reference comment like
          *
@@ -2965,7 +2977,7 @@ declare namespace ts {
         externalModuleIndicator?: Node;
         commonJsModuleIndicator?: Node;
         jsGlobalAugmentations?: SymbolTable;
-        identifiers: Map<string, string>;
+        identifiers: ESMap<string, string>;
         nodeCount: number;
         identifierCount: number;
         symbolCount: number;
@@ -2977,8 +2989,8 @@ declare namespace ts {
         lineMap: readonly number[];
         classifiableNames?: ReadonlyUnderscoreEscapedMap<true>;
         commentDirectives?: CommentDirective[];
-        resolvedModules?: Map<string, ResolvedModuleFull | undefined>;
-        resolvedTypeReferenceDirectiveNames: Map<string, ResolvedTypeReferenceDirective | undefined>;
+        resolvedModules?: ESMap<string, ResolvedModuleFull | undefined>;
+        resolvedTypeReferenceDirectiveNames: ESMap<string, ResolvedTypeReferenceDirective | undefined>;
         imports: readonly StringLiteralLike[];
         moduleAugmentations: readonly (StringLiteral | Identifier)[];
         patternAmbientModules?: PatternAmbientModule[];
@@ -3144,7 +3156,7 @@ declare namespace ts {
          */
         getMissingFilePaths(): readonly Path[];
         getRefFileMap(): MultiMap<Path, RefFile> | undefined;
-        getFilesByNameMap(): Map<string, SourceFile | false | undefined>;
+        getFilesByNameMap(): ESMap<string, SourceFile | false | undefined>;
         /**
          * Emits the JavaScript and declaration files.  If targetSourceFile is not specified, then
          * the JavaScript and declaration files will be produced for all the files in this program.
@@ -3187,14 +3199,14 @@ declare namespace ts {
             strictSubtype: number;
         };
         getFileProcessingDiagnostics(): DiagnosticCollection;
-        getResolvedTypeReferenceDirectives(): Map<string, ResolvedTypeReferenceDirective | undefined>;
+        getResolvedTypeReferenceDirectives(): ESMap<string, ResolvedTypeReferenceDirective | undefined>;
         isSourceFileFromExternalLibrary(file: SourceFile): boolean;
         isSourceFileDefaultLibrary(file: SourceFile): boolean;
         structureIsReused?: StructureIsReused;
         getSourceFileFromReference(referencingFile: SourceFile | UnparsedSource, ref: FileReference): SourceFile | undefined;
         getLibFileFromReference(ref: FileReference): SourceFile | undefined;
         /** Given a source file, get the name of the package it was imported from. */
-        sourceFileToPackageName: Map<string, string>;
+        sourceFileToPackageName: ESMap<string, string>;
         /** Set of all source files that some other source file redirects to. */
         redirectTargetsMap: MultiMap<string, string>;
         /** Is the file emitted file */
@@ -3209,7 +3221,7 @@ declare namespace ts {
         isSourceOfProjectReferenceRedirect(fileName: string): boolean;
         getProgramBuildInfo?(): ProgramBuildInfo | undefined;
         emitBuildInfo(writeFile?: WriteFileCallback, cancellationToken?: CancellationToken): EmitResult;
-        getProbableSymlinks(): ReadonlyMap<string, string>;
+        getProbableSymlinks(): ReadonlyESMap<string, string>;
         /**
          * This implementation handles file exists to be true if file is source of project reference redirect when program is created using useSourceOfProjectReferenceRedirect
          */
@@ -3217,7 +3229,7 @@ declare namespace ts {
     }
     export interface Program extends TypeCheckerHost, ModuleSpecifierResolutionHost {
     }
-    export type RedirectTargetsMap = ReadonlyMap<string, readonly string[]>;
+    export type RedirectTargetsMap = ReadonlyESMap<string, readonly string[]>;
     export interface ResolvedProjectReference {
         commandLine: ParsedCommandLine;
         sourceFile: SourceFile;
@@ -3285,7 +3297,7 @@ declare namespace ts {
         getCompilerOptions(): CompilerOptions;
         getSourceFiles(): readonly SourceFile[];
         getSourceFile(fileName: string): SourceFile | undefined;
-        getResolvedTypeReferenceDirectives(): ReadonlyMap<string, ResolvedTypeReferenceDirective | undefined>;
+        getResolvedTypeReferenceDirectives(): ReadonlyESMap<string, ResolvedTypeReferenceDirective | undefined>;
         getProjectReferenceRedirect(fileName: string): string | undefined;
         isSourceOfProjectReferenceRedirect(fileName: string): boolean;
         readonly redirectTargetsMap: RedirectTargetsMap;
@@ -3838,7 +3850,7 @@ declare namespace ts {
         isReferenced?: SymbolFlags;
         isReplaceableByMethod?: boolean;
         isAssigned?: boolean;
-        assignmentDeclarationMembers?: Map<number, Declaration>;
+        assignmentDeclarationMembers?: ESMap<number, Declaration>;
     }
     export interface SymbolLinks {
         immediateTarget?: Symbol;
@@ -3849,8 +3861,8 @@ declare namespace ts {
         declaredType?: Type;
         typeParameters?: TypeParameter[];
         outerTypeParameters?: TypeParameter[];
-        instantiations?: Map<string, Type>;
-        inferredClassSymbol?: Map<string, TransientSymbol>;
+        instantiations?: ESMap<string, Type>;
+        inferredClassSymbol?: ESMap<string, TransientSymbol>;
         mapper?: TypeMapper;
         referenced?: boolean;
         constEnumReferenced?: boolean;
@@ -3869,9 +3881,9 @@ declare namespace ts {
         enumKind?: EnumKind;
         originatingImport?: ImportDeclaration | ImportCall;
         lateSymbol?: Symbol;
-        specifierCache?: Map<string, string>;
+        specifierCache?: ESMap<string, string>;
         extendedContainers?: Symbol[];
-        extendedContainersByFile?: Map<string, Symbol[]>;
+        extendedContainersByFile?: ESMap<string, Symbol[]>;
         variances?: VarianceFlags[];
         deferralConstituents?: Type[];
         deferralParent?: Type;
@@ -3954,10 +3966,10 @@ declare namespace ts {
         __escapedIdentifier: void;
     }) | InternalSymbolName;
     /** ReadonlyMap where keys are `__String`s. */
-    export interface ReadonlyUnderscoreEscapedMap<T> extends ReadonlyMap<__String, T> {
+    export interface ReadonlyUnderscoreEscapedMap<T> extends ReadonlyESMap<__String, T> {
     }
     /** Map where keys are `__String`s. */
-    export interface UnderscoreEscapedMap<T> extends Map<__String, T>, ReadonlyUnderscoreEscapedMap<T> {
+    export interface UnderscoreEscapedMap<T> extends ESMap<__String, T>, ReadonlyUnderscoreEscapedMap<T> {
     }
     /** SymbolTable based on ES6 Map interface. */
     export type SymbolTable = UnderscoreEscapedMap<Symbol>;
@@ -4010,10 +4022,10 @@ declare namespace ts {
         switchTypes?: Type[];
         jsxNamespace?: Symbol | false;
         contextFreeType?: Type;
-        deferredNodes?: Map<string, Node>;
+        deferredNodes?: ESMap<string, Node>;
         capturedBlockScopeBindings?: Symbol[];
         outerTypeParameters?: TypeParameter[];
-        instantiations?: Map<string, Type>;
+        instantiations?: ESMap<string, Type>;
         isExhaustive?: boolean;
         skipDirectInference?: true;
         declarationRequiresScopeChange?: boolean;
@@ -4225,7 +4237,7 @@ declare namespace ts {
         AllowsStructuralFallback = 24
     }
     export interface GenericType extends InterfaceType, TypeReference {
-        instantiations: Map<string, TypeReference>;
+        instantiations: ESMap<string, TypeReference>;
         variances?: VarianceFlags[];
     }
     export enum ElementFlags {
@@ -4351,7 +4363,7 @@ declare namespace ts {
         isDistributive: boolean;
         inferTypeParameters?: TypeParameter[];
         outerTypeParameters?: TypeParameter[];
-        instantiations?: Map<string, Type>;
+        instantiations?: Map<Type>;
         aliasSymbol?: Symbol;
         aliasTypeArguments?: Type[];
     }
@@ -4409,7 +4421,7 @@ declare namespace ts {
             outer?: Signature;
         };
         isolatedSignatureType?: ObjectType;
-        instantiations?: Map<string, Signature>;
+        instantiations?: ESMap<string, Signature>;
     }
     export enum IndexKind {
         String = 0,
@@ -4864,7 +4876,7 @@ declare namespace ts {
     }
     export interface CommandLineOptionBase {
         name: string;
-        type: "string" | "number" | "boolean" | "object" | "list" | Map<string, number | string>;
+        type: "string" | "number" | "boolean" | "object" | "list" | ESMap<string, number | string>;
         isFilePath?: boolean;
         shortName?: string;
         description?: DiagnosticMessage;
@@ -4885,7 +4897,7 @@ declare namespace ts {
         type: "string" | "number" | "boolean";
     }
     export interface CommandLineOptionOfCustomType extends CommandLineOptionBase {
-        type: Map<string, number | string>;
+        type: ESMap<string, number | string>;
     }
     export interface DidYouMeanOptionsDiagnostics {
         optionDeclarations: CommandLineOption[];
@@ -4894,7 +4906,7 @@ declare namespace ts {
     }
     export interface TsConfigOnlyOption extends CommandLineOptionBase {
         type: "object";
-        elementOptions?: Map<string, CommandLineOption>;
+        elementOptions?: ESMap<string, CommandLineOption>;
         extraKeyDiagnostics?: DidYouMeanOptionsDiagnostics;
     }
     export interface CommandLineOptionOfListType extends CommandLineOptionBase {
@@ -5138,7 +5150,7 @@ declare namespace ts {
         getParsedCommandLine?(fileName: string): ParsedCommandLine | undefined;
         useSourceOfProjectReferenceRedirect?(): boolean;
         createDirectory?(directory: string): void;
-        getSymlinks?(): ReadonlyMap<string, string>;
+        getSymlinks?(): ReadonlyESMap<string, string>;
     }
     /** true if --out otherwise source file name */
     export type SourceOfProjectReferenceRedirect = string | true;
@@ -6340,7 +6352,7 @@ declare namespace ts {
         fileExists(path: string): boolean;
         getCurrentDirectory(): string;
         readFile?(path: string): string | undefined;
-        getProbableSymlinks?(files: readonly SourceFile[]): ReadonlyMap<string, string>;
+        getProbableSymlinks?(files: readonly SourceFile[]): ReadonlyESMap<string, string>;
         getGlobalTypingsCacheLocation?(): string | undefined;
         getSourceFiles(): readonly SourceFile[];
         readonly redirectTargetsMap: RedirectTargetsMap;
@@ -6574,7 +6586,7 @@ declare namespace ts {
             args: PragmaPseudoMap[K];
         };
     }[keyof PragmaPseudoMap];
-    export interface ReadonlyPragmaMap extends ReadonlyMap<string, PragmaPseudoMap[keyof PragmaPseudoMap] | PragmaPseudoMap[keyof PragmaPseudoMap][]> {
+    export interface ReadonlyPragmaMap extends ReadonlyESMap<string, PragmaPseudoMap[keyof PragmaPseudoMap] | PragmaPseudoMap[keyof PragmaPseudoMap][]> {
         get<TKey extends keyof PragmaPseudoMap>(key: TKey): PragmaPseudoMap[TKey] | PragmaPseudoMap[TKey][];
         forEach(action: <TKey extends keyof PragmaPseudoMap>(value: PragmaPseudoMap[TKey] | PragmaPseudoMap[TKey][], key: TKey) => void): void;
     }
@@ -6583,7 +6595,7 @@ declare namespace ts {
      * value (if only one was found), or an array of multiple argument values if the pragma is present
      * in multiple places
      */
-    export interface PragmaMap extends Map<string, PragmaPseudoMap[keyof PragmaPseudoMap] | PragmaPseudoMap[keyof PragmaPseudoMap][]>, ReadonlyPragmaMap {
+    export interface PragmaMap extends ESMap<string, PragmaPseudoMap[keyof PragmaPseudoMap] | PragmaPseudoMap[keyof PragmaPseudoMap][]>, ReadonlyPragmaMap {
         set<TKey extends keyof PragmaPseudoMap>(key: TKey, value: PragmaPseudoMap[TKey] | PragmaPseudoMap[TKey][]): this;
         get<TKey extends keyof PragmaPseudoMap>(key: TKey): PragmaPseudoMap[TKey] | PragmaPseudoMap[TKey][];
         forEach(action: <TKey extends keyof PragmaPseudoMap>(value: PragmaPseudoMap[TKey] | PragmaPseudoMap[TKey][], key: TKey) => void): void;
@@ -9162,7 +9174,7 @@ declare namespace ts {
 }
 declare namespace ts {
     const resolvingEmptyArray: never[];
-    const emptyMap: ReadonlyMap<never, never> & ReadonlyPragmaMap;
+    const emptyMap: ReadonlyESMap<never, never> & ReadonlyPragmaMap;
     const emptyUnderscoreEscapedMap: ReadonlyUnderscoreEscapedMap<never>;
     const externalHelpersModuleNameText = "tslib";
     const defaultMaximumTruncationLength = 160;
@@ -9188,22 +9200,22 @@ declare namespace ts {
      * Calls `callback` for each entry in the map, returning the first truthy result.
      * Use `map.forEach` instead for normal iteration.
      */
-    function forEachEntry<K, V, U>(map: ReadonlyMap<K, V>, callback: (value: V, key: K) => U | undefined): U | undefined;
+    function forEachEntry<K, V, U>(map: ReadonlyESMap<K, V>, callback: (value: V, key: K) => U | undefined): U | undefined;
     /** `forEachEntry` for just keys. */
     function forEachKey<K, T>(map: ReadonlyCollection<K>, callback: (key: K) => T | undefined): T | undefined;
     /** Copy entries from `source` to `target`. */
-    function copyEntries<K, V>(source: ReadonlyMap<K, V>, target: Map<K, V>): void;
+    function copyEntries<K, V>(source: ReadonlyESMap<K, V>, target: ESMap<K, V>): void;
     /**
      * Creates a set from the elements of an array.
      *
      * @param array the array of input elements.
      */
-    function arrayToSet(array: readonly string[]): Map<string, true>;
-    function arrayToSet<T>(array: readonly T[], makeKey: (value: T) => string | undefined): Map<string, true>;
+    function arrayToSet(array: readonly string[]): ESMap<string, true>;
+    function arrayToSet<T>(array: readonly T[], makeKey: (value: T) => string | undefined): ESMap<string, true>;
     function arrayToSet<T>(array: readonly T[], makeKey: (value: T) => __String | undefined): UnderscoreEscapedMap<true>;
     function cloneMap(map: SymbolTable): SymbolTable;
     function cloneMap<T>(map: ReadonlyUnderscoreEscapedMap<T>): UnderscoreEscapedMap<T>;
-    function cloneMap<K, V>(map: ReadonlyMap<K, V>): Map<K, V>;
+    function cloneMap<K, V>(map: ReadonlyESMap<K, V>): ESMap<K, V>;
     function usingSingleLineStringWriter(action: (writer: EmitTextWriter) => void): string;
     function getFullWidth(node: Node): number;
     function getResolvedModule(sourceFile: SourceFile | undefined, moduleNameText: string): ResolvedModuleFull | undefined;
@@ -9213,7 +9225,7 @@ declare namespace ts {
     function moduleResolutionIsEqualTo(oldResolution: ResolvedModuleFull, newResolution: ResolvedModuleFull): boolean;
     function packageIdToString({ name, subModuleName, version }: PackageId): string;
     function typeDirectiveIsEqualTo(oldResolution: ResolvedTypeReferenceDirective, newResolution: ResolvedTypeReferenceDirective): boolean;
-    function hasChangesInResolutions<T>(names: readonly string[], newResolutions: readonly T[], oldResolutions: ReadonlyMap<string, T> | undefined, comparer: (oldResolution: T, newResolution: T) => boolean): boolean;
+    function hasChangesInResolutions<T>(names: readonly string[], newResolutions: readonly T[], oldResolutions: ReadonlyESMap<string, T> | undefined, comparer: (oldResolution: T, newResolution: T) => boolean): boolean;
     function containsParseError(node: Node): boolean;
     function getSourceFileOfNode(node: Node): SourceFile;
     function getSourceFileOfNode(node: Node | undefined): SourceFile | undefined;
@@ -9906,8 +9918,8 @@ declare namespace ts {
      * clears already present map by calling onDeleteExistingValue callback before deleting that key/value
      */
     function clearMap<T>(map: {
-        forEach: Map<string, T>["forEach"];
-        clear: Map<string, T>["clear"];
+        forEach: ESMap<string, T>["forEach"];
+        clear: ESMap<string, T>["clear"];
     }, onDeleteValue: (valueInMap: T, key: string) => void): void;
     interface MutateMapSkippingNewValuesOptions<T, U> {
         onDeleteValue(existingValue: T, key: string): void;
@@ -9922,14 +9934,14 @@ declare namespace ts {
     /**
      * Mutates the map with newMap such that keys in map will be same as newMap.
      */
-    function mutateMapSkippingNewValues<T, U>(map: Map<string, T>, newMap: ReadonlyMap<string, U>, options: MutateMapSkippingNewValuesOptions<T, U>): void;
+    function mutateMapSkippingNewValues<T, U>(map: ESMap<string, T>, newMap: ReadonlyESMap<string, U>, options: MutateMapSkippingNewValuesOptions<T, U>): void;
     interface MutateMapOptions<T, U> extends MutateMapSkippingNewValuesOptions<T, U> {
         createNewValue(key: string, valueInNewMap: U): T;
     }
     /**
      * Mutates the map with newMap such that keys in map will be same as newMap.
      */
-    function mutateMap<T, U>(map: Map<string, T>, newMap: ReadonlyMap<string, U>, options: MutateMapOptions<T, U>): void;
+    function mutateMap<T, U>(map: ESMap<string, T>, newMap: ReadonlyESMap<string, U>, options: MutateMapOptions<T, U>): void;
     function isAbstractConstructorType(type: Type): boolean;
     function isAbstractConstructorSymbol(symbol: Symbol): boolean;
     function getClassLikeDeclarationOfSymbol(symbol: Symbol): ClassLikeDeclaration | undefined;
@@ -9940,8 +9952,8 @@ declare namespace ts {
     function showModuleSpecifier({ moduleSpecifier }: ImportDeclaration): string;
     function getLastChild(node: Node): Node | undefined;
     /** Add a value to a set, and return true if it wasn't already present. */
-    function addToSeen(seen: Map<string, true>, key: string | number): boolean;
-    function addToSeen<T>(seen: Map<string, T>, key: string | number, value: T): boolean;
+    function addToSeen(seen: ESMap<string, true>, key: string | number): boolean;
+    function addToSeen<T>(seen: ESMap<string, T>, key: string | number, value: T): boolean;
     function isObjectTypeDeclaration(node: Node): node is ObjectTypeDeclaration;
     function isTypeNodeKind(kind: SyntaxKind): kind is TypeNodeSyntaxKind;
     function isAccessExpression(node: Node): node is AccessExpression;
@@ -9996,7 +10008,7 @@ declare namespace ts {
     function compilerOptionsAffectEmit(newOptions: CompilerOptions, oldOptions: CompilerOptions): boolean;
     function getCompilerOptionValue(options: CompilerOptions, option: CommandLineOption): unknown;
     function hasZeroOrOneAsteriskCharacter(str: string): boolean;
-    function discoverProbableSymlinks(files: readonly SourceFile[], getCanonicalFileName: GetCanonicalFileName, cwd: string): ReadonlyMap<string, string>;
+    function discoverProbableSymlinks(files: readonly SourceFile[], getCanonicalFileName: GetCanonicalFileName, cwd: string): ReadonlyESMap<string, string>;
     function tryRemoveDirectoryPrefix(path: string, dirPath: string, getCanonicalFileName: GetCanonicalFileName): string | undefined;
     function regExpEscape(text: string): string;
     const commonPackageFolders: readonly string[];
@@ -10127,7 +10139,7 @@ declare namespace ts {
     }
     function skipTypeChecking(sourceFile: SourceFile, options: CompilerOptions, host: HostWithIsSourceOfProjectReferenceRedirect): boolean;
     function isJsonEqual(a: unknown, b: unknown): boolean;
-    function getOrUpdate<T>(map: Map<string, T>, key: string, getDefault: () => T): T;
+    function getOrUpdate<T>(map: ESMap<string, T>, key: string, getDefault: () => T): T;
     /**
      * Converts a bigint literal string, e.g. `0x1234n`,
      * to its decimal string representation, e.g. `4660`.
@@ -10389,7 +10401,7 @@ declare namespace ts {
     const importDefaultHelper: UnscopedEmitHelper;
     const classPrivateFieldGetHelper: UnscopedEmitHelper;
     const classPrivateFieldSetHelper: UnscopedEmitHelper;
-    function getAllUnscopedEmitHelpers(): ReadonlyMap<string, UnscopedEmitHelper>;
+    function getAllUnscopedEmitHelpers(): ReadonlyESMap<string, UnscopedEmitHelper>;
     const asyncSuperHelper: EmitHelper;
     const advancedAsyncSuperHelper: EmitHelper;
 }
@@ -10759,7 +10771,7 @@ declare namespace ts {
      * A map of lib names to lib files. This map is used both for parsing the "lib" command line
      * option as well as for resolving lib reference directives.
      */
-    export const libMap: Map<string, string>;
+    export const libMap: ESMap<string, string>;
     export const optionsForWatch: CommandLineOption[];
     export const commonOptionsWithBuild: CommandLineOption[];
     export const optionDeclarations: CommandLineOption[];
@@ -10771,8 +10783,8 @@ declare namespace ts {
     export const buildOpts: CommandLineOption[];
     export const typeAcquisitionDeclarations: CommandLineOption[];
     export interface OptionsNameMap {
-        optionsNameMap: Map<string, CommandLineOption>;
-        shortOptionNames: Map<string, string>;
+        optionsNameMap: ESMap<string, CommandLineOption>;
+        shortOptionNames: ESMap<string, string>;
     }
     export function createOptionNameMap(optionDeclarations: readonly CommandLineOption[]): OptionsNameMap;
     export function getOptionsNameMap(): OptionsNameMap;
@@ -10825,7 +10837,7 @@ declare namespace ts {
     /**
      * Reads the config file, reports errors if any and exits if the config file cannot be found
      */
-    export function getParsedCommandLineOfConfigFile(configFileName: string, optionsToExtend: CompilerOptions, host: ParseConfigFileHost, extendedConfigCache?: Map<string, ExtendedConfigCacheEntry>, watchOptionsToExtend?: WatchOptions, extraFileExtensions?: readonly FileExtensionInfo[]): ParsedCommandLine | undefined;
+    export function getParsedCommandLineOfConfigFile(configFileName: string, optionsToExtend: CompilerOptions, host: ParseConfigFileHost, extendedConfigCache?: Map<ExtendedConfigCacheEntry>, watchOptionsToExtend?: WatchOptions, extraFileExtensions?: readonly FileExtensionInfo[]): ParsedCommandLine | undefined;
     /**
      * Read tsconfig.json file
      * @param fileName The path to the config file
@@ -10922,7 +10934,7 @@ declare namespace ts {
      * @param basePath A root directory to resolve relative path entries in the config
      *    file to. e.g. outDir
      */
-    export function parseJsonConfigFileContent(json: any, host: ParseConfigHost, basePath: string, existingOptions?: CompilerOptions, configFileName?: string, resolutionStack?: Path[], extraFileExtensions?: readonly FileExtensionInfo[], extendedConfigCache?: Map<string, ExtendedConfigCacheEntry>, existingWatchOptions?: WatchOptions): ParsedCommandLine;
+    export function parseJsonConfigFileContent(json: any, host: ParseConfigHost, basePath: string, existingOptions?: CompilerOptions, configFileName?: string, resolutionStack?: Path[], extraFileExtensions?: readonly FileExtensionInfo[], extendedConfigCache?: Map<ExtendedConfigCacheEntry>, existingWatchOptions?: WatchOptions): ParsedCommandLine;
     /**
      * Parse the contents of a config file (tsconfig.json).
      * @param jsonNode The contents of the config file to parse
@@ -10930,7 +10942,7 @@ declare namespace ts {
      * @param basePath A root directory to resolve relative path entries in the config
      *    file to. e.g. outDir
      */
-    export function parseJsonSourceFileConfigFileContent(sourceFile: TsConfigSourceFile, host: ParseConfigHost, basePath: string, existingOptions?: CompilerOptions, configFileName?: string, resolutionStack?: Path[], extraFileExtensions?: readonly FileExtensionInfo[], extendedConfigCache?: Map<string, ExtendedConfigCacheEntry>, existingWatchOptions?: WatchOptions): ParsedCommandLine;
+    export function parseJsonSourceFileConfigFileContent(sourceFile: TsConfigSourceFile, host: ParseConfigHost, basePath: string, existingOptions?: CompilerOptions, configFileName?: string, resolutionStack?: Path[], extraFileExtensions?: readonly FileExtensionInfo[], extendedConfigCache?: Map<ExtendedConfigCacheEntry>, existingWatchOptions?: WatchOptions): ParsedCommandLine;
     export function setConfigFileInOptions(options: CompilerOptions, configFile: TsConfigSourceFile | undefined): void;
     export function canJsonReportNoInputFiles(raw: any): boolean;
     export function updateErrorForNoInputFiles(result: ExpandResult, configFileName: string, configFileSpecs: ConfigFileSpecs, configParseDiagnostics: Diagnostic[], canJsonReportNoInutFiles: boolean): boolean;
@@ -11002,8 +11014,8 @@ declare namespace ts {
      * This assumes that any module id will have the same resolution for sibling files located in the same folder.
      */
     interface ModuleResolutionCache extends NonRelativeModuleNameResolutionCache {
-        getOrCreateCacheForDirectory(directoryName: string, redirectedReference?: ResolvedProjectReference): Map<string, ResolvedModuleWithFailedLookupLocations>;
-        directoryToModuleNameMap: CacheWithRedirects<Map<string, ResolvedModuleWithFailedLookupLocations>>;
+        getOrCreateCacheForDirectory(directoryName: string, redirectedReference?: ResolvedProjectReference): Map<ResolvedModuleWithFailedLookupLocations>;
+        directoryToModuleNameMap: CacheWithRedirects<ESMap<string, ResolvedModuleWithFailedLookupLocations>>;
     }
     /**
      * Stored map from non-relative module name to a table: directory -> result of module lookup in this directory
@@ -11019,15 +11031,15 @@ declare namespace ts {
     }
     function createModuleResolutionCache(currentDirectory: string, getCanonicalFileName: (s: string) => string, options?: CompilerOptions): ModuleResolutionCache;
     interface CacheWithRedirects<T> {
-        ownMap: Map<string, T>;
-        redirectsMap: Map<Path, Map<string, T>>;
-        getOrCreateMapOfCacheRedirects(redirectedReference: ResolvedProjectReference | undefined): Map<string, T>;
+        ownMap: ESMap<string, T>;
+        redirectsMap: ESMap<Path, ESMap<string, T>>;
+        getOrCreateMapOfCacheRedirects(redirectedReference: ResolvedProjectReference | undefined): ESMap<string, T>;
         clear(): void;
         setOwnOptions(newOptions: CompilerOptions): void;
-        setOwnMap(newOwnMap: Map<string, T>): void;
+        setOwnMap(newOwnMap: ESMap<string, T>): void;
     }
     function createCacheWithRedirects<T>(options?: CompilerOptions): CacheWithRedirects<T>;
-    function createModuleResolutionCacheWithMaps(directoryToModuleNameMap: CacheWithRedirects<Map<string, ResolvedModuleWithFailedLookupLocations>>, moduleNameToDirectoryMap: CacheWithRedirects<PerModuleNameCache>, currentDirectory: string, getCanonicalFileName: GetCanonicalFileName): ModuleResolutionCache;
+    function createModuleResolutionCacheWithMaps(directoryToModuleNameMap: CacheWithRedirects<ESMap<string, ResolvedModuleWithFailedLookupLocations>>, moduleNameToDirectoryMap: CacheWithRedirects<PerModuleNameCache>, currentDirectory: string, getCanonicalFileName: GetCanonicalFileName): ModuleResolutionCache;
     function resolveModuleNameFromCache(moduleName: string, containingFile: string, cache: ModuleResolutionCache): ResolvedModuleWithFailedLookupLocations | undefined;
     function resolveModuleName(moduleName: string, containingFile: string, compilerOptions: CompilerOptions, host: ModuleResolutionHost, cache?: ModuleResolutionCache, redirectedReference?: ResolvedProjectReference): ResolvedModuleWithFailedLookupLocations;
     /**
@@ -11062,7 +11074,7 @@ declare namespace ts {
         Instantiated = 1,
         ConstEnumOnly = 2
     }
-    function getModuleInstanceState(node: ModuleDeclaration, visited?: Map<number, ModuleInstanceState | undefined>): ModuleInstanceState;
+    function getModuleInstanceState(node: ModuleDeclaration, visited?: ESMap<number, ModuleInstanceState | undefined>): ModuleInstanceState;
     function bindSourceFile(file: SourceFile, options: CompilerOptions): void;
     function isExportsOrModuleExportsOrAlias(sourceFile: SourceFile, node: Expression): boolean;
 }
@@ -11210,7 +11222,7 @@ declare namespace ts {
     interface ExternalModuleInfo {
         externalImports: (ImportDeclaration | ImportEqualsDeclaration | ExportDeclaration)[];
         externalHelpersImportDeclaration: ImportDeclaration | undefined;
-        exportSpecifiers: Map<string, ExportSpecifier[]>;
+        exportSpecifiers: ESMap<string, ExportSpecifier[]>;
         exportedBindings: Identifier[][];
         exportedNames: Identifier[] | undefined;
         exportEquals: ExportAssignment | undefined;
@@ -11476,7 +11488,7 @@ declare namespace ts {
     /**
      * Updates the existing missing file watches with the new set of missing files after new program is created
      */
-    function updateMissingFilePathsWatch(program: Program, missingFileWatches: Map<Path, FileWatcher>, createMissingFileWatch: (missingFilePath: Path) => FileWatcher): void;
+    function updateMissingFilePathsWatch(program: Program, missingFileWatches: ESMap<Path, FileWatcher>, createMissingFileWatch: (missingFilePath: Path) => FileWatcher): void;
     interface WildcardDirectoryWatcher {
         watcher: FileWatcher;
         flags: WatchDirectoryFlags;
@@ -11487,7 +11499,7 @@ declare namespace ts {
      * Note that there is no need to call this function when the program is updated with additional files without reloading config files,
      * as wildcard directories wont change unless reloading config file
      */
-    function updateWatchingWildcardDirectories(existingWatchedForWildcards: Map<string, WildcardDirectoryWatcher>, wildcardDirectories: Map<string, WatchDirectoryFlags>, watchDirectory: (directory: string, flags: WatchDirectoryFlags) => FileWatcher): void;
+    function updateWatchingWildcardDirectories(existingWatchedForWildcards: ESMap<string, WildcardDirectoryWatcher>, wildcardDirectories: ESMap<string, WatchDirectoryFlags>, watchDirectory: (directory: string, flags: WatchDirectoryFlags) => FileWatcher): void;
     interface IsIgnoredFileFromWildCardWatchingInput {
         watchedDirPath: Path;
         fileOrDirectory: string;
@@ -11657,35 +11669,35 @@ declare namespace ts {
         /**
          * Information of the file eg. its version, signature etc
          */
-        fileInfos: ReadonlyMap<Path, BuilderState.FileInfo>;
+        fileInfos: ReadonlyESMap<Path, BuilderState.FileInfo>;
         /**
          * Contains the map of ReferencedSet=Referenced files of the file if module emit is enabled
          * Otherwise undefined
          * Thus non undefined value indicates, module emit
          */
-        readonly referencedMap?: ReadonlyMap<Path, BuilderState.ReferencedSet> | undefined;
+        readonly referencedMap?: ReadonlyESMap<Path, BuilderState.ReferencedSet> | undefined;
         /**
          * Contains the map of exported modules ReferencedSet=exported module files from the file if module emit is enabled
          * Otherwise undefined
          */
-        readonly exportedModulesMap?: ReadonlyMap<Path, BuilderState.ReferencedSet> | undefined;
+        readonly exportedModulesMap?: ReadonlyESMap<Path, BuilderState.ReferencedSet> | undefined;
     }
     interface BuilderState {
         /**
          * Information of the file eg. its version, signature etc
          */
-        fileInfos: Map<Path, BuilderState.FileInfo>;
+        fileInfos: ESMap<Path, BuilderState.FileInfo>;
         /**
          * Contains the map of ReferencedSet=Referenced files of the file if module emit is enabled
          * Otherwise undefined
          * Thus non undefined value indicates, module emit
          */
-        readonly referencedMap: ReadonlyMap<Path, BuilderState.ReferencedSet> | undefined;
+        readonly referencedMap: ReadonlyESMap<Path, BuilderState.ReferencedSet> | undefined;
         /**
          * Contains the map of exported modules ReferencedSet=exported module files from the file if module emit is enabled
          * Otherwise undefined
          */
-        readonly exportedModulesMap: Map<Path, BuilderState.ReferencedSet> | undefined;
+        readonly exportedModulesMap: ESMap<Path, BuilderState.ReferencedSet> | undefined;
         /**
          * Map of files that have already called update signature.
          * That means hence forth these files are assumed to have
@@ -11722,11 +11734,11 @@ declare namespace ts {
          * Exported modules to from declaration emit being computed.
          * This can contain false in the affected file path to specify that there are no exported module(types from other modules) for this file
          */
-        type ComputingExportedModulesMap = Map<Path, ReferencedSet | false>;
+        type ComputingExportedModulesMap = ESMap<Path, ReferencedSet | false>;
         /**
          * Returns true if oldState is reusable, that is the emitKind = module/non module has not changed
          */
-        function canReuseOldState(newReferencedMap: ReadonlyMap<Path, ReferencedSet> | undefined, oldState: Readonly<ReusableBuilderState> | undefined): boolean | undefined;
+        function canReuseOldState(newReferencedMap: ReadonlyESMap<Path, ReferencedSet> | undefined, oldState: Readonly<ReusableBuilderState> | undefined): boolean | undefined;
         /**
          * Creates the state of file references and signature for the new program from oldState if it is safe
          */
@@ -11742,17 +11754,17 @@ declare namespace ts {
         /**
          * Gets the files affected by the path from the program
          */
-        function getFilesAffectedBy(state: BuilderState, programOfThisState: Program, path: Path, cancellationToken: CancellationToken | undefined, computeHash: ComputeHash, cacheToUpdateSignature?: Map<Path, string>, exportedModulesMapCache?: ComputingExportedModulesMap): readonly SourceFile[];
+        function getFilesAffectedBy(state: BuilderState, programOfThisState: Program, path: Path, cancellationToken: CancellationToken | undefined, computeHash: ComputeHash, cacheToUpdateSignature?: ESMap<Path, string>, exportedModulesMapCache?: ComputingExportedModulesMap): readonly SourceFile[];
         /**
          * Updates the signatures from the cache into state's fileinfo signatures
          * This should be called whenever it is safe to commit the state of the builder
          */
-        function updateSignaturesFromCache(state: BuilderState, signatureCache: Map<Path, string>): void;
+        function updateSignaturesFromCache(state: BuilderState, signatureCache: ESMap<Path, string>): void;
         function updateSignatureOfFile(state: BuilderState, signature: string | undefined, path: Path): void;
         /**
          * Returns if the shape of the signature has changed since last emit
          */
-        function updateShapeSignature(state: Readonly<BuilderState>, programOfThisState: Program, sourceFile: SourceFile, cacheToUpdateSignature: Map<Path, string>, cancellationToken: CancellationToken | undefined, computeHash: ComputeHash, exportedModulesMapCache?: ComputingExportedModulesMap): boolean;
+        function updateShapeSignature(state: Readonly<BuilderState>, programOfThisState: Program, sourceFile: SourceFile, cacheToUpdateSignature: ESMap<Path, string>, cancellationToken: CancellationToken | undefined, computeHash: ComputeHash, exportedModulesMapCache?: ComputingExportedModulesMap): boolean;
         /**
          * Updates the exported modules from cache into state's exported modules map
          * This should be called whenever it is safe to commit the state of the builder
@@ -11794,7 +11806,7 @@ declare namespace ts {
         /**
          * Cache of bind and check diagnostics for files with their Path being the key
          */
-        semanticDiagnosticsPerFile?: ReadonlyMap<Path, readonly ReusableDiagnostic[] | readonly Diagnostic[]> | undefined;
+        semanticDiagnosticsPerFile?: ReadonlyESMap<Path, readonly ReusableDiagnostic[] | readonly Diagnostic[]> | undefined;
         /**
          * The map has key by source file's path that has been changed
          */
@@ -11811,7 +11823,7 @@ declare namespace ts {
          * Map of file signatures, with key being file path, calculated while getting current changed file's affected files
          * These will be committed whenever the iteration through affected files of current changed file is complete
          */
-        currentAffectedFilesSignatures?: ReadonlyMap<Path, string> | undefined;
+        currentAffectedFilesSignatures?: ReadonlyESMap<Path, string> | undefined;
         /**
          * Newly computed visible to outside referencedSet
          */
@@ -11835,7 +11847,7 @@ declare namespace ts {
         /**
          * Files pending to be emitted kind.
          */
-        affectedFilesPendingEmitKind?: ReadonlyMap<Path, BuilderFileEmit> | undefined;
+        affectedFilesPendingEmitKind?: ReadonlyESMap<Path, BuilderFileEmit> | undefined;
         /**
          * Current index to retrieve pending affected file
          */
@@ -11853,7 +11865,7 @@ declare namespace ts {
         /**
          * Cache of bind and check diagnostics for files with their Path being the key
          */
-        semanticDiagnosticsPerFile: Map<Path, readonly Diagnostic[]> | undefined;
+        semanticDiagnosticsPerFile: ESMap<Path, readonly Diagnostic[]> | undefined;
         /**
          * The map has key by source file's path that has been changed
          */
@@ -11874,7 +11886,7 @@ declare namespace ts {
          * Map of file signatures, with key being file path, calculated while getting current changed file's affected files
          * These will be committed whenever the iteration through affected files of current changed file is complete
          */
-        currentAffectedFilesSignatures: Map<Path, string> | undefined;
+        currentAffectedFilesSignatures: ESMap<Path, string> | undefined;
         /**
          * Newly computed visible to outside referencedSet
          */
@@ -11906,7 +11918,7 @@ declare namespace ts {
         /**
          * Files pending to be emitted kind.
          */
-        affectedFilesPendingEmitKind: Map<Path, BuilderFileEmit> | undefined;
+        affectedFilesPendingEmitKind: ESMap<Path, BuilderFileEmit> | undefined;
         /**
          * Current index to retrieve pending affected file
          */
@@ -11918,7 +11930,7 @@ declare namespace ts {
         /**
          * Already seen emitted files
          */
-        seenEmittedFiles: Map<Path, BuilderFileEmit> | undefined;
+        seenEmittedFiles: ESMap<Path, BuilderFileEmit> | undefined;
         /**
          * true if program has been emitted
          */
@@ -12107,7 +12119,7 @@ declare namespace ts {
         invalidateResolutionOfFile(filePath: Path): void;
         removeResolutionsOfFile(filePath: Path): void;
         removeResolutionsFromProjectReferenceRedirects(filePath: Path): void;
-        setFilesWithInvalidatedNonRelativeUnresolvedImports(filesWithUnresolvedImports: Map<Path, readonly string[]>): void;
+        setFilesWithInvalidatedNonRelativeUnresolvedImports(filesWithUnresolvedImports: ESMap<Path, readonly string[]>): void;
         createHasInvalidatedResolution(forceAllFilesAsInvalidated?: boolean): HasInvalidatedResolution;
         hasChangedAutomaticTypeDirectiveNames(): boolean;
         startCachingPerDirectoryResolution(): void;
@@ -12790,12 +12802,12 @@ declare namespace ts.JsTyping {
     }
     function isTypingUpToDate(cachedTyping: CachedTyping, availableTypingVersions: MapLike<string>): boolean;
     const nodeCoreModuleList: readonly string[];
-    const nodeCoreModules: Map<string, true>;
+    const nodeCoreModules: ESMap<string, true>;
     function nonRelativeModuleNameForTypingCache(moduleName: string): string;
     /**
      * A map of loose file names to library names that we are confident require typings
      */
-    type SafeList = ReadonlyMap<string, string>;
+    type SafeList = ReadonlyESMap<string, string>;
     function loadSafeList(host: TypingResolutionHost, safeListPath: Path): SafeList;
     function loadTypesMap(host: TypingResolutionHost, typesMapPath: Path): SafeList | undefined;
     /**
@@ -12807,7 +12819,7 @@ declare namespace ts.JsTyping {
      * @param typeAcquisition is used to customize the typing acquisition process
      * @param compilerOptions are used as a source for typing inference
      */
-    function discoverTypings(host: TypingResolutionHost, log: ((message: string) => void) | undefined, fileNames: string[], projectRootPath: Path, safeList: SafeList, packageNameToTypingLocation: ReadonlyMap<string, CachedTyping>, typeAcquisition: TypeAcquisition, unresolvedImports: readonly string[], typesRegistry: ReadonlyMap<string, MapLike<string>>): {
+    function discoverTypings(host: TypingResolutionHost, log: ((message: string) => void) | undefined, fileNames: string[], projectRootPath: Path, safeList: SafeList, packageNameToTypingLocation: ReadonlyESMap<string, CachedTyping>, typeAcquisition: TypeAcquisition, unresolvedImports: readonly string[], typesRegistry: ReadonlyESMap<string, MapLike<string>>): {
         cachedTypingPaths: string[];
         newTypingNames: string[];
         filesToWatch: string[];
@@ -12911,7 +12923,7 @@ declare namespace ts {
         version: string;
         scriptSnapshot: IScriptSnapshot | undefined;
         nameTable: UnderscoreEscapedMap<number> | undefined;
-        getNamedDeclarations(): Map<string, readonly Declaration[]>;
+        getNamedDeclarations(): ESMap<string, readonly Declaration[]>;
         getLineAndCharacterOfPosition(pos: number): LineAndCharacter;
         getLineEndOfPosition(pos: number): number;
         getLineStarts(): readonly number[];
@@ -12974,10 +12986,10 @@ declare namespace ts {
     interface PackageJsonInfo {
         fileName: string;
         parseable: boolean;
-        dependencies?: Map<string, string>;
-        devDependencies?: Map<string, string>;
-        peerDependencies?: Map<string, string>;
-        optionalDependencies?: Map<string, string>;
+        dependencies?: ESMap<string, string>;
+        devDependencies?: ESMap<string, string>;
+        peerDependencies?: ESMap<string, string>;
+        optionalDependencies?: ESMap<string, string>;
         get(dependencyName: string, inGroups?: PackageJsonDependencyGroup): string | undefined;
         has(dependencyName: string, inGroups?: PackageJsonDependencyGroup): boolean;
     }
@@ -13021,7 +13033,7 @@ declare namespace ts {
         hasInvalidatedResolution?: HasInvalidatedResolution;
         hasChangedAutomaticTypeDirectiveNames?: HasChangedAutomaticTypeDirectiveNames;
         getGlobalTypingsCacheLocation?(): string | undefined;
-        getProbableSymlinks?(files: readonly SourceFile[]): ReadonlyMap<string, string>;
+        getProbableSymlinks?(files: readonly SourceFile[]): ReadonlyESMap<string, string>;
         getDirectories?(directoryName: string): string[];
         /**
          * Gets a set of custom transformers to use during emit.
@@ -14195,7 +14207,7 @@ declare namespace ts {
      * and code fixes (because those are triggered by explicit user actions).
      */
     function getSynthesizedDeepClone<T extends Node | undefined>(node: T, includeTrivia?: boolean): T;
-    function getSynthesizedDeepCloneWithRenames<T extends Node>(node: T, includeTrivia?: boolean, renameMap?: Map<string, Identifier>, checker?: TypeChecker, callback?: (originalNode: Node, clone: Node) => any): T;
+    function getSynthesizedDeepCloneWithRenames<T extends Node>(node: T, includeTrivia?: boolean, renameMap?: ESMap<string, Identifier>, checker?: TypeChecker, callback?: (originalNode: Node, clone: Node) => any): T;
     function getSynthesizedDeepClones<T extends Node>(nodes: NodeArray<T>, includeTrivia?: boolean): NodeArray<T>;
     function getSynthesizedDeepClones<T extends Node>(nodes: NodeArray<T> | undefined, includeTrivia?: boolean): NodeArray<T> | undefined;
     /**
