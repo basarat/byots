@@ -8743,6 +8743,7 @@ declare namespace ts {
         getTokenFlags(): TokenFlags;
         reScanGreaterToken(): SyntaxKind;
         reScanSlashToken(): SyntaxKind;
+        reScanAsteriskEqualsToken(): SyntaxKind;
         reScanTemplateToken(isTaggedTemplate: boolean): SyntaxKind;
         reScanTemplateHeadOrNoSubstitutionTemplate(): SyntaxKind;
         scanJsxIdentifier(): SyntaxKind;
@@ -15377,13 +15378,13 @@ declare namespace ts.codefix {
     function createJsonPropertyAssignment(name: string, initializer: Expression): PropertyAssignment;
     function findJsonProperty(obj: ObjectLiteralExpression, name: string): PropertyAssignment | undefined;
     /**
-     * Given an ImportTypeNode 'import("./a").SomeType<import("./b").OtherType<...>>',
+     * Given a type node containing 'import("./a").SomeType<import("./b").OtherType<...>>',
      * returns an equivalent type reference node with any nested ImportTypeNodes also replaced
      * with type references, and a list of symbols that must be imported to use the type reference.
      */
-    function tryGetAutoImportableReferenceFromImportTypeNode(importTypeNode: TypeNode | undefined, type: Type | undefined, scriptTarget: ScriptTarget): {
+    function tryGetAutoImportableReferenceFromTypeNode(importTypeNode: TypeNode | undefined, scriptTarget: ScriptTarget): {
+        typeNode: TypeNode;
         symbols: Symbol[];
-        typeReference: TypeReferenceNode;
     } | undefined;
     function importSymbols(importAdder: ImportAdder, symbols: readonly Symbol[]): void;
 }
