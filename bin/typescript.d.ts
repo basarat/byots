@@ -308,6 +308,7 @@ declare namespace ts {
     function insertSorted<T>(array: SortedArray<T>, insert: T, compare: Comparer<T>): void;
     function sortAndDeduplicate<T>(array: readonly string[]): SortedReadonlyArray<string>;
     function sortAndDeduplicate<T>(array: readonly T[], comparer: Comparer<T>, equalityComparer?: EqualityComparer<T>): SortedReadonlyArray<T>;
+    function arrayIsSorted<T>(array: readonly T[], comparer: Comparer<T>): boolean;
     function arrayIsEqualTo<T>(array1: readonly T[] | undefined, array2: readonly T[] | undefined, equalityComparer?: (a: T, b: T, index: number) => boolean): boolean;
     /**
      * Compacts an array, removing any falsey elements.
@@ -3674,6 +3675,7 @@ declare namespace ts {
     export type TypePredicate = ThisTypePredicate | IdentifierTypePredicate | AssertsThisTypePredicate | AssertsIdentifierTypePredicate;
     export type AnyImportSyntax = ImportDeclaration | ImportEqualsDeclaration;
     export type AnyImportOrRequire = AnyImportSyntax | RequireVariableDeclaration;
+    export type AnyImportOrRequireStatement = AnyImportSyntax | RequireVariableStatement;
     export type AnyImportOrReExport = AnyImportSyntax | ExportDeclaration;
     export interface ValidImportTypeNode extends ImportTypeNode {
         argument: LiteralTypeNode & {
@@ -3692,7 +3694,13 @@ declare namespace ts {
         arguments: [StringLiteralLike];
     };
     export interface RequireVariableDeclaration extends VariableDeclaration {
-        initializer: RequireOrImportCall;
+        readonly initializer: RequireOrImportCall;
+    }
+    export interface RequireVariableStatement extends VariableStatement {
+        readonly declarationList: RequireVariableDeclarationList;
+    }
+    export interface RequireVariableDeclarationList extends VariableDeclarationList {
+        readonly declarations: NodeArray<RequireVariableDeclaration>;
     }
     export type LateVisibilityPaintedStatement = AnyImportSyntax | VariableStatement | ClassDeclaration | FunctionDeclaration | ModuleDeclaration | TypeAliasDeclaration | InterfaceDeclaration | EnumDeclaration;
     export interface SymbolVisibilityResult {
@@ -9435,7 +9443,7 @@ declare namespace ts {
      */
     function isRequireVariableDeclaration(node: Node, requireStringLiteralLikeArgument: true): node is RequireVariableDeclaration;
     function isRequireVariableDeclaration(node: Node, requireStringLiteralLikeArgument: boolean): node is VariableDeclaration;
-    function isRequireVariableDeclarationStatement(node: Node, requireStringLiteralLikeArgument?: boolean): node is VariableStatement;
+    function isRequireVariableStatement(node: Node, requireStringLiteralLikeArgument?: boolean): node is RequireVariableStatement;
     function isSingleOrDoubleQuote(charCode: number): boolean;
     function isStringDoubleQuoted(str: StringLiteralLike, sourceFile: SourceFile): boolean;
     function getDeclarationOfExpando(node: Node): Node | undefined;
@@ -14166,7 +14174,7 @@ declare namespace ts {
     function isMemberSymbolInBaseType(memberSymbol: Symbol, checker: TypeChecker): boolean;
     function getParentNodeInSpan(node: Node | undefined, file: SourceFile, span: TextSpan): Node | undefined;
     function findModifier(node: Node, kind: Modifier["kind"]): Modifier | undefined;
-    function insertImports(changes: textChanges.ChangeTracker, sourceFile: SourceFile, imports: Statement | readonly Statement[], blankLineBetween: boolean): void;
+    function insertImports(changes: textChanges.ChangeTracker, sourceFile: SourceFile, imports: AnyImportOrRequireStatement | readonly AnyImportOrRequireStatement[], blankLineBetween: boolean): void;
     function getTypeKeywordOfTypeOnlyImport(importClause: ImportClause, sourceFile: SourceFile): Token<SyntaxKind.TypeKeyword>;
     function textSpansEqual(a: TextSpan | undefined, b: TextSpan | undefined): boolean;
     function documentSpansEqual(a: DocumentSpan, b: DocumentSpan): boolean;
@@ -14778,7 +14786,13 @@ declare namespace ts.OrganizeImports {
      * @param exportGroup a list of ExportDeclarations, all with the same module name.
      */
     function coalesceExports(exportGroup: readonly ExportDeclaration[]): readonly ExportDeclaration[];
-    function compareModuleSpecifiers(m1: Expression, m2: Expression): Comparison;
+    function compareImportOrExportSpecifiers<T extends ImportOrExportSpecifier>(s1: T, s2: T): Comparison;
+    function compareModuleSpecifiers(m1: Expression | undefined, m2: Expression | undefined): Comparison;
+    function importsAreSorted(imports: readonly AnyImportOrRequireStatement[]): imports is SortedReadonlyArray<AnyImportOrRequireStatement>;
+    function importSpecifiersAreSorted(imports: readonly ImportSpecifier[]): imports is SortedReadonlyArray<ImportSpecifier>;
+    function getImportDeclarationInsertionIndex(sortedImports: SortedReadonlyArray<AnyImportOrRequireStatement>, newImport: AnyImportOrRequireStatement): number;
+    function getImportSpecifierInsertionIndex(sortedImports: SortedReadonlyArray<ImportSpecifier>, newImport: ImportSpecifier): number;
+    function compareImportsOrRequireStatements(s1: AnyImportOrRequireStatement, s2: AnyImportOrRequireStatement): Comparison;
 }
 declare namespace ts.OutliningElementsCollector {
     function collectElements(sourceFile: SourceFile, cancellationToken: CancellationToken): OutliningSpan[];
