@@ -98,7 +98,6 @@ declare namespace ts {
     }
     /**
      * ES6 Map interface, only read methods included.
-     * @deprecated Use `ts.ReadonlyESMap<K, V>` instead.
      */
     interface ReadonlyMap<T> extends ReadonlyESMap<string, T> {
     }
@@ -108,7 +107,6 @@ declare namespace ts {
     }
     /**
      * ES6 Map interface.
-     * @deprecated Use `ts.ESMap<K, V>` instead.
      */
     interface Map<T> extends ESMap<string, T> {
     }
@@ -172,10 +170,18 @@ declare namespace ts {
     function getIterator<T>(iterable: readonly T[] | ReadonlySet<T>): Iterator<T>;
     function getIterator<T>(iterable: readonly T[] | ReadonlySet<T> | undefined): Iterator<T> | undefined;
     const emptyArray: never[];
-    /** Create a new map. */
+    const emptyMap: ReadonlyESMap<never, never>;
+    const emptySet: ReadonlySet<never>;
+    /**
+     * Create a new map.
+     * @deprecated Use `new Map()` instead.
+     */
     function createMap<K, V>(): ESMap<K, V>;
     function createMap<T>(): ESMap<string, T>;
-    /** Create a new map from a template object is provided, the map will copy entries from it. */
+    /**
+     * Create a new map from a template object is provided, the map will copy entries from it.
+     * @deprecated Use `new Map(getEntries(template))` instead.
+     */
     function createMapFromTemplate<T>(template: MapLike<T>): ESMap<string, T>;
     function length(array: readonly any[] | undefined): number;
     /**
@@ -275,6 +281,7 @@ declare namespace ts {
     function mapDefinedEntries<K1, V1, K2, V2>(map: ReadonlyESMap<K1, V1> | undefined, f: (key: K1, value: V1) => readonly [K2 | undefined, V2 | undefined] | undefined): ESMap<K2, V2> | undefined;
     function mapDefinedValues<V1, V2>(set: ReadonlySet<V1>, f: (value: V1) => V2 | undefined): Set<V2>;
     function mapDefinedValues<V1, V2>(set: ReadonlySet<V1> | undefined, f: (value: V1) => V2 | undefined): Set<V2> | undefined;
+    function getOrUpdate<K, V>(map: ESMap<K, V>, key: K, callback: () => V): V;
     function tryAddToSet<T>(set: Set<T>, value: T): boolean;
     const emptyIterator: Iterator<never>;
     function singleIterator<T>(value: T): Iterator<T>;
@@ -455,6 +462,7 @@ declare namespace ts {
     function getOwnKeys<T>(map: MapLike<T>): string[];
     function getAllKeys(obj: object): string[];
     function getOwnValues<T>(sparseArray: T[]): T[];
+    function getEntries<T>(obj: MapLike<T>): [string, T][];
     function arrayOf<T>(count: number, f: (index: number) => T): T[];
     /** Shims `Array.from`. */
     function arrayFrom<T, U>(iterator: Iterator<T> | IterableIterator<T>, map: (t: T) => U): U[];
@@ -485,6 +493,8 @@ declare namespace ts {
     function arrayToNumericMap<T, U>(array: readonly T[], makeKey: (value: T) => number, makeValue: (value: T) => U): U[];
     function arrayToMultiMap<K, V>(values: readonly V[], makeKey: (value: V) => K): MultiMap<K, V>;
     function arrayToMultiMap<K, V, U>(values: readonly V[], makeKey: (value: V) => K, makeValue: (value: V) => U): MultiMap<K, U>;
+    function group<T, K>(values: readonly T[], getGroupId: (value: T) => K): readonly (readonly T[])[];
+    function group<T, K, R>(values: readonly T[], getGroupId: (value: T) => K, resultSelector: (values: readonly T[]) => R): R[];
     function group<T>(values: readonly T[], getGroupId: (value: T) => string): readonly (readonly T[])[];
     function group<T, R>(values: readonly T[], getGroupId: (value: T) => string, resultSelector: (values: readonly T[]) => R): R[];
     function clone<T>(object: T): T;
@@ -1374,6 +1384,7 @@ declare namespace ts {
         ReportsUnreliable = 16,
         ReportsMask = 24
     }
+    export type NodeId = number;
     export interface Node extends ReadonlyTextRange {
         readonly kind: SyntaxKind;
         readonly flags: NodeFlags;
@@ -1381,7 +1392,7 @@ declare namespace ts {
         readonly transformFlags: TransformFlags;
         readonly decorators?: NodeArray<Decorator>;
         readonly modifiers?: ModifiersArray;
-        id?: number;
+        id?: NodeId;
         readonly parent: Node;
         original?: Node;
         symbol: Symbol;
@@ -2988,7 +2999,7 @@ declare namespace ts {
         jsDocDiagnostics?: DiagnosticWithLocation[];
         additionalSyntacticDiagnostics?: readonly DiagnosticWithLocation[];
         lineMap: readonly number[];
-        classifiableNames?: ReadonlyUnderscoreEscapedMap<true>;
+        classifiableNames?: ReadonlySet<__String>;
         commentDirectives?: CommentDirective[];
         resolvedModules?: ESMap<string, ResolvedModuleFull | undefined>;
         resolvedTypeReferenceDirectiveNames: ESMap<string, ResolvedTypeReferenceDirective | undefined>;
@@ -3187,7 +3198,7 @@ declare namespace ts {
         getCommonSourceDirectory(): string;
         getDiagnosticsProducingTypeChecker(): TypeChecker;
         dropDiagnosticsProducingTypeChecker(): void;
-        getClassifiableNames(): UnderscoreEscapedMap<true>;
+        getClassifiableNames(): Set<__String>;
         getNodeCount(): number;
         getIdentifierCount(): number;
         getSymbolCount(): number;
@@ -3842,6 +3853,7 @@ declare namespace ts {
         Classifiable = 2885600,
         LateBindingContainer = 6256
     }
+    export type SymbolId = number;
     export interface Symbol {
         flags: SymbolFlags;
         escapedName: __String;
@@ -3850,7 +3862,7 @@ declare namespace ts {
         members?: SymbolTable;
         exports?: SymbolTable;
         globalExports?: SymbolTable;
-        id?: number;
+        id?: SymbolId;
         mergeId?: number;
         parent?: Symbol;
         exportSymbol?: Symbol;
@@ -3870,7 +3882,7 @@ declare namespace ts {
         typeParameters?: TypeParameter[];
         outerTypeParameters?: TypeParameter[];
         instantiations?: ESMap<string, Type>;
-        inferredClassSymbol?: ESMap<string, TransientSymbol>;
+        inferredClassSymbol?: ESMap<SymbolId, TransientSymbol>;
         mapper?: TypeMapper;
         referenced?: boolean;
         constEnumReferenced?: boolean;
@@ -3891,7 +3903,7 @@ declare namespace ts {
         lateSymbol?: Symbol;
         specifierCache?: ESMap<string, string>;
         extendedContainers?: Symbol[];
-        extendedContainersByFile?: ESMap<string, Symbol[]>;
+        extendedContainersByFile?: ESMap<NodeId, Symbol[]>;
         variances?: VarianceFlags[];
         deferralConstituents?: Type[];
         deferralParent?: Type;
@@ -4030,7 +4042,7 @@ declare namespace ts {
         switchTypes?: Type[];
         jsxNamespace?: Symbol | false;
         contextFreeType?: Type;
-        deferredNodes?: ESMap<string, Node>;
+        deferredNodes?: ESMap<NodeId, Node>;
         capturedBlockScopeBindings?: Symbol[];
         outerTypeParameters?: TypeParameter[];
         instantiations?: ESMap<string, Type>;
@@ -4103,9 +4115,10 @@ declare namespace ts {
         IncludesEmptyObject = 16777216
     }
     export type DestructuringPattern = BindingPattern | ObjectLiteralExpression | ArrayLiteralExpression;
+    export type TypeId = number;
     export interface Type {
         flags: TypeFlags;
-        id: number;
+        id: TypeId;
         checker: TypeChecker;
         symbol: Symbol;
         pattern?: DestructuringPattern;
@@ -5316,12 +5329,14 @@ declare namespace ts {
         AsyncDelegator = 16384,
         AsyncValues = 32768,
         ExportStar = 65536,
-        MakeTemplateObject = 131072,
-        ClassPrivateFieldGet = 262144,
-        ClassPrivateFieldSet = 524288,
-        CreateBinding = 1048576,
+        ImportStar = 131072,
+        ImportDefault = 262144,
+        MakeTemplateObject = 524288,
+        ClassPrivateFieldGet = 1048576,
+        ClassPrivateFieldSet = 2097152,
+        CreateBinding = 4194304,
         FirstEmitHelper = 1,
-        LastEmitHelper = 1048576,
+        LastEmitHelper = 4194304,
         ForOfIncludes = 256,
         ForAwaitOfIncludes = 32768,
         AsyncGeneratorIncludes = 12288,
@@ -8700,6 +8715,10 @@ declare namespace ts {
         Name_is_not_valid: DiagnosticMessage;
         Can_only_convert_property_with_modifier: DiagnosticMessage;
         Switch_each_misused_0_to_1: DiagnosticMessage;
+        Convert_to_optional_chain_expression: DiagnosticMessage;
+        Could_not_find_convertible_access_expression: DiagnosticMessage;
+        Could_not_find_matching_access_expressions: DiagnosticMessage;
+        Can_only_convert_logical_AND_access_chains: DiagnosticMessage;
         No_value_exists_in_scope_for_the_shorthand_property_0_Either_declare_one_or_provide_an_initializer: DiagnosticMessage;
         Classes_may_not_have_a_field_named_constructor: DiagnosticMessage;
         JSX_expressions_may_not_use_the_comma_operator_Did_you_mean_to_write_an_array: DiagnosticMessage;
@@ -9183,15 +9202,19 @@ declare namespace ts {
 }
 declare namespace ts {
     const resolvingEmptyArray: never[];
-    const emptyMap: ReadonlyESMap<never, never> & ReadonlyPragmaMap;
-    const emptyUnderscoreEscapedMap: ReadonlyUnderscoreEscapedMap<never>;
     const externalHelpersModuleNameText = "tslib";
     const defaultMaximumTruncationLength = 160;
     const noTruncationMaximumTruncationLength = 1000000;
     function getDeclarationOfKind<T extends Declaration>(symbol: Symbol, kind: T["kind"]): T | undefined;
-    /** Create a new escaped identifier map. */
+    /**
+     * Create a new escaped identifier map.
+     * @deprecated Use `new Map<__String, T>()` instead.
+     */
     function createUnderscoreEscapedMap<T>(): UnderscoreEscapedMap<T>;
-    function hasEntries(map: ReadonlyUnderscoreEscapedMap<any> | undefined): map is ReadonlyUnderscoreEscapedMap<any>;
+    /**
+     * @deprecated Use `!!map?.size` instead
+     */
+    function hasEntries(map: ReadonlyCollection<any> | undefined): map is ReadonlyCollection<any>;
     function createSymbolTable(symbols?: readonly Symbol[]): SymbolTable;
     function isTransientSymbol(symbol: Symbol): symbol is TransientSymbol;
     function changesAffectModuleResolution(oldOptions: CompilerOptions, newOptions: CompilerOptions): boolean;
@@ -9214,17 +9237,6 @@ declare namespace ts {
     function forEachKey<K, T>(map: ReadonlyCollection<K>, callback: (key: K) => T | undefined): T | undefined;
     /** Copy entries from `source` to `target`. */
     function copyEntries<K, V>(source: ReadonlyESMap<K, V>, target: ESMap<K, V>): void;
-    /**
-     * Creates a set from the elements of an array.
-     *
-     * @param array the array of input elements.
-     */
-    function arrayToSet(array: readonly string[]): ESMap<string, true>;
-    function arrayToSet<T>(array: readonly T[], makeKey: (value: T) => string | undefined): ESMap<string, true>;
-    function arrayToSet<T>(array: readonly T[], makeKey: (value: T) => __String | undefined): UnderscoreEscapedMap<true>;
-    function cloneMap(map: SymbolTable): SymbolTable;
-    function cloneMap<T>(map: ReadonlyUnderscoreEscapedMap<T>): UnderscoreEscapedMap<T>;
-    function cloneMap<K, V>(map: ReadonlyESMap<K, V>): ESMap<K, V>;
     function usingSingleLineStringWriter(action: (writer: EmitTextWriter) => void): string;
     function getFullWidth(node: Node): number;
     function getResolvedModule(sourceFile: SourceFile | undefined, moduleNameText: string): ResolvedModuleFull | undefined;
@@ -9514,6 +9526,7 @@ declare namespace ts {
     function isJSDocTypeAlias(node: Node): node is JSDocTypedefTag | JSDocCallbackTag | JSDocEnumTag;
     function isTypeAlias(node: Node): node is JSDocTypedefTag | JSDocCallbackTag | JSDocEnumTag | TypeAliasDeclaration;
     function getSingleInitializerOfVariableStatementOrPropertyDeclaration(node: Node): Expression | undefined;
+    function getSingleVariableOfVariableStatement(node: Node): VariableDeclaration | undefined;
     function getJSDocCommentsAndTags(hostNode: Node, noCache?: boolean): readonly (JSDoc | JSDocTag)[];
     /** Does the opposite of `getJSDocParameterTags`: given a JSDoc parameter, finds the parameter corresponding to it. */
     function getParameterSymbolFromJSDoc(node: JSDocParameterTag): Symbol | undefined;
@@ -10116,31 +10129,14 @@ declare namespace ts {
         readonly min: number;
         readonly max: number;
     };
-    interface ReadonlyNodeSet<TNode extends Node> {
-        has(node: TNode): boolean;
-        forEach(cb: (node: TNode) => void): void;
-        some(pred: (node: TNode) => boolean): boolean;
-    }
-    class NodeSet<TNode extends Node> implements ReadonlyNodeSet<TNode> {
-        private map;
-        add(node: TNode): void;
-        tryAdd(node: TNode): boolean;
-        has(node: TNode): boolean;
-        forEach(cb: (node: TNode) => void): void;
-        some(pred: (node: TNode) => boolean): boolean;
-    }
-    interface ReadonlyNodeMap<TNode extends Node, TValue> {
-        get(node: TNode): TValue | undefined;
-        has(node: TNode): boolean;
-    }
-    class NodeMap<TNode extends Node, TValue> implements ReadonlyNodeMap<TNode, TValue> {
-        private map;
-        get(node: TNode): TValue | undefined;
-        getOrUpdate(node: TNode, setValue: () => TValue): TValue;
-        set(node: TNode, value: TValue): void;
-        has(node: TNode): boolean;
-        forEach(cb: (value: TValue, node: TNode) => void): void;
-    }
+    /** @deprecated Use `ReadonlySet<TNode>` instead. */
+    type ReadonlyNodeSet<TNode extends Node> = ReadonlySet<TNode>;
+    /** @deprecated Use `Set<TNode>` instead. */
+    type NodeSet<TNode extends Node> = Set<TNode>;
+    /** @deprecated Use `ReadonlyMap<TNode, TValue>` instead. */
+    type ReadonlyNodeMap<TNode extends Node, TValue> = ReadonlyESMap<TNode, TValue>;
+    /** @deprecated Use `Map<TNode, TValue>` instead. */
+    type NodeMap<TNode extends Node, TValue> = ESMap<TNode, TValue>;
     function rangeOfNode(node: Node): TextRange;
     function rangeOfTypeParameters(typeParameters: NodeArray<TypeParameterDeclaration>): TextRange;
     interface HostWithIsSourceOfProjectReferenceRedirect {
@@ -10148,7 +10144,6 @@ declare namespace ts {
     }
     function skipTypeChecking(sourceFile: SourceFile, options: CompilerOptions, host: HostWithIsSourceOfProjectReferenceRedirect): boolean;
     function isJsonEqual(a: unknown, b: unknown): boolean;
-    function getOrUpdate<T>(map: ESMap<string, T>, key: string, getDefault: () => T): T;
     /**
      * Converts a bigint literal string, e.g. `0x1234n`,
      * to its decimal string representation, e.g. `4660`.
@@ -10377,6 +10372,7 @@ declare namespace ts {
         createImportStarHelper(expression: Expression): Expression;
         createImportStarCallbackHelper(): Expression;
         createImportDefaultHelper(expression: Expression): Expression;
+        createExportStarHelper(moduleExpression: Expression, exportsExpression?: Expression): Expression;
         createClassPrivateFieldGetHelper(receiver: Expression, privateField: Identifier): Expression;
         createClassPrivateFieldSetHelper(receiver: Expression, privateField: Identifier, value: Expression): Expression;
     }
@@ -10408,6 +10404,7 @@ declare namespace ts {
     const setModuleDefaultHelper: UnscopedEmitHelper;
     const importStarHelper: UnscopedEmitHelper;
     const importDefaultHelper: UnscopedEmitHelper;
+    const exportStarHelper: UnscopedEmitHelper;
     const classPrivateFieldGetHelper: UnscopedEmitHelper;
     const classPrivateFieldSetHelper: UnscopedEmitHelper;
     function getAllUnscopedEmitHelpers(): ReadonlyESMap<string, UnscopedEmitHelper>;
@@ -11093,7 +11090,7 @@ declare namespace ts {
 }
 declare namespace ts {
     function getNodeId(node: Node): number;
-    function getSymbolId(symbol: Symbol): number;
+    function getSymbolId(symbol: Symbol): SymbolId;
     function isInstantiatedModule(node: ModuleDeclaration, preserveConstEnums: boolean): boolean;
     function createTypeChecker(host: TypeCheckerHost, produceDiagnostics: boolean): TypeChecker;
     function signatureHasRestParameter(s: Signature): boolean;
@@ -11336,7 +11333,7 @@ declare namespace ts {
 declare namespace ts {
     function transformES2017(context: TransformationContext): (x: SourceFile | Bundle) => SourceFile | Bundle;
     /** Creates a variable named `_super` with accessor properties for the given property names. */
-    function createSuperAccessVariableStatement(factory: NodeFactory, resolver: EmitResolver, node: FunctionLikeDeclaration, names: UnderscoreEscapedMap<true>): VariableStatement;
+    function createSuperAccessVariableStatement(factory: NodeFactory, resolver: EmitResolver, node: FunctionLikeDeclaration, names: Set<__String>): VariableStatement;
 }
 declare namespace ts {
     function transformES2018(context: TransformationContext): (x: SourceFile | Bundle) => SourceFile | Bundle;
@@ -12811,7 +12808,7 @@ declare namespace ts.JsTyping {
     }
     function isTypingUpToDate(cachedTyping: CachedTyping, availableTypingVersions: MapLike<string>): boolean;
     const nodeCoreModuleList: readonly string[];
-    const nodeCoreModules: ESMap<string, true>;
+    const nodeCoreModules: Set<string>;
     function nonRelativeModuleNameForTypingCache(moduleName: string): string;
     /**
      * A map of loose file names to library names that we are confident require typings
@@ -13209,6 +13206,10 @@ declare namespace ts {
         getProgram(): Program | undefined;
         getNonBoundSourceFile(fileName: string): SourceFile;
         getAutoImportProvider(): Program | undefined;
+        toggleLineComment(fileName: string, textRange: TextRange): TextChange[];
+        toggleMultilineComment(fileName: string, textRange: TextRange): TextChange[];
+        commentSelection(fileName: string, textRange: TextRange): TextChange[];
+        uncommentSelection(fileName: string, textRange: TextRange): TextChange[];
         dispose(): void;
     }
     interface JsxClosingTagInfo {
@@ -14090,6 +14091,7 @@ declare namespace ts {
     function isInsideJsxElementOrAttribute(sourceFile: SourceFile, position: number): boolean;
     function isInTemplateString(sourceFile: SourceFile, position: number): boolean;
     function isInJSXText(sourceFile: SourceFile, position: number): boolean;
+    function isInsideJsxElement(sourceFile: SourceFile, position: number): boolean;
     function findPrecedingMatchingToken(token: Node, matchingTokenKind: SyntaxKind, sourceFile: SourceFile): Node | undefined;
     function removeOptionality(type: Type, isOptionalExpression: boolean, isOptionalChain: boolean): Type;
     function isPossiblyTypeArgumentPosition(token: Node, sourceFile: SourceFile, checker: TypeChecker): boolean;
@@ -14185,6 +14187,7 @@ declare namespace ts {
      * If no such value is found, the callback is applied to each element of array and undefined is returned.
      */
     function forEachUnique<T, U>(array: readonly T[] | undefined, callback: (element: T, index: number) => U): U | undefined;
+    function isTextWhiteSpaceLike(text: string, startPos: number, endPos: number): boolean;
     function isFirstDeclarationOfSymbolParameter(symbol: Symbol): boolean;
     function symbolPart(text: string, symbol: Symbol): SymbolDisplayPart;
     function displayPart(text: string, kind: SymbolDisplayPartKind): SymbolDisplayPart;
@@ -14322,8 +14325,8 @@ declare namespace ts {
 declare namespace ts {
     /** The classifier is used for syntactic highlighting in editors via the TSServer */
     function createClassifier(): Classifier;
-    function getSemanticClassifications(typeChecker: TypeChecker, cancellationToken: CancellationToken, sourceFile: SourceFile, classifiableNames: UnderscoreEscapedMap<true>, span: TextSpan): ClassifiedSpan[];
-    function getEncodedSemanticClassifications(typeChecker: TypeChecker, cancellationToken: CancellationToken, sourceFile: SourceFile, classifiableNames: UnderscoreEscapedMap<true>, span: TextSpan): Classifications;
+    function getSemanticClassifications(typeChecker: TypeChecker, cancellationToken: CancellationToken, sourceFile: SourceFile, classifiableNames: ReadonlySet<__String>, span: TextSpan): ClassifiedSpan[];
+    function getEncodedSemanticClassifications(typeChecker: TypeChecker, cancellationToken: CancellationToken, sourceFile: SourceFile, classifiableNames: ReadonlySet<__String>, span: TextSpan): Classifications;
     function getSyntacticClassifications(cancellationToken: CancellationToken, sourceFile: SourceFile, span: TextSpan): ClassifiedSpan[];
     function getEncodedSyntacticClassifications(cancellationToken: CancellationToken, sourceFile: SourceFile, span: TextSpan): Classifications;
 }
@@ -15461,6 +15464,8 @@ declare namespace ts.refactor {
 }
 declare namespace ts.refactor {
 }
+declare namespace ts.refactor.convertToOptionalChainExpression {
+}
 declare namespace ts.refactor.addOrRemoveBracesToArrowFunction {
 }
 declare namespace ts.refactor.extractSymbol {
@@ -15809,6 +15814,10 @@ declare namespace ts {
         provideCallHierarchyOutgoingCalls(fileName: string, position: number): string;
         getEmitOutput(fileName: string): string;
         getEmitOutputObject(fileName: string): EmitOutput;
+        toggleLineComment(fileName: string, textChange: TextRange): string;
+        toggleMultilineComment(fileName: string, textChange: TextRange): string;
+        commentSelection(fileName: string, textChange: TextRange): string;
+        uncommentSelection(fileName: string, textChange: TextRange): string;
     }
     interface ClassifierShim extends Shim {
         getEncodedLexicalClassifications(text: string, lexState: EndOfLineState, syntacticClassifierAbsent?: boolean): string;
@@ -16641,4 +16650,14 @@ declare namespace ts {
     const getMutableClone: <T extends Node>(node: T) => T;
     /** @deprecated Use `isTypeAssertionExpression` instead. */
     const isTypeAssertion: (node: Node) => node is TypeAssertion;
+    /**
+     * @deprecated Use `ts.ReadonlyESMap<K, V>` instead.
+     */
+    interface ReadonlyMap<T> extends ReadonlyESMap<string, T> {
+    }
+    /**
+     * @deprecated Use `ts.ESMap<K, V>` instead.
+     */
+    interface Map<T> extends ESMap<string, T> {
+    }
 }
