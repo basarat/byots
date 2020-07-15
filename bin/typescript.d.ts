@@ -4419,7 +4419,7 @@ declare namespace ts {
         IsInnerCallChain = 4,
         IsOuterCallChain = 8,
         IsUntypedSignatureInJSFile = 16,
-        PropagatingFlags = 3,
+        PropagatingFlags = 19,
         CallChainFlags = 12
     }
     export interface Signature {
