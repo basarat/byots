@@ -3168,6 +3168,7 @@ declare namespace ts {
          */
         getMissingFilePaths(): readonly Path[];
         getRefFileMap(): MultiMap<Path, RefFile> | undefined;
+        getSkippedTrippleSlashReferences(): Set<Path> | undefined;
         getFilesByNameMap(): ESMap<string, SourceFile | false | undefined>;
         /**
          * Emits the JavaScript and declaration files.  If targetSourceFile is not specified, then
@@ -5164,6 +5165,7 @@ declare namespace ts {
          * This method is a companion for 'resolveModuleNames' and is used to resolve 'types' references to actual type declaration files
          */
         resolveTypeReferenceDirectives?(typeReferenceDirectiveNames: string[], containingFile: string, redirectedReference: ResolvedProjectReference | undefined, options: CompilerOptions): (ResolvedTypeReferenceDirective | undefined)[];
+        includeTripleslashReferencesFrom?(containingFile: string): boolean;
         getEnvironmentVariable?(name: string): string | undefined;
         onReleaseOldSourceFile?(oldSourceFile: SourceFile, oldOptions: CompilerOptions, hasSourceFileByPath: boolean): void;
         hasInvalidatedResolution?: HasInvalidatedResolution;
@@ -8028,6 +8030,7 @@ declare namespace ts {
         Type_parameter_0_of_exported_function_has_or_is_using_private_name_1: DiagnosticMessage;
         Implements_clause_of_exported_class_0_has_or_is_using_private_name_1: DiagnosticMessage;
         extends_clause_of_exported_class_0_has_or_is_using_private_name_1: DiagnosticMessage;
+        extends_clause_of_exported_class_has_or_is_using_private_name_0: DiagnosticMessage;
         extends_clause_of_exported_interface_0_has_or_is_using_private_name_1: DiagnosticMessage;
         Exported_variable_0_has_or_is_using_name_1_from_external_module_2_but_cannot_be_named: DiagnosticMessage;
         Exported_variable_0_has_or_is_using_name_1_from_private_module_2: DiagnosticMessage;
@@ -12128,6 +12131,7 @@ declare namespace ts {
         resolveTypeReferenceDirectives(typeDirectiveNames: string[], containingFile: string, redirectedReference?: ResolvedProjectReference): (ResolvedTypeReferenceDirective | undefined)[];
         invalidateResolutionsOfFailedLookupLocations(): boolean;
         invalidateResolutionOfFile(filePath: Path): void;
+        removeRelativeNoResolveResolutionsOfFile(filePath: Path): boolean;
         removeResolutionsOfFile(filePath: Path): void;
         removeResolutionsFromProjectReferenceRedirects(filePath: Path): void;
         setFilesWithInvalidatedNonRelativeUnresolvedImports(filesWithUnresolvedImports: ESMap<Path, readonly string[]>): void;
@@ -12173,7 +12177,11 @@ declare namespace ts {
      * @param dirPath
      */
     export function canWatchDirectory(dirPath: Path): boolean;
-    export function createResolutionCache(resolutionHost: ResolutionCacheHost, rootDirForResolution: string | undefined, logChangesWhenResolvingModule: boolean): ResolutionCache;
+    export enum ResolutionKind {
+        All = 0,
+        RelativeReferencesInOpenFileOnly = 1
+    }
+    export function createResolutionCache(resolutionHost: ResolutionCacheHost, rootDirForResolution: string | undefined, resolutionKind: ResolutionKind, logChangesWhenResolvingModule: boolean): ResolutionCache;
     export {};
 }
 declare namespace ts.moduleSpecifiers {
@@ -13041,6 +13049,7 @@ declare namespace ts {
         resolveModuleNames?(moduleNames: string[], containingFile: string, reusedNames: string[] | undefined, redirectedReference: ResolvedProjectReference | undefined, options: CompilerOptions): (ResolvedModule | undefined)[];
         getResolvedModuleWithFailedLookupLocationsFromCache?(modulename: string, containingFile: string): ResolvedModuleWithFailedLookupLocations | undefined;
         resolveTypeReferenceDirectives?(typeDirectiveNames: string[], containingFile: string, redirectedReference: ResolvedProjectReference | undefined, options: CompilerOptions): (ResolvedTypeReferenceDirective | undefined)[];
+        includeTripleslashReferencesFrom?(containingFile: string): boolean;
         hasInvalidatedResolution?: HasInvalidatedResolution;
         hasChangedAutomaticTypeDirectiveNames?: HasChangedAutomaticTypeDirectiveNames;
         getGlobalTypingsCacheLocation?(): string | undefined;
