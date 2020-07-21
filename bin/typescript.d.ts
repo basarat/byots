@@ -4217,6 +4217,7 @@ declare namespace ts {
         thisType: TypeParameter | undefined;
         resolvedBaseConstructorType?: Type;
         resolvedBaseTypes: BaseType[];
+        baseTypesResolved?: boolean;
     }
     export type BaseType = ObjectType | IntersectionType | TypeVariable;
     export interface InterfaceTypeWithDeclaredMembers extends InterfaceType {
