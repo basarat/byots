@@ -4677,6 +4677,7 @@ declare namespace ts {
         disableSizeLimit?: boolean;
         disableSourceOfProjectReferenceRedirect?: boolean;
         disableSolutionSearching?: boolean;
+        disableReferencedProjectLoad?: boolean;
         downlevelIteration?: boolean;
         emitBOM?: boolean;
         emitDecoratorMetadata?: boolean;
@@ -8382,6 +8383,7 @@ declare namespace ts {
         Declaration_augments_declaration_in_another_file_This_cannot_be_serialized: DiagnosticMessage;
         This_is_the_declaration_being_augmented_Consider_moving_the_augmenting_declaration_into_the_same_file: DiagnosticMessage;
         This_expression_is_not_callable_because_it_is_a_get_accessor_Did_you_mean_to_use_it_without: DiagnosticMessage;
+        Disable_loading_referenced_projects: DiagnosticMessage;
         Projects_to_reference: DiagnosticMessage;
         Enable_project_compilation: DiagnosticMessage;
         Composite_projects_may_not_disable_declaration_emit: DiagnosticMessage;
