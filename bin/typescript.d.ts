@@ -3234,7 +3234,6 @@ declare namespace ts {
         isSourceOfProjectReferenceRedirect(fileName: string): boolean;
         getProgramBuildInfo?(): ProgramBuildInfo | undefined;
         emitBuildInfo(writeFile?: WriteFileCallback, cancellationToken?: CancellationToken): EmitResult;
-        getProbableSymlinks(): ReadonlyESMap<string, string>;
         /**
          * This implementation handles file exists to be true if file is source of project reference redirect when program is created using useSourceOfProjectReferenceRedirect
          */
@@ -5176,7 +5175,7 @@ declare namespace ts {
         getParsedCommandLine?(fileName: string): ParsedCommandLine | undefined;
         useSourceOfProjectReferenceRedirect?(): boolean;
         createDirectory?(directory: string): void;
-        getSymlinks?(): ReadonlyESMap<string, string>;
+        getSymlinkCache?(): SymlinkCache;
     }
     /** true if --out otherwise source file name */
     export type SourceOfProjectReferenceRedirect = string | true;
@@ -6379,8 +6378,10 @@ declare namespace ts {
         useCaseSensitiveFileNames?(): boolean;
         fileExists(path: string): boolean;
         getCurrentDirectory(): string;
+        directoryExists?(path: string): boolean;
         readFile?(path: string): string | undefined;
-        getProbableSymlinks?(files: readonly SourceFile[]): ReadonlyESMap<string, string>;
+        realpath?(path: string): string;
+        getSymlinkCache?(): SymlinkCache;
         getGlobalTypingsCacheLocation?(): string | undefined;
         getSourceFiles(): readonly SourceFile[];
         readonly redirectTargetsMap: RedirectTargetsMap;
@@ -10041,7 +10042,18 @@ declare namespace ts {
     function compilerOptionsAffectEmit(newOptions: CompilerOptions, oldOptions: CompilerOptions): boolean;
     function getCompilerOptionValue(options: CompilerOptions, option: CommandLineOption): unknown;
     function hasZeroOrOneAsteriskCharacter(str: string): boolean;
-    function discoverProbableSymlinks(files: readonly SourceFile[], getCanonicalFileName: GetCanonicalFileName, cwd: string): ReadonlyESMap<string, string>;
+    interface SymlinkedDirectory {
+        real: string;
+        realPath: Path;
+    }
+    interface SymlinkCache {
+        getSymlinkedDirectories(): ReadonlyESMap<Path, SymlinkedDirectory | false> | undefined;
+        getSymlinkedFiles(): ReadonlyESMap<Path, string> | undefined;
+        setSymlinkedDirectory(path: Path, directory: SymlinkedDirectory | false): void;
+        setSymlinkedFile(path: Path, real: string): void;
+    }
+    function createSymlinkCache(): SymlinkCache;
+    function discoverProbableSymlinks(files: readonly SourceFile[], getCanonicalFileName: GetCanonicalFileName, cwd: string): SymlinkCache;
     function tryRemoveDirectoryPrefix(path: string, dirPath: string, getCanonicalFileName: GetCanonicalFileName): string | undefined;
     function regExpEscape(text: string): string;
     const commonPackageFolders: readonly string[];
@@ -13056,7 +13068,7 @@ declare namespace ts {
         hasInvalidatedResolution?: HasInvalidatedResolution;
         hasChangedAutomaticTypeDirectiveNames?: HasChangedAutomaticTypeDirectiveNames;
         getGlobalTypingsCacheLocation?(): string | undefined;
-        getProbableSymlinks?(files: readonly SourceFile[]): ReadonlyESMap<string, string>;
+        getSymlinkCache?(files?: readonly SourceFile[]): SymlinkCache;
         getDirectories?(directoryName: string): string[];
         /**
          * Gets a set of custom transformers to use during emit.
@@ -15253,7 +15265,7 @@ declare namespace ts.textChanges {
          *    so we can only call this once and can't get the non-formatted text separately.
          */
         getChanges(validate?: ValidateNonFormattedText): FileTextChanges[];
-        createNewFile(oldFile: SourceFile | undefined, fileName: string, statements: readonly Statement[]): void;
+        createNewFile(oldFile: SourceFile | undefined, fileName: string, statements: readonly (Statement | SyntaxKind.NewLineTrivia)[]): void;
     }
     type ValidateNonFormattedText = (node: Node, text: string) => void;
     function getNewFileText(statements: readonly Statement[], scriptKind: ScriptKind, newLineCharacter: string, formatContext: formatting.FormatContext): string;
