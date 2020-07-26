@@ -31,5 +31,9 @@ Each release is named after the day it was built and the git commit hash in Micr
 ### Require
 Use `import * as ts from 'byots'` and you get what `import * as ts from 'typescript'` would give you.
 
-# About
-Note that this is a personal endeavor, not officially by Microsoft.
+
+# Alternatives
+
+## ts-expose-internals
+* `ts-expose-internals` builds for new releases only to provide better stability - `byots` is nightly for bleeding edge experimentation.
+* `ts-expose-internals` uses module augmentation so you `import typescript` - `byots` reexports typescript so you `import byots`.
