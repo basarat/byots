@@ -35,5 +35,7 @@ Use `import * as ts from 'byots'` and you get what `import * as ts from 'typescr
 # Alternatives
 
 ## ts-expose-internals
+
+https://github.com/nonara/ts-expose-internals
 * `ts-expose-internals` builds for new releases only to provide better stability - `byots` is nightly for bleeding edge experimentation.
 * `ts-expose-internals` uses module augmentation so you `import typescript` - `byots` reexports typescript so you `import byots`.
