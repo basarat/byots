@@ -8386,6 +8386,7 @@ declare namespace ts {
         This_is_the_declaration_being_augmented_Consider_moving_the_augmenting_declaration_into_the_same_file: DiagnosticMessage;
         This_expression_is_not_callable_because_it_is_a_get_accessor_Did_you_mean_to_use_it_without: DiagnosticMessage;
         Disable_loading_referenced_projects: DiagnosticMessage;
+        Arguments_for_the_rest_parameter_0_were_not_provided: DiagnosticMessage;
         Projects_to_reference: DiagnosticMessage;
         Enable_project_compilation: DiagnosticMessage;
         Composite_projects_may_not_disable_declaration_emit: DiagnosticMessage;
