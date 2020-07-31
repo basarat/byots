@@ -8023,6 +8023,7 @@ declare namespace ts {
         Its_element_type_0_is_not_a_valid_JSX_element: DiagnosticMessage;
         The_operand_of_a_delete_operator_must_be_optional: DiagnosticMessage;
         Exponentiation_cannot_be_performed_on_bigint_values_unless_the_target_option_is_set_to_es2016_or_later: DiagnosticMessage;
+        Cannot_find_module_0_Did_you_mean_to_set_the_moduleResolution_option_to_node_or_to_add_aliases_to_the_paths_option: DiagnosticMessage;
         Import_declaration_0_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_interface_has_or_is_using_private_name_1: DiagnosticMessage;
@@ -14976,6 +14977,7 @@ declare namespace ts.formatting {
         getCurrentLeadingTrivia(): TextRangeWithKind[] | undefined;
         lastTrailingTriviaWasNewLine(): boolean;
         skipToEndOf(node: Node): void;
+        skipToStartOf(node: Node): void;
     }
     function getFormattingScanner<T>(text: string, languageVariant: LanguageVariant, startPos: number, endPos: number, cb: (scanner: FormattingScanner) => T): T;
 }
