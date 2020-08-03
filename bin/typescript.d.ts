@@ -6645,7 +6645,7 @@ declare namespace ts {
         readonly importModuleSpecifierEnding?: "auto" | "minimal" | "index" | "js";
         readonly allowTextChangesInNewFiles?: boolean;
         readonly providePrefixAndSuffixTextForRename?: boolean;
-        readonly includePackageJsonAutoImports?: "exclude-dev" | "all" | "none";
+        readonly includePackageJsonAutoImports?: "auto" | "on" | "off";
         readonly provideRefactorNotApplicableReason?: boolean;
     }
     /** Represents a bigint literal value without requiring bigint support */
@@ -13034,13 +13034,18 @@ declare namespace ts {
         getNewLine?(): string;
     }
     enum PackageJsonAutoImportPreference {
-        None = 0,
-        ExcludeDevDependencies = 1,
-        All = 2
+        Off = 0,
+        On = 1,
+        Auto = 2
     }
     interface PerformanceEvent {
         kind: "UpdateGraph" | "CreatePackageJsonAutoImportProvider";
         durationMs: number;
+    }
+    enum LanguageServiceMode {
+        Semantic = 0,
+        ApproximateSemanticOnly = 1,
+        SyntaxOnly = 2
     }
     interface LanguageServiceHost extends GetEffectiveTypeRootsHost {
         getCompilationSettings(): CompilerOptions;
@@ -15614,7 +15619,7 @@ declare namespace ts {
         isCancellationRequested(): boolean;
         throwIfCancellationRequested(): void;
     }
-    function createLanguageService(host: LanguageServiceHost, documentRegistry?: DocumentRegistry, syntaxOnly?: boolean): LanguageService;
+    function createLanguageService(host: LanguageServiceHost, documentRegistry?: DocumentRegistry, syntaxOnlyOrLanguageServiceMode?: boolean | LanguageServiceMode): LanguageService;
     /** Names in the name table are escaped, so an identifier `__foo` will have a name table entry `___foo`. */
     function getNameTable(sourceFile: SourceFile): UnderscoreEscapedMap<number>;
     /**
