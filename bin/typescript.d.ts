@@ -61,7 +61,7 @@ declare namespace ts {
     export {};
 }
 declare namespace ts {
-    const versionMajorMinor = "4.0";
+    const versionMajorMinor = "4.1";
     /** The version of the TypeScript compiler release */
     const version: string;
     /**
