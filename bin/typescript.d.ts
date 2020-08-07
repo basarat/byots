@@ -15223,7 +15223,7 @@ declare namespace ts.textChanges {
         insertNodesAtTopOfFile(sourceFile: SourceFile, newNodes: readonly Statement[], blankLineBetween: boolean): void;
         private insertAtTopOfFile;
         insertFirstParameter(sourceFile: SourceFile, parameters: NodeArray<ParameterDeclaration>, newParam: ParameterDeclaration): void;
-        insertNodeBefore(sourceFile: SourceFile, before: Node, newNode: Node, blankLineBetween?: boolean): void;
+        insertNodeBefore(sourceFile: SourceFile, before: Node, newNode: Node, blankLineBetween?: boolean, options?: ConfigurableStartEnd): void;
         insertModifierBefore(sourceFile: SourceFile, modifier: SyntaxKind, before: Node): void;
         insertLastModifierBefore(sourceFile: SourceFile, modifier: SyntaxKind, before: Node): void;
         insertCommentBeforeLine(sourceFile: SourceFile, lineNumber: number, position: number, commentText: string): void;
