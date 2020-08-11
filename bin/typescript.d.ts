@@ -9297,6 +9297,7 @@ declare namespace ts {
     function getTokenPosOfNode(node: Node, sourceFile?: SourceFileLike, includeJsDoc?: boolean): number;
     function getNonDecoratorTokenPosOfNode(node: Node, sourceFile?: SourceFileLike): number;
     function getSourceTextOfNodeFromSourceFile(sourceFile: SourceFile, node: Node, includeTrivia?: boolean): string;
+    function isExportNamespaceAsDefaultDeclaration(node: Node): boolean;
     function getTextOfNodeFromSourceText(sourceText: string, node: Node, includeTrivia?: boolean): string;
     function getTextOfNode(node: Node, includeTrivia?: boolean): string;
     /**
@@ -9426,6 +9427,7 @@ declare namespace ts {
      * Determines whether a node is a property or element access expression for `this`.
      */
     function isThisProperty(node: Node): boolean;
+    function isThisInitializedDeclaration(node: Node | undefined): boolean;
     function getEntityNameFromTypeNode(node: TypeNode): EntityNameOrEntityNameExpression | undefined;
     function getInvokedExpression(node: CallLikeExpression): Expression;
     function nodeCanBeDecorated(node: ClassDeclaration): true;
