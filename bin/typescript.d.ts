@@ -3168,7 +3168,6 @@ declare namespace ts {
          */
         getMissingFilePaths(): readonly Path[];
         getRefFileMap(): MultiMap<Path, RefFile> | undefined;
-        getSkippedTrippleSlashReferences(): Set<Path> | undefined;
         getFilesByNameMap(): ESMap<string, SourceFile | false | undefined>;
         /**
          * Emits the JavaScript and declaration files.  If targetSourceFile is not specified, then
@@ -5167,7 +5166,6 @@ declare namespace ts {
          * This method is a companion for 'resolveModuleNames' and is used to resolve 'types' references to actual type declaration files
          */
         resolveTypeReferenceDirectives?(typeReferenceDirectiveNames: string[], containingFile: string, redirectedReference: ResolvedProjectReference | undefined, options: CompilerOptions): (ResolvedTypeReferenceDirective | undefined)[];
-        includeTripleslashReferencesFrom?(containingFile: string): boolean;
         getEnvironmentVariable?(name: string): string | undefined;
         onReleaseOldSourceFile?(oldSourceFile: SourceFile, oldOptions: CompilerOptions, hasSourceFileByPath: boolean): void;
         hasInvalidatedResolution?: HasInvalidatedResolution;
@@ -10479,6 +10477,7 @@ declare namespace ts {
     function isTypeLiteralNode(node: Node): node is TypeLiteralNode;
     function isArrayTypeNode(node: Node): node is ArrayTypeNode;
     function isTupleTypeNode(node: Node): node is TupleTypeNode;
+    function isNamedTupleMember(node: Node): node is NamedTupleMember;
     function isOptionalTypeNode(node: Node): node is OptionalTypeNode;
     function isRestTypeNode(node: Node): node is RestTypeNode;
     function isUnionTypeNode(node: Node): node is UnionTypeNode;
@@ -12151,7 +12150,6 @@ declare namespace ts {
         resolveTypeReferenceDirectives(typeDirectiveNames: string[], containingFile: string, redirectedReference?: ResolvedProjectReference): (ResolvedTypeReferenceDirective | undefined)[];
         invalidateResolutionsOfFailedLookupLocations(): boolean;
         invalidateResolutionOfFile(filePath: Path): void;
-        removeRelativeNoResolveResolutionsOfFile(filePath: Path): boolean;
         removeResolutionsOfFile(filePath: Path): void;
         removeResolutionsFromProjectReferenceRedirects(filePath: Path): void;
         setFilesWithInvalidatedNonRelativeUnresolvedImports(filesWithUnresolvedImports: ESMap<Path, readonly string[]>): void;
@@ -12197,11 +12195,7 @@ declare namespace ts {
      * @param dirPath
      */
     export function canWatchDirectory(dirPath: Path): boolean;
-    export enum ResolutionKind {
-        All = 0,
-        RelativeReferencesInOpenFileOnly = 1
-    }
-    export function createResolutionCache(resolutionHost: ResolutionCacheHost, rootDirForResolution: string | undefined, resolutionKind: ResolutionKind, logChangesWhenResolvingModule: boolean): ResolutionCache;
+    export function createResolutionCache(resolutionHost: ResolutionCacheHost, rootDirForResolution: string | undefined, logChangesWhenResolvingModule: boolean): ResolutionCache;
     export {};
 }
 declare namespace ts.moduleSpecifiers {
@@ -13074,7 +13068,6 @@ declare namespace ts {
         resolveModuleNames?(moduleNames: string[], containingFile: string, reusedNames: string[] | undefined, redirectedReference: ResolvedProjectReference | undefined, options: CompilerOptions): (ResolvedModule | undefined)[];
         getResolvedModuleWithFailedLookupLocationsFromCache?(modulename: string, containingFile: string): ResolvedModuleWithFailedLookupLocations | undefined;
         resolveTypeReferenceDirectives?(typeDirectiveNames: string[], containingFile: string, redirectedReference: ResolvedProjectReference | undefined, options: CompilerOptions): (ResolvedTypeReferenceDirective | undefined)[];
-        includeTripleslashReferencesFrom?(containingFile: string): boolean;
         hasInvalidatedResolution?: HasInvalidatedResolution;
         hasChangedAutomaticTypeDirectiveNames?: HasChangedAutomaticTypeDirectiveNames;
         getGlobalTypingsCacheLocation?(): string | undefined;
