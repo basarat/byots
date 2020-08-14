@@ -4864,13 +4864,14 @@ declare namespace ts {
         /**
          * Present to report errors (user specified specs), validatedIncludeSpecs are used for file name matching
          */
-        includeSpecs?: readonly string[];
+        includeSpecs: readonly string[] | undefined;
         /**
          * Present to report errors (user specified specs), validatedExcludeSpecs are used for file name matching
          */
-        excludeSpecs?: readonly string[];
-        validatedIncludeSpecs?: readonly string[];
-        validatedExcludeSpecs?: readonly string[];
+        excludeSpecs: readonly string[] | undefined;
+        validatedFilesSpec: readonly string[] | undefined;
+        validatedIncludeSpecs: readonly string[] | undefined;
+        validatedExcludeSpecs: readonly string[] | undefined;
         wildcardDirectories: MapLike<WatchDirectoryFlags>;
     }
     export interface ExpandResult {
@@ -7435,7 +7436,7 @@ declare namespace ts {
         Re_exporting_a_type_when_the_isolatedModules_flag_is_provided_requires_using_export_type: DiagnosticMessage;
         Decorators_are_not_valid_here: DiagnosticMessage;
         Decorators_cannot_be_applied_to_multiple_get_Slashset_accessors_of_the_same_name: DiagnosticMessage;
-        All_files_must_be_modules_when_the_isolatedModules_flag_is_provided: DiagnosticMessage;
+        _0_cannot_be_compiled_under_isolatedModules_because_it_is_considered_a_global_script_file_Add_an_import_export_or_an_empty_export_statement_to_make_it_a_module: DiagnosticMessage;
         Invalid_use_of_0_Class_definitions_are_automatically_in_strict_mode: DiagnosticMessage;
         A_class_declaration_without_the_default_modifier_must_have_a_name: DiagnosticMessage;
         Identifier_expected_0_is_a_reserved_word_in_strict_mode: DiagnosticMessage;
