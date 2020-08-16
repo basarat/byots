@@ -4380,8 +4380,6 @@ declare namespace ts {
         node: ConditionalTypeNode;
         checkType: Type;
         extendsType: Type;
-        trueType: Type;
-        falseType: Type;
         isDistributive: boolean;
         inferTypeParameters?: TypeParameter[];
         outerTypeParameters?: TypeParameter[];
