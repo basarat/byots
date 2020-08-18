@@ -3370,7 +3370,7 @@ declare namespace ts {
          * This is necessary as an identifier in short-hand property assignment can contains two meaning: property name and property value.
          */
         getShorthandAssignmentValueSymbol(location: Node): Symbol | undefined;
-        getExportSpecifierLocalTargetSymbol(location: ExportSpecifier): Symbol | undefined;
+        getExportSpecifierLocalTargetSymbol(location: ExportSpecifier | Identifier): Symbol | undefined;
         /**
          * If a symbol is a local symbol with an associated exported symbol, returns the exported symbol.
          * Otherwise returns its input.
@@ -9446,6 +9446,7 @@ declare namespace ts {
         moduleReference: ExternalModuleReference;
     };
     function getExternalModuleImportEqualsDeclarationExpression(node: Node): Expression;
+    function getExternalModuleRequireArgument(node: Node): false | StringLiteral;
     function isInternalModuleImportEqualsDeclaration(node: Node): node is ImportEqualsDeclaration;
     function isSourceFileJS(file: SourceFile): boolean;
     function isSourceFileNotJS(file: SourceFile): boolean;
@@ -9996,6 +9997,7 @@ declare namespace ts {
     function getNameOfAccessExpression(node: AccessExpression): Expression | PrivateIdentifier;
     function isBundleFileTextLike(section: BundleFileSection): section is BundleFileTextLike;
     function isNamedImportsOrExports(node: Node): node is NamedImportsOrExports;
+    function getLeftmostPropertyAccessExpression(expr: Expression): Expression;
     function getLeftmostExpression(node: Expression, stopAtCallExpressions: boolean): Expression;
     interface ObjectAllocator {
         getNodeConstructor(): new (kind: SyntaxKind, pos?: number, end?: number) => Node;
