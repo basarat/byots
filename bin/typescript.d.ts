@@ -7919,6 +7919,7 @@ declare namespace ts {
         All_declarations_of_0_must_have_identical_modifiers: DiagnosticMessage;
         Cannot_find_type_definition_file_for_0: DiagnosticMessage;
         Cannot_extend_an_interface_0_Did_you_mean_implements: DiagnosticMessage;
+        _0_only_refers_to_a_type_but_is_being_used_as_a_value_here_Did_you_mean_to_use_1_in_0: DiagnosticMessage;
         An_import_path_cannot_end_with_a_0_extension_Consider_importing_1_instead: DiagnosticMessage;
         _0_is_a_primitive_but_1_is_a_wrapper_object_Prefer_using_0_when_possible: DiagnosticMessage;
         _0_only_refers_to_a_type_but_is_being_used_as_a_value_here: DiagnosticMessage;
