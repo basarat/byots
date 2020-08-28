@@ -7564,6 +7564,7 @@ declare namespace ts {
         Constructor_type_notation_must_be_parenthesized_when_used_in_a_union_type: DiagnosticMessage;
         Function_type_notation_must_be_parenthesized_when_used_in_an_intersection_type: DiagnosticMessage;
         Constructor_type_notation_must_be_parenthesized_when_used_in_an_intersection_type: DiagnosticMessage;
+        _0_is_not_allowed_as_a_variable_declaration_name: DiagnosticMessage;
         The_types_of_0_are_incompatible_between_these_types: DiagnosticMessage;
         The_types_returned_by_0_are_incompatible_between_these_types: DiagnosticMessage;
         Call_signature_return_types_0_and_1_are_incompatible: DiagnosticMessage;
