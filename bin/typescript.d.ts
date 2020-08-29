@@ -4431,6 +4431,7 @@ declare namespace ts {
         resolvedReturnType?: Type;
         resolvedTypePredicate?: TypePredicate;
         minArgumentCount: number;
+        resolvedMinArgumentCount?: number;
         target?: Signature;
         mapper?: TypeMapper;
         unionSignatures?: Signature[];
@@ -7955,7 +7956,7 @@ declare namespace ts {
         Cannot_invoke_an_object_which_is_possibly_null: DiagnosticMessage;
         Cannot_invoke_an_object_which_is_possibly_undefined: DiagnosticMessage;
         Cannot_invoke_an_object_which_is_possibly_null_or_undefined: DiagnosticMessage;
-        Module_0_has_no_exported_member_1_Did_you_mean_2: DiagnosticMessage;
+        _0_has_no_exported_member_named_1_Did_you_mean_2: DiagnosticMessage;
         Class_name_cannot_be_Object_when_targeting_ES5_with_module_0: DiagnosticMessage;
         Cannot_find_lib_definition_for_0: DiagnosticMessage;
         Cannot_find_lib_definition_for_0_Did_you_mean_1: DiagnosticMessage;
