@@ -6288,6 +6288,7 @@ declare namespace ts {
         recordInternalSection?: boolean;
         stripInternal?: boolean;
         preserveSourceNewlines?: boolean;
+        terminateUnterminatedLiterals?: boolean;
         relativeToBuildInfo?: (path: string) => string;
     }
     export interface RawSourceMap {
@@ -9310,7 +9311,13 @@ declare namespace ts {
      * Gets flags that control emit behavior of a node.
      */
     function getEmitFlags(node: Node): EmitFlags;
-    function getLiteralText(node: LiteralLikeNode, sourceFile: SourceFile, neverAsciiEscape: boolean | undefined, jsxAttributeEscape: boolean): string;
+    enum GetLiteralTextFlags {
+        None = 0,
+        NeverAsciiEscape = 1,
+        JsxAttributeEscape = 2,
+        TerminateUnterminatedLiterals = 4
+    }
+    function getLiteralText(node: LiteralLikeNode, sourceFile: SourceFile, flags: GetLiteralTextFlags): string;
     function getTextOfConstantValue(value: string | number): string;
     function makeIdentifierFromModuleName(moduleName: string): string;
     function isBlockOrCatchScoped(declaration: Declaration): boolean;
