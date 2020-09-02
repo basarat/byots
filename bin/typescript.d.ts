@@ -10008,7 +10008,7 @@ declare namespace ts {
     function getNameOfAccessExpression(node: AccessExpression): Expression | PrivateIdentifier;
     function isBundleFileTextLike(section: BundleFileSection): section is BundleFileTextLike;
     function isNamedImportsOrExports(node: Node): node is NamedImportsOrExports;
-    function getLeftmostPropertyAccessExpression(expr: Expression): Expression;
+    function getLeftmostAccessExpression(expr: Expression): Expression;
     function getLeftmostExpression(node: Expression, stopAtCallExpressions: boolean): Expression;
     interface ObjectAllocator {
         getNodeConstructor(): new (kind: SyntaxKind, pos?: number, end?: number) => Node;
@@ -10053,6 +10053,7 @@ declare namespace ts {
     function isIncrementalCompilation(options: CompilerOptions): boolean;
     type StrictOptionName = "noImplicitAny" | "noImplicitThis" | "strictNullChecks" | "strictFunctionTypes" | "strictBindCallApply" | "strictPropertyInitialization" | "alwaysStrict";
     function getStrictOptionValue(compilerOptions: CompilerOptions, flag: StrictOptionName): boolean;
+    function getAllowJSCompilerOption(compilerOptions: CompilerOptions): boolean;
     function compilerOptionsAffectSemanticDiagnostics(newOptions: CompilerOptions, oldOptions: CompilerOptions): boolean;
     function compilerOptionsAffectEmit(newOptions: CompilerOptions, oldOptions: CompilerOptions): boolean;
     function getCompilerOptionValue(options: CompilerOptions, option: CommandLineOption): unknown;
