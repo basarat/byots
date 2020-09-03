@@ -814,9 +814,11 @@ declare namespace ts {
         function formatSymbolFlags(flags: SymbolFlags | undefined): string;
         function formatTypeFlags(flags: TypeFlags | undefined): string;
         function formatObjectFlags(flags: ObjectFlags | undefined): string;
+        function formatFlowFlags(flags: FlowFlags | undefined): string;
         function printControlFlowGraph(flowNode: FlowNode): void;
         function formatControlFlowGraph(flowNode: FlowNode): string;
-        function attachFlowNodeDebugInfo(flowNode: FlowNode): void;
+        function attachFlowNodeDebugInfo(flowNode: FlowNodeBase): void;
+        function attachNodeArrayDebugInfo(array: NodeArray<Node>): void;
         /**
          * Injects debug information into frequently used types.
          */
@@ -4195,7 +4197,8 @@ declare namespace ts {
         IsNeverIntersection = 536870912,
         ClassOrInterface = 3,
         RequiresWidening = 1572864,
-        PropagatingFlags = 3670016
+        PropagatingFlags = 3670016,
+        ObjectTypeKindMask = 2367
     }
     export type ObjectFlagsType = NullableType | ObjectType | UnionType | IntersectionType;
     export interface ObjectType extends Type {
