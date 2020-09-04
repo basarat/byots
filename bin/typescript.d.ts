@@ -6931,6 +6931,11 @@ declare namespace ts {
      * Determines whether a path starts with a relative path component (i.e. `.` or `..`).
      */
     function pathIsRelative(path: string): boolean;
+    /**
+     * Determines whether a path is neither relative nor absolute, e.g. "path/to/file".
+     * Also known misleadingly as "non-relative".
+     */
+    function pathIsBareSpecifier(path: string): boolean;
     function hasExtension(fileName: string): boolean;
     function fileExtensionIs(path: string, extension: string): boolean;
     function fileExtensionIsOneOf(path: string, extensions: readonly string[]): boolean;
@@ -12221,7 +12226,7 @@ declare namespace ts.moduleSpecifiers {
     /** Returns an import for each symlink and for the realpath. */
     function getModuleSpecifiers(moduleSymbol: Symbol, compilerOptions: CompilerOptions, importingSourceFile: SourceFile, host: ModuleSpecifierResolutionHost, userPreferences: UserPreferences): readonly string[];
     function countPathComponents(path: string): number;
-    function forEachFileNameOfModule<T>(importingFileName: string, importedFileName: string, host: ModuleSpecifierResolutionHost, preferSymlinks: boolean, cb: (fileName: string) => T | undefined): T | undefined;
+    function forEachFileNameOfModule<T>(importingFileName: string, importedFileName: string, host: ModuleSpecifierResolutionHost, preferSymlinks: boolean, cb: (fileName: string, isRedirect: boolean) => T | undefined): T | undefined;
 }
 declare namespace ts {
     /**
