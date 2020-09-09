@@ -8607,6 +8607,7 @@ declare namespace ts {
         Declare_a_private_field_named_0: DiagnosticMessage;
         Convert_function_to_an_ES2015_class: DiagnosticMessage;
         Convert_function_0_to_class: DiagnosticMessage;
+        Convert_0_to_1_in_0: DiagnosticMessage;
         Extract_to_0_in_1: DiagnosticMessage;
         Extract_function: DiagnosticMessage;
         Extract_constant: DiagnosticMessage;
@@ -8624,6 +8625,7 @@ declare namespace ts {
         Add_undefined_type_to_property_0: DiagnosticMessage;
         Add_initializer_to_property_0: DiagnosticMessage;
         Add_definite_assignment_assertion_to_property_0: DiagnosticMessage;
+        Convert_all_type_literals_to_mapped_type: DiagnosticMessage;
         Add_all_missing_members: DiagnosticMessage;
         Infer_all_types_from_usage: DiagnosticMessage;
         Delete_all_unused_declarations: DiagnosticMessage;
@@ -15344,6 +15346,8 @@ declare namespace ts.codefix {
 declare namespace ts.codefix {
     type DeclarationWithType = FunctionLikeDeclaration | VariableDeclaration | PropertySignature | PropertyDeclaration;
     function parameterShouldGetTypeFromJSDoc(node: Node): node is DeclarationWithType;
+}
+declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
 }
