@@ -913,6 +913,25 @@ declare namespace ts {
         toString(): string;
     }
 }
+/** Tracing events for the compiler. */
+declare namespace ts.tracing {
+    /** Starts tracing for the given project (unless the `fs` module is unavailable). */
+    function startTracing(configFilePath: string | undefined, traceDir: string, isBuildMode: boolean): void;
+    /** Stops tracing for the in-progress project and dumps the type catalog (unless the `fs` module is unavailable). */
+    function stopTracing(typeCatalog: readonly Type[]): void;
+    function isTracing(): boolean;
+    enum Phase {
+        Parse = "parse",
+        Program = "program",
+        Bind = "bind",
+        Check = "check",
+        Emit = "emit"
+    }
+    function begin(phase: Phase, name: string, args: object): void;
+    function end(): void;
+    function instant(phase: Phase, name: string, args: object): void;
+    function dumpLegend(): void;
+}
 declare namespace ts {
     export type Path = string & {
         __pathBrand: any;
@@ -3237,6 +3256,7 @@ declare namespace ts {
         getDiagnosticsProducingTypeChecker(): TypeChecker;
         dropDiagnosticsProducingTypeChecker(): void;
         getClassifiableNames(): Set<__String>;
+        getTypeCatalog(): readonly Type[];
         getNodeCount(): number;
         getIdentifierCount(): number;
         getSymbolCount(): number;
@@ -3511,6 +3531,7 @@ declare namespace ts {
         getDiagnostics(sourceFile?: SourceFile, cancellationToken?: CancellationToken): Diagnostic[];
         getGlobalDiagnostics(): Diagnostic[];
         getEmitResolver(sourceFile?: SourceFile, cancellationToken?: CancellationToken): EmitResolver;
+        getTypeCatalog(): readonly Type[];
         getNodeCount(): number;
         getIdentifierCount(): number;
         getSymbolCount(): number;
@@ -3522,6 +3543,7 @@ declare namespace ts {
             subtype: number;
             strictSubtype: number;
         };
+        getRecursionIdentity(type: Type): object | undefined;
         isArrayType(type: Type): boolean;
         isTupleType(type: Type): boolean;
         isArrayLikeType(type: Type): boolean;
@@ -4708,6 +4730,7 @@ declare namespace ts {
         baseUrl?: string;
         /** An error if set - this should only go through the -b pipeline and not actually be observed */
         build?: boolean;
+        bundledPackageName?: string;
         charset?: string;
         checkJs?: boolean;
         configFilePath?: string;
@@ -4729,6 +4752,7 @@ declare namespace ts {
         experimentalDecorators?: boolean;
         forceConsistentCasingInFileNames?: boolean;
         generateCpuProfile?: string;
+        generateTrace?: string;
         help?: boolean;
         importHelpers?: boolean;
         importsNotUsedAsValues?: ImportsNotUsedAsValues;
@@ -6442,6 +6466,7 @@ declare namespace ts {
         readonly redirectTargetsMap: RedirectTargetsMap;
         getProjectReferenceRedirect(fileName: string): string | undefined;
         isSourceOfProjectReferenceRedirect(fileName: string): boolean;
+        getCompilerOptions(): CompilerOptions;
     }
     export interface SymbolTracker {
         trackSymbol?(symbol: Symbol, enclosingDeclaration: Node | undefined, meaning: SymbolFlags): void;
@@ -6707,236 +6732,6 @@ declare namespace ts {
         negative: boolean;
         base10Value: string;
     }
-    export {};
-}
-declare function setTimeout(handler: (...args: any[]) => void, timeout: number): any;
-declare function clearTimeout(handle: any): void;
-declare namespace ts {
-    /**
-     * djb2 hashing algorithm
-     * http://www.cse.yorku.ca/~oz/hash.html
-     */
-    export function generateDjb2Hash(data: string): string;
-    /**
-     * Set a high stack trace limit to provide more information in case of an error.
-     * Called for command-line and server use cases.
-     * Not called if TypeScript is used as a library.
-     */
-    export function setStackTraceLimit(): void;
-    export enum FileWatcherEventKind {
-        Created = 0,
-        Changed = 1,
-        Deleted = 2
-    }
-    export type FileWatcherCallback = (fileName: string, eventKind: FileWatcherEventKind) => void;
-    export type DirectoryWatcherCallback = (fileName: string) => void;
-    export interface WatchedFile {
-        readonly fileName: string;
-        readonly callback: FileWatcherCallback;
-        mtime: Date;
-    }
-    export enum PollingInterval {
-        High = 2000,
-        Medium = 500,
-        Low = 250
-    }
-    export type HostWatchFile = (fileName: string, callback: FileWatcherCallback, pollingInterval: PollingInterval, options: WatchOptions | undefined) => FileWatcher;
-    export type HostWatchDirectory = (fileName: string, callback: DirectoryWatcherCallback, recursive: boolean, options: WatchOptions | undefined) => FileWatcher;
-    export const missingFileModifiedTime: Date;
-    export let unchangedPollThresholds: {
-        250: number;
-        500: number;
-        2000: number;
-    };
-    export function setCustomPollingValues(system: System): void;
-    export function createDynamicPriorityPollingWatchFile(host: {
-        getModifiedTime: NonNullable<System["getModifiedTime"]>;
-        setTimeout: NonNullable<System["setTimeout"]>;
-    }): HostWatchFile;
-    export function createSingleFileWatcherPerName(watchFile: HostWatchFile, useCaseSensitiveFileNames: boolean): HostWatchFile;
-    /**
-     * Returns true if file status changed
-     */
-    export function onWatchedFileStat(watchedFile: WatchedFile, modifiedTime: Date): boolean;
-    export function getFileWatcherEventKind(oldTime: number, newTime: number): FileWatcherEventKind;
-    export const ignoredPaths: string[];
-    export let sysLog: (s: string) => void;
-    export function setSysLog(logger: typeof sysLog): void;
-    export interface RecursiveDirectoryWatcherHost {
-        watchDirectory: HostWatchDirectory;
-        useCaseSensitiveFileNames: boolean;
-        getAccessibleSortedChildDirectories(path: string): readonly string[];
-        directoryExists(dir: string): boolean;
-        realpath(s: string): string;
-        setTimeout: NonNullable<System["setTimeout"]>;
-        clearTimeout: NonNullable<System["clearTimeout"]>;
-    }
-    /**
-     * Watch the directory recursively using host provided method to watch child directories
-     * that means if this is recursive watcher, watch the children directories as well
-     * (eg on OS that dont support recursive watch using fs.watch use fs.watchFile)
-     */
-    export function createDirectoryWatcherSupportingRecursive(host: RecursiveDirectoryWatcherHost): HostWatchDirectory;
-    export type FsWatchCallback = (eventName: "rename" | "change", relativeFileName: string | undefined) => void;
-    export type FsWatch = (fileOrDirectory: string, entryKind: FileSystemEntryKind, callback: FsWatchCallback, recursive: boolean, fallbackPollingInterval: PollingInterval, fallbackOptions: WatchOptions | undefined) => FileWatcher;
-    export enum FileSystemEntryKind {
-        File = 0,
-        Directory = 1
-    }
-    export function createFileWatcherCallback(callback: FsWatchCallback): FileWatcherCallback;
-    export interface CreateSystemWatchFunctions {
-        pollingWatchFile: HostWatchFile;
-        getModifiedTime: NonNullable<System["getModifiedTime"]>;
-        setTimeout: NonNullable<System["setTimeout"]>;
-        clearTimeout: NonNullable<System["clearTimeout"]>;
-        fsWatch: FsWatch;
-        fileExists: System["fileExists"];
-        useCaseSensitiveFileNames: boolean;
-        fsSupportsRecursiveFsWatch: boolean;
-        directoryExists: System["directoryExists"];
-        getAccessibleSortedChildDirectories(path: string): readonly string[];
-        realpath(s: string): string;
-        tscWatchFile: string | undefined;
-        useNonPollingWatchers?: boolean;
-        tscWatchDirectory: string | undefined;
-    }
-    export function createSystemWatchFunctions({ pollingWatchFile, getModifiedTime, setTimeout, clearTimeout, fsWatch, fileExists, useCaseSensitiveFileNames, fsSupportsRecursiveFsWatch, directoryExists, getAccessibleSortedChildDirectories, realpath, tscWatchFile, useNonPollingWatchers, tscWatchDirectory, }: CreateSystemWatchFunctions): {
-        watchFile: HostWatchFile;
-        watchDirectory: HostWatchDirectory;
-    };
-    /**
-     * patch writefile to create folder before writing the file
-     */
-    export function patchWriteFileEnsuringDirectory(sys: System): void;
-    export type BufferEncoding = "ascii" | "utf8" | "utf-8" | "utf16le" | "ucs2" | "ucs-2" | "base64" | "latin1" | "binary" | "hex";
-    interface NodeBuffer extends Uint8Array {
-        constructor: any;
-        write(str: string, encoding?: BufferEncoding): number;
-        write(str: string, offset: number, encoding?: BufferEncoding): number;
-        write(str: string, offset: number, length: number, encoding?: BufferEncoding): number;
-        toString(encoding?: string, start?: number, end?: number): string;
-        toJSON(): {
-            type: "Buffer";
-            data: number[];
-        };
-        equals(otherBuffer: Uint8Array): boolean;
-        compare(otherBuffer: Uint8Array, targetStart?: number, targetEnd?: number, sourceStart?: number, sourceEnd?: number): number;
-        copy(targetBuffer: Uint8Array, targetStart?: number, sourceStart?: number, sourceEnd?: number): number;
-        slice(begin?: number, end?: number): Buffer;
-        subarray(begin?: number, end?: number): Buffer;
-        writeUIntLE(value: number, offset: number, byteLength: number): number;
-        writeUIntBE(value: number, offset: number, byteLength: number): number;
-        writeIntLE(value: number, offset: number, byteLength: number): number;
-        writeIntBE(value: number, offset: number, byteLength: number): number;
-        readUIntLE(offset: number, byteLength: number): number;
-        readUIntBE(offset: number, byteLength: number): number;
-        readIntLE(offset: number, byteLength: number): number;
-        readIntBE(offset: number, byteLength: number): number;
-        readUInt8(offset: number): number;
-        readUInt16LE(offset: number): number;
-        readUInt16BE(offset: number): number;
-        readUInt32LE(offset: number): number;
-        readUInt32BE(offset: number): number;
-        readInt8(offset: number): number;
-        readInt16LE(offset: number): number;
-        readInt16BE(offset: number): number;
-        readInt32LE(offset: number): number;
-        readInt32BE(offset: number): number;
-        readFloatLE(offset: number): number;
-        readFloatBE(offset: number): number;
-        readDoubleLE(offset: number): number;
-        readDoubleBE(offset: number): number;
-        reverse(): this;
-        swap16(): Buffer;
-        swap32(): Buffer;
-        swap64(): Buffer;
-        writeUInt8(value: number, offset: number): number;
-        writeUInt16LE(value: number, offset: number): number;
-        writeUInt16BE(value: number, offset: number): number;
-        writeUInt32LE(value: number, offset: number): number;
-        writeUInt32BE(value: number, offset: number): number;
-        writeInt8(value: number, offset: number): number;
-        writeInt16LE(value: number, offset: number): number;
-        writeInt16BE(value: number, offset: number): number;
-        writeInt32LE(value: number, offset: number): number;
-        writeInt32BE(value: number, offset: number): number;
-        writeFloatLE(value: number, offset: number): number;
-        writeFloatBE(value: number, offset: number): number;
-        writeDoubleLE(value: number, offset: number): number;
-        writeDoubleBE(value: number, offset: number): number;
-        readBigUInt64BE?(offset?: number): bigint;
-        readBigUInt64LE?(offset?: number): bigint;
-        readBigInt64BE?(offset?: number): bigint;
-        readBigInt64LE?(offset?: number): bigint;
-        writeBigInt64BE?(value: bigint, offset?: number): number;
-        writeBigInt64LE?(value: bigint, offset?: number): number;
-        writeBigUInt64BE?(value: bigint, offset?: number): number;
-        writeBigUInt64LE?(value: bigint, offset?: number): number;
-        fill(value: string | Uint8Array | number, offset?: number, end?: number, encoding?: BufferEncoding): this;
-        indexOf(value: string | number | Uint8Array, byteOffset?: number, encoding?: BufferEncoding): number;
-        lastIndexOf(value: string | number | Uint8Array, byteOffset?: number, encoding?: BufferEncoding): number;
-        entries(): IterableIterator<[number, number]>;
-        includes(value: string | number | Buffer, byteOffset?: number, encoding?: BufferEncoding): boolean;
-        keys(): IterableIterator<number>;
-        values(): IterableIterator<number>;
-    }
-    interface Buffer extends NodeBuffer {
-    }
-    export interface System {
-        args: string[];
-        newLine: string;
-        useCaseSensitiveFileNames: boolean;
-        write(s: string): void;
-        writeOutputIsTTY?(): boolean;
-        readFile(path: string, encoding?: string): string | undefined;
-        getFileSize?(path: string): number;
-        writeFile(path: string, data: string, writeByteOrderMark?: boolean): void;
-        /**
-         * @pollingInterval - this parameter is used in polling-based watchers and ignored in watchers that
-         * use native OS file watching
-         */
-        watchFile?(path: string, callback: FileWatcherCallback, pollingInterval?: number, options?: WatchOptions): FileWatcher;
-        watchDirectory?(path: string, callback: DirectoryWatcherCallback, recursive?: boolean, options?: WatchOptions): FileWatcher;
-        resolvePath(path: string): string;
-        fileExists(path: string): boolean;
-        directoryExists(path: string): boolean;
-        createDirectory(path: string): void;
-        getExecutingFilePath(): string;
-        getCurrentDirectory(): string;
-        getDirectories(path: string): string[];
-        readDirectory(path: string, extensions?: readonly string[], exclude?: readonly string[], include?: readonly string[], depth?: number): string[];
-        getModifiedTime?(path: string): Date | undefined;
-        setModifiedTime?(path: string, time: Date): void;
-        deleteFile?(path: string): void;
-        /**
-         * A good implementation is node.js' `crypto.createHash`. (https://nodejs.org/api/crypto.html#crypto_crypto_createhash_algorithm)
-         */
-        createHash?(data: string): string;
-        /** This must be cryptographically secure. Only implement this method using `crypto.createHash("sha256")`. */
-        createSHA256Hash?(data: string): string;
-        getMemoryUsage?(): number;
-        exit(exitCode?: number): void;
-        enableCPUProfiler?(path: string, continuation: () => void): boolean;
-        disableCPUProfiler?(continuation: () => void): boolean;
-        realpath?(path: string): string;
-        getEnvironmentVariable(name: string): string;
-        tryEnableSourceMapsForHost?(): void;
-        debugMode?: boolean;
-        setTimeout?(callback: (...args: any[]) => void, ms: number, ...args: any[]): any;
-        clearTimeout?(timeoutId: any): void;
-        clearScreen?(): void;
-        setBlocking?(): void;
-        base64decode?(input: string): string;
-        base64encode?(input: string): string;
-        bufferFrom?(input: string, encoding?: string): Buffer;
-        now?(): Date;
-        require?(baseDir: string, moduleName: string): RequireResult;
-    }
-    export interface FileWatcher {
-        close(): void;
-    }
-    export function getNodeMajorVersion(): number | undefined;
-    export let sys: System;
     export {};
 }
 declare namespace ts {
@@ -7329,6 +7124,236 @@ declare namespace ts {
     function forEachAncestorDirectory<T>(directory: string, callback: (directory: string) => T | undefined): T | undefined;
     function isNodeModulesDirectory(dirPath: Path): boolean;
 }
+declare function setTimeout(handler: (...args: any[]) => void, timeout: number): any;
+declare function clearTimeout(handle: any): void;
+declare namespace ts {
+    /**
+     * djb2 hashing algorithm
+     * http://www.cse.yorku.ca/~oz/hash.html
+     */
+    export function generateDjb2Hash(data: string): string;
+    /**
+     * Set a high stack trace limit to provide more information in case of an error.
+     * Called for command-line and server use cases.
+     * Not called if TypeScript is used as a library.
+     */
+    export function setStackTraceLimit(): void;
+    export enum FileWatcherEventKind {
+        Created = 0,
+        Changed = 1,
+        Deleted = 2
+    }
+    export type FileWatcherCallback = (fileName: string, eventKind: FileWatcherEventKind) => void;
+    export type DirectoryWatcherCallback = (fileName: string) => void;
+    export interface WatchedFile {
+        readonly fileName: string;
+        readonly callback: FileWatcherCallback;
+        mtime: Date;
+    }
+    export enum PollingInterval {
+        High = 2000,
+        Medium = 500,
+        Low = 250
+    }
+    export type HostWatchFile = (fileName: string, callback: FileWatcherCallback, pollingInterval: PollingInterval, options: WatchOptions | undefined) => FileWatcher;
+    export type HostWatchDirectory = (fileName: string, callback: DirectoryWatcherCallback, recursive: boolean, options: WatchOptions | undefined) => FileWatcher;
+    export const missingFileModifiedTime: Date;
+    export let unchangedPollThresholds: {
+        250: number;
+        500: number;
+        2000: number;
+    };
+    export function setCustomPollingValues(system: System): void;
+    export function createDynamicPriorityPollingWatchFile(host: {
+        getModifiedTime: NonNullable<System["getModifiedTime"]>;
+        setTimeout: NonNullable<System["setTimeout"]>;
+    }): HostWatchFile;
+    export function createSingleFileWatcherPerName(watchFile: HostWatchFile, useCaseSensitiveFileNames: boolean): HostWatchFile;
+    /**
+     * Returns true if file status changed
+     */
+    export function onWatchedFileStat(watchedFile: WatchedFile, modifiedTime: Date): boolean;
+    export function getFileWatcherEventKind(oldTime: number, newTime: number): FileWatcherEventKind;
+    export const ignoredPaths: string[];
+    export let sysLog: (s: string) => void;
+    export function setSysLog(logger: typeof sysLog): void;
+    export interface RecursiveDirectoryWatcherHost {
+        watchDirectory: HostWatchDirectory;
+        useCaseSensitiveFileNames: boolean;
+        getAccessibleSortedChildDirectories(path: string): readonly string[];
+        directoryExists(dir: string): boolean;
+        realpath(s: string): string;
+        setTimeout: NonNullable<System["setTimeout"]>;
+        clearTimeout: NonNullable<System["clearTimeout"]>;
+    }
+    /**
+     * Watch the directory recursively using host provided method to watch child directories
+     * that means if this is recursive watcher, watch the children directories as well
+     * (eg on OS that dont support recursive watch using fs.watch use fs.watchFile)
+     */
+    export function createDirectoryWatcherSupportingRecursive(host: RecursiveDirectoryWatcherHost): HostWatchDirectory;
+    export type FsWatchCallback = (eventName: "rename" | "change", relativeFileName: string | undefined) => void;
+    export type FsWatch = (fileOrDirectory: string, entryKind: FileSystemEntryKind, callback: FsWatchCallback, recursive: boolean, fallbackPollingInterval: PollingInterval, fallbackOptions: WatchOptions | undefined) => FileWatcher;
+    export enum FileSystemEntryKind {
+        File = 0,
+        Directory = 1
+    }
+    export function createFileWatcherCallback(callback: FsWatchCallback): FileWatcherCallback;
+    export interface CreateSystemWatchFunctions {
+        pollingWatchFile: HostWatchFile;
+        getModifiedTime: NonNullable<System["getModifiedTime"]>;
+        setTimeout: NonNullable<System["setTimeout"]>;
+        clearTimeout: NonNullable<System["clearTimeout"]>;
+        fsWatch: FsWatch;
+        fileExists: System["fileExists"];
+        useCaseSensitiveFileNames: boolean;
+        fsSupportsRecursiveFsWatch: boolean;
+        directoryExists: System["directoryExists"];
+        getAccessibleSortedChildDirectories(path: string): readonly string[];
+        realpath(s: string): string;
+        tscWatchFile: string | undefined;
+        useNonPollingWatchers?: boolean;
+        tscWatchDirectory: string | undefined;
+    }
+    export function createSystemWatchFunctions({ pollingWatchFile, getModifiedTime, setTimeout, clearTimeout, fsWatch, fileExists, useCaseSensitiveFileNames, fsSupportsRecursiveFsWatch, directoryExists, getAccessibleSortedChildDirectories, realpath, tscWatchFile, useNonPollingWatchers, tscWatchDirectory, }: CreateSystemWatchFunctions): {
+        watchFile: HostWatchFile;
+        watchDirectory: HostWatchDirectory;
+    };
+    /**
+     * patch writefile to create folder before writing the file
+     */
+    export function patchWriteFileEnsuringDirectory(sys: System): void;
+    export type BufferEncoding = "ascii" | "utf8" | "utf-8" | "utf16le" | "ucs2" | "ucs-2" | "base64" | "latin1" | "binary" | "hex";
+    interface NodeBuffer extends Uint8Array {
+        constructor: any;
+        write(str: string, encoding?: BufferEncoding): number;
+        write(str: string, offset: number, encoding?: BufferEncoding): number;
+        write(str: string, offset: number, length: number, encoding?: BufferEncoding): number;
+        toString(encoding?: string, start?: number, end?: number): string;
+        toJSON(): {
+            type: "Buffer";
+            data: number[];
+        };
+        equals(otherBuffer: Uint8Array): boolean;
+        compare(otherBuffer: Uint8Array, targetStart?: number, targetEnd?: number, sourceStart?: number, sourceEnd?: number): number;
+        copy(targetBuffer: Uint8Array, targetStart?: number, sourceStart?: number, sourceEnd?: number): number;
+        slice(begin?: number, end?: number): Buffer;
+        subarray(begin?: number, end?: number): Buffer;
+        writeUIntLE(value: number, offset: number, byteLength: number): number;
+        writeUIntBE(value: number, offset: number, byteLength: number): number;
+        writeIntLE(value: number, offset: number, byteLength: number): number;
+        writeIntBE(value: number, offset: number, byteLength: number): number;
+        readUIntLE(offset: number, byteLength: number): number;
+        readUIntBE(offset: number, byteLength: number): number;
+        readIntLE(offset: number, byteLength: number): number;
+        readIntBE(offset: number, byteLength: number): number;
+        readUInt8(offset: number): number;
+        readUInt16LE(offset: number): number;
+        readUInt16BE(offset: number): number;
+        readUInt32LE(offset: number): number;
+        readUInt32BE(offset: number): number;
+        readInt8(offset: number): number;
+        readInt16LE(offset: number): number;
+        readInt16BE(offset: number): number;
+        readInt32LE(offset: number): number;
+        readInt32BE(offset: number): number;
+        readFloatLE(offset: number): number;
+        readFloatBE(offset: number): number;
+        readDoubleLE(offset: number): number;
+        readDoubleBE(offset: number): number;
+        reverse(): this;
+        swap16(): Buffer;
+        swap32(): Buffer;
+        swap64(): Buffer;
+        writeUInt8(value: number, offset: number): number;
+        writeUInt16LE(value: number, offset: number): number;
+        writeUInt16BE(value: number, offset: number): number;
+        writeUInt32LE(value: number, offset: number): number;
+        writeUInt32BE(value: number, offset: number): number;
+        writeInt8(value: number, offset: number): number;
+        writeInt16LE(value: number, offset: number): number;
+        writeInt16BE(value: number, offset: number): number;
+        writeInt32LE(value: number, offset: number): number;
+        writeInt32BE(value: number, offset: number): number;
+        writeFloatLE(value: number, offset: number): number;
+        writeFloatBE(value: number, offset: number): number;
+        writeDoubleLE(value: number, offset: number): number;
+        writeDoubleBE(value: number, offset: number): number;
+        readBigUInt64BE?(offset?: number): bigint;
+        readBigUInt64LE?(offset?: number): bigint;
+        readBigInt64BE?(offset?: number): bigint;
+        readBigInt64LE?(offset?: number): bigint;
+        writeBigInt64BE?(value: bigint, offset?: number): number;
+        writeBigInt64LE?(value: bigint, offset?: number): number;
+        writeBigUInt64BE?(value: bigint, offset?: number): number;
+        writeBigUInt64LE?(value: bigint, offset?: number): number;
+        fill(value: string | Uint8Array | number, offset?: number, end?: number, encoding?: BufferEncoding): this;
+        indexOf(value: string | number | Uint8Array, byteOffset?: number, encoding?: BufferEncoding): number;
+        lastIndexOf(value: string | number | Uint8Array, byteOffset?: number, encoding?: BufferEncoding): number;
+        entries(): IterableIterator<[number, number]>;
+        includes(value: string | number | Buffer, byteOffset?: number, encoding?: BufferEncoding): boolean;
+        keys(): IterableIterator<number>;
+        values(): IterableIterator<number>;
+    }
+    interface Buffer extends NodeBuffer {
+    }
+    export interface System {
+        args: string[];
+        newLine: string;
+        useCaseSensitiveFileNames: boolean;
+        write(s: string): void;
+        writeOutputIsTTY?(): boolean;
+        readFile(path: string, encoding?: string): string | undefined;
+        getFileSize?(path: string): number;
+        writeFile(path: string, data: string, writeByteOrderMark?: boolean): void;
+        /**
+         * @pollingInterval - this parameter is used in polling-based watchers and ignored in watchers that
+         * use native OS file watching
+         */
+        watchFile?(path: string, callback: FileWatcherCallback, pollingInterval?: number, options?: WatchOptions): FileWatcher;
+        watchDirectory?(path: string, callback: DirectoryWatcherCallback, recursive?: boolean, options?: WatchOptions): FileWatcher;
+        resolvePath(path: string): string;
+        fileExists(path: string): boolean;
+        directoryExists(path: string): boolean;
+        createDirectory(path: string): void;
+        getExecutingFilePath(): string;
+        getCurrentDirectory(): string;
+        getDirectories(path: string): string[];
+        readDirectory(path: string, extensions?: readonly string[], exclude?: readonly string[], include?: readonly string[], depth?: number): string[];
+        getModifiedTime?(path: string): Date | undefined;
+        setModifiedTime?(path: string, time: Date): void;
+        deleteFile?(path: string): void;
+        /**
+         * A good implementation is node.js' `crypto.createHash`. (https://nodejs.org/api/crypto.html#crypto_crypto_createhash_algorithm)
+         */
+        createHash?(data: string): string;
+        /** This must be cryptographically secure. Only implement this method using `crypto.createHash("sha256")`. */
+        createSHA256Hash?(data: string): string;
+        getMemoryUsage?(): number;
+        exit(exitCode?: number): void;
+        enableCPUProfiler?(path: string, continuation: () => void): boolean;
+        disableCPUProfiler?(continuation: () => void): boolean;
+        realpath?(path: string): string;
+        getEnvironmentVariable(name: string): string;
+        tryEnableSourceMapsForHost?(): void;
+        debugMode?: boolean;
+        setTimeout?(callback: (...args: any[]) => void, ms: number, ...args: any[]): any;
+        clearTimeout?(timeoutId: any): void;
+        clearScreen?(): void;
+        setBlocking?(): void;
+        base64decode?(input: string): string;
+        base64encode?(input: string): string;
+        bufferFrom?(input: string, encoding?: string): Buffer;
+        now?(): Date;
+        require?(baseDir: string, moduleName: string): RequireResult;
+    }
+    export interface FileWatcher {
+        close(): void;
+    }
+    export function getNodeMajorVersion(): number | undefined;
+    export let sys: System;
+    export {};
+}
 declare namespace ts {
     const Diagnostics: {
         Unterminated_string_literal: DiagnosticMessage;
@@ -7627,6 +7652,8 @@ declare namespace ts {
         Function_type_notation_must_be_parenthesized_when_used_in_an_intersection_type: DiagnosticMessage;
         Constructor_type_notation_must_be_parenthesized_when_used_in_an_intersection_type: DiagnosticMessage;
         _0_is_not_allowed_as_a_variable_declaration_name: DiagnosticMessage;
+        Provides_a_root_package_name_when_using_outFile_with_declarations: DiagnosticMessage;
+        The_bundledPackageName_option_must_be_provided_when_using_outFile_and_node_module_resolution_with_declaration_emit: DiagnosticMessage;
         The_types_of_0_are_incompatible_between_these_types: DiagnosticMessage;
         The_types_returned_by_0_are_incompatible_between_these_types: DiagnosticMessage;
         Call_signature_return_types_0_and_1_are_incompatible: DiagnosticMessage;
@@ -8451,6 +8478,7 @@ declare namespace ts {
         This_expression_is_not_callable_because_it_is_a_get_accessor_Did_you_mean_to_use_it_without: DiagnosticMessage;
         Disable_loading_referenced_projects: DiagnosticMessage;
         Arguments_for_the_rest_parameter_0_were_not_provided: DiagnosticMessage;
+        Generates_an_event_trace_and_a_list_of_types: DiagnosticMessage;
         Projects_to_reference: DiagnosticMessage;
         Enable_project_compilation: DiagnosticMessage;
         Composite_projects_may_not_disable_declaration_emit: DiagnosticMessage;
@@ -9796,6 +9824,7 @@ declare namespace ts {
         getCanonicalFileName(p: string): string;
         getCommonSourceDirectory(): string;
         getCurrentDirectory(): string;
+        getCompilerOptions(): CompilerOptions;
     }
     function getResolvedExternalModuleName(host: ResolveModuleNameResolutionHost, file: SourceFile, referenceFile?: SourceFile): string;
     function getExternalModuleNameFromDeclaration(host: ResolveModuleNameResolutionHost, resolver: EmitResolver, declaration: ImportEqualsDeclaration | ImportDeclaration | ExportDeclaration | ModuleDeclaration | ImportTypeNode): string | undefined;
@@ -12687,6 +12716,7 @@ declare namespace ts {
         extendedDiagnostics?: boolean;
         locale?: string;
         generateCpuProfile?: string;
+        generateTrace?: string;
         [option: string]: CompilerOptionsValue | undefined;
     }
     type ResolvedConfigFilePath = ResolvedConfigFileName & Path;
@@ -15215,8 +15245,10 @@ declare namespace ts.textChanges {
     enum TrailingTriviaOption {
         /** Exclude all trailing trivia (use getEnd()) */
         Exclude = 0,
+        /** Doesn't include whitespace, but does strip comments */
+        ExcludeWhitespace = 1,
         /** Include trailing trivia */
-        Include = 1
+        Include = 2
     }
     /**
      * Usually node.pos points to a position immediately after the previous token.
