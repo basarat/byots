@@ -721,8 +721,22 @@ declare namespace ts {
     function enumerateInsertsAndDeletes<T, U>(newItems: readonly T[], oldItems: readonly U[], comparer: (a: T, b: U) => Comparison, inserted: (newItem: T) => void, deleted: (oldItem: U) => void, unchanged?: (oldItem: U, newItem: T) => void): boolean;
     function fill<T>(length: number, cb: (index: number) => T): T[];
     function cartesianProduct<T>(arrays: readonly T[][]): T[][];
-    function padLeft(s: string, length: number): string;
-    function padRight(s: string, length: number): string;
+    /**
+     * Returns string left-padded with spaces or zeros until it reaches the given length.
+     *
+     * @param s String to pad.
+     * @param length Final padded length. If less than or equal to 's.length', returns 's' unchanged.
+     * @param padString Character to use as padding (default " ").
+     */
+    function padLeft(s: string, length: number, padString?: " " | "0"): string;
+    /**
+     * Returns string right-padded with spaces until it reaches the given length.
+     *
+     * @param s String to pad.
+     * @param length Final padded length. If less than or equal to 's.length', returns 's' unchanged.
+     * @param padString Character to use as padding (default " ").
+     */
+    function padRight(s: string, length: number, padString?: " "): string;
 }
 declare namespace ts {
     enum LogLevel {
@@ -1502,7 +1516,8 @@ declare namespace ts {
         KindMask = 7,
         ReservedInNestedScopes = 8,
         Optimistic = 16,
-        FileLevel = 32
+        FileLevel = 32,
+        AllowNameSubstitution = 64
     }
     export interface Identifier extends PrimaryExpression, Declaration {
         readonly kind: SyntaxKind.Identifier;
@@ -1514,6 +1529,7 @@ declare namespace ts {
         readonly originalKeywordKind?: SyntaxKind;
         readonly autoGenerateFlags?: GeneratedIdentifierFlags;
         readonly autoGenerateId?: number;
+        generatedImportReference?: ImportSpecifier;
         isInJSDocNamespace?: boolean;
         typeArguments?: NodeArray<TypeNode | TypeParameterDeclaration>;
         jsdocDotPos?: number;
@@ -4788,10 +4804,13 @@ declare namespace ts {
         assumeChangesOnlyAffectDirectDependencies?: boolean;
         noLib?: boolean;
         noResolve?: boolean;
+        noUncheckedIndexSignatures?: boolean;
         out?: string;
         outDir?: string;
         outFile?: string;
         paths?: MapLike<string[]>;
+        /** The directory of the config file that specified 'paths'. Used to resolve relative paths when 'baseUrl' is absent. */
+        pathsBasePath?: string;
         plugins?: PluginImport[];
         preserveConstEnums?: boolean;
         preserveSymlinks?: boolean;
@@ -4801,6 +4820,7 @@ declare namespace ts {
         reactNamespace?: string;
         jsxFactory?: string;
         jsxFragmentFactory?: string;
+        jsxImportSource?: string;
         composite?: boolean;
         incremental?: boolean;
         tsBuildInfoFile?: string;
@@ -4865,7 +4885,9 @@ declare namespace ts {
         None = 0,
         Preserve = 1,
         React = 2,
-        ReactNative = 3
+        ReactNative = 3,
+        ReactJSX = 4,
+        ReactJSXDev = 5
     }
     export enum ImportsNotUsedAsValues {
         Remove = 0,
@@ -6655,6 +6677,18 @@ declare namespace ts {
             }];
             readonly kind: PragmaKindFlags;
         };
+        readonly jsximportsource: {
+            readonly args: readonly [{
+                readonly name: "factory";
+            }];
+            readonly kind: PragmaKindFlags;
+        };
+        readonly jsxruntime: {
+            readonly args: readonly [{
+                readonly name: "factory";
+            }];
+            readonly kind: PragmaKindFlags;
+        };
     };
     export type PragmaArgTypeMaybeCapture<TDesc> = TDesc extends {
         captureSpan: true;
@@ -8227,7 +8261,6 @@ declare namespace ts {
         Cannot_find_a_tsconfig_json_file_at_the_specified_directory_Colon_0: DiagnosticMessage;
         The_specified_path_does_not_exist_Colon_0: DiagnosticMessage;
         Invalid_value_for_reactNamespace_0_is_not_a_valid_identifier: DiagnosticMessage;
-        Option_paths_cannot_be_used_without_specifying_baseUrl_option: DiagnosticMessage;
         Pattern_0_can_have_at_most_one_Asterisk_character: DiagnosticMessage;
         Substitution_0_in_pattern_1_can_have_at_most_one_Asterisk_character: DiagnosticMessage;
         Substitutions_for_pattern_0_should_be_an_array: DiagnosticMessage;
@@ -8256,6 +8289,8 @@ declare namespace ts {
         A_labeled_tuple_element_is_declared_as_optional_with_a_question_mark_after_the_name_and_before_the_colon_rather_than_after_the_type: DiagnosticMessage;
         A_labeled_tuple_element_is_declared_as_rest_with_a_before_the_name_rather_than_before_the_type: DiagnosticMessage;
         The_inferred_type_of_0_references_a_type_with_a_cyclic_structure_which_cannot_be_trivially_serialized_A_type_annotation_is_necessary: DiagnosticMessage;
+        Option_0_cannot_be_specified_when_option_jsx_is_1: DiagnosticMessage;
+        Non_relative_paths_are_not_allowed_when_baseUrl_is_not_set_Did_you_forget_a_leading_Slash: DiagnosticMessage;
         Generates_a_sourcemap_for_each_corresponding_d_ts_file: DiagnosticMessage;
         Concatenate_and_emit_output_to_single_file: DiagnosticMessage;
         Generates_corresponding_d_ts_file: DiagnosticMessage;
@@ -8479,6 +8514,7 @@ declare namespace ts {
         Disable_loading_referenced_projects: DiagnosticMessage;
         Arguments_for_the_rest_parameter_0_were_not_provided: DiagnosticMessage;
         Generates_an_event_trace_and_a_list_of_types: DiagnosticMessage;
+        Specify_the_module_specifier_to_be_used_to_import_the_jsx_and_jsxs_factory_functions_from_eg_react: DiagnosticMessage;
         Projects_to_reference: DiagnosticMessage;
         Enable_project_compilation: DiagnosticMessage;
         Composite_projects_may_not_disable_declaration_emit: DiagnosticMessage;
@@ -8529,6 +8565,7 @@ declare namespace ts {
         The_expected_type_comes_from_the_return_type_of_this_signature: DiagnosticMessage;
         Print_names_of_files_that_are_part_of_the_compilation_and_then_stop_processing: DiagnosticMessage;
         File_0_is_a_JavaScript_file_Did_you_mean_to_enable_the_allowJs_option: DiagnosticMessage;
+        Include_undefined_in_index_signature_results: DiagnosticMessage;
         Variable_0_implicitly_has_an_1_type: DiagnosticMessage;
         Parameter_0_implicitly_has_an_1_type: DiagnosticMessage;
         Member_0_implicitly_has_an_1_type: DiagnosticMessage;
@@ -10149,6 +10186,8 @@ declare namespace ts {
     function compilerOptionsAffectSemanticDiagnostics(newOptions: CompilerOptions, oldOptions: CompilerOptions): boolean;
     function compilerOptionsAffectEmit(newOptions: CompilerOptions, oldOptions: CompilerOptions): boolean;
     function getCompilerOptionValue(options: CompilerOptions, option: CommandLineOption): unknown;
+    function getJSXTransformEnabled(options: CompilerOptions): boolean;
+    function getJSXImplicitImportBase(compilerOptions: CompilerOptions, file: SourceFile): string | undefined;
     function hasZeroOrOneAsteriskCharacter(str: string): boolean;
     interface SymlinkedDirectory {
         real: string;
@@ -10900,6 +10939,7 @@ declare namespace ts {
 }
 declare namespace ts {
     export const compileOnSaveCommandLineOption: CommandLineOption;
+    export const inverseJsxOptionMap: ESMap<string, string>;
     /**
      * An array of supported "lib" reference file names used to determine the order for inclusion
      * when referenced, as well as for spelling suggestions. This ensures the correct ordering for
@@ -13201,6 +13241,10 @@ declare namespace ts {
     type WithMetadata<T> = T & {
         metadata?: unknown;
     };
+    enum SemanticClassificationFormat {
+        Original = "original",
+        TwentyTwenty = "2020"
+    }
     interface LanguageService {
         /** This is used as a part of restarting the language service. */
         cleanupSemanticCache(): void;
@@ -13252,10 +13296,22 @@ declare namespace ts {
         getCompilerOptionsDiagnostics(): Diagnostic[];
         /** @deprecated Use getEncodedSyntacticClassifications instead. */
         getSyntacticClassifications(fileName: string, span: TextSpan): ClassifiedSpan[];
+        getSyntacticClassifications(fileName: string, span: TextSpan, format: SemanticClassificationFormat): ClassifiedSpan[] | ClassifiedSpan2020[];
         /** @deprecated Use getEncodedSemanticClassifications instead. */
         getSemanticClassifications(fileName: string, span: TextSpan): ClassifiedSpan[];
+        getSemanticClassifications(fileName: string, span: TextSpan, format: SemanticClassificationFormat): ClassifiedSpan[] | ClassifiedSpan2020[];
+        /** Encoded as triples of [start, length, ClassificationType]. */
         getEncodedSyntacticClassifications(fileName: string, span: TextSpan): Classifications;
-        getEncodedSemanticClassifications(fileName: string, span: TextSpan): Classifications;
+        /**
+         * Gets semantic highlights information for a particular file. Has two formats, an older
+         * version used by VS and a format used by VS Code.
+         *
+         * @param fileName The path to the file
+         * @param position A text span to return results within
+         * @param format Which format to use, defaults to "original"
+         * @returns a number array encoded as triples of [start, length, ClassificationType, ...].
+         */
+        getEncodedSemanticClassifications(fileName: string, span: TextSpan, format?: SemanticClassificationFormat): Classifications;
         /**
          * Gets completion entries at a particular position in a file.
          *
@@ -13419,6 +13475,10 @@ declare namespace ts {
     interface ClassifiedSpan {
         textSpan: TextSpan;
         classificationType: ClassificationTypeNames;
+    }
+    interface ClassifiedSpan2020 {
+        textSpan: TextSpan;
+        classificationType: number;
     }
     /**
      * Navigation bar interface designed for visual studio's dual-column layout.
@@ -14475,19 +14535,52 @@ declare namespace ts {
     function getSyntacticClassifications(cancellationToken: CancellationToken, sourceFile: SourceFile, span: TextSpan): ClassifiedSpan[];
     function getEncodedSyntacticClassifications(cancellationToken: CancellationToken, sourceFile: SourceFile, span: TextSpan): Classifications;
 }
+/** @internal */
+declare namespace ts.classifier.v2020 {
+    enum TokenEncodingConsts {
+        typeOffset = 8,
+        modifierMask = 255
+    }
+    enum TokenType {
+        class = 0,
+        enum = 1,
+        interface = 2,
+        namespace = 3,
+        typeParameter = 4,
+        type = 5,
+        parameter = 6,
+        variable = 7,
+        enumMember = 8,
+        property = 9,
+        function = 10,
+        member = 11
+    }
+    enum TokenModifier {
+        declaration = 0,
+        static = 1,
+        async = 2,
+        readonly = 3,
+        defaultLibrary = 4,
+        local = 5
+    }
+    /** This is mainly used internally for testing */
+    function getSemanticClassifications(program: Program, cancellationToken: CancellationToken, sourceFile: SourceFile, span: TextSpan): ClassifiedSpan2020[];
+    function getEncodedSemanticClassifications(program: Program, cancellationToken: CancellationToken, sourceFile: SourceFile, span: TextSpan): Classifications;
+}
 declare namespace ts.Completions.StringCompletions {
     function getStringLiteralCompletions(sourceFile: SourceFile, position: number, contextToken: Node | undefined, checker: TypeChecker, options: CompilerOptions, host: LanguageServiceHost, log: Log, preferences: UserPreferences): CompletionInfo | undefined;
     function getStringLiteralCompletionDetails(name: string, sourceFile: SourceFile, position: number, contextToken: Node | undefined, checker: TypeChecker, options: CompilerOptions, host: LanguageServiceHost, cancellationToken: CancellationToken): CompletionEntryDetails | undefined;
 }
 declare namespace ts.Completions {
     export enum SortText {
-        LocationPriority = "0",
-        OptionalMember = "1",
-        MemberDeclaredBySpreadAssignment = "2",
-        SuggestedClassMembers = "3",
-        GlobalsOrKeywords = "4",
-        AutoImportSuggestions = "5",
-        JavascriptIdentifiers = "6"
+        LocalDeclarationPriority = "0",
+        LocationPriority = "1",
+        OptionalMember = "2",
+        MemberDeclaredBySpreadAssignment = "3",
+        SuggestedClassMembers = "4",
+        GlobalsOrKeywords = "5",
+        AutoImportSuggestions = "6",
+        JavascriptIdentifiers = "7"
     }
     export type Log = (message: string) => void;
     /**
@@ -15858,9 +15951,9 @@ declare namespace ts {
         getSuggestionDiagnostics(fileName: string): string;
         getCompilerOptionsDiagnostics(): string;
         getSyntacticClassifications(fileName: string, start: number, length: number): string;
-        getSemanticClassifications(fileName: string, start: number, length: number): string;
+        getSemanticClassifications(fileName: string, start: number, length: number, format?: SemanticClassificationFormat): string;
         getEncodedSyntacticClassifications(fileName: string, start: number, length: number): string;
-        getEncodedSemanticClassifications(fileName: string, start: number, length: number): string;
+        getEncodedSemanticClassifications(fileName: string, start: number, length: number, format?: SemanticClassificationFormat): string;
         getCompletionsAtPosition(fileName: string, position: number, preferences: UserPreferences | undefined): string;
         getCompletionEntryDetails(fileName: string, position: number, entryName: string, formatOptions: string | undefined, source: string | undefined, preferences: UserPreferences | undefined): string;
         getQuickInfoAtPosition(fileName: string, position: number): string;
