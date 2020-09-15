@@ -737,6 +737,7 @@ declare namespace ts {
      * @param padString Character to use as padding (default " ").
      */
     function padRight(s: string, length: number, padString?: " "): string;
+    function takeWhile<T, U extends T>(array: readonly T[], predicate: (element: T) => element is U): U[];
 }
 declare namespace ts {
     enum LogLevel {
@@ -4804,7 +4805,7 @@ declare namespace ts {
         assumeChangesOnlyAffectDirectDependencies?: boolean;
         noLib?: boolean;
         noResolve?: boolean;
-        noUncheckedIndexSignatures?: boolean;
+        noUncheckedIndexedAccess?: boolean;
         out?: string;
         outDir?: string;
         outFile?: string;
@@ -6497,6 +6498,7 @@ declare namespace ts {
         reportInaccessibleUniqueSymbolError?(): void;
         reportCyclicStructureError?(): void;
         reportLikelyUnsafeImportRequiredError?(specifier: string): void;
+        reportTruncationError?(): void;
         moduleResolverHost?: ModuleSpecifierResolutionHost & {
             getCommonSourceDirectory(): string;
         };
@@ -8148,6 +8150,7 @@ declare namespace ts {
         Exponentiation_cannot_be_performed_on_bigint_values_unless_the_target_option_is_set_to_es2016_or_later: DiagnosticMessage;
         Cannot_find_module_0_Did_you_mean_to_set_the_moduleResolution_option_to_node_or_to_add_aliases_to_the_paths_option: DiagnosticMessage;
         Template_literal_type_argument_0_is_not_literal_type_or_a_generic_type: DiagnosticMessage;
+        Expected_0_arguments_but_got_1_Did_you_forget_to_include_void_in_your_type_argument_to_Promise: DiagnosticMessage;
         Import_declaration_0_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_interface_has_or_is_using_private_name_1: DiagnosticMessage;
@@ -8614,6 +8617,7 @@ declare namespace ts {
         Element_implicitly_has_an_any_type_because_expression_of_type_0_can_t_be_used_to_index_type_1: DiagnosticMessage;
         No_index_signature_with_a_parameter_of_type_0_was_found_on_type_1: DiagnosticMessage;
         _0_which_lacks_return_type_annotation_implicitly_has_an_1_yield_type: DiagnosticMessage;
+        The_inferred_type_of_this_node_exceeds_the_maximum_length_the_compiler_will_serialize_An_explicit_type_annotation_is_needed: DiagnosticMessage;
         You_cannot_rename_this_element: DiagnosticMessage;
         You_cannot_rename_elements_that_are_defined_in_the_standard_TypeScript_library: DiagnosticMessage;
         import_can_only_be_used_in_TypeScript_files: DiagnosticMessage;
@@ -8864,6 +8868,8 @@ declare namespace ts {
         Could_not_find_convertible_access_expression: DiagnosticMessage;
         Could_not_find_matching_access_expressions: DiagnosticMessage;
         Can_only_convert_logical_AND_access_chains: DiagnosticMessage;
+        Add_void_to_Promise_resolved_without_a_value: DiagnosticMessage;
+        Add_void_to_all_Promises_resolved_without_a_value: DiagnosticMessage;
         No_value_exists_in_scope_for_the_shorthand_property_0_Either_declare_one_or_provide_an_initializer: DiagnosticMessage;
         Classes_may_not_have_a_field_named_constructor: DiagnosticMessage;
         JSX_expressions_may_not_use_the_comma_operator_Did_you_mean_to_write_an_array: DiagnosticMessage;
@@ -9873,6 +9879,10 @@ declare namespace ts {
     function getDeclarationEmitOutputFilePath(fileName: string, host: EmitHost): string;
     function getDeclarationEmitOutputFilePathWorker(fileName: string, options: CompilerOptions, currentDirectory: string, commonSourceDirectory: string, getCanonicalFileName: GetCanonicalFileName): string;
     function outFile(options: CompilerOptions): string | undefined;
+    /** Returns 'undefined' if and only if 'options.paths' is undefined. */
+    function getPathsBasePath(options: CompilerOptions, host: {
+        getCurrentDirectory?(): string;
+    }): string | undefined;
     interface EmitFileNames {
         jsFilePath?: string | undefined;
         sourceMapFilePath?: string | undefined;
@@ -15676,6 +15686,8 @@ declare namespace ts.codefix {
     export function getAllSupers(decl: ClassOrInterface | undefined, checker: TypeChecker): readonly ClassOrInterface[];
     export type ClassOrInterface = ClassLikeDeclaration | InterfaceDeclaration;
     export {};
+}
+declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
 }
