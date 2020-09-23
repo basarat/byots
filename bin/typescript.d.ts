@@ -4175,7 +4175,7 @@ declare namespace ts {
         Substructure = 469237760,
         Narrowable = 536624127,
         NotPrimitiveUnion = 469647395,
-        IncludesMask = 71041023,
+        IncludesMask = 205258751,
         IncludesStructuredOrInstantiable = 262144,
         IncludesNonWideningType = 4194304,
         IncludesWildcard = 8388608,
@@ -8143,7 +8143,6 @@ declare namespace ts {
         The_operand_of_a_delete_operator_must_be_optional: DiagnosticMessage;
         Exponentiation_cannot_be_performed_on_bigint_values_unless_the_target_option_is_set_to_es2016_or_later: DiagnosticMessage;
         Cannot_find_module_0_Did_you_mean_to_set_the_moduleResolution_option_to_node_or_to_add_aliases_to_the_paths_option: DiagnosticMessage;
-        Template_literal_type_argument_0_is_not_literal_type_or_a_generic_type: DiagnosticMessage;
         Expected_0_arguments_but_got_1_Did_you_forget_to_include_void_in_your_type_argument_to_Promise: DiagnosticMessage;
         The_intrinsic_keyword_can_only_be_used_to_declare_compiler_provided_intrinsic_types: DiagnosticMessage;
         Import_declaration_0_is_using_private_name_1: DiagnosticMessage;
@@ -9712,6 +9711,12 @@ declare namespace ts {
     function isValueSignatureDeclaration(node: Node): node is ValueSignatureDeclaration;
     function walkUpParenthesizedTypes(node: Node): Node;
     function walkUpParenthesizedExpressions(node: Node): Node;
+    /**
+     * Walks up parenthesized types.
+     * It returns both the outermost parenthesized type and its parent.
+     * If given node is not a parenthesiezd type, undefined is return as the former.
+     */
+    function walkUpParenthesizedTypesAndGetParentAndChild(node: Node): [ParenthesizedTypeNode | undefined, Node];
     function skipParentheses(node: Expression): Expression;
     function skipParentheses(node: Node): Node;
     function isDeleteTarget(node: Node): boolean;
