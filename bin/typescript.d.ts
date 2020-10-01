@@ -3459,6 +3459,7 @@ declare namespace ts {
         getFullyQualifiedName(symbol: Symbol): string;
         getAugmentedPropertiesOfType(type: Type): Symbol[];
         getRootSymbols(symbol: Symbol): readonly Symbol[];
+        getSymbolOfExpando(node: Node, allowDeclaration: boolean): Symbol | undefined;
         getContextualType(node: Expression): Type | undefined;
         getContextualType(node: Expression, contextFlags?: ContextFlags): Type | undefined;
         getContextualTypeForObjectLiteralElement(element: ObjectLiteralElementLike): Type | undefined;
@@ -9613,7 +9614,6 @@ declare namespace ts {
     function isRequireVariableStatement(node: Node, requireStringLiteralLikeArgument?: boolean): node is RequireVariableStatement;
     function isSingleOrDoubleQuote(charCode: number): boolean;
     function isStringDoubleQuoted(str: StringLiteralLike, sourceFile: SourceFile): boolean;
-    function getDeclarationOfExpando(node: Node): Node | undefined;
     function isAssignmentDeclaration(decl: Declaration): boolean;
     /** Get the initializer, taking into account defaulted Javascript initializers */
     function getEffectiveInitializer(node: HasExpressionInitializer): Expression | undefined;
@@ -9638,6 +9638,16 @@ declare namespace ts {
     function isDefaultedExpandoInitializer(node: BinaryExpression): boolean | undefined;
     /** Given an expando initializer, return its declaration name, or the left-hand side of the assignment if it's part of an assignment declaration. */
     function getNameOfExpando(node: Declaration): DeclarationName | undefined;
+    /**
+     * Is the 'declared' name the same as the one in the initializer?
+     * @return true for identical entity names, as well as ones where the initializer is prefixed with
+     * 'window', 'self' or 'global'. For example:
+     *
+     * var my = my || {}
+     * var min = window.min || {}
+     * my.app = self.my.app || class { }
+     */
+    function isSameEntityName(name: Expression, initializer: Expression): boolean;
     function getRightMostAssignedExpression(node: Expression): Expression;
     function isExportsIdentifier(node: Node): boolean;
     function isModuleIdentifier(node: Node): boolean;
