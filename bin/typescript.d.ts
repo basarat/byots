@@ -4439,6 +4439,12 @@ declare namespace ts {
     export interface IndexedAccessType extends InstantiableType {
         objectType: Type;
         indexType: Type;
+        /**
+         * @internal
+         * Indicates that --noUncheckedIndexedAccess may introduce 'undefined' into
+         * the resulting type, depending on how type variable constraints are resolved.
+         */
+        noUncheckedIndexedAccessCandidate: boolean;
         constraint?: Type;
         simplifiedForReading?: Type;
         simplifiedForWriting?: Type;
@@ -7411,7 +7417,7 @@ declare namespace ts {
         Accessibility_modifier_already_seen: DiagnosticMessage;
         _0_modifier_must_precede_1_modifier: DiagnosticMessage;
         _0_modifier_already_seen: DiagnosticMessage;
-        _0_modifier_cannot_appear_on_a_class_element: DiagnosticMessage;
+        _0_modifier_cannot_appear_on_class_elements_of_this_kind: DiagnosticMessage;
         super_must_be_followed_by_an_argument_list_or_member_access: DiagnosticMessage;
         Only_ambient_modules_can_use_quoted_names: DiagnosticMessage;
         Statements_are_not_allowed_in_ambient_contexts: DiagnosticMessage;
