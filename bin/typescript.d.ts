@@ -15596,8 +15596,8 @@ declare namespace ts.codefix {
         readonly codeAction: CodeAction;
     };
     function forEachExternalModuleToImportFrom(program: Program, host: LanguageServiceHost, from: SourceFile, filterByPackageJson: boolean, useAutoImportProvider: boolean, cb: (module: Symbol, moduleFile: SourceFile | undefined, program: Program, isFromPackageJson: boolean) => void): void;
-    function moduleSymbolToValidIdentifier(moduleSymbol: Symbol, target: ScriptTarget): string;
-    function moduleSpecifierToValidIdentifier(moduleSpecifier: string, target: ScriptTarget): string;
+    function moduleSymbolToValidIdentifier(moduleSymbol: Symbol, target: ScriptTarget | undefined): string;
+    function moduleSpecifierToValidIdentifier(moduleSpecifier: string, target: ScriptTarget | undefined): string;
 }
 declare namespace ts.codefix {
 }
