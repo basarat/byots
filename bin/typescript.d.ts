@@ -8151,6 +8151,7 @@ declare namespace ts {
         The_operand_of_a_delete_operator_must_be_optional: DiagnosticMessage;
         Exponentiation_cannot_be_performed_on_bigint_values_unless_the_target_option_is_set_to_es2016_or_later: DiagnosticMessage;
         Cannot_find_module_0_Did_you_mean_to_set_the_moduleResolution_option_to_node_or_to_add_aliases_to_the_paths_option: DiagnosticMessage;
+        The_call_would_have_succeeded_against_this_implementation_but_implementation_signatures_of_overloads_are_not_externally_visible: DiagnosticMessage;
         Expected_0_arguments_but_got_1_Did_you_forget_to_include_void_in_your_type_argument_to_Promise: DiagnosticMessage;
         The_intrinsic_keyword_can_only_be_used_to_declare_compiler_provided_intrinsic_types: DiagnosticMessage;
         It_is_likely_that_you_are_missing_a_comma_to_separate_these_two_template_expressions_They_form_a_tagged_template_expression_which_cannot_be_invoked: DiagnosticMessage;
