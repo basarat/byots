@@ -3261,6 +3261,7 @@ declare namespace ts {
         getCommonSourceDirectory(): string;
         getDiagnosticsProducingTypeChecker(): TypeChecker;
         dropDiagnosticsProducingTypeChecker(): void;
+        getCachedSemanticDiagnostics(sourceFile?: SourceFile): readonly Diagnostic[] | undefined;
         getClassifiableNames(): Set<__String>;
         getTypeCatalog(): readonly Type[];
         getNodeCount(): number;
@@ -3278,7 +3279,7 @@ declare namespace ts {
         getResolvedTypeReferenceDirectives(): ESMap<string, ResolvedTypeReferenceDirective | undefined>;
         isSourceFileFromExternalLibrary(file: SourceFile): boolean;
         isSourceFileDefaultLibrary(file: SourceFile): boolean;
-        structureIsReused?: StructureIsReused;
+        readonly structureIsReused: StructureIsReused;
         getSourceFileFromReference(referencingFile: SourceFile | UnparsedSource, ref: FileReference): SourceFile | undefined;
         getLibFileFromReference(ref: FileReference): SourceFile | undefined;
         /** Given a source file, get the name of the package it was imported from. */
@@ -14461,9 +14462,10 @@ declare namespace ts {
      * and code fixes (because those are triggered by explicit user actions).
      */
     function getSynthesizedDeepClone<T extends Node | undefined>(node: T, includeTrivia?: boolean): T;
-    function getSynthesizedDeepCloneWithRenames<T extends Node>(node: T, includeTrivia?: boolean, renameMap?: ESMap<string, Identifier>, checker?: TypeChecker, callback?: (originalNode: Node, clone: Node) => any): T;
+    function getSynthesizedDeepCloneWithReplacements<T extends Node>(node: T, includeTrivia: boolean, replaceNode: (node: Node) => Node | undefined): T;
     function getSynthesizedDeepClones<T extends Node>(nodes: NodeArray<T>, includeTrivia?: boolean): NodeArray<T>;
     function getSynthesizedDeepClones<T extends Node>(nodes: NodeArray<T> | undefined, includeTrivia?: boolean): NodeArray<T> | undefined;
+    function getSynthesizedDeepClonesWithReplacements<T extends Node>(nodes: NodeArray<T>, includeTrivia: boolean, replaceNode: (node: Node) => Node | undefined): NodeArray<T>;
     /**
      * Sets EmitFlags to suppress leading and trailing trivia on the node.
      */
