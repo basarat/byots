@@ -14498,7 +14498,7 @@ declare namespace ts {
     function copyTrailingAsLeadingComments(sourceNode: Node, targetNode: Node, sourceFile: SourceFile, commentKind?: CommentKind, hasTrailingNewLine?: boolean): void;
     function needsParentheses(expression: Expression): boolean;
     function getContextualTypeFromParent(node: Expression, checker: TypeChecker): Type | undefined;
-    function quote(text: string, preferences: UserPreferences): string;
+    function quote(sourceFile: SourceFile, preferences: UserPreferences, text: string): string;
     function isEqualityOperatorKind(kind: SyntaxKind): kind is EqualityOperator;
     function isStringLiteralOrTemplate(node: Node): node is StringLiteralLike | TemplateExpression | TaggedTemplateExpression;
     function hasIndexSignature(type: Type): boolean;
