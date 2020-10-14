@@ -17,6 +17,9 @@ With a liberal definition file. We expose internal APIs.
 
 > The definitions are updated daily automatically and our version numbers match the TypeScript nightly version numbers.
 
+If you are working with the TypeScript compiler using `import * as ts from 'typescript'` and `ts` has everything you need, then use that. Otherwise if you find some API that isn't available on `ts.` but you can see if you do `console.log(ts)`, then you would consider using `byots`.
+
+
 ## Install
 In your package.json
 
