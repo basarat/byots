@@ -4112,7 +4112,6 @@ declare namespace ts {
         deferredNodes?: ESMap<NodeId, Node>;
         capturedBlockScopeBindings?: Symbol[];
         outerTypeParameters?: TypeParameter[];
-        instantiations?: ESMap<string, Type>;
         isExhaustive?: boolean;
         skipDirectInference?: true;
         declarationRequiresScopeChange?: boolean;
@@ -4317,6 +4316,7 @@ declare namespace ts {
     export interface DeferredTypeReference extends TypeReference {
         node: TypeReferenceNode | ArrayTypeNode | TupleTypeNode;
         mapper?: TypeMapper;
+        instantiations?: ESMap<string, Type>;
     }
     export enum VarianceFlags {
         Invariant = 0,
@@ -4372,6 +4372,7 @@ declare namespace ts {
     export interface AnonymousType extends ObjectType {
         target?: AnonymousType;
         mapper?: TypeMapper;
+        instantiations?: ESMap<string, Type>;
     }
     export interface MappedType extends AnonymousType {
         declaration: MappedTypeNode;
