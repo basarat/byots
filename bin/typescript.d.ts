@@ -3293,7 +3293,7 @@ declare namespace ts {
         getResolvedProjectReferences(): readonly (ResolvedProjectReference | undefined)[] | undefined;
         getProjectReferenceRedirect(fileName: string): string | undefined;
         getResolvedProjectReferenceToRedirect(fileName: string): ResolvedProjectReference | undefined;
-        forEachResolvedProjectReference<T>(cb: (resolvedProjectReference: ResolvedProjectReference | undefined, resolvedProjectReferencePath: Path) => T | undefined): T | undefined;
+        forEachResolvedProjectReference<T>(cb: (resolvedProjectReference: ResolvedProjectReference) => T | undefined): T | undefined;
         getResolvedProjectReferenceByPath(projectReferencePath: Path): ResolvedProjectReference | undefined;
         isSourceOfProjectReferenceRedirect(fileName: string): boolean;
         getProgramBuildInfo?(): ProgramBuildInfo | undefined;
@@ -4872,7 +4872,8 @@ declare namespace ts {
         enable?: boolean;
         include?: string[];
         exclude?: string[];
-        [option: string]: string[] | boolean | undefined;
+        disableFilenameBasedTypeAcquisition?: boolean;
+        [option: string]: CompilerOptionsValue | undefined;
     }
     export enum ModuleKind {
         None = 0,
@@ -5276,7 +5277,7 @@ declare namespace ts {
     export type SourceOfProjectReferenceRedirect = string | true;
     export interface ResolvedProjectReferenceCallbacks {
         getSourceOfProjectReferenceRedirect(fileName: string): SourceOfProjectReferenceRedirect | undefined;
-        forEachResolvedProjectReference<T>(cb: (resolvedProjectReference: ResolvedProjectReference | undefined, resolvedProjectReferencePath: Path) => T | undefined): T | undefined;
+        forEachResolvedProjectReference<T>(cb: (resolvedProjectReference: ResolvedProjectReference) => T | undefined): T | undefined;
     }
     export enum TransformFlags {
         None = 0,
@@ -9862,6 +9863,7 @@ declare namespace ts {
     }
     export function getOperatorPrecedence(nodeKind: SyntaxKind, operatorKind: SyntaxKind, hasArguments?: boolean): OperatorPrecedence.Comma | OperatorPrecedence.Comma | OperatorPrecedence.Spread | OperatorPrecedence.Spread | OperatorPrecedence.Yield | OperatorPrecedence.Yield | OperatorPrecedence.Assignment | OperatorPrecedence.Assignment | OperatorPrecedence.Conditional | OperatorPrecedence.Conditional | OperatorPrecedence | OperatorPrecedence.Invalid;
     export function getBinaryOperatorPrecedence(kind: SyntaxKind): OperatorPrecedence;
+    export function getSemanticJsxChildren(children: readonly JsxChild[]): readonly JsxChild[];
     export function createDiagnosticCollection(): DiagnosticCollection;
     /** @internal */
     export function hasInvalidEscape(template: TemplateLiteral): boolean;
@@ -10817,7 +10819,8 @@ declare namespace ts {
 declare namespace ts {
     function createEmptyExports(factory: NodeFactory): ExportDeclaration;
     function createMemberAccessForPropertyName(factory: NodeFactory, target: Expression, memberName: PropertyName, location?: TextRange): MemberExpression;
-    function createExpressionForJsxElement(factory: NodeFactory, jsxFactoryEntity: EntityName | undefined, reactNamespace: string, tagName: Expression, props: Expression | undefined, children: readonly Expression[] | undefined, parentElement: JsxOpeningLikeElement, location: TextRange): LeftHandSideExpression;
+    function createJsxFactoryExpression(factory: NodeFactory, jsxFactoryEntity: EntityName | undefined, reactNamespace: string, parent: JsxOpeningLikeElement | JsxOpeningFragment): Expression;
+    function createExpressionForJsxElement(factory: NodeFactory, callee: Expression, tagName: Expression, props: Expression | undefined, children: readonly Expression[] | undefined, location: TextRange): LeftHandSideExpression;
     function createExpressionForJsxFragment(factory: NodeFactory, jsxFactoryEntity: EntityName | undefined, jsxFragmentFactoryEntity: EntityName | undefined, reactNamespace: string, children: readonly Expression[], parentElement: JsxOpeningFragment, location: TextRange): LeftHandSideExpression;
     function createForOfBindingStatement(factory: NodeFactory, node: ForInitializer, boundValue: Expression): Statement;
     function insertLeadingStatement(factory: NodeFactory, dest: Statement, source: Statement): Block;
@@ -11805,6 +11808,7 @@ declare namespace ts {
     export function formatDiagnosticsWithColorAndContext(diagnostics: readonly Diagnostic[], host: FormatDiagnosticsHost): string;
     export function flattenDiagnosticMessageText(diag: string | DiagnosticMessageChain | undefined, newLine: string, indent?: number): string;
     export function loadWithLocalCache<T>(names: string[], containingFile: string, redirectedReference: ResolvedProjectReference | undefined, loader: (name: string, containingFile: string, redirectedReference: ResolvedProjectReference | undefined) => T): T[];
+    export function forEachResolvedProjectReference<T>(resolvedProjectReferences: readonly (ResolvedProjectReference | undefined)[] | undefined, cb: (resolvedProjectReference: ResolvedProjectReference, parent: ResolvedProjectReference | undefined) => T | undefined): T | undefined;
     export const inferredTypesContainingFile = "__inferred type names__.ts";
     /**
      * Determines if program structure is upto date or needs to be recreated
