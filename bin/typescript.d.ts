@@ -942,9 +942,18 @@ declare namespace ts.tracing {
         Check = "check",
         Emit = "emit"
     }
-    function begin(phase: Phase, name: string, args: object): void;
-    function end(): void;
-    function instant(phase: Phase, name: string, args: object): void;
+    type EventData = [phase: Phase, name: string, args?: object];
+    /** Note: `push`/`pop` should be used by default.
+     * `begin`/`end` are for special cases where we need the data point even if the event never
+     * terminates (typically for reducing a scenario too big to trace to one that can be completed).
+     * In the future we might implement an exit handler to dump unfinished events which would
+     * deprecate these operations.
+     */
+    function begin(phase: Phase, name: string, args?: object): void;
+    function end(phase: Phase, name: string, args?: object): void;
+    function instant(phase: Phase, name: string, args?: object): void;
+    function push(phase: Phase, name: string, args?: object): void;
+    function pop(): void;
     function dumpLegend(): void;
 }
 declare namespace ts {
