@@ -842,6 +842,36 @@ declare namespace ts {
     }
 }
 declare namespace ts {
+    interface PerformanceHooks {
+        performance: Performance;
+        PerformanceObserver: PerformanceObserverConstructor;
+    }
+    interface Performance {
+        mark(name: string): void;
+        measure(name: string, startMark?: string, endMark?: string): void;
+        now(): number;
+        timeOrigin: number;
+    }
+    interface PerformanceEntry {
+        name: string;
+        entryType: string;
+        startTime: number;
+        duration: number;
+    }
+    interface PerformanceObserverEntryList {
+        getEntries(): PerformanceEntryList;
+        getEntriesByName(name: string, type?: string): PerformanceEntryList;
+        getEntriesByType(type: string): PerformanceEntryList;
+    }
+    interface PerformanceObserver {
+        disconnect(): void;
+        observe(options: {
+            entryTypes: readonly string[];
+        }): void;
+    }
+    type PerformanceObserverConstructor = new (callback: (list: PerformanceObserverEntryList, observer: PerformanceObserver) => void) => PerformanceObserver;
+    type PerformanceEntryList = PerformanceEntry[];
+    function tryGetNativePerformanceHooks(): PerformanceHooks | undefined;
     /** Gets a timestamp with (at least) ms resolution */
     const timestamp: () => number;
 }
@@ -888,8 +918,12 @@ declare namespace ts.performance {
      * @param cb The action to perform for each measure
      */
     function forEachMeasure(cb: (measureName: string, duration: number) => void): void;
+    /**
+     * Indicates whether the performance API is enabled.
+     */
+    function isEnabled(): boolean;
     /** Enables (and resets) performance measurements for the compiler. */
-    function enable(): void;
+    function enable(): boolean;
     /** Disables performance measurements for the compiler. */
     function disable(): void;
 }
@@ -8579,6 +8613,7 @@ declare namespace ts {
         Project_0_can_t_be_built_because_its_dependency_1_was_not_built: DiagnosticMessage;
         Have_recompiles_in_incremental_and_watch_assume_that_changes_within_a_file_will_only_affect_files_directly_depending_on_it: DiagnosticMessage;
         _0_is_deprecated: DiagnosticMessage;
+        Performance_timings_for_diagnostics_or_extendedDiagnostics_are_not_available_in_this_session_A_native_implementation_of_the_Web_Performance_API_could_not_be_found: DiagnosticMessage;
         The_expected_type_comes_from_property_0_which_is_declared_here_on_type_1: DiagnosticMessage;
         The_expected_type_comes_from_this_index_signature: DiagnosticMessage;
         The_expected_type_comes_from_the_return_type_of_this_signature: DiagnosticMessage;
@@ -10685,6 +10720,7 @@ declare namespace ts {
     function isLiteralTypeNode(node: Node): node is LiteralTypeNode;
     function isImportTypeNode(node: Node): node is ImportTypeNode;
     function isTemplateLiteralTypeSpan(node: Node): node is TemplateLiteralTypeSpan;
+    function isTemplateLiteralTypeNode(node: Node): node is TemplateLiteralTypeNode;
     function isObjectBindingPattern(node: Node): node is ObjectBindingPattern;
     function isArrayBindingPattern(node: Node): node is ArrayBindingPattern;
     function isBindingElement(node: Node): node is BindingElement;
