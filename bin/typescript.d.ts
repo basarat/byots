@@ -842,6 +842,35 @@ declare namespace ts {
     }
 }
 declare namespace ts {
+    /**
+     * Describes a precise semantic version number, https://semver.org
+     */
+    class Version {
+        static readonly zero: Version;
+        readonly major: number;
+        readonly minor: number;
+        readonly patch: number;
+        readonly prerelease: readonly string[];
+        readonly build: readonly string[];
+        constructor(text: string);
+        constructor(major: number, minor?: number, patch?: number, prerelease?: string, build?: string);
+        static tryParse(text: string): Version | undefined;
+        compareTo(other: Version | undefined): Comparison.LessThan | Comparison.LessThan | Comparison | Comparison.GreaterThan;
+        increment(field: "major" | "minor" | "patch"): Version;
+        toString(): string;
+    }
+    /**
+     * Describes a semantic version range, per https://github.com/npm/node-semver#ranges
+     */
+    class VersionRange {
+        private _alternatives;
+        constructor(spec: string);
+        static tryParse(text: string): VersionRange | undefined;
+        test(version: Version | string): boolean;
+        toString(): string;
+    }
+}
+declare namespace ts {
     interface PerformanceHooks {
         performance: Performance;
         PerformanceObserver: PerformanceObserverConstructor;
@@ -932,35 +961,6 @@ declare namespace ts {
     /** Performance logger that will generate ETW events if possible - check for `logEvent` member, as `etwModule` will be `{}` when browserified */
     
     export {};
-}
-declare namespace ts {
-    /**
-     * Describes a precise semantic version number, https://semver.org
-     */
-    class Version {
-        static readonly zero: Version;
-        readonly major: number;
-        readonly minor: number;
-        readonly patch: number;
-        readonly prerelease: readonly string[];
-        readonly build: readonly string[];
-        constructor(text: string);
-        constructor(major: number, minor?: number, patch?: number, prerelease?: string, build?: string);
-        static tryParse(text: string): Version | undefined;
-        compareTo(other: Version | undefined): Comparison.LessThan | Comparison.LessThan | Comparison | Comparison.GreaterThan;
-        increment(field: "major" | "minor" | "patch"): Version;
-        toString(): string;
-    }
-    /**
-     * Describes a semantic version range, per https://github.com/npm/node-semver#ranges
-     */
-    class VersionRange {
-        private _alternatives;
-        constructor(spec: string);
-        static tryParse(text: string): VersionRange | undefined;
-        test(version: Version | string): boolean;
-        toString(): string;
-    }
 }
 /** Tracing events for the compiler. */
 declare namespace ts.tracing {
