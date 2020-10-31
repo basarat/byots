@@ -4151,6 +4151,7 @@ declare namespace ts {
         resolvedJSDocType?: Type;
         switchTypes?: Type[];
         jsxNamespace?: Symbol | false;
+        jsxImplicitImportContainer?: Symbol | false;
         contextFreeType?: Type;
         deferredNodes?: ESMap<NodeId, Node>;
         capturedBlockScopeBindings?: Symbol[];
@@ -10270,7 +10271,8 @@ declare namespace ts {
     export function compilerOptionsAffectEmit(newOptions: CompilerOptions, oldOptions: CompilerOptions): boolean;
     export function getCompilerOptionValue(options: CompilerOptions, option: CommandLineOption): unknown;
     export function getJSXTransformEnabled(options: CompilerOptions): boolean;
-    export function getJSXImplicitImportBase(compilerOptions: CompilerOptions, file: SourceFile): string | undefined;
+    export function getJSXImplicitImportBase(compilerOptions: CompilerOptions, file?: SourceFile): string | undefined;
+    export function getJSXRuntimeImport(base: string | undefined, options: CompilerOptions): string | undefined;
     export function hasZeroOrOneAsteriskCharacter(str: string): boolean;
     export interface SymlinkedDirectory {
         real: string;
