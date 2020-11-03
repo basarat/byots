@@ -61,7 +61,7 @@ declare namespace ts {
     export {};
 }
 declare namespace ts {
-    const versionMajorMinor = "4.1";
+    const versionMajorMinor = "4.2";
     /** The version of the TypeScript compiler release */
     const version: string;
     /**
@@ -4848,6 +4848,7 @@ declare namespace ts {
         noUnusedLocals?: boolean;
         noUnusedParameters?: boolean;
         noImplicitUseStrict?: boolean;
+        noPropertyAccessFromIndexSignature?: boolean;
         assumeChangesOnlyAffectDirectDependencies?: boolean;
         noLib?: boolean;
         noResolve?: boolean;
@@ -8294,6 +8295,7 @@ declare namespace ts {
         Parameter_0_of_accessor_has_or_is_using_name_1_from_external_module_2_but_cannot_be_named: DiagnosticMessage;
         Type_arguments_for_0_circularly_reference_themselves: DiagnosticMessage;
         Tuple_type_arguments_circularly_reference_themselves: DiagnosticMessage;
+        Property_0_comes_from_an_index_signature_so_it_must_be_accessed_with_0: DiagnosticMessage;
         The_current_host_does_not_support_the_0_option: DiagnosticMessage;
         Cannot_find_the_common_subdirectory_path_for_the_input_files: DiagnosticMessage;
         File_specification_cannot_end_in_a_recursive_directory_wildcard_Asterisk_Asterisk_Colon_0: DiagnosticMessage;
@@ -8620,6 +8622,7 @@ declare namespace ts {
         The_expected_type_comes_from_the_return_type_of_this_signature: DiagnosticMessage;
         Print_names_of_files_that_are_part_of_the_compilation_and_then_stop_processing: DiagnosticMessage;
         File_0_is_a_JavaScript_file_Did_you_mean_to_enable_the_allowJs_option: DiagnosticMessage;
+        Require_undeclared_properties_from_index_signatures_to_use_element_accesses: DiagnosticMessage;
         Include_undefined_in_index_signature_results: DiagnosticMessage;
         Variable_0_implicitly_has_an_1_type: DiagnosticMessage;
         Parameter_0_implicitly_has_an_1_type: DiagnosticMessage;
@@ -8922,6 +8925,9 @@ declare namespace ts {
         Can_only_convert_logical_AND_access_chains: DiagnosticMessage;
         Add_void_to_Promise_resolved_without_a_value: DiagnosticMessage;
         Add_void_to_all_Promises_resolved_without_a_value: DiagnosticMessage;
+        Use_element_access_for_0: DiagnosticMessage;
+        Use_element_access_for_all_undeclared_properties: DiagnosticMessage;
+        Delete_all_unused_imports: DiagnosticMessage;
         No_value_exists_in_scope_for_the_shorthand_property_0_Either_declare_one_or_provide_an_initializer: DiagnosticMessage;
         Classes_may_not_have_a_field_named_constructor: DiagnosticMessage;
         JSX_expressions_may_not_use_the_comma_operator_Did_you_mean_to_write_an_array: DiagnosticMessage;
@@ -10393,7 +10399,7 @@ declare namespace ts {
     /** @deprecated Use `Map<TNode, TValue>` instead. */
     export type NodeMap<TNode extends Node, TValue> = ESMap<TNode, TValue>;
     export function rangeOfNode(node: Node): TextRange;
-    export function rangeOfTypeParameters(typeParameters: NodeArray<TypeParameterDeclaration>): TextRange;
+    export function rangeOfTypeParameters(sourceFile: SourceFile, typeParameters: NodeArray<TypeParameterDeclaration>): TextRange;
     export interface HostWithIsSourceOfProjectReferenceRedirect {
         isSourceOfProjectReferenceRedirect(fileName: string): boolean;
     }
@@ -10955,7 +10961,7 @@ declare namespace ts {
 }
 declare namespace ts {
     /**
-     * NOTE: You should not use this, it is only exported to support `createNode` in `~/src/compat/deprecations.ts`.
+     * NOTE: You should not use this, it is only exported to support `createNode` in `~/src/deprecatedCompat/deprecations.ts`.
      */
     const parseBaseNodeFactory: BaseNodeFactory;
     const parseNodeFactory: NodeFactory;
@@ -15518,8 +15524,8 @@ declare namespace ts.textChanges {
         private insertAtTopOfFile;
         insertFirstParameter(sourceFile: SourceFile, parameters: NodeArray<ParameterDeclaration>, newParam: ParameterDeclaration): void;
         insertNodeBefore(sourceFile: SourceFile, before: Node, newNode: Node, blankLineBetween?: boolean, options?: ConfigurableStartEnd): void;
+        insertModifierAt(sourceFile: SourceFile, pos: number, modifier: SyntaxKind, options?: InsertNodeOptions): void;
         insertModifierBefore(sourceFile: SourceFile, modifier: SyntaxKind, before: Node): void;
-        insertLastModifierBefore(sourceFile: SourceFile, modifier: SyntaxKind, before: Node): void;
         insertCommentBeforeLine(sourceFile: SourceFile, lineNumber: number, position: number, commentText: string): void;
         insertJsdocCommentBefore(sourceFile: SourceFile, node: HasJSDoc, tag: JSDoc): void;
         replaceRangeWithText(sourceFile: SourceFile, range: TextRange, text: string): void;
@@ -15653,6 +15659,8 @@ declare namespace ts.codefix {
     function forEachExternalModuleToImportFrom(program: Program, host: LanguageServiceHost, from: SourceFile, filterByPackageJson: boolean, useAutoImportProvider: boolean, cb: (module: Symbol, moduleFile: SourceFile | undefined, program: Program, isFromPackageJson: boolean) => void): void;
     function moduleSymbolToValidIdentifier(moduleSymbol: Symbol, target: ScriptTarget | undefined): string;
     function moduleSpecifierToValidIdentifier(moduleSpecifier: string, target: ScriptTarget | undefined): string;
+}
+declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
 }
