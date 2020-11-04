@@ -4399,7 +4399,8 @@ declare namespace ts {
     export interface UnionOrIntersectionType extends Type {
         types: Type[];
         objectFlags: ObjectFlags;
-        propertyCache: SymbolTable;
+        propertyCache?: SymbolTable;
+        propertyCacheWithoutObjectFunctionPropertyAugment?: SymbolTable;
         resolvedProperties: Symbol[];
         resolvedIndexType: IndexType;
         resolvedStringIndexType: IndexType;
@@ -8928,6 +8929,7 @@ declare namespace ts {
         Use_element_access_for_0: DiagnosticMessage;
         Use_element_access_for_all_undeclared_properties: DiagnosticMessage;
         Delete_all_unused_imports: DiagnosticMessage;
+        Infer_function_return_type: DiagnosticMessage;
         No_value_exists_in_scope_for_the_shorthand_property_0_Either_declare_one_or_provide_an_initializer: DiagnosticMessage;
         Classes_may_not_have_a_field_named_constructor: DiagnosticMessage;
         JSX_expressions_may_not_use_the_comma_operator_Did_you_mean_to_write_an_array: DiagnosticMessage;
@@ -15902,6 +15904,8 @@ declare namespace ts.refactor.convertParamsToDestructuredObject {
 declare namespace ts.refactor.convertStringOrTemplateLiteral {
 }
 declare namespace ts.refactor.convertArrowFunctionOrFunctionExpression {
+}
+declare namespace ts.refactor.inferFunctionReturnType {
 }
 declare namespace ts {
     /** The version of the language service API */
