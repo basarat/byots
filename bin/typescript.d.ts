@@ -4907,6 +4907,8 @@ declare namespace ts {
         watchDirectory?: WatchDirectoryKind;
         fallbackPolling?: PollingWatchKind;
         synchronousWatchDirectory?: boolean;
+        excludeDirectories?: string[];
+        excludeFiles?: string[];
         [option: string]: CompilerOptionsValue | undefined;
     }
     export interface TypeAcquisition {
@@ -5059,6 +5061,7 @@ declare namespace ts {
         affectsSemanticDiagnostics?: true;
         affectsEmit?: true;
         transpileOptionValue?: boolean | undefined;
+        extraValidation?: (value: CompilerOptionsValue) => [DiagnosticMessage, ...string[]] | undefined;
     }
     export interface CommandLineOptionOfPrimitiveType extends CommandLineOptionBase {
         type: "string" | "number" | "boolean";
@@ -7265,6 +7268,7 @@ declare namespace ts {
     export interface RecursiveDirectoryWatcherHost {
         watchDirectory: HostWatchDirectory;
         useCaseSensitiveFileNames: boolean;
+        getCurrentDirectory: System["getCurrentDirectory"];
         getAccessibleSortedChildDirectories(path: string): readonly string[];
         directoryExists(dir: string): boolean;
         realpath(s: string): string;
@@ -7276,7 +7280,7 @@ declare namespace ts {
      * that means if this is recursive watcher, watch the children directories as well
      * (eg on OS that dont support recursive watch using fs.watch use fs.watchFile)
      */
-    export function createDirectoryWatcherSupportingRecursive(host: RecursiveDirectoryWatcherHost): HostWatchDirectory;
+    export function createDirectoryWatcherSupportingRecursive({ watchDirectory, useCaseSensitiveFileNames, getCurrentDirectory, getAccessibleSortedChildDirectories, directoryExists, realpath, setTimeout, clearTimeout }: RecursiveDirectoryWatcherHost): HostWatchDirectory;
     export type FsWatchCallback = (eventName: "rename" | "change", relativeFileName: string | undefined) => void;
     export type FsWatch = (fileOrDirectory: string, entryKind: FileSystemEntryKind, callback: FsWatchCallback, recursive: boolean, fallbackPollingInterval: PollingInterval, fallbackOptions: WatchOptions | undefined) => FileWatcher;
     export enum FileSystemEntryKind {
@@ -7292,6 +7296,7 @@ declare namespace ts {
         fsWatch: FsWatch;
         fileExists: System["fileExists"];
         useCaseSensitiveFileNames: boolean;
+        getCurrentDirectory: System["getCurrentDirectory"];
         fsSupportsRecursiveFsWatch: boolean;
         directoryExists: System["directoryExists"];
         getAccessibleSortedChildDirectories(path: string): readonly string[];
@@ -7300,7 +7305,7 @@ declare namespace ts {
         useNonPollingWatchers?: boolean;
         tscWatchDirectory: string | undefined;
     }
-    export function createSystemWatchFunctions({ pollingWatchFile, getModifiedTime, setTimeout, clearTimeout, fsWatch, fileExists, useCaseSensitiveFileNames, fsSupportsRecursiveFsWatch, directoryExists, getAccessibleSortedChildDirectories, realpath, tscWatchFile, useNonPollingWatchers, tscWatchDirectory, }: CreateSystemWatchFunctions): {
+    export function createSystemWatchFunctions({ pollingWatchFile, getModifiedTime, setTimeout, clearTimeout, fsWatch, fileExists, useCaseSensitiveFileNames, getCurrentDirectory, fsSupportsRecursiveFsWatch, directoryExists, getAccessibleSortedChildDirectories, realpath, tscWatchFile, useNonPollingWatchers, tscWatchDirectory, }: CreateSystemWatchFunctions): {
         watchFile: HostWatchFile;
         watchDirectory: HostWatchDirectory;
     };
@@ -11244,6 +11249,7 @@ declare namespace ts {
         options: TypeAcquisition;
         errors: Diagnostic[];
     };
+    export function convertJsonOption(opt: CommandLineOption, value: any, basePath: string, errors: Push<Diagnostic>): CompilerOptionsValue;
     /**
      * Gets the file names from the provided config file specs that contain, files, include, exclude and
      * other properties needed to resolve the file names
@@ -11255,6 +11261,7 @@ declare namespace ts {
      */
     export function getFileNamesFromConfigSpecs(spec: ConfigFileSpecs, basePath: string, options: CompilerOptions, host: ParseConfigHost, extraFileExtensions?: readonly FileExtensionInfo[]): ExpandResult;
     export function isExcludedFile(pathToCheck: string, spec: ConfigFileSpecs, basePath: string, useCaseSensitiveFileNames: boolean, currentDirectory: string): boolean;
+    export function matchesExclude(pathToCheck: string, excludeSpecs: readonly string[] | undefined, useCaseSensitiveFileNames: boolean, currentDirectory: string): boolean;
     /**
      * Produces a cleaned version of compiler options with personally identifying info (aka, paths) removed.
      * Also converts enum values back to strings.
@@ -11796,23 +11803,18 @@ declare namespace ts {
         TriggerOnly = 1,
         Verbose = 2
     }
-    interface WatchFileHost {
+    interface WatchFactoryHost {
         watchFile(path: string, callback: FileWatcherCallback, pollingInterval?: number, options?: WatchOptions): FileWatcher;
-    }
-    interface WatchDirectoryHost {
         watchDirectory(path: string, callback: DirectoryWatcherCallback, recursive?: boolean, options?: WatchOptions): FileWatcher;
+        getCurrentDirectory?(): string;
+        useCaseSensitiveFileNames: boolean | (() => boolean);
     }
-    type WatchFile<X, Y> = (host: WatchFileHost, file: string, callback: FileWatcherCallback, pollingInterval: PollingInterval, options: WatchOptions | undefined, detailInfo1: X, detailInfo2?: Y) => FileWatcher;
-    type FilePathWatcherCallback = (fileName: string, eventKind: FileWatcherEventKind, filePath: Path) => void;
-    type WatchFilePath<X, Y> = (host: WatchFileHost, file: string, callback: FilePathWatcherCallback, pollingInterval: PollingInterval, options: WatchOptions | undefined, path: Path, detailInfo1: X, detailInfo2?: Y) => FileWatcher;
-    type WatchDirectory<X, Y> = (host: WatchDirectoryHost, directory: string, callback: DirectoryWatcherCallback, flags: WatchDirectoryFlags, options: WatchOptions | undefined, detailInfo1: X, detailInfo2?: Y) => FileWatcher;
-    interface WatchFactory<X, Y> {
-        watchFile: WatchFile<X, Y>;
-        watchFilePath: WatchFilePath<X, Y>;
-        watchDirectory: WatchDirectory<X, Y>;
+    interface WatchFactory<X, Y = undefined> {
+        watchFile: (file: string, callback: FileWatcherCallback, pollingInterval: PollingInterval, options: WatchOptions | undefined, detailInfo1: X, detailInfo2?: Y) => FileWatcher;
+        watchDirectory: (directory: string, callback: DirectoryWatcherCallback, flags: WatchDirectoryFlags, options: WatchOptions | undefined, detailInfo1: X, detailInfo2?: Y) => FileWatcher;
     }
-    function getWatchFactory<X, Y = undefined>(watchLogLevel: WatchLogLevel, log: (s: string) => void, getDetailWatchInfo?: GetDetailWatchInfo<X, Y>): WatchFactory<X, Y>;
     type GetDetailWatchInfo<X, Y> = (detailInfo1: X, detailInfo2: Y | undefined) => string;
+    function getWatchFactory<X, Y = undefined>(host: WatchFactoryHost, watchLogLevel: WatchLogLevel, log: (s: string) => void, getDetailWatchInfo?: GetDetailWatchInfo<X, Y>): WatchFactory<X, Y>;
     function getFallbackOptions(options: WatchOptions | undefined): WatchOptions;
     function closeFileWatcherOf<T extends {
         watcher: FileWatcher;
@@ -12511,7 +12513,7 @@ declare namespace ts {
     interface WatchFactory<X, Y = undefined> extends ts.WatchFactory<X, Y> {
         writeLog: (s: string) => void;
     }
-    export function createWatchFactory<Y = undefined>(host: {
+    export function createWatchFactory<Y = undefined>(host: WatchFactoryHost & {
         trace?(s: string): void;
     }, options: {
         extendedDiagnostics?: boolean;
@@ -13055,8 +13057,9 @@ declare namespace ts.server {
         useCaseSensitiveFileNames: boolean;
         writeFile(path: string, content: string): void;
         createDirectory(path: string): void;
-        watchFile?(path: string, callback: FileWatcherCallback, pollingInterval?: number, options?: CompilerOptions): FileWatcher;
-        watchDirectory?(path: string, callback: DirectoryWatcherCallback, recursive?: boolean, options?: CompilerOptions): FileWatcher;
+        getCurrentDirectory?(): string;
+        watchFile?(path: string, callback: FileWatcherCallback, pollingInterval?: number, options?: WatchOptions): FileWatcher;
+        watchDirectory?(path: string, callback: DirectoryWatcherCallback, recursive?: boolean, options?: WatchOptions): FileWatcher;
     }
     interface SetTypings extends ProjectResponse {
         readonly typeAcquisition: TypeAcquisition;
