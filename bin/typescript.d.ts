@@ -14354,6 +14354,7 @@ declare namespace ts {
     function hasChildOfKind(n: Node, kind: SyntaxKind, sourceFile: SourceFile): boolean;
     function findChildOfKind<T extends Node>(n: Node, kind: T["kind"], sourceFile: SourceFileLike): T | undefined;
     function findContainingList(node: Node): SyntaxList | undefined;
+    function getContextualTypeOrAncestorTypeNodeType(node: Expression, checker: TypeChecker): Type | undefined;
     /**
      * Adjusts the location used for "find references" and "go to definition" when the cursor was not
      * on a property name.
@@ -14928,7 +14929,7 @@ declare namespace ts.FindAllReferences {
         readonly node: Node;
     } | {
         readonly type: DefinitionKind.String;
-        readonly node: StringLiteral;
+        readonly node: StringLiteralLike;
     };
     enum EntryKind {
         Span = 0,
