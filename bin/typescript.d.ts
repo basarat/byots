@@ -19,7 +19,7 @@ declare namespace ts {
         value: T;
         done?: false;
     } | {
-        value: never;
+        value: void;
         done: true;
     };
     interface IteratorShim<T> {
@@ -134,7 +134,7 @@ declare namespace ts {
             value: T;
             done?: false;
         } | {
-            value: never;
+            value: void;
             done: true;
         };
     }
@@ -976,17 +976,14 @@ declare namespace ts.tracing {
         Check = "check",
         Emit = "emit"
     }
-    type EventData = [phase: Phase, name: string, args?: object];
-    /** Note: `push`/`pop` should be used by default.
-     * `begin`/`end` are for special cases where we need the data point even if the event never
-     * terminates (typically for reducing a scenario too big to trace to one that can be completed).
-     * In the future we might implement an exit handler to dump unfinished events which would
-     * deprecate these operations.
-     */
-    function begin(phase: Phase, name: string, args?: object): void;
-    function end(phase: Phase, name: string, args?: object): void;
     function instant(phase: Phase, name: string, args?: object): void;
-    function push(phase: Phase, name: string, args?: object): void;
+    /**
+     * @param separateBeginAndEnd - used for special cases where we need the trace point even if the event
+     * never terminates (typically for reducing a scenario too big to trace to one that can be completed).
+     * In the future we might implement an exit handler to dump unfinished events which would deprecate
+     * these operations.
+     */
+    function push(phase: Phase, name: string, args?: object, separateBeginAndEnd?: boolean): void;
     function pop(): void;
     function dumpLegend(): void;
 }
@@ -6537,6 +6534,7 @@ declare namespace ts {
         realpath?(path: string): string;
         getSymlinkCache?(): SymlinkCache;
         getGlobalTypingsCacheLocation?(): string | undefined;
+        getNearestAncestorDirectoryWithPackageJson?(fileName: string, rootDir?: string): string | undefined;
         getSourceFiles(): readonly SourceFile[];
         readonly redirectTargetsMap: RedirectTargetsMap;
         getProjectReferenceRedirect(fileName: string): string | undefined;
@@ -6807,7 +6805,7 @@ declare namespace ts {
         readonly includeCompletionsForModuleExports?: boolean;
         readonly includeAutomaticOptionalChainCompletions?: boolean;
         readonly includeCompletionsWithInsertText?: boolean;
-        readonly importModuleSpecifierPreference?: "auto" | "relative" | "non-relative";
+        readonly importModuleSpecifierPreference?: "shortest" | "project-relative" | "relative" | "non-relative";
         /** Determines whether we import `foo/index.ts` as "foo", "foo/index", or "foo/index.js" */
         readonly importModuleSpecifierEnding?: "auto" | "minimal" | "index" | "js";
         readonly allowTextChangesInNewFiles?: boolean;
@@ -9567,6 +9565,7 @@ declare namespace ts {
     export function createDiagnosticForNodeArray(sourceFile: SourceFile, nodes: NodeArray<Node>, message: DiagnosticMessage, arg0?: string | number, arg1?: string | number, arg2?: string | number, arg3?: string | number): DiagnosticWithLocation;
     export function createDiagnosticForNodeInSourceFile(sourceFile: SourceFile, node: Node, message: DiagnosticMessage, arg0?: string | number, arg1?: string | number, arg2?: string | number, arg3?: string | number): DiagnosticWithLocation;
     export function createDiagnosticForNodeFromMessageChain(node: Node, messageChain: DiagnosticMessageChain, relatedInformation?: DiagnosticRelatedInformation[]): DiagnosticWithLocation;
+    export function createDiagnosticForFileFromMessageChain(sourceFile: SourceFile, messageChain: DiagnosticMessageChain, relatedInformation?: DiagnosticRelatedInformation[]): DiagnosticWithLocation;
     export function createDiagnosticForRange(sourceFile: SourceFile, range: TextRange, message: DiagnosticMessage): DiagnosticWithLocation;
     export function getSpanOfTokenAtPosition(sourceFile: SourceFile, pos: number): TextSpan;
     export function getErrorSpanForNode(sourceFile: SourceFile, node: Node): TextSpan;
@@ -13331,6 +13330,7 @@ declare namespace ts {
         getDocumentPositionMapper?(generatedFileName: string, sourceFileName?: string): DocumentPositionMapper | undefined;
         getSourceFileLike?(fileName: string): SourceFileLike | undefined;
         getPackageJsonsVisibleToFile?(fileName: string, rootDir?: string): readonly PackageJsonInfo[];
+        getNearestAncestorDirectoryWithPackageJson?(fileName: string): string | undefined;
         getPackageJsonsForAutoImport?(rootDir?: string): readonly PackageJsonInfo[];
         getImportSuggestionsCache?(): Completions.ImportSuggestionsForFileCache;
         setCompilerHost?(host: CompilerHost): void;
