@@ -964,17 +964,24 @@ declare namespace ts {
 }
 /** Tracing events for the compiler. */
 declare namespace ts.tracing {
+    enum Mode {
+        Project = 0,
+        Build = 1,
+        Server = 2
+    }
     /** Starts tracing for the given project (unless the `fs` module is unavailable). */
-    function startTracing(configFilePath: string | undefined, traceDir: string, isBuildMode: boolean): void;
+    function startTracing(tracingMode: Mode, traceDir: string, configFilePath?: string): void;
     /** Stops tracing for the in-progress project and dumps the type catalog (unless the `fs` module is unavailable). */
-    function stopTracing(typeCatalog: readonly Type[]): void;
+    function stopTracing(typeCatalog?: readonly Type[]): void;
     function isTracing(): boolean;
     enum Phase {
         Parse = "parse",
         Program = "program",
         Bind = "bind",
         Check = "check",
-        Emit = "emit"
+        CheckTypes = "checkTypes",
+        Emit = "emit",
+        Session = "session"
     }
     function instant(phase: Phase, name: string, args?: object): void;
     /**
@@ -985,6 +992,7 @@ declare namespace ts.tracing {
      */
     function push(phase: Phase, name: string, args?: object, separateBeginAndEnd?: boolean): void;
     function pop(): void;
+    function popAll(): void;
     function dumpLegend(): void;
 }
 declare namespace ts {
