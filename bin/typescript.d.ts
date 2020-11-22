@@ -15008,7 +15008,7 @@ declare namespace ts.FindAllReferences {
         /** Used as a quick check for whether a symbol is used at all in a file (besides its definition). */
         function isSymbolReferencedInFile(definition: Identifier, checker: TypeChecker, sourceFile: SourceFile, searchContainer?: Node): boolean;
         function eachSymbolReferenceInFile<T>(definition: Identifier, checker: TypeChecker, sourceFile: SourceFile, cb: (token: Identifier) => T, searchContainer?: Node): T | undefined;
-        function eachSignatureCall(signature: SignatureDeclaration, sourceFiles: readonly SourceFile[], checker: TypeChecker, cb: (call: CallExpression) => void): void;
+        function someSignatureUsage(signature: SignatureDeclaration, sourceFiles: readonly SourceFile[], checker: TypeChecker, cb: (name: Identifier, call?: CallExpression) => boolean): boolean;
         /**
          * Given an initial searchMeaning, extracted from a location, widen the search scope based on the declarations
          * of the corresponding symbol. e.g. if we are searching for "Foo" in value position, but "Foo" references a class
