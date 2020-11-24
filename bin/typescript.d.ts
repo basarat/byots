@@ -9526,7 +9526,8 @@ declare namespace ts {
         None = 0,
         NeverAsciiEscape = 1,
         JsxAttributeEscape = 2,
-        TerminateUnterminatedLiterals = 4
+        TerminateUnterminatedLiterals = 4,
+        AllowNumericSeparator = 8
     }
     export function getLiteralText(node: LiteralLikeNode, sourceFile: SourceFile, flags: GetLiteralTextFlags): string;
     export function getTextOfConstantValue(value: string | number): string;
@@ -15212,7 +15213,7 @@ declare namespace ts {
 }
 declare namespace ts.SymbolDisplay {
     function getSymbolKind(typeChecker: TypeChecker, symbol: Symbol, location: Node): ScriptElementKind;
-    function getSymbolModifiers(symbol: Symbol): string;
+    function getSymbolModifiers(typeChecker: TypeChecker, symbol: Symbol): string;
     interface SymbolDisplayPartsDocumentationAndSymbolKind {
         displayParts: SymbolDisplayPart[];
         documentation: SymbolDisplayPart[];
