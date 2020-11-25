@@ -964,17 +964,20 @@ declare namespace ts {
 }
 /** Tracing events for the compiler. */
 declare namespace ts.tracing {
-    enum Mode {
+    export enum Mode {
         Project = 0,
         Build = 1,
         Server = 2
     }
+    interface Args {
+        [key: string]: string | number | boolean | null | undefined | Args | readonly (string | number | boolean | null | undefined | Args)[];
+    }
     /** Starts tracing for the given project (unless the `fs` module is unavailable). */
-    function startTracing(tracingMode: Mode, traceDir: string, configFilePath?: string): void;
+    export function startTracing(tracingMode: Mode, traceDir: string, configFilePath?: string): void;
     /** Stops tracing for the in-progress project and dumps the type catalog (unless the `fs` module is unavailable). */
-    function stopTracing(typeCatalog?: readonly Type[]): void;
-    function isTracing(): boolean;
-    enum Phase {
+    export function stopTracing(typeCatalog?: readonly Type[]): void;
+    export function isTracing(): boolean;
+    export enum Phase {
         Parse = "parse",
         Program = "program",
         Bind = "bind",
@@ -983,17 +986,18 @@ declare namespace ts.tracing {
         Emit = "emit",
         Session = "session"
     }
-    function instant(phase: Phase, name: string, args?: object): void;
+    export function instant(phase: Phase, name: string, args?: Args): void;
     /**
      * @param separateBeginAndEnd - used for special cases where we need the trace point even if the event
      * never terminates (typically for reducing a scenario too big to trace to one that can be completed).
      * In the future we might implement an exit handler to dump unfinished events which would deprecate
      * these operations.
      */
-    function push(phase: Phase, name: string, args?: object, separateBeginAndEnd?: boolean): void;
-    function pop(): void;
-    function popAll(): void;
-    function dumpLegend(): void;
+    export function push(phase: Phase, name: string, args?: Args, separateBeginAndEnd?: boolean): void;
+    export function pop(): void;
+    export function popAll(): void;
+    export function dumpLegend(): void;
+    export {};
 }
 declare namespace ts {
     export type Path = string & {
@@ -3616,6 +3620,7 @@ declare namespace ts {
         getAllPossiblePropertiesOfTypes(type: readonly Type[]): Symbol[];
         resolveName(name: string, location: Node | undefined, meaning: SymbolFlags, excludeGlobals: boolean): Symbol | undefined;
         getJsxNamespace(location?: Node): string;
+        getJsxFragmentFactory(location: Node): string | undefined;
         /**
          * Note that this will return undefined in the following case:
          *     // a.ts
