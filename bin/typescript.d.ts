@@ -6840,6 +6840,7 @@ declare namespace ts {
      * we expect the host to correctly handle paths in our specified format.
      */
     const directorySeparator = "/";
+    const altDirectorySeparator = "\\";
     /**
      * Determines whether a charCode corresponds to `/` or `\`.
      */
