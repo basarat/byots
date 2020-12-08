@@ -11729,7 +11729,9 @@ declare namespace ts {
     function getOutputPathsForBundle(options: CompilerOptions, forceDtsPaths: boolean): EmitFileNames;
     function getOutputPathsFor(sourceFile: SourceFile | Bundle, host: EmitHost, forceDtsPaths: boolean): EmitFileNames;
     function getOutputExtension(sourceFile: SourceFile, options: CompilerOptions): Extension;
-    function getOutputDeclarationFileName(inputFileName: string, configFile: ParsedCommandLine, ignoreCase: boolean): string;
+    function getOutputDeclarationFileName(inputFileName: string, configFile: ParsedCommandLine, ignoreCase: boolean, getCommonSourceDirectory?: () => string): string;
+    function getCommonSourceDirectory(options: CompilerOptions, emittedFiles: () => readonly string[], currentDirectory: string, getCanonicalFileName: GetCanonicalFileName, checkSourceFilesBelongToPath?: (commonSourceDirectory: string) => void): string;
+    function getCommonSourceDirectoryOfConfig({ options, fileNames }: ParsedCommandLine, ignoreCase: boolean): string;
     function getAllProjectOutputs(configFile: ParsedCommandLine, ignoreCase: boolean): readonly string[];
     function getOutputFileNames(commandLine: ParsedCommandLine, inputFileName: string, ignoreCase: boolean): readonly string[];
     function getFirstProjectOutput(configFile: ParsedCommandLine, ignoreCase: boolean): string;
@@ -11838,7 +11840,7 @@ declare namespace ts {
 declare namespace ts {
     export function findConfigFile(searchPath: string, fileExists: (fileName: string) => boolean, configName?: string): string | undefined;
     export function resolveTripleslashReference(moduleName: string, containingFile: string): string;
-    export function computeCommonSourceDirectoryOfFilenames(fileNames: string[], currentDirectory: string, getCanonicalFileName: GetCanonicalFileName): string;
+    export function computeCommonSourceDirectoryOfFilenames(fileNames: readonly string[], currentDirectory: string, getCanonicalFileName: GetCanonicalFileName): string;
     export function createCompilerHost(options: CompilerOptions, setParentNodes?: boolean): CompilerHost;
     export function createCompilerHostWorker(options: CompilerOptions, setParentNodes?: boolean, system?: System): CompilerHost;
     interface CompilerHostLikeForCache {
