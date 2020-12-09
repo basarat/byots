@@ -3214,6 +3214,7 @@ declare namespace ts {
     }
     export interface TsConfigSourceFile extends JsonSourceFile {
         extendedSourceFiles?: string[];
+        configFileSpecs?: ConfigFileSpecs;
     }
     export interface JsonMinusNumericLiteral extends PrefixUnaryExpression {
         readonly kind: SyntaxKind.PrefixUnaryExpression;
@@ -3257,17 +3258,60 @@ declare namespace ts {
         /** @throws OperationCanceledException if isCancellationRequested is true */
         throwIfCancellationRequested(): void;
     }
-    export enum RefFileKind {
-        Import = 0,
-        ReferenceFile = 1,
-        TypeReferenceDirective = 2
+    export enum FileIncludeKind {
+        RootFile = 0,
+        SourceFromProjectReference = 1,
+        OutputFromProjectReference = 2,
+        Import = 3,
+        ReferenceFile = 4,
+        TypeReferenceDirective = 5,
+        LibFile = 6,
+        LibReferenceDirective = 7,
+        AutomaticTypeDirectiveFile = 8
     }
-    export interface RefFile {
-        referencedFileName: string;
-        kind: RefFileKind;
+    export interface RootFile {
+        kind: FileIncludeKind.RootFile;
         index: number;
-        file: Path;
     }
+    export interface LibFile {
+        kind: FileIncludeKind.LibFile;
+        index?: number;
+    }
+    export type ProjectReferenceFileKind = FileIncludeKind.SourceFromProjectReference | FileIncludeKind.OutputFromProjectReference;
+    export interface ProjectReferenceFile {
+        kind: ProjectReferenceFileKind;
+        index: number;
+    }
+    export type ReferencedFileKind = FileIncludeKind.Import | FileIncludeKind.ReferenceFile | FileIncludeKind.TypeReferenceDirective | FileIncludeKind.LibReferenceDirective;
+    export interface ReferencedFile {
+        kind: ReferencedFileKind;
+        file: Path;
+        index: number;
+    }
+    export interface AutomaticTypeDirectiveFile {
+        kind: FileIncludeKind.AutomaticTypeDirectiveFile;
+        typeReference: string;
+        packageId: PackageId | undefined;
+    }
+    export type FileIncludeReason = RootFile | LibFile | ProjectReferenceFile | ReferencedFile | AutomaticTypeDirectiveFile;
+    export enum FilePreprocessingDiagnosticsKind {
+        FilePreprocessingReferencedDiagnostic = 0,
+        FilePreprocessingFileExplainingDiagnostic = 1
+    }
+    export interface FilePreprocessingReferencedDiagnostic {
+        kind: FilePreprocessingDiagnosticsKind.FilePreprocessingReferencedDiagnostic;
+        reason: ReferencedFile;
+        diagnostic: DiagnosticMessage;
+        args?: (string | number | undefined)[];
+    }
+    export interface FilePreprocessingFileExplainingDiagnostic {
+        kind: FilePreprocessingDiagnosticsKind.FilePreprocessingFileExplainingDiagnostic;
+        file?: Path;
+        fileProcessingReason: FileIncludeReason;
+        diagnostic: DiagnosticMessage;
+        args?: (string | number | undefined)[];
+    }
+    export type FilePreprocessingDiagnostics = FilePreprocessingReferencedDiagnostic | FilePreprocessingFileExplainingDiagnostic;
     export interface Program extends ScriptReferenceHost {
         getCurrentDirectory(): string;
         /**
@@ -3283,7 +3327,6 @@ declare namespace ts {
          * program source file but could not be located.
          */
         getMissingFilePaths(): readonly Path[];
-        getRefFileMap(): MultiMap<Path, RefFile> | undefined;
         getFilesByNameMap(): ESMap<string, SourceFile | false | undefined>;
         /**
          * Emits the JavaScript and declaration files.  If targetSourceFile is not specified, then
@@ -3328,7 +3371,7 @@ declare namespace ts {
             subtype: number;
             strictSubtype: number;
         };
-        getFileProcessingDiagnostics(): DiagnosticCollection;
+        getFileProcessingDiagnostics(): FilePreprocessingDiagnostics[] | undefined;
         getResolvedTypeReferenceDirectives(): ESMap<string, ResolvedTypeReferenceDirective | undefined>;
         isSourceFileFromExternalLibrary(file: SourceFile): boolean;
         isSourceFileDefaultLibrary(file: SourceFile): boolean;
@@ -3341,6 +3384,8 @@ declare namespace ts {
         redirectTargetsMap: MultiMap<string, string>;
         /** Is the file emitted file */
         isEmittedFile(file: string): boolean;
+        getFileIncludeReasons(): MultiMap<Path, FileIncludeReason>;
+        useCaseSensitiveFileNames(): boolean;
         getResolvedModuleWithFailedLookupLocationsFromCache(moduleName: string, containingFile: string): ResolvedModuleWithFailedLookupLocations | undefined;
         getProjectReferences(): readonly ProjectReference[] | undefined;
         getResolvedProjectReferences(): readonly (ResolvedProjectReference | undefined)[] | undefined;
@@ -4840,6 +4885,7 @@ declare namespace ts {
         lib?: string[];
         listEmittedFiles?: boolean;
         listFiles?: boolean;
+        explainFiles?: boolean;
         listFilesOnly?: boolean;
         locale?: string;
         mapRoot?: string;
@@ -5008,7 +5054,6 @@ declare namespace ts {
         errors: Diagnostic[];
         wildcardDirectories?: MapLike<WatchDirectoryFlags>;
         compileOnSave?: boolean;
-        configFileSpecs?: ConfigFileSpecs;
     }
     export enum WatchDirectoryFlags {
         None = 0,
@@ -5027,12 +5072,6 @@ declare namespace ts {
         validatedFilesSpec: readonly string[] | undefined;
         validatedIncludeSpecs: readonly string[] | undefined;
         validatedExcludeSpecs: readonly string[] | undefined;
-        wildcardDirectories: MapLike<WatchDirectoryFlags>;
-    }
-    export interface ExpandResult {
-        fileNames: string[];
-        wildcardDirectories: MapLike<WatchDirectoryFlags>;
-        spec: ConfigFileSpecs;
     }
     export type RequireResult<T = {}> = {
         module: T;
@@ -6584,7 +6623,6 @@ declare namespace ts {
         getGlobalDiagnostics(): Diagnostic[];
         getDiagnostics(): Diagnostic[];
         getDiagnostics(fileName: string): DiagnosticWithLocation[];
-        reattachFileDiagnostics(newFile: SourceFile): void;
     }
     export interface SyntaxList extends Node {
         kind: SyntaxKind.SyntaxList;
@@ -7758,6 +7796,44 @@ declare namespace ts {
         Provides_a_root_package_name_when_using_outFile_with_declarations: DiagnosticMessage;
         The_bundledPackageName_option_must_be_provided_when_using_outFile_and_node_module_resolution_with_declaration_emit: DiagnosticMessage;
         An_import_alias_cannot_use_import_type: DiagnosticMessage;
+        Imported_via_0_from_file_1: DiagnosticMessage;
+        Imported_via_0_from_file_1_with_packageId_2: DiagnosticMessage;
+        Imported_via_0_from_file_1_to_import_importHelpers_as_specified_in_compilerOptions: DiagnosticMessage;
+        Imported_via_0_from_file_1_with_packageId_2_to_import_importHelpers_as_specified_in_compilerOptions: DiagnosticMessage;
+        Imported_via_0_from_file_1_to_import_jsx_and_jsxs_factory_functions: DiagnosticMessage;
+        Imported_via_0_from_file_1_with_packageId_2_to_import_jsx_and_jsxs_factory_functions: DiagnosticMessage;
+        File_is_included_via_import_here: DiagnosticMessage;
+        Referenced_via_0_from_file_1: DiagnosticMessage;
+        File_is_included_via_reference_here: DiagnosticMessage;
+        Type_library_referenced_via_0_from_file_1: DiagnosticMessage;
+        Type_library_referenced_via_0_from_file_1_with_packageId_2: DiagnosticMessage;
+        File_is_included_via_type_library_reference_here: DiagnosticMessage;
+        Library_referenced_via_0_from_file_1: DiagnosticMessage;
+        File_is_included_via_library_reference_here: DiagnosticMessage;
+        Matched_by_include_pattern_0_in_1: DiagnosticMessage;
+        File_is_matched_by_include_pattern_specified_here: DiagnosticMessage;
+        Part_of_files_list_in_tsconfig_json: DiagnosticMessage;
+        File_is_matched_by_files_list_specified_here: DiagnosticMessage;
+        Output_from_referenced_project_0_included_because_1_specified: DiagnosticMessage;
+        Output_from_referenced_project_0_included_because_module_is_specified_as_none: DiagnosticMessage;
+        File_is_output_from_referenced_project_specified_here: DiagnosticMessage;
+        Source_from_referenced_project_0_included_because_1_specified: DiagnosticMessage;
+        Source_from_referenced_project_0_included_because_module_is_specified_as_none: DiagnosticMessage;
+        File_is_source_from_referenced_project_specified_here: DiagnosticMessage;
+        Entry_point_of_type_library_0_specified_in_compilerOptions: DiagnosticMessage;
+        Entry_point_of_type_library_0_specified_in_compilerOptions_with_packageId_1: DiagnosticMessage;
+        File_is_entry_point_of_type_library_specified_here: DiagnosticMessage;
+        Entry_point_for_implicit_type_library_0: DiagnosticMessage;
+        Entry_point_for_implicit_type_library_0_with_packageId_1: DiagnosticMessage;
+        Library_0_specified_in_compilerOptions: DiagnosticMessage;
+        File_is_library_specified_here: DiagnosticMessage;
+        Default_library: DiagnosticMessage;
+        Default_library_for_target_0: DiagnosticMessage;
+        File_is_default_library_for_target_specified_here: DiagnosticMessage;
+        Root_file_specified_for_compilation: DiagnosticMessage;
+        File_is_output_of_project_reference_source_0: DiagnosticMessage;
+        File_redirects_to_file_0: DiagnosticMessage;
+        The_file_is_in_the_program_because_Colon: DiagnosticMessage;
         The_types_of_0_are_incompatible_between_these_types: DiagnosticMessage;
         The_types_returned_by_0_are_incompatible_between_these_types: DiagnosticMessage;
         Call_signature_return_types_0_and_1_are_incompatible: DiagnosticMessage;
@@ -8641,6 +8717,7 @@ declare namespace ts {
         The_expected_type_comes_from_the_return_type_of_this_signature: DiagnosticMessage;
         Print_names_of_files_that_are_part_of_the_compilation_and_then_stop_processing: DiagnosticMessage;
         File_0_is_a_JavaScript_file_Did_you_mean_to_enable_the_allowJs_option: DiagnosticMessage;
+        Print_names_of_files_and_the_reason_they_are_part_of_the_compilation: DiagnosticMessage;
         Require_undeclared_properties_from_index_signatures_to_use_element_accesses: DiagnosticMessage;
         Include_undefined_in_index_signature_results: DiagnosticMessage;
         Variable_0_implicitly_has_an_1_type: DiagnosticMessage;
@@ -9581,6 +9658,7 @@ declare namespace ts {
     export function createDiagnosticForNodeArray(sourceFile: SourceFile, nodes: NodeArray<Node>, message: DiagnosticMessage, arg0?: string | number, arg1?: string | number, arg2?: string | number, arg3?: string | number): DiagnosticWithLocation;
     export function createDiagnosticForNodeInSourceFile(sourceFile: SourceFile, node: Node, message: DiagnosticMessage, arg0?: string | number, arg1?: string | number, arg2?: string | number, arg3?: string | number): DiagnosticWithLocation;
     export function createDiagnosticForNodeFromMessageChain(node: Node, messageChain: DiagnosticMessageChain, relatedInformation?: DiagnosticRelatedInformation[]): DiagnosticWithLocation;
+    export function createFileDiagnosticFromMessageChain(file: SourceFile, start: number, length: number, messageChain: DiagnosticMessageChain, relatedInformation?: DiagnosticRelatedInformation[]): DiagnosticWithLocation;
     export function createDiagnosticForFileFromMessageChain(sourceFile: SourceFile, messageChain: DiagnosticMessageChain, relatedInformation?: DiagnosticRelatedInformation[]): DiagnosticWithLocation;
     export function createDiagnosticForRange(sourceFile: SourceFile, range: TextRange, message: DiagnosticMessage): DiagnosticWithLocation;
     export function getSpanOfTokenAtPosition(sourceFile: SourceFile, pos: number): TextSpan;
@@ -9627,6 +9705,7 @@ declare namespace ts {
     export function isIdentifierTypePredicate(predicate: TypePredicate): predicate is IdentifierTypePredicate;
     export function isThisTypePredicate(predicate: TypePredicate): predicate is ThisTypePredicate;
     export function getPropertyAssignment(objectLiteral: ObjectLiteralExpression, key: string, key2?: string): readonly PropertyAssignment[];
+    export function getPropertyArrayElementValue(objectLiteral: ObjectLiteralExpression, propKey: string, elementValue: string): StringLiteral | undefined;
     export function getTsConfigObjectLiteralExpression(tsConfigSourceFile: TsConfigSourceFile | undefined): ObjectLiteralExpression | undefined;
     export function getTsConfigPropArrayElementValue(tsConfigSourceFile: TsConfigSourceFile | undefined, propKey: string, elementValue: string): StringLiteral | undefined;
     export function getTsConfigPropArray(tsConfigSourceFile: TsConfigSourceFile | undefined, propKey: string): readonly PropertyAssignment[];
@@ -10273,7 +10352,7 @@ declare namespace ts {
     export function createFileDiagnostic(file: SourceFile, start: number, length: number, message: DiagnosticMessage, ...args: (string | number | undefined)[]): DiagnosticWithLocation;
     export function formatMessage(_dummy: any, message: DiagnosticMessage, ...args: (string | number | undefined)[]): string;
     export function createCompilerDiagnostic(message: DiagnosticMessage, ...args: (string | number | undefined)[]): Diagnostic;
-    export function createCompilerDiagnosticFromMessageChain(chain: DiagnosticMessageChain): Diagnostic;
+    export function createCompilerDiagnosticFromMessageChain(chain: DiagnosticMessageChain, relatedInformation?: DiagnosticRelatedInformation[]): Diagnostic;
     export function chainDiagnosticMessages(details: DiagnosticMessageChain | DiagnosticMessageChain[] | undefined, message: DiagnosticMessage, ...args: (string | number | undefined)[]): DiagnosticMessageChain;
     export function concatenateDiagnosticMessageChains(headChain: DiagnosticMessageChain, tailChain: DiagnosticMessageChain): void;
     export function compareDiagnostics(d1: Diagnostic, d2: Diagnostic): Comparison;
@@ -10324,6 +10403,7 @@ declare namespace ts {
      * and does not contain any glob characters itself.
      */
     export function isImplicitGlob(lastPathComponent: string): boolean;
+    export function getPatternFromSpec(spec: string, basePath: string, usage: "files" | "directories" | "exclude"): string | undefined;
     export interface FileSystemEntries {
         readonly files: readonly string[];
         readonly directories: readonly string[];
@@ -11070,6 +11150,7 @@ declare namespace ts {
     export const libMap: ESMap<string, string>;
     export const optionsForWatch: CommandLineOption[];
     export const commonOptionsWithBuild: CommandLineOption[];
+    export const targetOptionDeclaration: CommandLineOptionOfCustomType;
     export const optionDeclarations: CommandLineOption[];
     export const semanticDiagnosticsOptionDeclarations: readonly CommandLineOption[];
     export const affectsEmitOptionDeclarations: readonly CommandLineOption[];
@@ -11241,7 +11322,7 @@ declare namespace ts {
     export function parseJsonSourceFileConfigFileContent(sourceFile: TsConfigSourceFile, host: ParseConfigHost, basePath: string, existingOptions?: CompilerOptions, configFileName?: string, resolutionStack?: Path[], extraFileExtensions?: readonly FileExtensionInfo[], extendedConfigCache?: Map<ExtendedConfigCacheEntry>, existingWatchOptions?: WatchOptions): ParsedCommandLine;
     export function setConfigFileInOptions(options: CompilerOptions, configFile: TsConfigSourceFile | undefined): void;
     export function canJsonReportNoInputFiles(raw: any): boolean;
-    export function updateErrorForNoInputFiles(result: ExpandResult, configFileName: string, configFileSpecs: ConfigFileSpecs, configParseDiagnostics: Diagnostic[], canJsonReportNoInutFiles: boolean): boolean;
+    export function updateErrorForNoInputFiles(fileNames: string[], configFileName: string, configFileSpecs: ConfigFileSpecs, configParseDiagnostics: Diagnostic[], canJsonReportNoInutFiles: boolean): boolean;
     export interface ParsedTsconfig {
         raw: any;
         options?: CompilerOptions;
@@ -11268,13 +11349,13 @@ declare namespace ts {
     /**
      * Gets the file names from the provided config file specs that contain, files, include, exclude and
      * other properties needed to resolve the file names
-     * @param spec The config file specs extracted with file names to include, wildcards to include/exclude and other details
+     * @param configFileSpecs The config file specs extracted with file names to include, wildcards to include/exclude and other details
      * @param basePath The base path for any relative file specifications.
      * @param options Compiler options.
      * @param host The host used to resolve files and directories.
      * @param extraFileExtensions optionaly file extra file extension information from host
      */
-    export function getFileNamesFromConfigSpecs(spec: ConfigFileSpecs, basePath: string, options: CompilerOptions, host: ParseConfigHost, extraFileExtensions?: readonly FileExtensionInfo[]): ExpandResult;
+    export function getFileNamesFromConfigSpecs(configFileSpecs: ConfigFileSpecs, basePath: string, options: CompilerOptions, host: ParseConfigHost, extraFileExtensions?: readonly FileExtensionInfo[]): string[];
     export function isExcludedFile(pathToCheck: string, spec: ConfigFileSpecs, basePath: string, useCaseSensitiveFileNames: boolean, currentDirectory: string): boolean;
     export function matchesExclude(pathToCheck: string, excludeSpecs: readonly string[] | undefined, useCaseSensitiveFileNames: boolean, currentDirectory: string): boolean;
     /**
@@ -11806,14 +11887,13 @@ declare namespace ts {
         fileOrDirectoryPath: Path;
         configFileName: string;
         options: CompilerOptions;
-        configFileSpecs: ConfigFileSpecs;
         program: BuilderProgram | Program | undefined;
         extraFileExtensions?: readonly FileExtensionInfo[];
         currentDirectory: string;
         useCaseSensitiveFileNames: boolean;
         writeLog: (s: string) => void;
     }
-    function isIgnoredFileFromWildCardWatching({ watchedDirPath, fileOrDirectory, fileOrDirectoryPath, configFileName, options, configFileSpecs, program, extraFileExtensions, currentDirectory, useCaseSensitiveFileNames, writeLog, }: IsIgnoredFileFromWildCardWatchingInput): boolean;
+    function isIgnoredFileFromWildCardWatching({ watchedDirPath, fileOrDirectory, fileOrDirectoryPath, configFileName, options, program, extraFileExtensions, currentDirectory, useCaseSensitiveFileNames, writeLog, }: IsIgnoredFileFromWildCardWatchingInput): boolean;
     function isEmittedFileOfProgram(program: Program | undefined, file: string): boolean;
     enum WatchLogLevel {
         None = 0,
@@ -11884,6 +11964,20 @@ declare namespace ts {
     export function loadWithLocalCache<T>(names: string[], containingFile: string, redirectedReference: ResolvedProjectReference | undefined, loader: (name: string, containingFile: string, redirectedReference: ResolvedProjectReference | undefined) => T): T[];
     export function forEachResolvedProjectReference<T>(resolvedProjectReferences: readonly (ResolvedProjectReference | undefined)[] | undefined, cb: (resolvedProjectReference: ResolvedProjectReference, parent: ResolvedProjectReference | undefined) => T | undefined): T | undefined;
     export const inferredTypesContainingFile = "__inferred type names__.ts";
+    export function isReferencedFile(reason: FileIncludeReason | undefined): reason is ReferencedFile;
+    export interface ReferenceFileLocation {
+        file: SourceFile;
+        pos: number;
+        end: number;
+        packageId: PackageId | undefined;
+    }
+    export interface SyntheticReferenceFileLocation {
+        file: SourceFile;
+        packageId: PackageId | undefined;
+        text: string;
+    }
+    export function isReferenceFileLocation(location: ReferenceFileLocation | SyntheticReferenceFileLocation): location is ReferenceFileLocation;
+    export function getReferencedFileLocation(getSourceFileByPath: (path: Path) => SourceFile | undefined, ref: ReferencedFile): ReferenceFileLocation | SyntheticReferenceFileLocation;
     /**
      * Determines if program structure is upto date or needs to be recreated
      */
@@ -11916,7 +12010,7 @@ declare namespace ts {
      */
     export function createProgram(rootNames: readonly string[], options: CompilerOptions, host?: CompilerHost, oldProgram?: Program, configFileParsingDiagnostics?: readonly Diagnostic[]): Program;
     export const emitSkippedWithNoDiagnostics: EmitResult;
-    export function handleNoEmitOptions(program: ProgramToEmitFilesAndReportErrors, sourceFile: SourceFile | undefined, writeFile: WriteFileCallback | undefined, cancellationToken: CancellationToken | undefined): EmitResult | undefined;
+    export function handleNoEmitOptions<T extends BuilderProgram>(program: Program | T, sourceFile: SourceFile | undefined, writeFile: WriteFileCallback | undefined, cancellationToken: CancellationToken | undefined): EmitResult | undefined;
     export function filterSemanticDiagnotics(diagnostic: readonly Diagnostic[], option: CompilerOptions): readonly Diagnostic[];
     interface CompilerHostLike {
         useCaseSensitiveFileNames(): boolean;
@@ -12489,31 +12583,21 @@ declare namespace ts {
     export function getErrorCountForSummary(diagnostics: readonly Diagnostic[]): number;
     export function getWatchErrorSummaryDiagnosticMessage(errorCount: number): DiagnosticMessage;
     export function getErrorSummaryText(errorCount: number, newLine: string): string;
-    /**
-     * Program structure needed to emit the files and report diagnostics
-     */
-    export interface ProgramToEmitFilesAndReportErrors {
-        getCurrentDirectory(): string;
-        getCompilerOptions(): CompilerOptions;
-        getSourceFiles(): readonly SourceFile[];
-        getSyntacticDiagnostics(sourceFile?: SourceFile, cancellationToken?: CancellationToken): readonly Diagnostic[];
-        getOptionsDiagnostics(cancellationToken?: CancellationToken): readonly Diagnostic[];
-        getGlobalDiagnostics(cancellationToken?: CancellationToken): readonly Diagnostic[];
-        getSemanticDiagnostics(sourceFile?: SourceFile, cancellationToken?: CancellationToken): readonly Diagnostic[];
-        getDeclarationDiagnostics(sourceFile?: SourceFile, cancellationToken?: CancellationToken): readonly DiagnosticWithLocation[];
-        getConfigFileParsingDiagnostics(): readonly Diagnostic[];
-        emit(targetSourceFile?: SourceFile, writeFile?: WriteFileCallback, cancellationToken?: CancellationToken, emitOnlyDtsFiles?: boolean, customTransformers?: CustomTransformers): EmitResult;
-        emitBuildInfo(writeFile?: WriteFileCallback, cancellationToken?: CancellationToken): EmitResult;
-    }
-    export function listFiles(program: ProgramToEmitFilesAndReportErrors, writeFileName: (s: string) => void): void;
+    export function isBuilderProgram<T extends BuilderProgram>(program: Program | T): program is T;
+    export function listFiles<T extends BuilderProgram>(program: Program | T, write: (s: string) => void): void;
+    export function explainFiles(program: Program, write: (s: string) => void): void;
+    export function explainIfFileIsRedirect(file: SourceFile, fileNameConvertor?: (fileName: string) => string): DiagnosticMessageChain[] | undefined;
+    export function getMatchedFileSpec(program: Program, fileName: string): string | undefined;
+    export function getMatchedIncludeSpec(program: Program, fileName: string): string | undefined;
+    export function fileIncludeReasonToDiagnostics(program: Program, reason: FileIncludeReason, fileNameConvertor?: (fileName: string) => string): DiagnosticMessageChain;
     /**
      * Helper that emit files, report diagnostics and lists emitted and/or source files depending on compiler options
      */
-    export function emitFilesAndReportErrors(program: ProgramToEmitFilesAndReportErrors, reportDiagnostic: DiagnosticReporter, writeFileName?: (s: string) => void, reportSummary?: ReportEmitErrorSummary, writeFile?: WriteFileCallback, cancellationToken?: CancellationToken, emitOnlyDtsFiles?: boolean, customTransformers?: CustomTransformers): {
+    export function emitFilesAndReportErrors<T extends BuilderProgram>(program: Program | T, reportDiagnostic: DiagnosticReporter, write?: (s: string) => void, reportSummary?: ReportEmitErrorSummary, writeFile?: WriteFileCallback, cancellationToken?: CancellationToken, emitOnlyDtsFiles?: boolean, customTransformers?: CustomTransformers): {
         emitResult: EmitResult;
         diagnostics: SortedReadonlyArray<Diagnostic>;
     };
-    export function emitFilesAndReportErrorsAndGetExitStatus(program: ProgramToEmitFilesAndReportErrors, reportDiagnostic: DiagnosticReporter, writeFileName?: (s: string) => void, reportSummary?: ReportEmitErrorSummary, writeFile?: WriteFileCallback, cancellationToken?: CancellationToken, emitOnlyDtsFiles?: boolean, customTransformers?: CustomTransformers): ExitStatus.Success | ExitStatus.DiagnosticsPresent_OutputsSkipped | ExitStatus.DiagnosticsPresent_OutputsGenerated;
+    export function emitFilesAndReportErrorsAndGetExitStatus<T extends BuilderProgram>(program: Program | T, reportDiagnostic: DiagnosticReporter, write?: (s: string) => void, reportSummary?: ReportEmitErrorSummary, writeFile?: WriteFileCallback, cancellationToken?: CancellationToken, emitOnlyDtsFiles?: boolean, customTransformers?: CustomTransformers): ExitStatus.Success | ExitStatus.DiagnosticsPresent_OutputsSkipped | ExitStatus.DiagnosticsPresent_OutputsGenerated;
     export const noopFileWatcher: FileWatcher;
     export const returnNoopFileWatcher: () => FileWatcher;
     export function createWatchHost(system?: System, reportWatchStatus?: WatchStatusReporter): WatchHost;
@@ -12865,6 +12949,7 @@ declare namespace ts {
         preserveWatchOutput?: boolean;
         listEmittedFiles?: boolean;
         listFiles?: boolean;
+        explainFiles?: boolean;
         pretty?: boolean;
         incremental?: boolean;
         assumeChangesOnlyAffectDirectDependencies?: boolean;
