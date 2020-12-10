@@ -8510,7 +8510,7 @@ declare namespace ts {
         Do_not_report_errors_on_unreachable_code: DiagnosticMessage;
         Disallow_inconsistently_cased_references_to_the_same_file: DiagnosticMessage;
         Specify_library_files_to_be_included_in_the_compilation: DiagnosticMessage;
-        Specify_JSX_code_generation_Colon_preserve_react_native_or_react: DiagnosticMessage;
+        Specify_JSX_code_generation_Colon_preserve_react_native_react_react_jsx_or_react_jsxdev: DiagnosticMessage;
         File_0_has_an_unsupported_extension_so_skipping_it: DiagnosticMessage;
         Only_amd_and_system_modules_are_supported_alongside_0: DiagnosticMessage;
         Base_directory_to_resolve_non_absolute_module_names: DiagnosticMessage;
