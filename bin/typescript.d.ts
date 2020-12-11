@@ -9862,6 +9862,7 @@ declare namespace ts {
     export function getSingleInitializerOfVariableStatementOrPropertyDeclaration(node: Node): Expression | undefined;
     export function getSingleVariableOfVariableStatement(node: Node): VariableDeclaration | undefined;
     export function getJSDocCommentsAndTags(hostNode: Node, noCache?: boolean): readonly (JSDoc | JSDocTag)[];
+    export function getNextJSDocCommentLocation(node: Node): Node | undefined;
     /** Does the opposite of `getJSDocParameterTags`: given a JSDoc parameter, finds the parameter corresponding to it. */
     export function getParameterSymbolFromJSDoc(node: JSDocParameterTag): Symbol | undefined;
     export function getHostSignatureFromJSDoc(node: Node): SignatureDeclaration | undefined;
@@ -11866,6 +11867,14 @@ declare namespace ts {
         /** Reload completely by re-reading contents of config file from disk and updating program */
         Full = 2
     }
+    interface SharedExtendedConfigFileWatcher<T> extends FileWatcher {
+        fileWatcher: FileWatcher;
+        projects: Set<T>;
+    }
+    /**
+     * Updates the map of shared extended config file watches with a new set of extended config files from a base config file of the project
+     */
+    function updateSharedExtendedConfigFileWatcher<T>(projectPath: T, parsed: ParsedCommandLine | undefined, extendedConfigFilesMap: ESMap<Path, SharedExtendedConfigFileWatcher<T>>, createExtendedConfigFileWatch: (extendedConfigPath: string, extendedConfigFilePath: Path) => FileWatcher, toPath: (fileName: string) => Path): void;
     /**
      * Updates the existing missing file watches with the new set of missing files after new program is created
      */
@@ -12605,6 +12614,7 @@ declare namespace ts {
     export const WatchType: WatchTypeRegistry;
     export interface WatchTypeRegistry {
         ConfigFile: "Config file";
+        ExtendedConfigFile: "Extended config file";
         SourceFile: "Source file";
         MissingFile: "Missing file";
         WildcardDirectory: "Wild card directory";
