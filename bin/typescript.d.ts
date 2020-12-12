@@ -4251,6 +4251,8 @@ declare namespace ts {
         Literal = 2944,
         Unit = 109440,
         StringOrNumberLiteral = 384,
+        StringLikeLiteral = 134217856,
+        FreshableLiteral = 134220672,
         StringOrNumberLiteralOrUnique = 8576,
         DefinitelyFalsy = 117632,
         PossiblyFalsy = 117724,
@@ -4309,7 +4311,8 @@ declare namespace ts {
         freshType: IntrinsicType;
         regularType: IntrinsicType;
     }
-    export type FreshableType = LiteralType | FreshableIntrinsicType;
+    export type FreshableLiteralType = LiteralType | TemplateLiteralType;
+    export type FreshableType = FreshableLiteralType | FreshableIntrinsicType;
     export interface LiteralType extends Type {
         value: string | number | PseudoBigInt;
         freshType: LiteralType;
@@ -4582,6 +4585,8 @@ declare namespace ts {
     export interface TemplateLiteralType extends InstantiableType {
         texts: readonly string[];
         types: readonly Type[];
+        freshType: TemplateLiteralType;
+        regularType: TemplateLiteralType;
     }
     export interface StringMappingType extends InstantiableType {
         symbol: Symbol;
@@ -13568,6 +13573,7 @@ declare namespace ts {
         getReferencesAtPosition(fileName: string, position: number): ReferenceEntry[] | undefined;
         findReferences(fileName: string, position: number): ReferencedSymbol[] | undefined;
         getDocumentHighlights(fileName: string, position: number, filesToSearch: string[]): DocumentHighlights[] | undefined;
+        getFileReferences(fileName: string): ReferenceEntry[];
         /** @deprecated */
         getOccurrencesAtPosition(fileName: string, position: number): readonly ReferenceEntry[] | undefined;
         getNavigateToItems(searchValue: string, maxResultCount?: number, fileName?: string, excludeDtsFiles?: boolean): NavigateToItem[];
@@ -15016,7 +15022,8 @@ declare namespace ts.FindAllReferences {
         Label = 1,
         Keyword = 2,
         This = 3,
-        String = 4
+        String = 4,
+        TripleSlashReference = 5
     }
     type Definition = {
         readonly type: DefinitionKind.Symbol;
@@ -15033,6 +15040,10 @@ declare namespace ts.FindAllReferences {
     } | {
         readonly type: DefinitionKind.String;
         readonly node: StringLiteralLike;
+    } | {
+        readonly type: DefinitionKind.TripleSlashReference;
+        readonly reference: FileReference;
+        readonly file: SourceFile;
     };
     enum EntryKind {
         Span = 0,
@@ -15109,6 +15120,7 @@ declare namespace ts.FindAllReferences {
     namespace Core {
         /** Core find-all-references algorithm. Handles special cases before delegating to `getReferencedSymbolsForSymbol`. */
         function getReferencedSymbolsForNode(position: number, node: Node, program: Program, sourceFiles: readonly SourceFile[], cancellationToken: CancellationToken, options?: Options, sourceFilesSet?: ReadonlySet<string>): readonly SymbolAndEntries[] | undefined;
+        function getReferencesForFileName(fileName: string, program: Program, sourceFiles: readonly SourceFile[], sourceFilesSet?: ReadonlySet<string>): readonly Entry[];
         function eachExportReference(sourceFiles: readonly SourceFile[], checker: TypeChecker, cancellationToken: CancellationToken | undefined, exportSymbol: Symbol, exportingModuleSymbol: Symbol, exportName: string, isDefaultExport: boolean, cb: (ref: Identifier) => void): void;
         /** Used as a quick check for whether a symbol is used at all in a file (besides its definition). */
         function isSymbolReferencedInFile(definition: Identifier, checker: TypeChecker, sourceFile: SourceFile, searchContainer?: Node): boolean;
@@ -15170,7 +15182,7 @@ declare namespace ts {
 declare namespace ts.GoToDefinition {
     function getDefinitionAtPosition(program: Program, sourceFile: SourceFile, position: number): readonly DefinitionInfo[] | undefined;
     function getReferenceAtPosition(sourceFile: SourceFile, position: number, program: Program): {
-        fileName: string;
+        reference: FileReference;
         file: SourceFile;
     } | undefined;
     function getTypeDefinitionAtPosition(typeChecker: TypeChecker, sourceFile: SourceFile, position: number): readonly DefinitionInfo[] | undefined;
@@ -16213,6 +16225,11 @@ declare namespace ts {
          * { definition: <encoded>; references: <encoded>[] }[]
          */
         findReferences(fileName: string, position: number): string;
+        /**
+         * Returns a JSON-encoded value of the type:
+         * { fileName: string; textSpan: { start: number; length: number}; isWriteAccess: boolean, isDefinition?: boolean }[]
+         */
+        getFileReferences(fileName: string): string;
         /**
          * @deprecated
          * Returns a JSON-encoded value of the type:
