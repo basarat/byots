@@ -667,11 +667,9 @@ declare namespace ts {
     function compareBooleans(a: boolean, b: boolean): Comparison;
     /**
      * Given a name and a list of names that are *not* equal to the name, return a spelling suggestion if there is one that is close enough.
-     * Names less than length 3 only check for case-insensitive equality, not Levenshtein distance.
+     * Names less than length 3 only check for case-insensitive equality.
      *
-     * If there is a candidate that's the same except for case, return that.
-     * If there is a candidate that's within one edit of the name, return that.
-     * Otherwise, return the candidate with the smallest Levenshtein distance,
+     * find the candidate with the smallest Levenshtein distance,
      *    except for candidates:
      *      * With no name
      *      * Whose length differs from the target name by more than 0.34 of the length of the name.
@@ -10965,6 +10963,7 @@ declare namespace ts {
     function isJSDocProtectedTag(node: Node): node is JSDocProtectedTag;
     function isJSDocReadonlyTag(node: Node): node is JSDocReadonlyTag;
     function isJSDocDeprecatedTag(node: Node): node is JSDocDeprecatedTag;
+    function isJSDocSeeTag(node: Node): node is JSDocSeeTag;
     function isJSDocEnumTag(node: Node): node is JSDocEnumTag;
     function isJSDocParameterTag(node: Node): node is JSDocParameterTag;
     function isJSDocReturnTag(node: Node): node is JSDocReturnTag;
@@ -14518,7 +14517,7 @@ declare namespace ts {
     function isInTemplateString(sourceFile: SourceFile, position: number): boolean;
     function isInJSXText(sourceFile: SourceFile, position: number): boolean;
     function isInsideJsxElement(sourceFile: SourceFile, position: number): boolean;
-    function findPrecedingMatchingToken(token: Node, matchingTokenKind: SyntaxKind, sourceFile: SourceFile): Node | undefined;
+    function findPrecedingMatchingToken(token: Node, matchingTokenKind: SyntaxKind.OpenBraceToken | SyntaxKind.OpenParenToken | SyntaxKind.OpenBracketToken, sourceFile: SourceFile): Node | undefined;
     function removeOptionality(type: Type, isOptionalExpression: boolean, isOptionalChain: boolean): Type;
     function isPossiblyTypeArgumentPosition(token: Node, sourceFile: SourceFile, checker: TypeChecker): boolean;
     function getPossibleGenericSignatures(called: Expression, typeArgumentCount: number, checker: TypeChecker): readonly Signature[];
@@ -14529,7 +14528,7 @@ declare namespace ts {
     interface PossibleProgramFileInfo {
         ProgramFiles?: string[];
     }
-    function getPossibleTypeArgumentsInfo(tokenIn: Node, sourceFile: SourceFile): PossibleTypeArgumentInfo | undefined;
+    function getPossibleTypeArgumentsInfo(tokenIn: Node | undefined, sourceFile: SourceFile): PossibleTypeArgumentInfo | undefined;
     /**
      * Returns true if the cursor at position in sourceFile is within a comment.
      *
