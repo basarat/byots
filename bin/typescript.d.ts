@@ -8772,6 +8772,7 @@ declare namespace ts {
         No_index_signature_with_a_parameter_of_type_0_was_found_on_type_1: DiagnosticMessage;
         _0_which_lacks_return_type_annotation_implicitly_has_an_1_yield_type: DiagnosticMessage;
         The_inferred_type_of_this_node_exceeds_the_maximum_length_the_compiler_will_serialize_An_explicit_type_annotation_is_needed: DiagnosticMessage;
+        yield_expression_implicitly_results_in_an_any_type_because_its_containing_generator_lacks_a_return_type_annotation: DiagnosticMessage;
         You_cannot_rename_this_element: DiagnosticMessage;
         You_cannot_rename_elements_that_are_defined_in_the_standard_TypeScript_library: DiagnosticMessage;
         import_can_only_be_used_in_TypeScript_files: DiagnosticMessage;
@@ -9870,8 +9871,9 @@ declare namespace ts {
     export function getParameterSymbolFromJSDoc(node: JSDocParameterTag): Symbol | undefined;
     export function getHostSignatureFromJSDoc(node: Node): SignatureDeclaration | undefined;
     export function getEffectiveJSDocHost(node: Node): Node | undefined;
-    /** Use getEffectiveJSDocHost if you additionally need to look for jsdoc on parent nodes, like assignments.  */
-    export function getJSDocHost(node: Node): HasJSDoc;
+    /** Use getEffectiveJSDocHost if you additionally need to look for jsdoc on parent nodes, like assignments. */
+    export function getJSDocHost(node: Node): HasJSDoc | undefined;
+    export function getJSDocRoot(node: Node): JSDoc | undefined;
     export function getTypeParameterFromJsDoc(node: TypeParameterDeclaration & {
         parent: JSDocTemplateTag;
     }): TypeParameterDeclaration | undefined;
@@ -10563,6 +10565,12 @@ declare namespace ts {
      */
     export function setParentRecursive<T extends Node>(rootNode: T, incremental: boolean): T;
     export function setParentRecursive<T extends Node>(rootNode: T | undefined, incremental: boolean): T | undefined;
+    /**
+     * Indicates whether the result of an `Expression` will be unused.
+     *
+     * NOTE: This requires a node with a valid `parent` pointer.
+     */
+    export function expressionResultIsUnused(node: Expression): boolean;
     export {};
 }
 declare namespace ts {
@@ -14870,6 +14878,7 @@ declare namespace ts.Completions {
         String = 4,
         None = 5
     }
+    export function getPropertiesForObjectExpression(contextualType: Type, completionsType: Type | undefined, obj: ObjectLiteralExpression | JsxAttributes, checker: TypeChecker): Symbol[];
     export {};
 }
 declare namespace ts {
