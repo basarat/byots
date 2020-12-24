@@ -9029,6 +9029,13 @@ declare namespace ts {
         Use_element_access_for_all_undeclared_properties: DiagnosticMessage;
         Delete_all_unused_imports: DiagnosticMessage;
         Infer_function_return_type: DiagnosticMessage;
+        Return_type_must_be_inferred_from_a_function: DiagnosticMessage;
+        Could_not_determine_function_return_type: DiagnosticMessage;
+        Could_not_convert_to_arrow_function: DiagnosticMessage;
+        Could_not_convert_to_named_function: DiagnosticMessage;
+        Could_not_convert_to_anonymous_function: DiagnosticMessage;
+        Can_only_convert_string_concatenation: DiagnosticMessage;
+        Selection_is_not_a_valid_statement_or_statements: DiagnosticMessage;
         No_value_exists_in_scope_for_the_shorthand_property_0_Either_declare_one_or_provide_an_initializer: DiagnosticMessage;
         Classes_may_not_have_a_field_named_constructor: DiagnosticMessage;
         JSX_expressions_may_not_use_the_comma_operator_Did_you_mean_to_write_an_array: DiagnosticMessage;
@@ -13620,7 +13627,7 @@ declare namespace ts {
         applyCodeActionCommand(fileName: string, action: CodeActionCommand[]): Promise<ApplyCodeActionCommandResult[]>;
         /** @deprecated `fileName` will be ignored */
         applyCodeActionCommand(fileName: string, action: CodeActionCommand | CodeActionCommand[]): Promise<ApplyCodeActionCommandResult | ApplyCodeActionCommandResult[]>;
-        getApplicableRefactors(fileName: string, positionOrRange: number | TextRange, preferences: UserPreferences | undefined, triggerReason?: RefactorTriggerReason): ApplicableRefactorInfo[];
+        getApplicableRefactors(fileName: string, positionOrRange: number | TextRange, preferences: UserPreferences | undefined, triggerReason?: RefactorTriggerReason, kind?: string): ApplicableRefactorInfo[];
         getEditsForRefactor(fileName: string, formatOptions: FormatCodeSettings, positionOrRange: number | TextRange, refactorName: string, actionName: string, preferences: UserPreferences | undefined): RefactorEditInfo | undefined;
         organizeImports(scope: OrganizeImportsScope, formatOptions: FormatCodeSettings, preferences: UserPreferences | undefined): readonly FileTextChanges[];
         getEditsForFileRename(oldFilePath: string, newFilePath: string, formatOptions: FormatCodeSettings, preferences: UserPreferences | undefined): readonly FileTextChanges[];
@@ -13851,6 +13858,10 @@ declare namespace ts {
          * the current context.
          */
         notApplicableReason?: string;
+        /**
+         * The hierarchical dotted name of the refactor action.
+         */
+        kind?: string;
     }
     /**
      * A set of edits to make in response to a refactor action, plus an optional
@@ -14398,6 +14409,9 @@ declare namespace ts {
     }
     /** @internal */
     interface Refactor {
+        /** List of action kinds a refactor can provide.
+         * Used to skip unnecessary calculation when specific refactors are requested. */
+        kinds?: string[];
         /** Compute the associated code actions */
         getEditsForAction(context: RefactorContext, actionName: string): RefactorEditInfo | undefined;
         /** Compute (quickly) which actions are available here */
@@ -14412,6 +14426,7 @@ declare namespace ts {
         cancellationToken?: CancellationToken;
         preferences: UserPreferences;
         triggerReason?: RefactorTriggerReason;
+        kind?: string;
     }
 }
 interface PromiseConstructor {
@@ -15881,7 +15896,8 @@ declare namespace ts.codefix {
     type AcceptedDeclaration = ParameterPropertyDeclaration | PropertyDeclaration | PropertyAssignment;
     type AcceptedNameType = Identifier | StringLiteral;
     type ContainerDeclaration = ClassLikeDeclaration | ObjectLiteralExpression;
-    interface Info {
+    type Info = AccessorInfo | refactor.RefactorErrorInfo;
+    interface AccessorInfo {
         readonly container: ContainerDeclaration;
         readonly isStatic: boolean;
         readonly isReadonly: boolean;
@@ -15892,15 +15908,8 @@ declare namespace ts.codefix {
         readonly originalName: string;
         readonly renameAccessor: boolean;
     }
-    type InfoOrError = {
-        info: Info;
-        error?: never;
-    } | {
-        info?: never;
-        error: string;
-    };
     export function generateAccessorFromProperty(file: SourceFile, program: Program, start: number, end: number, context: textChanges.TextChangesContext, _actionName: string): FileTextChanges[] | undefined;
-    export function getAccessorConvertiblePropertyAtPosition(file: SourceFile, program: Program, start: number, end: number, considerEmptySpans?: boolean): InfoOrError | undefined;
+    export function getAccessorConvertiblePropertyAtPosition(file: SourceFile, program: Program, start: number, end: number, considerEmptySpans?: boolean): Info | undefined;
     export function getAllSupers(decl: ClassOrInterface | undefined, checker: TypeChecker): readonly ClassOrInterface[];
     export type ClassOrInterface = ClassLikeDeclaration | InterfaceDeclaration;
     export {};
@@ -16021,6 +16030,23 @@ declare namespace ts.refactor.extractSymbol {
 declare namespace ts.refactor {
 }
 declare namespace ts.refactor.generateGetAccessorAndSetAccessor {
+}
+declare namespace ts.refactor {
+    /**
+     * Returned by refactor funtions when some error message needs to be surfaced to users.
+     */
+    interface RefactorErrorInfo {
+        error: string;
+    }
+    /**
+     * Checks if some refactor info has refactor error info.
+     */
+    function isRefactorErrorInfo(info: unknown): info is RefactorErrorInfo;
+    /**
+     * Checks if string "known" begins with string "requested".
+     * Used to match requested kinds with a known kind.
+     */
+    function refactorKindBeginsWith(known: string, requested: string | undefined): boolean;
 }
 declare namespace ts.refactor {
 }
