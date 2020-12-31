@@ -14560,7 +14560,7 @@ declare namespace ts {
      */
     function isInComment(sourceFile: SourceFile, position: number, tokenAtPosition?: Node): CommentRange | undefined;
     function hasDocComment(sourceFile: SourceFile, position: number): boolean;
-    function getNodeModifiers(node: Node): string;
+    function getNodeModifiers(node: Node, excludeFlags?: ModifierFlags): string;
     function getTypeArgumentOrTypeParameterList(node: Node): NodeArray<Node> | undefined;
     function isComment(kind: SyntaxKind): boolean;
     function isStringOrRegularExpressionOrTemplateLiteral(kind: SyntaxKind): boolean;
