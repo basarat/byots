@@ -3939,7 +3939,7 @@ declare namespace ts {
         isOptionalParameter(node: ParameterDeclaration): boolean;
         moduleExportsSomeValue(moduleReferenceExpression: Expression): boolean;
         isArgumentsLocalBinding(node: Identifier): boolean;
-        getExternalModuleFileFromDeclaration(declaration: ImportEqualsDeclaration | ImportDeclaration | ExportDeclaration | ModuleDeclaration | ImportTypeNode): SourceFile | undefined;
+        getExternalModuleFileFromDeclaration(declaration: ImportEqualsDeclaration | ImportDeclaration | ExportDeclaration | ModuleDeclaration | ImportTypeNode | ImportCall): SourceFile | undefined;
         getTypeReferenceDirectivesForEntityName(name: EntityNameOrEntityNameExpression): string[] | undefined;
         getTypeReferenceDirectivesForSymbol(symbol: Symbol, meaning?: SymbolFlags): string[] | undefined;
         isLiteralConstDeclaration(node: VariableDeclaration | PropertyDeclaration | PropertySignature | ParameterDeclaration): boolean;
@@ -4439,7 +4439,10 @@ declare namespace ts {
         Optional = 2,
         Rest = 4,
         Variadic = 8,
-        Variable = 12
+        Fixed = 3,
+        Variable = 12,
+        NonRequired = 14,
+        NonRest = 11
     }
     export interface TupleType extends GenericType {
         elementFlags: readonly ElementFlags[];
@@ -7711,7 +7714,6 @@ declare namespace ts {
         _0_tag_cannot_be_used_independently_as_a_top_level_JSDoc_tag: DiagnosticMessage;
         A_const_initializer_in_an_ambient_context_must_be_a_string_or_numeric_literal_or_literal_enum_reference: DiagnosticMessage;
         A_definite_assignment_assertion_is_not_permitted_in_this_context: DiagnosticMessage;
-        A_rest_element_must_be_last_in_a_tuple_type: DiagnosticMessage;
         A_required_element_cannot_follow_an_optional_element: DiagnosticMessage;
         Module_0_can_only_be_default_imported_using_the_1_flag: DiagnosticMessage;
         Keywords_cannot_contain_escape_characters: DiagnosticMessage;
@@ -7719,6 +7721,8 @@ declare namespace ts {
         Identifier_expected_0_is_a_reserved_word_at_the_top_level_of_a_module: DiagnosticMessage;
         Declarations_with_initializers_cannot_also_have_definite_assignment_assertions: DiagnosticMessage;
         Declarations_with_definite_assignment_assertions_must_also_have_type_annotations: DiagnosticMessage;
+        A_rest_element_cannot_follow_another_rest_element: DiagnosticMessage;
+        An_optional_element_cannot_follow_a_rest_element: DiagnosticMessage;
         with_statements_are_not_allowed_in_an_async_function_block: DiagnosticMessage;
         await_expressions_are_only_allowed_within_async_functions_and_at_the_top_levels_of_modules: DiagnosticMessage;
         Did_you_mean_to_use_a_Colon_An_can_only_follow_a_property_name_when_the_containing_object_literal_is_part_of_a_destructuring_pattern: DiagnosticMessage;
@@ -8154,7 +8158,11 @@ declare namespace ts {
         Source_has_0_element_s_but_target_allows_only_1: DiagnosticMessage;
         Target_requires_0_element_s_but_source_may_have_fewer: DiagnosticMessage;
         Target_allows_only_0_element_s_but_source_may_have_more: DiagnosticMessage;
-        Element_at_index_0_is_variadic_in_one_type_but_not_in_the_other: DiagnosticMessage;
+        Source_provides_no_match_for_required_element_at_position_0_in_target: DiagnosticMessage;
+        Source_provides_no_match_for_variadic_element_at_position_0_in_target: DiagnosticMessage;
+        Variadic_element_at_position_0_in_source_does_not_match_element_at_position_1_in_target: DiagnosticMessage;
+        Type_at_position_0_in_source_is_not_compatible_with_type_at_position_1_in_target: DiagnosticMessage;
+        Type_at_positions_0_through_1_in_source_is_not_compatible_with_type_at_position_2_in_target: DiagnosticMessage;
         Cannot_augment_module_0_with_value_exports_because_it_resolves_to_a_non_module_entity: DiagnosticMessage;
         A_member_initializer_in_a_enum_declaration_cannot_reference_members_declared_after_it_including_members_defined_in_other_enums: DiagnosticMessage;
         Merged_declaration_0_cannot_include_a_default_export_declaration_Consider_adding_a_separate_export_default_0_declaration_instead: DiagnosticMessage;
@@ -9658,6 +9666,7 @@ declare namespace ts {
     export function isDeclarationWithTypeParameterChildren(node: Node): node is DeclarationWithTypeParameterChildren;
     export function isAnyImportSyntax(node: Node): node is AnyImportSyntax;
     export function isLateVisibilityPaintedStatement(node: Node): node is LateVisibilityPaintedStatement;
+    export function hasPossibleExternalModuleReference(node: Node): node is AnyImportOrReExport | ModuleDeclaration | ImportTypeNode | ImportCall;
     export function isAnyImportOrReExport(node: Node): node is AnyImportOrReExport;
     export function getEnclosingBlockScopeContainer(node: Node): Node;
     export function declarationNameToString(name: DeclarationName | QualifiedName | undefined): string;
@@ -9862,7 +9871,7 @@ declare namespace ts {
     export function isFunctionSymbol(symbol: Symbol | undefined): boolean | undefined;
     export function importFromModuleSpecifier(node: StringLiteralLike): AnyValidImportOrReExport;
     export function tryGetImportFromModuleSpecifier(node: StringLiteralLike): AnyValidImportOrReExport | undefined;
-    export function getExternalModuleName(node: AnyImportOrReExport | ImportTypeNode): Expression | undefined;
+    export function getExternalModuleName(node: AnyImportOrReExport | ImportTypeNode | ImportCall): Expression | undefined;
     export function getNamespaceDeclarationNode(node: ImportDeclaration | ImportEqualsDeclaration | ExportDeclaration): ImportEqualsDeclaration | NamespaceImport | NamespaceExport | undefined;
     export function isDefaultImport(node: ImportDeclaration | ImportEqualsDeclaration | ExportDeclaration): boolean;
     export function forEachImportClauseDeclaration<T>(node: ImportClause, action: (declaration: ImportClause | NamespaceImport | ImportSpecifier) => T | undefined): T | undefined;
@@ -9939,8 +9948,7 @@ declare namespace ts {
     export function isStringANonContextualKeyword(name: string): boolean;
     export function isStringAKeyword(name: string): boolean;
     export function isIdentifierANonContextualKeyword({ originalKeywordKind }: Identifier): boolean;
-    export type TriviaKind = SyntaxKind.SingleLineCommentTrivia | SyntaxKind.MultiLineCommentTrivia | SyntaxKind.NewLineTrivia | SyntaxKind.WhitespaceTrivia | SyntaxKind.ShebangTrivia | SyntaxKind.ConflictMarkerTrivia;
-    export function isTrivia(token: SyntaxKind): token is TriviaKind;
+    export function isTrivia(token: SyntaxKind): token is TriviaSyntaxKind;
     export enum FunctionFlags {
         Normal = 0,
         Generator = 1,
@@ -9997,7 +10005,7 @@ declare namespace ts {
     }
     export function getExpressionAssociativity(expression: Expression): Associativity;
     export function getOperatorAssociativity(kind: SyntaxKind, operator: SyntaxKind, hasArguments?: boolean): Associativity;
-    export function getExpressionPrecedence(expression: Expression): OperatorPrecedence.Comma | OperatorPrecedence.Comma | OperatorPrecedence.Spread | OperatorPrecedence.Spread | OperatorPrecedence.Yield | OperatorPrecedence.Yield | OperatorPrecedence.Assignment | OperatorPrecedence.Assignment | OperatorPrecedence.Conditional | OperatorPrecedence.Conditional | OperatorPrecedence | OperatorPrecedence.Invalid;
+    export function getExpressionPrecedence(expression: Expression): OperatorPrecedence.Comma | OperatorPrecedence.Comma | OperatorPrecedence.Spread | OperatorPrecedence.Spread | OperatorPrecedence.Yield | OperatorPrecedence.Yield | OperatorPrecedence.Assignment | OperatorPrecedence.Assignment | OperatorPrecedence.Conditional | OperatorPrecedence.Conditional | OperatorPrecedence.LogicalOR | OperatorPrecedence | OperatorPrecedence.Invalid;
     export function getOperator(expression: Expression): SyntaxKind;
     export enum OperatorPrecedence {
         Comma = 0,
@@ -10026,7 +10034,7 @@ declare namespace ts {
         Lowest = 0,
         Invalid = -1
     }
-    export function getOperatorPrecedence(nodeKind: SyntaxKind, operatorKind: SyntaxKind, hasArguments?: boolean): OperatorPrecedence.Comma | OperatorPrecedence.Comma | OperatorPrecedence.Spread | OperatorPrecedence.Spread | OperatorPrecedence.Yield | OperatorPrecedence.Yield | OperatorPrecedence.Assignment | OperatorPrecedence.Assignment | OperatorPrecedence.Conditional | OperatorPrecedence.Conditional | OperatorPrecedence | OperatorPrecedence.Invalid;
+    export function getOperatorPrecedence(nodeKind: SyntaxKind, operatorKind: SyntaxKind, hasArguments?: boolean): OperatorPrecedence.Comma | OperatorPrecedence.Comma | OperatorPrecedence.Spread | OperatorPrecedence.Spread | OperatorPrecedence.Yield | OperatorPrecedence.Yield | OperatorPrecedence.Assignment | OperatorPrecedence.Assignment | OperatorPrecedence.Conditional | OperatorPrecedence.Conditional | OperatorPrecedence.LogicalOR | OperatorPrecedence | OperatorPrecedence.Invalid;
     export function getBinaryOperatorPrecedence(kind: SyntaxKind): OperatorPrecedence;
     export function getSemanticJsxChildren(children: readonly JsxChild[]): readonly JsxChild[];
     export function createDiagnosticCollection(): DiagnosticCollection;
@@ -11042,7 +11050,7 @@ declare namespace ts {
      *  3- The containing SourceFile has an entry in renamedDependencies for the import as requested by some module loaders (e.g. System).
      * Otherwise, a new StringLiteral node representing the module name will be returned.
      */
-    function getExternalModuleNameLiteral(factory: NodeFactory, importNode: ImportDeclaration | ExportDeclaration | ImportEqualsDeclaration, sourceFile: SourceFile, host: EmitHost, resolver: EmitResolver, compilerOptions: CompilerOptions): StringLiteral | undefined;
+    function getExternalModuleNameLiteral(factory: NodeFactory, importNode: ImportDeclaration | ExportDeclaration | ImportEqualsDeclaration | ImportCall, sourceFile: SourceFile, host: EmitHost, resolver: EmitResolver, compilerOptions: CompilerOptions): StringLiteral | undefined;
     /**
      * Get the name of a module as should be written in the emitted output.
      * The emitted output name can be different from the input if:
@@ -15487,7 +15495,7 @@ declare namespace ts.formatting {
     interface TextRangeWithKind<T extends SyntaxKind = SyntaxKind> extends TextRange {
         kind: T;
     }
-    type TextRangeWithTriviaKind = TextRangeWithKind<TriviaKind>;
+    type TextRangeWithTriviaKind = TextRangeWithKind<TriviaSyntaxKind>;
     interface TokenInfo {
         leadingTrivia: TextRangeWithTriviaKind[] | undefined;
         token: TextRangeWithKind;
