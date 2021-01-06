@@ -5527,25 +5527,24 @@ declare namespace ts {
         Generator = 128,
         Values = 256,
         Read = 512,
-        Spread = 1024,
-        SpreadArrays = 2048,
-        Await = 4096,
-        AsyncGenerator = 8192,
-        AsyncDelegator = 16384,
-        AsyncValues = 32768,
-        ExportStar = 65536,
-        ImportStar = 131072,
-        ImportDefault = 262144,
-        MakeTemplateObject = 524288,
-        ClassPrivateFieldGet = 1048576,
-        ClassPrivateFieldSet = 2097152,
-        CreateBinding = 4194304,
+        SpreadArray = 1024,
+        Await = 2048,
+        AsyncGenerator = 4096,
+        AsyncDelegator = 8192,
+        AsyncValues = 16384,
+        ExportStar = 32768,
+        ImportStar = 65536,
+        ImportDefault = 131072,
+        MakeTemplateObject = 262144,
+        ClassPrivateFieldGet = 524288,
+        ClassPrivateFieldSet = 1048576,
+        CreateBinding = 2097152,
         FirstEmitHelper = 1,
-        LastEmitHelper = 4194304,
+        LastEmitHelper = 2097152,
         ForOfIncludes = 256,
-        ForAwaitOfIncludes = 32768,
-        AsyncGeneratorIncludes = 12288,
-        AsyncDelegatorIncludes = 53248,
+        ForAwaitOfIncludes = 16384,
+        AsyncGeneratorIncludes = 6144,
+        AsyncDelegatorIncludes = 26624,
         SpreadIncludes = 1536
     }
     export enum EmitHint {
@@ -10581,6 +10580,10 @@ declare namespace ts {
     export function setParentRecursive<T extends Node>(rootNode: T, incremental: boolean): T;
     export function setParentRecursive<T extends Node>(rootNode: T | undefined, incremental: boolean): T | undefined;
     /**
+     * Determines whether the provided node is an ArrayLiteralExpression that contains no missing elements.
+     */
+    export function isPackedArrayLiteral(node: Expression): boolean;
+    /**
      * Indicates whether the result of an `Expression` will be unused.
      *
      * NOTE: This requires a node with a valid `parent` pointer.
@@ -10754,8 +10757,7 @@ declare namespace ts {
         createAwaiterHelper(hasLexicalThis: boolean, hasLexicalArguments: boolean, promiseConstructor: EntityName | Expression | undefined, body: Block): Expression;
         createExtendsHelper(name: Identifier): Expression;
         createTemplateObjectHelper(cooked: ArrayLiteralExpression, raw: ArrayLiteralExpression): Expression;
-        createSpreadHelper(argumentList: readonly Expression[]): Expression;
-        createSpreadArraysHelper(argumentList: readonly Expression[]): Expression;
+        createSpreadArrayHelper(to: Expression, from: Expression): Expression;
         createValuesHelper(expression: Expression): Expression;
         createReadHelper(iteratorRecord: Expression, count: number | undefined): Expression;
         createGeneratorHelper(body: FunctionExpression): Expression;
@@ -10787,8 +10789,7 @@ declare namespace ts {
     const extendsHelper: UnscopedEmitHelper;
     const templateObjectHelper: UnscopedEmitHelper;
     const readHelper: UnscopedEmitHelper;
-    const spreadHelper: UnscopedEmitHelper;
-    const spreadArraysHelper: UnscopedEmitHelper;
+    const spreadArrayHelper: UnscopedEmitHelper;
     const valuesHelper: UnscopedEmitHelper;
     const generatorHelper: UnscopedEmitHelper;
     const createBindingHelper: UnscopedEmitHelper;
@@ -10801,6 +10802,7 @@ declare namespace ts {
     function getAllUnscopedEmitHelpers(): ReadonlyESMap<string, UnscopedEmitHelper>;
     const asyncSuperHelper: EmitHelper;
     const advancedAsyncSuperHelper: EmitHelper;
+    function isCallToHelper(firstSegment: Expression, helperName: __String): boolean | 0;
 }
 declare namespace ts {
     function isNumericLiteral(node: Node): node is NumericLiteral;
