@@ -826,6 +826,7 @@ declare namespace ts {
         function formatEmitFlags(flags: EmitFlags | undefined): string;
         function formatSymbolFlags(flags: SymbolFlags | undefined): string;
         function formatTypeFlags(flags: TypeFlags | undefined): string;
+        function formatSignatureFlags(flags: SignatureFlags | undefined): string;
         function formatObjectFlags(flags: ObjectFlags | undefined): string;
         function formatFlowFlags(flags: FlowFlags | undefined): string;
         function printControlFlowGraph(flowNode: FlowNode): void;
@@ -4378,6 +4379,7 @@ declare namespace ts {
         constructSignatures?: readonly Signature[];
         stringIndexInfo?: IndexInfo;
         numberIndexInfo?: IndexInfo;
+        objectTypeWithoutAbstractConstructSignatures?: ObjectType;
     }
     /** Class and interface types (ObjectFlags.Class and ObjectFlags.Interface). */
     export interface InterfaceType extends ObjectType {
@@ -4610,11 +4612,12 @@ declare namespace ts {
         None = 0,
         HasRestParameter = 1,
         HasLiteralTypes = 2,
-        IsInnerCallChain = 4,
-        IsOuterCallChain = 8,
-        IsUntypedSignatureInJSFile = 16,
-        PropagatingFlags = 19,
-        CallChainFlags = 12
+        Abstract = 4,
+        IsInnerCallChain = 8,
+        IsOuterCallChain = 16,
+        IsUntypedSignatureInJSFile = 32,
+        PropagatingFlags = 39,
+        CallChainFlags = 24
     }
     export interface Signature {
         flags: SignatureFlags;
@@ -4856,7 +4859,6 @@ declare namespace ts {
         baseUrl?: string;
         /** An error if set - this should only go through the -b pipeline and not actually be observed */
         build?: boolean;
-        bundledPackageName?: string;
         charset?: string;
         checkJs?: boolean;
         configFilePath?: string;
@@ -5712,7 +5714,11 @@ declare namespace ts {
         updateTypeReferenceNode(node: TypeReferenceNode, typeName: EntityName, typeArguments: NodeArray<TypeNode> | undefined): TypeReferenceNode;
         createFunctionTypeNode(typeParameters: readonly TypeParameterDeclaration[] | undefined, parameters: readonly ParameterDeclaration[], type: TypeNode): FunctionTypeNode;
         updateFunctionTypeNode(node: FunctionTypeNode, typeParameters: NodeArray<TypeParameterDeclaration> | undefined, parameters: NodeArray<ParameterDeclaration>, type: TypeNode): FunctionTypeNode;
+        createConstructorTypeNode(modifiers: readonly Modifier[] | undefined, typeParameters: readonly TypeParameterDeclaration[] | undefined, parameters: readonly ParameterDeclaration[], type: TypeNode): ConstructorTypeNode;
+        /** @deprecated */
         createConstructorTypeNode(typeParameters: readonly TypeParameterDeclaration[] | undefined, parameters: readonly ParameterDeclaration[], type: TypeNode): ConstructorTypeNode;
+        updateConstructorTypeNode(node: ConstructorTypeNode, modifiers: readonly Modifier[] | undefined, typeParameters: NodeArray<TypeParameterDeclaration> | undefined, parameters: NodeArray<ParameterDeclaration>, type: TypeNode): ConstructorTypeNode;
+        /** @deprecated */
         updateConstructorTypeNode(node: ConstructorTypeNode, typeParameters: NodeArray<TypeParameterDeclaration> | undefined, parameters: NodeArray<ParameterDeclaration>, type: TypeNode): ConstructorTypeNode;
         createTypeQueryNode(exprName: EntityName): TypeQueryNode;
         updateTypeQueryNode(node: TypeQueryNode, exprName: EntityName): TypeQueryNode;
@@ -6597,7 +6603,6 @@ declare namespace ts {
         readonly redirectTargetsMap: RedirectTargetsMap;
         getProjectReferenceRedirect(fileName: string): string | undefined;
         isSourceOfProjectReferenceRedirect(fileName: string): boolean;
-        getCompilerOptions(): CompilerOptions;
     }
     export interface SymbolTracker {
         trackSymbol?(symbol: Symbol, enclosingDeclaration: Node | undefined, meaning: SymbolFlags): void;
@@ -8308,6 +8313,7 @@ declare namespace ts {
         Expected_0_arguments_but_got_1_Did_you_forget_to_include_void_in_your_type_argument_to_Promise: DiagnosticMessage;
         The_intrinsic_keyword_can_only_be_used_to_declare_compiler_provided_intrinsic_types: DiagnosticMessage;
         It_is_likely_that_you_are_missing_a_comma_to_separate_these_two_template_expressions_They_form_a_tagged_template_expression_which_cannot_be_invoked: DiagnosticMessage;
+        A_mixin_class_that_extends_from_a_type_variable_containing_an_abstract_construct_signature_must_also_be_declared_abstract: DiagnosticMessage;
         Import_declaration_0_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_interface_has_or_is_using_private_name_1: DiagnosticMessage;
@@ -10068,7 +10074,6 @@ declare namespace ts {
         getCanonicalFileName(p: string): string;
         getCommonSourceDirectory(): string;
         getCurrentDirectory(): string;
-        getCompilerOptions(): CompilerOptions;
     }
     export function getResolvedExternalModuleName(host: ResolveModuleNameResolutionHost, file: SourceFile, referenceFile?: SourceFile): string;
     export function getExternalModuleNameFromDeclaration(host: ResolveModuleNameResolutionHost, resolver: EmitResolver, declaration: ImportEqualsDeclaration | ImportDeclaration | ExportDeclaration | ModuleDeclaration | ImportTypeNode): string | undefined;
@@ -10186,7 +10191,7 @@ declare namespace ts {
      * NOTE: This function does not use `parent` pointers and will not include modifiers from JSDoc.
      */
     export function getSyntacticModifierFlagsNoCache(node: Node): ModifierFlags;
-    export function modifiersToFlags(modifiers: NodeArray<Modifier> | undefined): ModifierFlags;
+    export function modifiersToFlags(modifiers: readonly Modifier[] | undefined): ModifierFlags;
     export function modifierToFlag(token: SyntaxKind): ModifierFlags;
     export function isLogicalOperator(token: SyntaxKind): boolean;
     export function isLogicalOrCoalescingAssignmentOperator(token: SyntaxKind): token is LogicalOrCoalescingAssignmentOperator;
@@ -10330,7 +10335,6 @@ declare namespace ts {
      * Mutates the map with newMap such that keys in map will be same as newMap.
      */
     export function mutateMap<T, U>(map: ESMap<string, T>, newMap: ReadonlyESMap<string, U>, options: MutateMapOptions<T, U>): void;
-    export function isAbstractConstructorType(type: Type): boolean;
     export function isAbstractConstructorSymbol(symbol: Symbol): boolean;
     export function getClassLikeDeclarationOfSymbol(symbol: Symbol): ClassLikeDeclaration | undefined;
     export function getObjectFlags(type: Type): ObjectFlags;
@@ -16822,9 +16826,9 @@ declare namespace ts {
     /** @deprecated Use `factory.updateEnumDeclaration` or the factory supplied by your transformation context instead. */
     const updateEnumDeclaration: (node: EnumDeclaration, decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, name: Identifier, members: readonly EnumMember[]) => EnumDeclaration;
     /** @deprecated Use `factory.createModuleDeclaration` or the factory supplied by your transformation context instead. */
-    const createModuleDeclaration: (decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, name: ModuleName, body: Identifier | ModuleBlock | NamespaceDeclaration | JSDocNamespaceDeclaration | undefined, flags?: NodeFlags | undefined) => ModuleDeclaration;
+    const createModuleDeclaration: (decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, name: ModuleName, body: ModuleBlock | NamespaceDeclaration | Identifier | JSDocNamespaceDeclaration | undefined, flags?: NodeFlags | undefined) => ModuleDeclaration;
     /** @deprecated Use `factory.updateModuleDeclaration` or the factory supplied by your transformation context instead. */
-    const updateModuleDeclaration: (node: ModuleDeclaration, decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, name: ModuleName, body: Identifier | ModuleBlock | NamespaceDeclaration | JSDocNamespaceDeclaration | undefined) => ModuleDeclaration;
+    const updateModuleDeclaration: (node: ModuleDeclaration, decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, name: ModuleName, body: ModuleBlock | NamespaceDeclaration | Identifier | JSDocNamespaceDeclaration | undefined) => ModuleDeclaration;
     /** @deprecated Use `factory.createModuleBlock` or the factory supplied by your transformation context instead. */
     const createModuleBlock: (statements: readonly Statement[]) => ModuleBlock;
     /** @deprecated Use `factory.updateModuleBlock` or the factory supplied by your transformation context instead. */
