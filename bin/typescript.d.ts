@@ -4276,7 +4276,7 @@ declare namespace ts {
         Simplifiable = 25165824,
         Substructure = 469237760,
         Narrowable = 536624127,
-        NotPrimitiveUnion = 469647395,
+        NotPrimitiveUnion = 468598819,
         IncludesMask = 205258751,
         IncludesStructuredOrInstantiable = 262144,
         IncludesNonWideningType = 4194304,
@@ -4469,8 +4469,9 @@ declare namespace ts {
         resolvedBaseConstraint: Type;
     }
     export interface UnionType extends UnionOrIntersectionType {
-        resolvedReducedType: Type;
-        regularType: UnionType;
+        resolvedReducedType?: Type;
+        regularType?: UnionType;
+        origin?: Type;
     }
     export interface IntersectionType extends UnionOrIntersectionType {
         resolvedApparentType: Type;
@@ -6603,6 +6604,7 @@ declare namespace ts {
         readonly redirectTargetsMap: RedirectTargetsMap;
         getProjectReferenceRedirect(fileName: string): string | undefined;
         isSourceOfProjectReferenceRedirect(fileName: string): boolean;
+        getFileIncludeReasons(): MultiMap<Path, FileIncludeReason>;
     }
     export interface SymbolTracker {
         trackSymbol?(symbol: Symbol, enclosingDeclaration: Node | undefined, meaning: SymbolFlags): void;
@@ -9049,6 +9051,10 @@ declare namespace ts {
         Could_not_convert_to_anonymous_function: DiagnosticMessage;
         Can_only_convert_string_concatenation: DiagnosticMessage;
         Selection_is_not_a_valid_statement_or_statements: DiagnosticMessage;
+        Add_missing_function_declaration_0: DiagnosticMessage;
+        Add_all_missing_function_declarations: DiagnosticMessage;
+        Method_not_implemented: DiagnosticMessage;
+        Function_not_implemented: DiagnosticMessage;
         No_value_exists_in_scope_for_the_shorthand_property_0_Either_declare_one_or_provide_an_initializer: DiagnosticMessage;
         Classes_may_not_have_a_field_named_constructor: DiagnosticMessage;
         JSX_expressions_may_not_use_the_comma_operator_Did_you_mean_to_write_an_array: DiagnosticMessage;
@@ -12080,6 +12086,7 @@ declare namespace ts {
      * This returns a diagnostic even if the module will be an untyped module.
      */
     export function getResolutionDiagnostic(options: CompilerOptions, { extension }: ResolvedModuleFull): DiagnosticMessage | undefined;
+    export function getModuleNameStringLiteralAt({ imports, moduleAugmentations }: SourceFile, index: number): StringLiteralLike;
     export {};
 }
 declare namespace ts {
@@ -15889,8 +15896,9 @@ declare namespace ts.codefix {
         program: Program;
         host: LanguageServiceHost;
     }
-    function createMethodFromCallExpression(context: CodeFixContextBase, importAdder: ImportAdder, call: CallExpression, methodName: string, modifierFlags: ModifierFlags, contextNode: Node, inJs: boolean): MethodDeclaration;
-    function typeToAutoImportableTypeNode(checker: TypeChecker, importAdder: ImportAdder, type: Type, contextNode: Node, scriptTarget: ScriptTarget, flags?: NodeBuilderFlags, tracker?: SymbolTracker): TypeNode | undefined;
+    function createSignatureDeclarationFromCallExpression(kind: SyntaxKind.MethodDeclaration | SyntaxKind.FunctionDeclaration, context: CodeFixContextBase, importAdder: ImportAdder, call: CallExpression, name: Identifier, modifierFlags: ModifierFlags, contextNode: Node): FunctionDeclaration | MethodDeclaration;
+    function typeToAutoImportableTypeNode(checker: TypeChecker, importAdder: ImportAdder, type: Type, contextNode: Node | undefined, scriptTarget: ScriptTarget, flags?: NodeBuilderFlags, tracker?: SymbolTracker): TypeNode | undefined;
+    function createStubbedBody(text: string, quotePreference: QuotePreference): Block;
     function setJsonCompilerOptionValues(changeTracker: textChanges.ChangeTracker, configFile: TsConfigSourceFile, options: [string, Expression][]): undefined;
     function setJsonCompilerOptionValue(changeTracker: textChanges.ChangeTracker, configFile: TsConfigSourceFile, optionName: string, optionValue: Expression): void;
     function createJsonPropertyAssignment(name: string, initializer: Expression): PropertyAssignment;
