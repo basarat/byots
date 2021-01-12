@@ -4047,6 +4047,8 @@ declare namespace ts {
         typeParameters?: TypeParameter[];
         outerTypeParameters?: TypeParameter[];
         instantiations?: ESMap<string, Type>;
+        aliasSymbol?: Symbol;
+        aliasTypeArguments?: readonly Type[];
         inferredClassSymbol?: ESMap<SymbolId, TransientSymbol>;
         mapper?: TypeMapper;
         referenced?: boolean;
@@ -7914,7 +7916,7 @@ declare namespace ts {
         The_left_hand_side_of_an_instanceof_expression_must_be_of_type_any_an_object_type_or_a_type_parameter: DiagnosticMessage;
         The_right_hand_side_of_an_instanceof_expression_must_be_of_type_any_or_of_a_type_assignable_to_the_Function_interface_type: DiagnosticMessage;
         The_left_hand_side_of_an_in_expression_must_be_of_type_any_string_number_or_symbol: DiagnosticMessage;
-        The_right_hand_side_of_an_in_expression_must_be_of_type_any_an_object_type_or_a_type_parameter: DiagnosticMessage;
+        The_right_hand_side_of_an_in_expression_must_not_be_a_primitive: DiagnosticMessage;
         The_left_hand_side_of_an_arithmetic_operation_must_be_of_type_any_number_bigint_or_an_enum_type: DiagnosticMessage;
         The_right_hand_side_of_an_arithmetic_operation_must_be_of_type_any_number_bigint_or_an_enum_type: DiagnosticMessage;
         The_left_hand_side_of_an_assignment_expression_must_be_a_variable_or_a_property_access: DiagnosticMessage;
