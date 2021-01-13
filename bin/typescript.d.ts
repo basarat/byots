@@ -10601,6 +10601,7 @@ declare namespace ts {
      * NOTE: This requires a node with a valid `parent` pointer.
      */
     export function expressionResultIsUnused(node: Expression): boolean;
+    export function containsIgnoredPath(path: string): boolean;
     export {};
 }
 declare namespace ts {
