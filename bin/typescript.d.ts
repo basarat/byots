@@ -8462,6 +8462,7 @@ declare namespace ts {
         The_inferred_type_of_0_references_a_type_with_a_cyclic_structure_which_cannot_be_trivially_serialized_A_type_annotation_is_necessary: DiagnosticMessage;
         Option_0_cannot_be_specified_when_option_jsx_is_1: DiagnosticMessage;
         Non_relative_paths_are_not_allowed_when_baseUrl_is_not_set_Did_you_forget_a_leading_Slash: DiagnosticMessage;
+        Option_preserveConstEnums_cannot_be_disabled_when_isolatedModules_is_enabled: DiagnosticMessage;
         Generates_a_sourcemap_for_each_corresponding_d_ts_file: DiagnosticMessage;
         Concatenate_and_emit_output_to_single_file: DiagnosticMessage;
         Generates_corresponding_d_ts_file: DiagnosticMessage;
@@ -10402,6 +10403,7 @@ declare namespace ts {
     export function getAreDeclarationMapsEnabled(options: CompilerOptions): boolean;
     export function getAllowSyntheticDefaultImports(compilerOptions: CompilerOptions): boolean;
     export function getEmitDeclarations(compilerOptions: CompilerOptions): boolean;
+    export function shouldPreserveConstEnums(compilerOptions: CompilerOptions): boolean;
     export function isIncrementalCompilation(options: CompilerOptions): boolean;
     export type StrictOptionName = "noImplicitAny" | "noImplicitThis" | "strictNullChecks" | "strictFunctionTypes" | "strictBindCallApply" | "strictPropertyInitialization" | "alwaysStrict";
     export function getStrictOptionValue(compilerOptions: CompilerOptions, flag: StrictOptionName): boolean;
