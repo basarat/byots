@@ -15371,10 +15371,10 @@ declare namespace ts {
 }
 declare namespace ts {
     function computeSuggestionDiagnostics(sourceFile: SourceFile, program: Program, cancellationToken: CancellationToken): DiagnosticWithLocation[];
-    function isReturnStatementWithFixablePromiseHandler(node: Node): node is ReturnStatement & {
+    function isReturnStatementWithFixablePromiseHandler(node: Node, checker: TypeChecker): node is ReturnStatement & {
         expression: CallExpression;
     };
-    function isFixablePromiseHandler(node: Node): boolean;
+    function isFixablePromiseHandler(node: Node, checker: TypeChecker): boolean;
 }
 declare namespace ts.SymbolDisplay {
     function getSymbolKind(typeChecker: TypeChecker, symbol: Symbol, location: Node): ScriptElementKind;
