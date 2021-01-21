@@ -7255,7 +7255,7 @@ declare namespace ts {
      * Determines whether `fileName` starts with the specified `directoryName` using the provided path canonicalization callback.
      * Comparison is case-sensitive between the canonical paths.
      *
-     * @deprecated Use `containsPath` if possible.
+     * Use `containsPath` if file names are not already reduced and absolute.
      */
     function startsWithDirectory(fileName: string, directoryName: string, getCanonicalFileName: GetCanonicalFileName): boolean;
     function getPathComponentsRelativeTo(from: string, to: string, stringEqualityComparer: (a: string, b: string) => boolean, getCanonicalFileName: GetCanonicalFileName): string[];
@@ -10420,12 +10420,16 @@ declare namespace ts {
         realPath: Path;
     }
     export interface SymlinkCache {
+        /** Gets a map from symlink to realpath. Keys have trailing directory separators. */
         getSymlinkedDirectories(): ReadonlyESMap<Path, SymlinkedDirectory | false> | undefined;
+        /** Gets a map from realpath to symlinks. Keys have trailing directory separators. */
+        getSymlinkedDirectoriesByRealpath(): MultiMap<Path, string> | undefined;
+        /** Gets a map from symlink to realpath */
         getSymlinkedFiles(): ReadonlyESMap<Path, string> | undefined;
-        setSymlinkedDirectory(path: Path, directory: SymlinkedDirectory | false): void;
-        setSymlinkedFile(path: Path, real: string): void;
+        setSymlinkedDirectory(symlink: string, real: SymlinkedDirectory | false): void;
+        setSymlinkedFile(symlinkPath: Path, real: string): void;
     }
-    export function createSymlinkCache(): SymlinkCache;
+    export function createSymlinkCache(cwd: string, getCanonicalFileName: GetCanonicalFileName): SymlinkCache;
     export function discoverProbableSymlinks(files: readonly SourceFile[], getCanonicalFileName: GetCanonicalFileName, cwd: string): SymlinkCache;
     export function tryRemoveDirectoryPrefix(path: string, dirPath: string, getCanonicalFileName: GetCanonicalFileName): string | undefined;
     export function regExpEscape(text: string): string;
