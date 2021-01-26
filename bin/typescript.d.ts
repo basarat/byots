@@ -7588,7 +7588,7 @@ declare namespace ts {
         Invalid_use_of_0_in_strict_mode: DiagnosticMessage;
         with_statements_are_not_allowed_in_strict_mode: DiagnosticMessage;
         delete_cannot_be_called_on_an_identifier_in_strict_mode: DiagnosticMessage;
-        A_for_await_of_statement_is_only_allowed_within_an_async_function_or_async_generator: DiagnosticMessage;
+        for_await_loops_are_only_allowed_within_async_functions_and_at_the_top_levels_of_modules: DiagnosticMessage;
         A_continue_statement_can_only_be_used_within_an_enclosing_iteration_statement: DiagnosticMessage;
         A_break_statement_can_only_be_used_within_an_enclosing_iteration_or_switch_statement: DiagnosticMessage;
         Jump_target_cannot_cross_function_boundary: DiagnosticMessage;
@@ -7849,6 +7849,8 @@ declare namespace ts {
         File_is_output_of_project_reference_source_0: DiagnosticMessage;
         File_redirects_to_file_0: DiagnosticMessage;
         The_file_is_in_the_program_because_Colon: DiagnosticMessage;
+        for_await_loops_are_only_allowed_at_the_top_level_of_a_file_when_that_file_is_a_module_but_this_file_has_no_imports_or_exports_Consider_adding_an_empty_export_to_make_this_file_a_module: DiagnosticMessage;
+        Top_level_for_await_loops_are_only_allowed_when_the_module_option_is_set_to_esnext_or_system_and_the_target_option_is_set_to_es2017_or_higher: DiagnosticMessage;
         The_types_of_0_are_incompatible_between_these_types: DiagnosticMessage;
         The_types_returned_by_0_are_incompatible_between_these_types: DiagnosticMessage;
         Call_signature_return_types_0_and_1_are_incompatible: DiagnosticMessage;
@@ -8318,6 +8320,7 @@ declare namespace ts {
         The_intrinsic_keyword_can_only_be_used_to_declare_compiler_provided_intrinsic_types: DiagnosticMessage;
         It_is_likely_that_you_are_missing_a_comma_to_separate_these_two_template_expressions_They_form_a_tagged_template_expression_which_cannot_be_invoked: DiagnosticMessage;
         A_mixin_class_that_extends_from_a_type_variable_containing_an_abstract_construct_signature_must_also_be_declared_abstract: DiagnosticMessage;
+        The_declaration_was_marked_as_deprecated_here: DiagnosticMessage;
         Import_declaration_0_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_interface_has_or_is_using_private_name_1: DiagnosticMessage;
@@ -8733,6 +8736,7 @@ declare namespace ts {
         Have_recompiles_in_incremental_and_watch_assume_that_changes_within_a_file_will_only_affect_files_directly_depending_on_it: DiagnosticMessage;
         _0_is_deprecated: DiagnosticMessage;
         Performance_timings_for_diagnostics_or_extendedDiagnostics_are_not_available_in_this_session_A_native_implementation_of_the_Web_Performance_API_could_not_be_found: DiagnosticMessage;
+        The_signature_0_of_1_is_deprecated: DiagnosticMessage;
         The_expected_type_comes_from_property_0_which_is_declared_here_on_type_1: DiagnosticMessage;
         The_expected_type_comes_from_this_index_signature: DiagnosticMessage;
         The_expected_type_comes_from_the_return_type_of_this_signature: DiagnosticMessage;
@@ -9885,7 +9889,7 @@ declare namespace ts {
     export function isFunctionSymbol(symbol: Symbol | undefined): boolean | undefined;
     export function importFromModuleSpecifier(node: StringLiteralLike): AnyValidImportOrReExport;
     export function tryGetImportFromModuleSpecifier(node: StringLiteralLike): AnyValidImportOrReExport | undefined;
-    export function getExternalModuleName(node: AnyImportOrReExport | ImportTypeNode | ImportCall): Expression | undefined;
+    export function getExternalModuleName(node: AnyImportOrReExport | ImportTypeNode | ImportCall | ModuleDeclaration): Expression | undefined;
     export function getNamespaceDeclarationNode(node: ImportDeclaration | ImportEqualsDeclaration | ExportDeclaration): ImportEqualsDeclaration | NamespaceImport | NamespaceExport | undefined;
     export function isDefaultImport(node: ImportDeclaration | ImportEqualsDeclaration | ExportDeclaration): boolean;
     export function forEachImportClauseDeclaration<T>(node: ImportClause, action: (declaration: ImportClause | NamespaceImport | ImportSpecifier) => T | undefined): T | undefined;
