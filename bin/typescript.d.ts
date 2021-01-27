@@ -9223,6 +9223,7 @@ declare namespace ts {
     function getCombinedModifierFlags(node: Declaration): ModifierFlags;
     function getCombinedNodeFlagsAlwaysIncludeJSDoc(node: Declaration): ModifierFlags;
     function getCombinedNodeFlags(node: Node): NodeFlags;
+    const supportedLocaleDirectories: string[];
     /**
      * Checks to see if the locale is in the appropriate format,
      * and if it is, attempts to set the appropriate language.
