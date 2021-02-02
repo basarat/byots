@@ -871,6 +871,8 @@ declare namespace ts {
 }
 declare namespace ts {
     interface PerformanceHooks {
+        /** Indicates whether we should write native performance events */
+        shouldWriteNativeEvents: boolean;
         performance: Performance;
         PerformanceObserver: PerformanceObserverConstructor;
     }
@@ -951,7 +953,7 @@ declare namespace ts.performance {
      */
     function isEnabled(): boolean;
     /** Enables (and resets) performance measurements for the compiler. */
-    function enable(): boolean;
+    function enable(system?: System): boolean;
     /** Disables performance measurements for the compiler. */
     function disable(): void;
 }
@@ -7488,6 +7490,7 @@ declare namespace ts {
         exit(exitCode?: number): void;
         enableCPUProfiler?(path: string, continuation: () => void): boolean;
         disableCPUProfiler?(continuation: () => void): boolean;
+        cpuProfilingEnabled?(): boolean;
         realpath?(path: string): string;
         getEnvironmentVariable(name: string): string;
         tryEnableSourceMapsForHost?(): void;
