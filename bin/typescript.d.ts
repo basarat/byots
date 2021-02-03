@@ -8324,6 +8324,8 @@ declare namespace ts {
         It_is_likely_that_you_are_missing_a_comma_to_separate_these_two_template_expressions_They_form_a_tagged_template_expression_which_cannot_be_invoked: DiagnosticMessage;
         A_mixin_class_that_extends_from_a_type_variable_containing_an_abstract_construct_signature_must_also_be_declared_abstract: DiagnosticMessage;
         The_declaration_was_marked_as_deprecated_here: DiagnosticMessage;
+        Type_produces_a_tuple_type_that_is_too_large_to_represent: DiagnosticMessage;
+        Expression_produces_a_tuple_type_that_is_too_large_to_represent: DiagnosticMessage;
         Import_declaration_0_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_interface_has_or_is_using_private_name_1: DiagnosticMessage;
