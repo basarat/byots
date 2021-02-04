@@ -4254,8 +4254,6 @@ declare namespace ts {
         Literal = 2944,
         Unit = 109440,
         StringOrNumberLiteral = 384,
-        StringLikeLiteral = 134217856,
-        FreshableLiteral = 134220672,
         StringOrNumberLiteralOrUnique = 8576,
         DefinitelyFalsy = 117632,
         PossiblyFalsy = 117724,
@@ -4314,8 +4312,7 @@ declare namespace ts {
         freshType: IntrinsicType;
         regularType: IntrinsicType;
     }
-    export type FreshableLiteralType = LiteralType | TemplateLiteralType;
-    export type FreshableType = FreshableLiteralType | FreshableIntrinsicType;
+    export type FreshableType = LiteralType | FreshableIntrinsicType;
     export interface LiteralType extends Type {
         value: string | number | PseudoBigInt;
         freshType: LiteralType;
@@ -4593,8 +4590,6 @@ declare namespace ts {
     export interface TemplateLiteralType extends InstantiableType {
         texts: readonly string[];
         types: readonly Type[];
-        freshType: TemplateLiteralType;
-        regularType: TemplateLiteralType;
     }
     export interface StringMappingType extends InstantiableType {
         symbol: Symbol;
@@ -10489,6 +10484,7 @@ declare namespace ts {
     export function hasJSFileExtension(fileName: string): boolean;
     export function hasTSFileExtension(fileName: string): boolean;
     export function isSupportedSourceFileName(fileName: string, compilerOptions?: CompilerOptions, extraFileExtensions?: readonly FileExtensionInfo[]): boolean;
+    export function compareNumberOfDirectorySeparators(path1: string, path2: string): Comparison;
     /**
      * Extension boundaries by priority. Lower numbers indicate higher priorities, and are
      * aligned to the offset of the highest priority extension in the
