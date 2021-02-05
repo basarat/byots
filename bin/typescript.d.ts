@@ -14776,7 +14776,7 @@ declare namespace ts {
      * If the provided value is an array, the first element of the array is returned; otherwise, the provided value is returned instead.
      */
     function firstOrOnly<T>(valueOrArray: T | readonly T[]): T;
-    function getNameForExportedSymbol(symbol: Symbol, scriptTarget: ScriptTarget): string;
+    function getNameForExportedSymbol(symbol: Symbol, scriptTarget: ScriptTarget | undefined): string;
     /**
      * Useful to check whether a string contains another string at a specific index
      * without allocating another string or traversing the entire contents of the outer string.
