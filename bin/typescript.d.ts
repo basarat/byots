@@ -963,8 +963,10 @@ declare namespace ts {
     
     export {};
 }
-/** Tracing events for the compiler. */
-declare namespace ts.tracing {
+declare namespace ts {
+    let tracing: typeof tracingEnabled | undefined;
+}
+declare namespace ts.tracingEnabled {
     export enum Mode {
         Project = 0,
         Build = 1,
@@ -973,11 +975,10 @@ declare namespace ts.tracing {
     interface Args {
         [key: string]: string | number | boolean | null | undefined | Args | readonly (string | number | boolean | null | undefined | Args)[];
     }
-    /** Starts tracing for the given project (unless the `fs` module is unavailable). */
+    /** Starts tracing for the given project. */
     export function startTracing(tracingMode: Mode, traceDir: string, configFilePath?: string): void;
-    /** Stops tracing for the in-progress project and dumps the type catalog (unless the `fs` module is unavailable). */
+    /** Stops tracing for the in-progress project and dumps the type catalog. */
     export function stopTracing(typeCatalog?: readonly Type[]): void;
-    export function isTracing(): boolean;
     export enum Phase {
         Parse = "parse",
         Program = "program",
@@ -999,6 +1000,9 @@ declare namespace ts.tracing {
     export function popAll(): void;
     export function dumpLegend(): void;
     export {};
+}
+declare namespace ts {
+    const startTracing: typeof tracingEnabled.startTracing;
 }
 declare namespace ts {
     export type Path = string & {
