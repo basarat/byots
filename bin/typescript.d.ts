@@ -8320,6 +8320,7 @@ declare namespace ts {
         The_declaration_was_marked_as_deprecated_here: DiagnosticMessage;
         Type_produces_a_tuple_type_that_is_too_large_to_represent: DiagnosticMessage;
         Expression_produces_a_tuple_type_that_is_too_large_to_represent: DiagnosticMessage;
+        This_condition_will_always_return_true_since_the_Promise_is_always_truthy: DiagnosticMessage;
         Import_declaration_0_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_interface_has_or_is_using_private_name_1: DiagnosticMessage;
