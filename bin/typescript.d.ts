@@ -8323,6 +8323,7 @@ declare namespace ts {
         Type_produces_a_tuple_type_that_is_too_large_to_represent: DiagnosticMessage;
         Expression_produces_a_tuple_type_that_is_too_large_to_represent: DiagnosticMessage;
         This_condition_will_always_return_true_since_the_Promise_is_always_truthy: DiagnosticMessage;
+        Type_0_can_only_be_iterated_through_when_using_the_downlevelIteration_flag_or_with_a_target_of_es2015_or_higher: DiagnosticMessage;
         Import_declaration_0_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_interface_has_or_is_using_private_name_1: DiagnosticMessage;
@@ -16065,10 +16066,10 @@ declare namespace ts.refactor.extractSymbol {
     /**
      * getRangeToExtract takes a span inside a text file and returns either an expression or an array
      * of statements representing the minimum set of nodes needed to extract the entire span. This
-     * process may fail, in which case a set of errors is returned instead (these are currently
-     * not shown to the user, but can be used by us diagnostically)
+     * process may fail, in which case a set of errors is returned instead. These errors are shown to
+     * users if they have the provideRefactorNotApplicableReason option set.
      */
-    function getRangeToExtract(sourceFile: SourceFile, span: TextSpan, considerEmptySpans?: boolean): RangeToExtract;
+    function getRangeToExtract(sourceFile: SourceFile, span: TextSpan, invoked?: boolean): RangeToExtract;
     enum Usage {
         Read = 1,
         Write = 2
