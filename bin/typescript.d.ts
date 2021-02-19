@@ -7636,7 +7636,7 @@ declare namespace ts {
         A_yield_expression_is_only_allowed_in_a_generator_body: DiagnosticMessage;
         Computed_property_names_are_not_allowed_in_enums: DiagnosticMessage;
         A_computed_property_name_in_an_ambient_context_must_refer_to_an_expression_whose_type_is_a_literal_type_or_a_unique_symbol_type: DiagnosticMessage;
-        A_computed_property_name_in_a_class_property_declaration_must_refer_to_an_expression_whose_type_is_a_literal_type_or_a_unique_symbol_type: DiagnosticMessage;
+        A_computed_property_name_in_a_class_property_declaration_must_have_a_simple_literal_type_or_a_unique_symbol_type: DiagnosticMessage;
         A_computed_property_name_in_a_method_overload_must_refer_to_an_expression_whose_type_is_a_literal_type_or_a_unique_symbol_type: DiagnosticMessage;
         A_computed_property_name_in_an_interface_must_refer_to_an_expression_whose_type_is_a_literal_type_or_a_unique_symbol_type: DiagnosticMessage;
         A_computed_property_name_in_a_type_literal_must_refer_to_an_expression_whose_type_is_a_literal_type_or_a_unique_symbol_type: DiagnosticMessage;
@@ -10363,8 +10363,8 @@ declare namespace ts {
     export function showModuleSpecifier({ moduleSpecifier }: ImportDeclaration): string;
     export function getLastChild(node: Node): Node | undefined;
     /** Add a value to a set, and return true if it wasn't already present. */
-    export function addToSeen(seen: ESMap<string, true>, key: string | number): boolean;
-    export function addToSeen<T>(seen: ESMap<string, T>, key: string | number, value: T): boolean;
+    export function addToSeen<K>(seen: ESMap<K, true>, key: K): boolean;
+    export function addToSeen<K, T>(seen: ESMap<K, T>, key: K, value: T): boolean;
     export function isObjectTypeDeclaration(node: Node): node is ObjectTypeDeclaration;
     export function isTypeNodeKind(kind: SyntaxKind): kind is TypeNodeSyntaxKind;
     export function isAccessExpression(node: Node): node is AccessExpression;
