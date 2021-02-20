@@ -9823,9 +9823,8 @@ declare namespace ts {
      * Returns true if the node is a VariableDeclaration initialized to a require call (see `isRequireCall`).
      * This function does not test if the node is in a JavaScript file or not.
      */
-    export function isRequireVariableDeclaration(node: Node, requireStringLiteralLikeArgument: true): node is RequireVariableDeclaration;
-    export function isRequireVariableDeclaration(node: Node, requireStringLiteralLikeArgument: boolean): node is VariableDeclaration;
-    export function isRequireVariableStatement(node: Node, requireStringLiteralLikeArgument?: boolean): node is RequireVariableStatement;
+    export function isRequireVariableDeclaration(node: Node): node is RequireVariableDeclaration;
+    export function isRequireVariableStatement(node: Node): node is RequireVariableStatement;
     export function isSingleOrDoubleQuote(charCode: number): boolean;
     export function isStringDoubleQuoted(str: StringLiteralLike, sourceFile: SourceFile): boolean;
     export function isAssignmentDeclaration(decl: Declaration): boolean;
