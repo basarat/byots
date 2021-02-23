@@ -2298,13 +2298,6 @@ declare namespace ts {
     export type OptionalChain = PropertyAccessChain | ElementAccessChain | CallChain | NonNullChain;
     export type OptionalChainRoot = PropertyAccessChainRoot | ElementAccessChainRoot | CallChainRoot;
     /** @internal */
-    export interface WellKnownSymbolExpression extends PropertyAccessExpression {
-        readonly expression: Identifier & {
-            readonly escapedText: __String & "Symbol";
-        };
-        readonly name: Identifier;
-    }
-    /** @internal */
     export type BindableObjectDefinePropertyCall = CallExpression & {
         readonly arguments: readonly [BindableStaticNameExpression, StringLiteralLike | NumericLiteral, ObjectLiteralExpression] & Readonly<TextRange>;
     };
@@ -2312,7 +2305,7 @@ declare namespace ts {
     export type BindableStaticNameExpression = EntityNameExpression | BindableStaticElementAccessExpression;
     /** @internal */
     export type LiteralLikeElementAccessExpression = ElementAccessExpression & Declaration & {
-        readonly argumentExpression: StringLiteralLike | NumericLiteral | WellKnownSymbolExpression;
+        readonly argumentExpression: StringLiteralLike | NumericLiteral;
     };
     /** @internal */
     export type BindableStaticElementAccessExpression = LiteralLikeElementAccessExpression & {
@@ -4633,7 +4626,8 @@ declare namespace ts {
         resolvedMinArgumentCount?: number;
         target?: Signature;
         mapper?: TypeMapper;
-        unionSignatures?: Signature[];
+        compositeSignatures?: Signature[];
+        compositeKind?: TypeFlags;
         erasedSignatureCache?: Signature;
         canonicalSignatureCache?: Signature;
         optionalCallSignatureCache?: {
@@ -9878,7 +9872,7 @@ declare namespace ts {
     /** Any series of property and element accesses, ending in a literal element access */
     export function isBindableStaticElementAccessExpression(node: Node, excludeThisKeyword?: boolean): node is BindableStaticElementAccessExpression;
     export function isBindableStaticNameExpression(node: Node, excludeThisKeyword?: boolean): node is BindableStaticNameExpression;
-    export function getNameOrArgument(expr: PropertyAccessExpression | LiteralLikeElementAccessExpression): Identifier | PrivateIdentifier | (Expression & (NumericLiteral | StringLiteralLike | WellKnownSymbolExpression));
+    export function getNameOrArgument(expr: PropertyAccessExpression | LiteralLikeElementAccessExpression): Identifier | PrivateIdentifier | (Expression & (NumericLiteral | StringLiteralLike));
     /**
      * Does not handle signed numeric names like `a[+0]` - handling those would require handling prefix unary expressions
      * throughout late binding handling as well, which is awkward (but ultimately probably doable if there is demand)
@@ -9992,24 +9986,14 @@ declare namespace ts {
      *   3. The computed name is *not* expressed as a NumericLiteral.
      *   4. The computed name is *not* expressed as a PlusToken or MinusToken
      *      immediately followed by a NumericLiteral.
-     *   5. The computed name is *not* expressed as `Symbol.<name>`, where `<name>`
-     *      is a property of the Symbol constructor that denotes a built-in
-     *      Symbol.
      */
     export function hasDynamicName(declaration: Declaration): declaration is DynamicNamedDeclaration | DynamicNamedBinaryExpression;
     export function isDynamicName(name: DeclarationName): boolean;
-    /**
-     * Checks if the expression is of the form:
-     *    Symbol.name
-     * where Symbol is literally the word "Symbol", and name is any identifierName
-     */
-    export function isWellKnownSymbolSyntactically(node: Node): node is WellKnownSymbolExpression;
     export function getPropertyNameForPropertyNameNode(name: PropertyName): __String | undefined;
     export function isPropertyNameLiteral(node: Node): node is PropertyNameLiteral;
     export function getTextOfIdentifierOrLiteral(node: PropertyNameLiteral): string;
     export function getEscapedTextOfIdentifierOrLiteral(node: PropertyNameLiteral): __String;
     export function getPropertyNameForUniqueESSymbol(symbol: Symbol): __String;
-    export function getPropertyNameForKnownSymbolName(symbolName: string): __String;
     export function getSymbolNameForPrivateIdentifier(containingClassSymbol: Symbol, description: __String): __String;
     export function isKnownSymbol(symbol: Symbol): boolean;
     /**
