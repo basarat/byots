@@ -4630,6 +4630,7 @@ declare namespace ts {
         compositeKind?: TypeFlags;
         erasedSignatureCache?: Signature;
         canonicalSignatureCache?: Signature;
+        baseSignatureCache?: Signature;
         optionalCallSignatureCache?: {
             inner?: Signature;
             outer?: Signature;
@@ -8464,6 +8465,7 @@ declare namespace ts {
         Option_0_cannot_be_specified_when_option_jsx_is_1: DiagnosticMessage;
         Non_relative_paths_are_not_allowed_when_baseUrl_is_not_set_Did_you_forget_a_leading_Slash: DiagnosticMessage;
         Option_preserveConstEnums_cannot_be_disabled_when_isolatedModules_is_enabled: DiagnosticMessage;
+        The_root_value_of_a_0_file_must_be_an_object: DiagnosticMessage;
         Generates_a_sourcemap_for_each_corresponding_d_ts_file: DiagnosticMessage;
         Concatenate_and_emit_output_to_single_file: DiagnosticMessage;
         Generates_corresponding_d_ts_file: DiagnosticMessage;
@@ -11317,7 +11319,7 @@ declare namespace ts {
      * This returns the json value (apart from checking errors) only if returnValue provided is true.
      * Otherwise it just checks the errors and returns undefined
      */
-    export function convertToObjectWorker(sourceFile: JsonSourceFile, errors: Push<Diagnostic>, returnValue: boolean, knownRootOptions: CommandLineOption | undefined, jsonConversionNotifier: JsonConversionNotifier | undefined): any;
+    export function convertToObjectWorker(sourceFile: JsonSourceFile, rootExpression: Expression | undefined, errors: Push<Diagnostic>, returnValue: boolean, knownRootOptions: CommandLineOption | undefined, jsonConversionNotifier: JsonConversionNotifier | undefined): any;
     /** @internal */
     export interface TSConfig {
         compilerOptions: CompilerOptions;
