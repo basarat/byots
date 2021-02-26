@@ -813,6 +813,12 @@ declare namespace ts {
         }> | undefined;
         function assertOptionalToken(node: Node | undefined, kind: SyntaxKind | undefined, message?: string, stackCrawlMark?: AnyFunction): void;
         function assertMissingNode(node: Node | undefined, message?: string, stackCrawlMark?: AnyFunction): asserts node is undefined;
+        /**
+         * Asserts a value has the specified type in typespace only (does not perform a runtime assertion).
+         * This is useful in cases where we switch on `node.kind` and can be reasonably sure the type is accurate, and
+         * as a result can reduce the number of unnecessary casts.
+         */
+        function type<T>(value: unknown): asserts value is T;
         function getFunctionName(func: AnyFunction): any;
         function formatSymbol(symbol: Symbol): string;
         /**
@@ -1598,6 +1604,7 @@ declare namespace ts {
     }
     export type EntityName = Identifier | QualifiedName;
     export type PropertyName = Identifier | StringLiteral | NumericLiteral | ComputedPropertyName | PrivateIdentifier;
+    export type MemberName = Identifier | PrivateIdentifier;
     export type DeclarationName = Identifier | PrivateIdentifier | StringLiteralLike | NumericLiteral | ComputedPropertyName | ElementAccessExpression | BindingPattern | EntityNameExpression;
     export interface Declaration extends Node {
         _declarationBrand: any;
@@ -2245,14 +2252,14 @@ declare namespace ts {
         readonly kind: SyntaxKind.PropertyAccessExpression;
         readonly expression: LeftHandSideExpression;
         readonly questionDotToken?: QuestionDotToken;
-        readonly name: Identifier | PrivateIdentifier;
+        readonly name: MemberName;
     }
     export interface PrivateIdentifierPropertyAccessExpression extends PropertyAccessExpression {
         readonly name: PrivateIdentifier;
     }
     export interface PropertyAccessChain extends PropertyAccessExpression {
         _optionalChainBrand: any;
-        readonly name: Identifier | PrivateIdentifier;
+        readonly name: MemberName;
     }
     export interface PropertyAccessChainRoot extends PropertyAccessChain {
         readonly questionDotToken: QuestionDotToken;
@@ -3594,9 +3601,9 @@ declare namespace ts {
          */
         tryGetMemberInModuleExportsAndProperties(memberName: string, moduleSymbol: Symbol): Symbol | undefined;
         getApparentType(type: Type): Type;
-        getSuggestedSymbolForNonexistentProperty(name: Identifier | PrivateIdentifier | string, containingType: Type): Symbol | undefined;
+        getSuggestedSymbolForNonexistentProperty(name: MemberName | string, containingType: Type): Symbol | undefined;
         getSuggestedSymbolForNonexistentJSXAttribute(name: Identifier | string, containingType: Type): Symbol | undefined;
-        getSuggestionForNonexistentProperty(name: Identifier | PrivateIdentifier | string, containingType: Type): string | undefined;
+        getSuggestionForNonexistentProperty(name: MemberName | string, containingType: Type): string | undefined;
         getSuggestedSymbolForNonexistentSymbol(location: Node, name: string, meaning: SymbolFlags): Symbol | undefined;
         getSuggestionForNonexistentSymbol(location: Node, name: string, meaning: SymbolFlags): string | undefined;
         getSuggestedSymbolForNonexistentModule(node: Identifier, target: Symbol): Symbol | undefined;
@@ -5496,18 +5503,22 @@ declare namespace ts {
         NeverApplyImportHelper = 67108864,
         IgnoreSourceNewlines = 134217728
     }
-    export interface EmitHelper {
+    export interface EmitHelperBase {
         readonly name: string;
         readonly scoped: boolean;
         readonly text: string | ((node: EmitHelperUniqueNameCallback) => string);
         readonly priority?: number;
         readonly dependencies?: EmitHelper[];
     }
-    export interface UnscopedEmitHelper extends EmitHelper {
+    export interface ScopedEmitHelper extends EmitHelperBase {
+        readonly scoped: true;
+    }
+    export interface UnscopedEmitHelper extends EmitHelperBase {
         readonly scoped: false;
         readonly importName?: string;
         readonly text: string;
     }
+    export type EmitHelper = ScopedEmitHelper | UnscopedEmitHelper;
     export type UniqueNameHandler = (baseName: string, checkFn?: (name: string) => boolean, optimistic?: boolean) => string;
     export type EmitHelperUniqueNameCallback = (name: string) => string;
     /**
@@ -5763,10 +5774,10 @@ declare namespace ts {
         updateArrayLiteralExpression(node: ArrayLiteralExpression, elements: readonly Expression[]): ArrayLiteralExpression;
         createObjectLiteralExpression(properties?: readonly ObjectLiteralElementLike[], multiLine?: boolean): ObjectLiteralExpression;
         updateObjectLiteralExpression(node: ObjectLiteralExpression, properties: readonly ObjectLiteralElementLike[]): ObjectLiteralExpression;
-        createPropertyAccessExpression(expression: Expression, name: string | Identifier | PrivateIdentifier): PropertyAccessExpression;
-        updatePropertyAccessExpression(node: PropertyAccessExpression, expression: Expression, name: Identifier | PrivateIdentifier): PropertyAccessExpression;
-        createPropertyAccessChain(expression: Expression, questionDotToken: QuestionDotToken | undefined, name: string | Identifier | PrivateIdentifier): PropertyAccessChain;
-        updatePropertyAccessChain(node: PropertyAccessChain, expression: Expression, questionDotToken: QuestionDotToken | undefined, name: Identifier | PrivateIdentifier): PropertyAccessChain;
+        createPropertyAccessExpression(expression: Expression, name: string | MemberName): PropertyAccessExpression;
+        updatePropertyAccessExpression(node: PropertyAccessExpression, expression: Expression, name: MemberName): PropertyAccessExpression;
+        createPropertyAccessChain(expression: Expression, questionDotToken: QuestionDotToken | undefined, name: string | MemberName): PropertyAccessChain;
+        updatePropertyAccessChain(node: PropertyAccessChain, expression: Expression, questionDotToken: QuestionDotToken | undefined, name: MemberName): PropertyAccessChain;
         createElementAccessExpression(expression: Expression, index: number | Expression): ElementAccessExpression;
         updateElementAccessExpression(node: ElementAccessExpression, expression: Expression, argumentExpression: Expression): ElementAccessExpression;
         createElementAccessChain(expression: Expression, questionDotToken: QuestionDotToken | undefined, index: number | Expression): ElementAccessChain;
@@ -6450,12 +6461,12 @@ declare namespace ts {
          * });
          * ```
          */
-        onEmitNode?(hint: EmitHint, node: Node | undefined, emitCallback: (hint: EmitHint, node: Node | undefined) => void): void;
+        onEmitNode?(hint: EmitHint, node: Node, emitCallback: (hint: EmitHint, node: Node) => void): void;
         /**
          * A hook used to check if an emit notification is required for a node.
          * @param node The node to emit.
          */
-        isEmitNotificationEnabled?(node: Node | undefined): boolean;
+        isEmitNotificationEnabled?(node: Node): boolean;
         /**
          * A hook used by the Printer to perform just-in-time substitution of a node. This is
          * primarily used by node transformations that need to substitute one node for another,
@@ -6477,6 +6488,8 @@ declare namespace ts {
         onEmitSourceMapOfToken?: (node: Node | undefined, token: SyntaxKind, writer: (s: string) => void, pos: number, emitCallback: (token: SyntaxKind, writer: (s: string) => void, pos: number) => number) => number;
         onEmitSourceMapOfPosition?: (pos: number) => void;
         onSetSourceFile?: (node: SourceFile) => void;
+        onBeforeEmitNode?: (node: Node | undefined) => void;
+        onAfterEmitNode?: (node: Node | undefined) => void;
         onBeforeEmitNodeArray?: (nodes: NodeArray<any> | undefined) => void;
         onAfterEmitNodeArray?: (nodes: NodeArray<any> | undefined) => void;
         onBeforeEmitToken?: (node: Node) => void;
@@ -9386,7 +9399,7 @@ declare namespace ts {
      */
     function getEffectiveTypeParameterDeclarations(node: DeclarationWithTypeParameters): readonly TypeParameterDeclaration[];
     function getEffectiveConstraintOfTypeParameter(node: TypeParameterDeclaration): TypeNode | undefined;
-    function isIdentifierOrPrivateIdentifier(node: Node): node is Identifier | PrivateIdentifier;
+    function isMemberName(node: Node): node is MemberName;
     function isGetOrSetAccessorDeclaration(node: Node): node is AccessorDeclaration;
     function isPropertyAccessChain(node: Node): node is PropertyAccessChain;
     function isElementAccessChain(node: Node): node is ElementAccessChain;
@@ -9423,6 +9436,12 @@ declare namespace ts {
     function isJSDocPropertyLikeTag(node: Node): node is JSDocPropertyLikeTag;
     function isNode(node: Node): boolean;
     function isNodeKind(kind: SyntaxKind): boolean;
+    /**
+     * True if kind is of some token syntax kind.
+     * For example, this is true for an IfKeyword but not for an IfStatement.
+     * Literals are considered tokens, except TemplateLiteral, but does include TemplateHead/Middle/Tail.
+     */
+    function isTokenKind(kind: SyntaxKind): boolean;
     /**
      * True if node is of some token syntax kind.
      * For example, this is true for an IfKeyword but not for an IfStatement.
@@ -9874,7 +9893,7 @@ declare namespace ts {
     /** Any series of property and element accesses, ending in a literal element access */
     export function isBindableStaticElementAccessExpression(node: Node, excludeThisKeyword?: boolean): node is BindableStaticElementAccessExpression;
     export function isBindableStaticNameExpression(node: Node, excludeThisKeyword?: boolean): node is BindableStaticNameExpression;
-    export function getNameOrArgument(expr: PropertyAccessExpression | LiteralLikeElementAccessExpression): Identifier | PrivateIdentifier | (Expression & (NumericLiteral | StringLiteralLike));
+    export function getNameOrArgument(expr: PropertyAccessExpression | LiteralLikeElementAccessExpression): MemberName | (Expression & (NumericLiteral | StringLiteralLike));
     /**
      * Does not handle signed numeric names like `a[+0]` - handling those would require handling prefix unary expressions
      * throughout late binding handling as well, which is awkward (but ultimately probably doable if there is demand)
@@ -10829,15 +10848,28 @@ declare namespace ts {
     function isTemplateHead(node: Node): node is TemplateHead;
     function isTemplateMiddle(node: Node): node is TemplateMiddle;
     function isTemplateTail(node: Node): node is TemplateTail;
+    function isDotDotDotToken(node: Node): node is DotDotDotToken;
+    function isCommaToken(node: Node): node is Token<SyntaxKind.CommaToken>;
+    function isPlusToken(node: Node): node is PlusToken;
+    function isMinusToken(node: Node): node is MinusToken;
+    function isAsteriskToken(node: Node): node is AsteriskToken;
+    function isExclamationToken(node: Node): node is ExclamationToken;
+    function isQuestionToken(node: Node): node is QuestionToken;
+    function isColonToken(node: Node): node is ColonToken;
+    function isQuestionDotToken(node: Node): node is QuestionDotToken;
+    function isEqualsGreaterThanToken(node: Node): node is EqualsGreaterThanToken;
     function isIdentifier(node: Node): node is Identifier;
+    function isPrivateIdentifier(node: Node): node is PrivateIdentifier;
+    function isExportModifier(node: Node): node is ExportKeyword;
+    function isAsyncModifier(node: Node): node is AsyncKeyword;
+    function isAssertsKeyword(node: Node): node is AssertsKeyword;
+    function isAwaitKeyword(node: Node): node is AwaitKeyword;
+    function isReadonlyKeyword(node: Node): node is ReadonlyKeyword;
+    function isStaticModifier(node: Node): node is StaticKeyword;
+    function isSuperKeyword(node: Node): node is SuperExpression;
+    function isImportKeyword(node: Node): node is ImportExpression;
     function isQualifiedName(node: Node): node is QualifiedName;
     function isComputedPropertyName(node: Node): node is ComputedPropertyName;
-    function isPrivateIdentifier(node: Node): node is PrivateIdentifier;
-    function isSuperKeyword(node: Node): node is Token<SyntaxKind.SuperKeyword>;
-    function isImportKeyword(node: Node): node is Token<SyntaxKind.ImportKeyword>;
-    function isCommaToken(node: Node): node is Token<SyntaxKind.CommaToken>;
-    function isQuestionToken(node: Node): node is Token<SyntaxKind.QuestionToken>;
-    function isExclamationToken(node: Node): node is Token<SyntaxKind.ExclamationToken>;
     function isTypeParameterDeclaration(node: Node): node is TypeParameterDeclaration;
     function isParameter(node: Node): node is ParameterDeclaration;
     function isDecorator(node: Node): node is Decorator;
@@ -11099,9 +11131,24 @@ declare namespace ts {
     function getElementsOfBindingOrAssignmentPattern(name: BindingOrAssignmentPattern): readonly BindingOrAssignmentElement[];
     function getJSDocTypeAliasName(fullName: JSDocNamespaceBody | undefined): Identifier | undefined;
     function canHaveModifiers(node: Node): node is HasModifiers;
-    function isExportModifier(node: Modifier): node is ExportKeyword;
-    function isAsyncModifier(node: Modifier): node is AsyncKeyword;
-    function isStaticModifier(node: Modifier): node is StaticKeyword;
+    const isTypeNodeOrTypeParameterDeclaration: (node: Node) => node is TypeParameterDeclaration | TypeNode;
+    const isQuestionOrExclamationToken: (node: Node) => node is QuestionToken | ExclamationToken;
+    const isIdentifierOrThisTypeNode: (node: Node) => node is Identifier | ThisTypeNode;
+    const isReadonlyKeywordOrPlusOrMinusToken: (node: Node) => node is ReadonlyKeyword | PlusToken | MinusToken;
+    const isQuestionOrPlusOrMinusToken: (node: Node) => node is QuestionToken | PlusToken | MinusToken;
+    const isModuleName: (node: Node) => node is ModuleName;
+    function isLiteralTypeLikeExpression(node: Node): node is NullLiteral | BooleanLiteral | LiteralExpression | PrefixUnaryExpression;
+    function isBinaryOperatorToken(node: Node): node is BinaryOperatorToken;
+    /**
+     * Creates a state machine that walks a `BinaryExpression` using the heap to reduce call-stack depth on a large tree.
+     * @param onEnter Callback evaluated when entering a `BinaryExpression`. Returns new user-defined state to associate with the node while walking.
+     * @param onLeft Callback evaluated when walking the left side of a `BinaryExpression`. Return a `BinaryExpression` to continue walking, or `void` to advance to the right side.
+     * @param onRight Callback evaluated when walking the right side of a `BinaryExpression`. Return a `BinaryExpression` to continue walking, or `void` to advance to the end of the node.
+     * @param onExit Callback evaluated when exiting a `BinaryExpression`. The result returned will either be folded into the parent's state, or returned from the walker if at the top frame.
+     * @param foldState Callback evaluated when the result from a nested `onExit` should be folded into the state of that node's parent.
+     * @returns A function that walks a `BinaryExpression` node using the above callbacks, returning the result of the call to `onExit` from the outermost `BinaryExpression` node.
+     */
+    function createBinaryExpressionTrampoline<TState, TResult>(onEnter: (node: BinaryExpression, prev: TState | undefined) => TState, onLeft: ((left: Expression, userState: TState, node: BinaryExpression) => BinaryExpression | void) | undefined, onOperator: ((operatorToken: BinaryOperatorToken, userState: TState, node: BinaryExpression) => void) | undefined, onRight: ((right: Expression, userState: TState, node: BinaryExpression) => BinaryExpression | void) | undefined, onExit: (node: BinaryExpression, userState: TState) => TResult, foldState: ((userState: TState, result: TResult, side: "left" | "right") => TState) | undefined): (node: BinaryExpression) => TResult;
 }
 declare namespace ts {
     function setTextRange<T extends TextRange>(range: T, location: TextRange | undefined): T;
@@ -16623,13 +16670,13 @@ declare namespace ts {
     /** @deprecated Use `factory.updateObjectLiteralExpression` or the factory supplied by your transformation context instead. */
     const updateObjectLiteral: (node: ObjectLiteralExpression, properties: readonly ObjectLiteralElementLike[]) => ObjectLiteralExpression;
     /** @deprecated Use `factory.createPropertyAccessExpression` or the factory supplied by your transformation context instead. */
-    const createPropertyAccess: (expression: Expression, name: string | Identifier | PrivateIdentifier) => PropertyAccessExpression;
+    const createPropertyAccess: (expression: Expression, name: string | MemberName) => PropertyAccessExpression;
     /** @deprecated Use `factory.updatePropertyAccessExpression` or the factory supplied by your transformation context instead. */
-    const updatePropertyAccess: (node: PropertyAccessExpression, expression: Expression, name: Identifier | PrivateIdentifier) => PropertyAccessExpression;
+    const updatePropertyAccess: (node: PropertyAccessExpression, expression: Expression, name: MemberName) => PropertyAccessExpression;
     /** @deprecated Use `factory.createPropertyAccessChain` or the factory supplied by your transformation context instead. */
-    const createPropertyAccessChain: (expression: Expression, questionDotToken: QuestionDotToken | undefined, name: string | Identifier | PrivateIdentifier) => PropertyAccessChain;
+    const createPropertyAccessChain: (expression: Expression, questionDotToken: QuestionDotToken | undefined, name: string | MemberName) => PropertyAccessChain;
     /** @deprecated Use `factory.updatePropertyAccessChain` or the factory supplied by your transformation context instead. */
-    const updatePropertyAccessChain: (node: PropertyAccessChain, expression: Expression, questionDotToken: QuestionDotToken | undefined, name: Identifier | PrivateIdentifier) => PropertyAccessChain;
+    const updatePropertyAccessChain: (node: PropertyAccessChain, expression: Expression, questionDotToken: QuestionDotToken | undefined, name: MemberName) => PropertyAccessChain;
     /** @deprecated Use `factory.createElementAccessExpression` or the factory supplied by your transformation context instead. */
     const createElementAccess: (expression: Expression, index: number | Expression) => ElementAccessExpression;
     /** @deprecated Use `factory.updateElementAccessExpression` or the factory supplied by your transformation context instead. */
@@ -17199,4 +17246,8 @@ declare namespace ts {
      */
     interface Map<T> extends ESMap<string, T> {
     }
+    /**
+     * @deprecated Use `isMemberName` instead.
+     */
+    const isIdentifierOrPrivateIdentifier: (node: Node) => node is MemberName;
 }
