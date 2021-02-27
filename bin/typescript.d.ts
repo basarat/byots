@@ -10623,6 +10623,7 @@ declare namespace ts {
      */
     export function expressionResultIsUnused(node: Expression): boolean;
     export function containsIgnoredPath(path: string): boolean;
+    export function getContainingNodeArray(node: Node): NodeArray<Node> | undefined;
     export {};
 }
 declare namespace ts {
