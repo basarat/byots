@@ -228,7 +228,7 @@ declare namespace ts {
     function contains<T>(array: readonly T[] | undefined, value: T, equalityComparer?: EqualityComparer<T>): boolean;
     function arraysEqual<T>(a: readonly T[], b: readonly T[], equalityComparer?: EqualityComparer<T>): boolean;
     function indexOfAnyCharCode(text: string, charCodes: readonly number[], start?: number): number;
-    function countWhere<T>(array: readonly T[], predicate: (x: T, i: number) => boolean): number;
+    function countWhere<T>(array: readonly T[] | undefined, predicate: (x: T, i: number) => boolean): number;
     /**
      * Filters an array by a predicate function. Returns the same array instance if the predicate is
      * true for all elements, otherwise returns a new array instance containing the filtered subset.
@@ -3632,6 +3632,7 @@ declare namespace ts {
         createSymbol(flags: SymbolFlags, name: __String): TransientSymbol;
         createIndexInfo(type: Type, isReadonly: boolean, declaration?: SignatureDeclaration): IndexInfo;
         isSymbolAccessible(symbol: Symbol, enclosingDeclaration: Node | undefined, meaning: SymbolFlags, shouldComputeAliasToMarkVisible: boolean): SymbolAccessibilityResult;
+        tryFindAmbientModule(moduleName: string): Symbol | undefined;
         tryFindAmbientModuleWithoutAugmentations(moduleName: string): Symbol | undefined;
         getSymbolWalker(accept?: (symbol: Symbol) => boolean): SymbolWalker;
         getDiagnostics(sourceFile?: SourceFile, cancellationToken?: CancellationToken): Diagnostic[];
@@ -4025,7 +4026,7 @@ declare namespace ts {
     export interface Symbol {
         flags: SymbolFlags;
         escapedName: __String;
-        declarations: Declaration[];
+        declarations?: Declaration[];
         valueDeclaration: Declaration;
         members?: SymbolTable;
         exports?: SymbolTable;
@@ -4474,6 +4475,8 @@ declare namespace ts {
         resolvedReducedType?: Type;
         regularType?: UnionType;
         origin?: Type;
+        keyPropertyName?: __String;
+        constituentMap?: ESMap<TypeId, Type>;
     }
     export interface IntersectionType extends UnionOrIntersectionType {
         resolvedApparentType: Type;
@@ -13634,12 +13637,13 @@ declare namespace ts {
          *
          * @param fileName The path to the file
          * @param position A zero based index of the character where you want the entries
-         * @param entryName The name from an existing completion which came from `getCompletionsAtPosition`
+         * @param entryName The `name` from an existing completion which came from `getCompletionsAtPosition`
          * @param formatOptions How should code samples in the completions be formatted, can be undefined for backwards compatibility
-         * @param source Source code for the current file, can be undefined for backwards compatibility
+         * @param source `source` property from the completion entry
          * @param preferences User settings, can be undefined for backwards compatibility
+         * @param data `data` property from the completion entry
          */
-        getCompletionEntryDetails(fileName: string, position: number, entryName: string, formatOptions: FormatCodeOptions | FormatCodeSettings | undefined, source: string | undefined, preferences: UserPreferences | undefined): CompletionEntryDetails | undefined;
+        getCompletionEntryDetails(fileName: string, position: number, entryName: string, formatOptions: FormatCodeOptions | FormatCodeSettings | undefined, source: string | undefined, preferences: UserPreferences | undefined, data: CompletionEntryData | undefined): CompletionEntryDetails | undefined;
         getCompletionEntrySymbol(fileName: string, position: number, name: string, source: string | undefined): Symbol | undefined;
         /**
          * Gets semantic information about the identifier at a particular position in a
@@ -14080,6 +14084,7 @@ declare namespace ts {
         name: string;
         containerKind: ScriptElementKind;
         containerName: string;
+        unverified?: boolean;
         isLocal?: boolean;
     }
     interface DefinitionInfoAndBoundSpan {
@@ -14210,6 +14215,19 @@ declare namespace ts {
         isNewIdentifierLocation: boolean;
         entries: CompletionEntry[];
     }
+    interface CompletionEntryData {
+        /** The file name declaring the export's module symbol, if it was an external module */
+        fileName?: string;
+        /** The module name (with quotes stripped) of the export's module symbol, if it was an ambient module */
+        ambientModuleName?: string;
+        /** True if the export was found in the package.json AutoImportProvider */
+        isPackageJsonImport?: true;
+        /**
+         * The name of the property or export in the module's symbol table. Differs from the completion name
+         * in the case of InternalSymbolName.ExportEquals and InternalSymbolName.Default.
+         */
+        exportName: string;
+    }
     interface CompletionEntry {
         name: string;
         kind: ScriptElementKind;
@@ -14227,6 +14245,15 @@ declare namespace ts {
         isRecommended?: true;
         isFromUncheckedFile?: true;
         isPackageJsonImport?: true;
+        /**
+         * A property to be sent back to TS Server in the CompletionDetailsRequest, along with `name`,
+         * that allows TS Server to look up the symbol represented by the completion item, disambiguating
+         * items with the same name. Currently only defined for auto-import completions, but the type is
+         * `unknown` in the protocol, so it can be changed as needed to support other kinds of completions.
+         * The presence of this property should generally not be used to assume that this completion entry
+         * is an auto-import.
+         */
+        data?: CompletionEntryData;
     }
     interface CompletionEntryDetails {
         name: string;
@@ -14687,6 +14714,7 @@ declare namespace ts {
     function getQuoteFromPreference(qp: QuotePreference): string;
     function symbolNameNoDefault(symbol: Symbol): string | undefined;
     function symbolEscapedNameNoDefault(symbol: Symbol): __String | undefined;
+    function isModuleSpecifierLike(node: Node): node is StringLiteralLike;
     type ObjectBindingElementWithoutPropertyName = BindingElement & {
         name: Identifier;
     };
@@ -14705,7 +14733,7 @@ declare namespace ts {
      */
     function forEachUnique<T, U>(array: readonly T[] | undefined, callback: (element: T, index: number) => U): U | undefined;
     function isTextWhiteSpaceLike(text: string, startPos: number, endPos: number): boolean;
-    function isFirstDeclarationOfSymbolParameter(symbol: Symbol): boolean;
+    function isFirstDeclarationOfSymbolParameter(symbol: Symbol): boolean | undefined;
     function symbolPart(text: string, symbol: Symbol): SymbolDisplayPart;
     function displayPart(text: string, kind: SymbolDisplayPartKind): SymbolDisplayPart;
     function spacePart(): SymbolDisplayPart;
@@ -14928,6 +14956,8 @@ declare namespace ts.Completions {
         moduleSymbol: Symbol;
         isDefaultExport: boolean;
         isFromPackageJson?: boolean;
+        exportName: string;
+        fileName?: string;
     }
     interface UniqueNameSet {
         add(name: string): void;
@@ -14942,7 +14972,6 @@ declare namespace ts.Completions {
     export interface AutoImportSuggestion {
         symbol: Symbol;
         symbolName: string;
-        skipFilter: boolean;
         origin: SymbolOriginInfoExport;
     }
     export interface ImportSuggestionsForFileCache {
@@ -14957,6 +14986,7 @@ declare namespace ts.Completions {
     export interface CompletionEntryIdentifier {
         name: string;
         source?: string;
+        data?: CompletionEntryData;
     }
     export function getCompletionEntryDetails(program: Program, log: Log, sourceFile: SourceFile, position: number, entryId: CompletionEntryIdentifier, host: LanguageServiceHost, formatContext: formatting.FormatContext, preferences: UserPreferences, cancellationToken: CancellationToken): CompletionEntryDetails | undefined;
     export function createCompletionDetailsForSymbol(symbol: Symbol, checker: TypeChecker, sourceFile: SourceFile, location: Node, cancellationToken: CancellationToken, codeActions?: CodeAction[], sourceDisplay?: SymbolDisplayPart[]): CompletionEntryDetails;
@@ -15285,7 +15315,9 @@ declare namespace ts.GoToDefinition {
     function getDefinitionAtPosition(program: Program, sourceFile: SourceFile, position: number): readonly DefinitionInfo[] | undefined;
     function getReferenceAtPosition(sourceFile: SourceFile, position: number, program: Program): {
         reference: FileReference;
-        file: SourceFile;
+        fileName: string;
+        unverified: boolean;
+        file?: SourceFile;
     } | undefined;
     function getTypeDefinitionAtPosition(typeChecker: TypeChecker, sourceFile: SourceFile, position: number): readonly DefinitionInfo[] | undefined;
     function getDefinitionAndBoundSpan(program: Program, sourceFile: SourceFile, position: number): DefinitionInfoAndBoundSpan | undefined;
@@ -16294,7 +16326,7 @@ declare namespace ts {
         getEncodedSyntacticClassifications(fileName: string, start: number, length: number): string;
         getEncodedSemanticClassifications(fileName: string, start: number, length: number, format?: SemanticClassificationFormat): string;
         getCompletionsAtPosition(fileName: string, position: number, preferences: UserPreferences | undefined): string;
-        getCompletionEntryDetails(fileName: string, position: number, entryName: string, formatOptions: string | undefined, source: string | undefined, preferences: UserPreferences | undefined): string;
+        getCompletionEntryDetails(fileName: string, position: number, entryName: string, formatOptions: string | undefined, source: string | undefined, preferences: UserPreferences | undefined, data: CompletionEntryData | undefined): string;
         getQuickInfoAtPosition(fileName: string, position: number): string;
         getNameOrDottedNameSpan(fileName: string, startPos: number, endPos: number): string;
         getBreakpointStatementAtPosition(fileName: string, position: number): string;
