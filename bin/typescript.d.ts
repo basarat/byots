@@ -8029,7 +8029,7 @@ declare namespace ts {
         Property_0_is_protected_but_type_1_is_not_a_class_derived_from_2: DiagnosticMessage;
         Property_0_is_protected_in_type_1_but_public_in_type_2: DiagnosticMessage;
         Property_0_is_protected_and_only_accessible_within_class_1_and_its_subclasses: DiagnosticMessage;
-        Property_0_is_protected_and_only_accessible_through_an_instance_of_class_1: DiagnosticMessage;
+        Property_0_is_protected_and_only_accessible_through_an_instance_of_class_1_This_is_an_instance_of_class_2: DiagnosticMessage;
         The_0_operator_is_not_allowed_for_boolean_types_Consider_using_1_instead: DiagnosticMessage;
         Block_scoped_variable_0_used_before_its_declaration: DiagnosticMessage;
         Class_0_used_before_its_declaration: DiagnosticMessage;
@@ -9816,6 +9816,7 @@ declare namespace ts {
      */
     export function isThisProperty(node: Node): boolean;
     export function isThisInitializedDeclaration(node: Node | undefined): boolean;
+    export function isThisInitializedObjectBindingExpression(node: Node | undefined): boolean;
     export function getEntityNameFromTypeNode(node: TypeNode): EntityNameOrEntityNameExpression | undefined;
     export function getInvokedExpression(node: CallLikeExpression): Expression;
     export function nodeCanBeDecorated(node: ClassDeclaration): true;
@@ -12450,13 +12451,16 @@ declare namespace ts {
          */
         programEmitComplete?: true;
     }
-    type ProgramBuildInfoDiagnostic = string | [string, readonly ReusableDiagnostic[]];
-    type ProgramBuilderInfoFilePendingEmit = [string, BuilderFileEmit];
+    type ProgramBuildInfoDiagnostic = number | [fileId: number, diagnostics: readonly ReusableDiagnostic[]];
+    type ProgramBuilderInfoFilePendingEmit = [fileId: number, emitKind: BuilderFileEmit];
+    type ProgramBuildInfoReferencedMap = [fileId: number, fileIdListId: number][];
     interface ProgramBuildInfo {
-        fileInfos: MapLike<BuilderState.FileInfo>;
+        fileNames: readonly string[];
+        fileInfos: readonly BuilderState.FileInfo[];
         options: CompilerOptions;
-        referencedMap?: MapLike<string[]>;
-        exportedModulesMap?: MapLike<string[]>;
+        fileIdsList?: readonly (readonly number[])[];
+        referencedMap?: ProgramBuildInfoReferencedMap;
+        exportedModulesMap?: ProgramBuildInfoReferencedMap;
         semanticDiagnosticsPerFile?: ProgramBuildInfoDiagnostic[];
         affectedFilesPendingEmit?: ProgramBuilderInfoFilePendingEmit[];
     }
