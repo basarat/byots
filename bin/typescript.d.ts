@@ -5052,6 +5052,7 @@ declare namespace ts {
         ES2018 = 5,
         ES2019 = 6,
         ES2020 = 7,
+        ES2021 = 8,
         ESNext = 99,
         JSON = 100,
         Latest = 99
@@ -5400,57 +5401,59 @@ declare namespace ts {
         ContainsTypeScript = 1,
         ContainsJsx = 2,
         ContainsESNext = 4,
-        ContainsES2020 = 8,
-        ContainsES2019 = 16,
-        ContainsES2018 = 32,
-        ContainsES2017 = 64,
-        ContainsES2016 = 128,
-        ContainsES2015 = 256,
-        ContainsGenerator = 512,
-        ContainsDestructuringAssignment = 1024,
-        ContainsTypeScriptClassSyntax = 2048,
-        ContainsLexicalThis = 4096,
-        ContainsRestOrSpread = 8192,
-        ContainsObjectRestOrSpread = 16384,
-        ContainsComputedPropertyName = 32768,
-        ContainsBlockScopedBinding = 65536,
-        ContainsBindingPattern = 131072,
-        ContainsYield = 262144,
-        ContainsAwait = 524288,
-        ContainsHoistedDeclarationOrCompletion = 1048576,
-        ContainsDynamicImport = 2097152,
-        ContainsClassFields = 4194304,
-        ContainsPossibleTopLevelAwait = 8388608,
+        ContainsES2021 = 8,
+        ContainsES2020 = 16,
+        ContainsES2019 = 32,
+        ContainsES2018 = 64,
+        ContainsES2017 = 128,
+        ContainsES2016 = 256,
+        ContainsES2015 = 512,
+        ContainsGenerator = 1024,
+        ContainsDestructuringAssignment = 2048,
+        ContainsTypeScriptClassSyntax = 4096,
+        ContainsLexicalThis = 8192,
+        ContainsRestOrSpread = 16384,
+        ContainsObjectRestOrSpread = 32768,
+        ContainsComputedPropertyName = 65536,
+        ContainsBlockScopedBinding = 131072,
+        ContainsBindingPattern = 262144,
+        ContainsYield = 524288,
+        ContainsAwait = 1048576,
+        ContainsHoistedDeclarationOrCompletion = 2097152,
+        ContainsDynamicImport = 4194304,
+        ContainsClassFields = 8388608,
+        ContainsPossibleTopLevelAwait = 16777216,
         HasComputedFlags = 536870912,
         AssertTypeScript = 1,
         AssertJsx = 2,
         AssertESNext = 4,
-        AssertES2020 = 8,
-        AssertES2019 = 16,
-        AssertES2018 = 32,
-        AssertES2017 = 64,
-        AssertES2016 = 128,
-        AssertES2015 = 256,
-        AssertGenerator = 512,
-        AssertDestructuringAssignment = 1024,
+        AssertES2021 = 8,
+        AssertES2020 = 16,
+        AssertES2019 = 32,
+        AssertES2018 = 64,
+        AssertES2017 = 128,
+        AssertES2016 = 256,
+        AssertES2015 = 512,
+        AssertGenerator = 1024,
+        AssertDestructuringAssignment = 2048,
         OuterExpressionExcludes = 536870912,
         PropertyAccessExcludes = 536870912,
         NodeExcludes = 536870912,
-        ArrowFunctionExcludes = 547309568,
-        FunctionExcludes = 547313664,
-        ConstructorExcludes = 547311616,
-        MethodOrAccessorExcludes = 538923008,
-        PropertyExcludes = 536875008,
-        ClassExcludes = 536905728,
-        ModuleExcludes = 546379776,
+        ArrowFunctionExcludes = 557748224,
+        FunctionExcludes = 557756416,
+        ConstructorExcludes = 557752320,
+        MethodOrAccessorExcludes = 540975104,
+        PropertyExcludes = 536879104,
+        ClassExcludes = 536940544,
+        ModuleExcludes = 555888640,
         TypeExcludes = -2,
-        ObjectLiteralExcludes = 536922112,
-        ArrayLiteralOrCallOrNewExcludes = 536879104,
-        VariableDeclarationListExcludes = 537018368,
+        ObjectLiteralExcludes = 536973312,
+        ArrayLiteralOrCallOrNewExcludes = 536887296,
+        VariableDeclarationListExcludes = 537165824,
         ParameterExcludes = 536870912,
-        CatchClauseExcludes = 536887296,
-        BindingPatternExcludes = 536879104,
-        PropertyNamePropagatingFlags = 4096
+        CatchClauseExcludes = 536903680,
+        BindingPatternExcludes = 536887296,
+        PropertyNamePropagatingFlags = 8192
     }
     export interface SourceMapRange extends TextRange {
         source?: SourceMapSource;
@@ -8516,7 +8519,7 @@ declare namespace ts {
         Skip_type_checking_of_declaration_files: DiagnosticMessage;
         Do_not_resolve_the_real_path_of_symlinks: DiagnosticMessage;
         Only_emit_d_ts_declaration_files: DiagnosticMessage;
-        Specify_ECMAScript_target_version_Colon_ES3_default_ES5_ES2015_ES2016_ES2017_ES2018_ES2019_ES2020_or_ESNEXT: DiagnosticMessage;
+        Specify_ECMAScript_target_version_Colon_ES3_default_ES5_ES2015_ES2016_ES2017_ES2018_ES2019_ES2020_ES2021_or_ESNEXT: DiagnosticMessage;
         Specify_module_code_generation_Colon_none_commonjs_amd_system_umd_es2015_es2020_or_ESNext: DiagnosticMessage;
         Print_this_message: DiagnosticMessage;
         Print_the_compiler_s_version: DiagnosticMessage;
@@ -11832,6 +11835,9 @@ declare namespace ts {
 }
 declare namespace ts {
     function transformES2020(context: TransformationContext): (x: SourceFile | Bundle) => SourceFile | Bundle;
+}
+declare namespace ts {
+    function transformES2021(context: TransformationContext): (x: SourceFile | Bundle) => SourceFile | Bundle;
 }
 declare namespace ts {
     function transformESNext(context: TransformationContext): (x: SourceFile | Bundle) => SourceFile | Bundle;
