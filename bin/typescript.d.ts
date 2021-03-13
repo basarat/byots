@@ -6258,6 +6258,9 @@ declare namespace ts {
         hoistFunctionDeclaration(node: FunctionDeclaration): void;
         /** Hoists a variable declaration to the containing scope. */
         hoistVariableDeclaration(node: Identifier): void;
+        startBlockScope(): void;
+        endBlockScope(): Statement[] | undefined;
+        addBlockScopedVariable(node: Identifier): void;
         /** Adds an initialization statement to the top of the lexical environment. */
         addInitializationStatement(node: Statement): void;
     }
@@ -8205,6 +8208,11 @@ declare namespace ts {
         Variadic_element_at_position_0_in_source_does_not_match_element_at_position_1_in_target: DiagnosticMessage;
         Type_at_position_0_in_source_is_not_compatible_with_type_at_position_1_in_target: DiagnosticMessage;
         Type_at_positions_0_through_1_in_source_is_not_compatible_with_type_at_position_2_in_target: DiagnosticMessage;
+        Cannot_assign_to_0_because_it_is_an_enum: DiagnosticMessage;
+        Cannot_assign_to_0_because_it_is_a_class: DiagnosticMessage;
+        Cannot_assign_to_0_because_it_is_a_function: DiagnosticMessage;
+        Cannot_assign_to_0_because_it_is_a_namespace: DiagnosticMessage;
+        Cannot_assign_to_0_because_it_is_an_import: DiagnosticMessage;
         Cannot_augment_module_0_with_value_exports_because_it_resolves_to_a_non_module_entity: DiagnosticMessage;
         A_member_initializer_in_a_enum_declaration_cannot_reference_members_declared_after_it_including_members_defined_in_other_enums: DiagnosticMessage;
         Merged_declaration_0_cannot_include_a_default_export_declaration_Consider_adding_a_separate_export_default_0_declaration_instead: DiagnosticMessage;
@@ -9158,7 +9166,7 @@ declare namespace ts {
         scanJsxIdentifier(): SyntaxKind;
         scanJsxAttributeValue(): SyntaxKind;
         reScanJsxAttributeValue(): SyntaxKind;
-        reScanJsxToken(): JsxTokenSyntaxKind;
+        reScanJsxToken(allowMultilineJsxText?: boolean): JsxTokenSyntaxKind;
         reScanLessThanToken(): SyntaxKind;
         reScanQuestionToken(): SyntaxKind;
         reScanInvalidIdentifier(): SyntaxKind;
@@ -11656,6 +11664,10 @@ declare namespace ts {
     function visitFunctionBody(node: FunctionBody, visitor: Visitor, context: TransformationContext, nodeVisitor?: NodeVisitor): FunctionBody;
     function visitFunctionBody(node: FunctionBody | undefined, visitor: Visitor, context: TransformationContext, nodeVisitor?: NodeVisitor): FunctionBody | undefined;
     function visitFunctionBody(node: ConciseBody, visitor: Visitor, context: TransformationContext, nodeVisitor?: NodeVisitor): ConciseBody;
+    /**
+     * Visits an iteration body, adding any block-scoped variables required by the transformation.
+     */
+    function visitIterationBody(body: Statement, visitor: Visitor, context: TransformationContext): Statement;
     /**
      * Visits each child of a Node using the supplied visitor, possibly returning a new Node of the same kind in its place.
      *
