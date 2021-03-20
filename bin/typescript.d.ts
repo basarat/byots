@@ -11185,6 +11185,16 @@ declare namespace ts {
      * @returns A function that walks a `BinaryExpression` node using the above callbacks, returning the result of the call to `onExit` from the outermost `BinaryExpression` node.
      */
     function createBinaryExpressionTrampoline<TState, TResult>(onEnter: (node: BinaryExpression, prev: TState | undefined) => TState, onLeft: ((left: Expression, userState: TState, node: BinaryExpression) => BinaryExpression | void) | undefined, onOperator: ((operatorToken: BinaryOperatorToken, userState: TState, node: BinaryExpression) => void) | undefined, onRight: ((right: Expression, userState: TState, node: BinaryExpression) => BinaryExpression | void) | undefined, onExit: (node: BinaryExpression, userState: TState) => TResult, foldState: ((userState: TState, result: TResult, side: "left" | "right") => TState) | undefined): (node: BinaryExpression) => TResult;
+    /**
+     * Creates a state machine that walks a `BinaryExpression` using the heap to reduce call-stack depth on a large tree.
+     * @param onEnter Callback evaluated when entering a `BinaryExpression`. Returns new user-defined state to associate with the node while walking.
+     * @param onLeft Callback evaluated when walking the left side of a `BinaryExpression`. Return a `BinaryExpression` to continue walking, or `void` to advance to the right side.
+     * @param onRight Callback evaluated when walking the right side of a `BinaryExpression`. Return a `BinaryExpression` to continue walking, or `void` to advance to the end of the node.
+     * @param onExit Callback evaluated when exiting a `BinaryExpression`. The result returned will either be folded into the parent's state, or returned from the walker if at the top frame.
+     * @param foldState Callback evaluated when the result from a nested `onExit` should be folded into the state of that node's parent.
+     * @returns A function that walks a `BinaryExpression` node using the above callbacks, returning the result of the call to `onExit` from the outermost `BinaryExpression` node.
+     */
+    function createBinaryExpressionTrampoline<TOuterState, TState, TResult>(onEnter: (node: BinaryExpression, prev: TState | undefined, outerState: TOuterState) => TState, onLeft: ((left: Expression, userState: TState, node: BinaryExpression) => BinaryExpression | void) | undefined, onOperator: ((operatorToken: BinaryOperatorToken, userState: TState, node: BinaryExpression) => void) | undefined, onRight: ((right: Expression, userState: TState, node: BinaryExpression) => BinaryExpression | void) | undefined, onExit: (node: BinaryExpression, userState: TState) => TResult, foldState: ((userState: TState, result: TResult, side: "left" | "right") => TState) | undefined): (node: BinaryExpression, outerState: TOuterState) => TResult;
 }
 declare namespace ts {
     function setTextRange<T extends TextRange>(range: T, location: TextRange | undefined): T;
