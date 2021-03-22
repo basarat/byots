@@ -8214,6 +8214,7 @@ declare namespace ts {
         Cannot_assign_to_0_because_it_is_a_function: DiagnosticMessage;
         Cannot_assign_to_0_because_it_is_a_namespace: DiagnosticMessage;
         Cannot_assign_to_0_because_it_is_an_import: DiagnosticMessage;
+        JSX_property_access_expressions_cannot_include_JSX_namespace_names: DiagnosticMessage;
         Cannot_augment_module_0_with_value_exports_because_it_resolves_to_a_non_module_entity: DiagnosticMessage;
         A_member_initializer_in_a_enum_declaration_cannot_reference_members_declared_after_it_including_members_defined_in_other_enums: DiagnosticMessage;
         Merged_declaration_0_cannot_include_a_default_export_declaration_Consider_adding_a_separate_export_default_0_declaration_instead: DiagnosticMessage;
