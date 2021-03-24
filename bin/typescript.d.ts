@@ -5401,6 +5401,7 @@ declare namespace ts {
         useSourceOfProjectReferenceRedirect?(): boolean;
         createDirectory?(directory: string): void;
         getSymlinkCache?(): SymlinkCache;
+        disableUseFileVersionAsSignature?: boolean;
     }
     /** true if --out otherwise source file name */
     export type SourceOfProjectReferenceRedirect = string | true;
@@ -7550,6 +7551,7 @@ declare namespace ts {
         base64encode?(input: string): string;
         bufferFrom?(input: string, encoding?: string): Buffer;
         now?(): Date;
+        disableUseFileVersionAsSignature?: boolean;
         require?(baseDir: string, moduleName: string): RequireResult;
         defaultWatchFileKind?(): WatchFileKind | undefined;
     }
@@ -12262,6 +12264,11 @@ declare namespace ts {
          */
         readonly exportedModulesMap: ESMap<Path, BuilderState.ReferencedSet> | undefined;
         /**
+         * true if file version is used as signature
+         * This helps in delaying the calculation of the d.ts hash as version for the file till reasonable time
+         */
+        useFileVersionAsSignature: boolean;
+        /**
          * Map of files that have already called update signature.
          * That means hence forth these files are assumed to have
          * no change in their signature for this version of the program
@@ -12305,7 +12312,7 @@ declare namespace ts {
         /**
          * Creates the state of file references and signature for the new program from oldState if it is safe
          */
-        function create(newProgram: Program, getCanonicalFileName: GetCanonicalFileName, oldState?: Readonly<ReusableBuilderState>): BuilderState;
+        function create(newProgram: Program, getCanonicalFileName: GetCanonicalFileName, oldState?: Readonly<ReusableBuilderState>, disableUseFileVersionAsSignature?: boolean): BuilderState;
         /**
          * Releases needed properties
          */
@@ -12550,6 +12557,10 @@ declare namespace ts {
          * this callback if present would be used to write files
          */
         writeFile?: WriteFileCallback;
+        /**
+         * disable using source file version as signature for testing
+         */
+        disableUseFileVersionAsSignature?: boolean;
     }
     /**
      * Builder to manage the program state changes
@@ -12921,6 +12932,7 @@ declare namespace ts {
     interface ProgramHost<T extends BuilderProgram> {
         createDirectory?(path: string): void;
         writeFile?(path: string, data: string, writeByteOrderMark?: boolean): void;
+        disableUseFileVersionAsSignature?: boolean;
     }
     interface WatchCompilerHost<T extends BuilderProgram> extends ProgramHost<T>, WatchHost {
         /** Instead of using output d.ts file from project reference, use its source file */
