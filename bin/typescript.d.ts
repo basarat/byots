@@ -1728,6 +1728,17 @@ declare namespace ts {
     export interface PrivateIdentifierPropertyDeclaration extends PropertyDeclaration {
         name: PrivateIdentifier;
     }
+    export interface PrivateIdentifierMethodDeclaration extends MethodDeclaration {
+        name: PrivateIdentifier;
+    }
+    export interface PrivateIdentifierGetAccessorDeclaration extends GetAccessorDeclaration {
+        name: PrivateIdentifier;
+    }
+    export interface PrivateIdentifierSetAccessorDeclaration extends SetAccessorDeclaration {
+        name: PrivateIdentifier;
+    }
+    export type PrivateIdentifierAccessorDeclaration = PrivateIdentifierGetAccessorDeclaration | PrivateIdentifierSetAccessorDeclaration;
+    export type PrivateClassElementDeclaration = PrivateIdentifierPropertyDeclaration | PrivateIdentifierMethodDeclaration | PrivateIdentifierGetAccessorDeclaration | PrivateIdentifierSetAccessorDeclaration;
     export type InitializedPropertyDeclaration = PropertyDeclaration & {
         readonly initializer: Expression;
     };
@@ -8384,6 +8395,11 @@ declare namespace ts {
         Expression_produces_a_tuple_type_that_is_too_large_to_represent: DiagnosticMessage;
         This_condition_will_always_return_true_since_the_Promise_is_always_truthy: DiagnosticMessage;
         Type_0_can_only_be_iterated_through_when_using_the_downlevelIteration_flag_or_with_a_target_of_es2015_or_higher: DiagnosticMessage;
+        Cannot_assign_to_private_method_0_Private_methods_are_not_writable: DiagnosticMessage;
+        Duplicate_identifier_0_Static_and_instance_elements_cannot_share_the_same_private_name: DiagnosticMessage;
+        Static_fields_with_private_names_can_t_have_initializers_when_the_useDefineForClassFields_flag_is_not_specified_with_a_target_of_esnext_Consider_adding_the_useDefineForClassFields_flag: DiagnosticMessage;
+        Private_accessor_was_defined_without_a_getter: DiagnosticMessage;
+        This_syntax_requires_an_imported_helper_named_1_with_2_parameters_which_is_not_compatible_with_the_one_in_0_Consider_upgrading_your_version_of_0: DiagnosticMessage;
         Import_declaration_0_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_interface_has_or_is_using_private_name_1: DiagnosticMessage;
@@ -9141,8 +9157,6 @@ declare namespace ts {
         The_shadowing_declaration_of_0_is_defined_here: DiagnosticMessage;
         The_declaration_of_0_that_you_probably_intended_to_use_is_defined_here: DiagnosticMessage;
         _0_modifier_cannot_be_used_with_a_private_identifier: DiagnosticMessage;
-        A_method_cannot_be_named_with_a_private_identifier: DiagnosticMessage;
-        An_accessor_cannot_be_named_with_a_private_identifier: DiagnosticMessage;
         An_enum_member_cannot_be_named_with_a_private_identifier: DiagnosticMessage;
         can_only_be_used_at_the_start_of_a_file: DiagnosticMessage;
         Compiler_reserves_name_0_when_emitting_private_identifier_downlevel: DiagnosticMessage;
@@ -9154,6 +9168,7 @@ declare namespace ts {
         Only_numeric_enums_can_have_computed_members_but_this_expression_has_type_0_If_you_do_not_need_exhaustiveness_checks_consider_using_an_object_literal_instead: DiagnosticMessage;
         Specify_the_JSX_fragment_factory_function_to_use_when_targeting_react_JSX_emit_with_jsxFactory_compiler_option_is_specified_e_g_Fragment: DiagnosticMessage;
         Invalid_value_for_jsxFragmentFactory_0_is_not_a_valid_identifier_or_qualified_name: DiagnosticMessage;
+        Class_decorators_can_t_be_used_with_static_private_identifier_Consider_removing_the_experimental_decorator: DiagnosticMessage;
     };
 }
 declare namespace ts {
@@ -9512,7 +9527,7 @@ declare namespace ts {
     function isTypeOnlyImportOrExportDeclaration(node: Node): node is TypeOnlyCompatibleAliasDeclaration;
     function isStringTextContainingNode(node: Node): node is StringLiteral | TemplateLiteralToken;
     function isGeneratedIdentifier(node: Node): node is GeneratedIdentifier;
-    function isPrivateIdentifierPropertyDeclaration(node: Node): node is PrivateIdentifierPropertyDeclaration;
+    function isPrivateIdentifierClassElementDeclaration(node: Node): node is PrivateClassElementDeclaration;
     function isPrivateIdentifierPropertyAccessExpression(node: Node): node is PrivateIdentifierPropertyAccessExpression;
     function isModifierKind(token: SyntaxKind): token is Modifier["kind"];
     function isParameterPropertyModifier(kind: SyntaxKind): boolean;
@@ -10284,6 +10299,7 @@ declare namespace ts {
     export function tryGetClassImplementingOrExtendingExpressionWithTypeArguments(node: Node): ClassImplementingOrExtendingExpressionWithTypeArguments | undefined;
     export function isAssignmentExpression(node: Node, excludeCompoundAssignment: true): node is AssignmentExpression<EqualsToken>;
     export function isAssignmentExpression(node: Node, excludeCompoundAssignment?: false): node is AssignmentExpression<AssignmentOperatorToken>;
+    export function isLeftHandSideOfAssignment(node: Node): boolean;
     export function isDestructuringAssignment(node: Node): node is DestructuringAssignment;
     export function isExpressionWithTypeArgumentsInClassExtendsClause(node: Node): node is ExpressionWithTypeArguments;
     export function isEntityNameExpression(node: Node): node is EntityNameExpression;
@@ -10856,8 +10872,8 @@ declare namespace ts {
         createImportStarCallbackHelper(): Expression;
         createImportDefaultHelper(expression: Expression): Expression;
         createExportStarHelper(moduleExpression: Expression, exportsExpression?: Expression): Expression;
-        createClassPrivateFieldGetHelper(receiver: Expression, privateField: Identifier): Expression;
-        createClassPrivateFieldSetHelper(receiver: Expression, privateField: Identifier, value: Expression): Expression;
+        createClassPrivateFieldGetHelper(receiver: Expression, state: Identifier, kind: PrivateIdentifierKind, f: Identifier | undefined): Expression;
+        createClassPrivateFieldSetHelper(receiver: Expression, state: Identifier, value: Expression, kind: PrivateIdentifierKind, f: Identifier | undefined): Expression;
     }
     function createEmitHelperFactory(context: TransformationContext): EmitHelperFactory;
     function compareEmitHelpers(x: EmitHelper, y: EmitHelper): Comparison | Comparison;
@@ -10887,7 +10903,106 @@ declare namespace ts {
     const importStarHelper: UnscopedEmitHelper;
     const importDefaultHelper: UnscopedEmitHelper;
     const exportStarHelper: UnscopedEmitHelper;
+    /**
+     * Parameters:
+     *  @param receiver — The object from which the private member will be read.
+     *  @param state — One of the following:
+     *      - A WeakMap used to read a private instance field.
+     *      - A WeakSet used as an instance brand for private instance methods and accessors.
+     *      - A function value that should be the undecorated class constructor used to brand check private static fields, methods, and accessors.
+     *  @param kind — (optional pre TS 4.3, required for TS 4.3+) One of the following values:
+     *      - undefined — Indicates a private instance field (pre TS 4.3).
+     *      - "f" — Indicates a private field (instance or static).
+     *      - "m" — Indicates a private method (instance or static).
+     *      - "a" — Indicates a private accessor (instance or static).
+     *  @param f — (optional pre TS 4.3) Depends on the arguments for state and kind:
+     *      - If kind is "m", this should be the function corresponding to the static or instance method.
+     *      - If kind is "a", this should be the function corresponding to the getter method, or undefined if the getter was not defined.
+     *      - If kind is "f" and state is a function, this should be an object holding the value of a static field, or undefined if the static field declaration has not yet been evaluated.
+     * Usage:
+     * This helper will only ever be used by the compiler in the following ways:
+     *
+     * Reading from a private instance field (pre TS 4.3):
+     *      __classPrivateFieldGet(<any>, <WeakMap>)
+     *
+     * Reading from a private instance field (TS 4.3+):
+     *      __classPrivateFieldGet(<any>, <WeakMap>, "f")
+     *
+     * Reading from a private instance get accessor (when defined, TS 4.3+):
+     *      __classPrivateFieldGet(<any>, <WeakSet>, "a", <function>)
+     *
+     * Reading from a private instance get accessor (when not defined, TS 4.3+):
+     *      __classPrivateFieldGet(<any>, <WeakSet>, "a", void 0)
+     *      NOTE: This always results in a runtime error.
+     *
+     * Reading from a private instance method (TS 4.3+):
+     *      __classPrivateFieldGet(<any>, <WeakSet>, "m", <function>)
+     *
+     * Reading from a private static field (TS 4.3+):
+     *      __classPrivateFieldGet(<any>, <constructor>, "f", <{ value: any }>)
+     *
+     * Reading from a private static get accessor (when defined, TS 4.3+):
+     *      __classPrivateFieldGet(<any>, <constructor>, "a", <function>)
+     *
+     * Reading from a private static get accessor (when not defined, TS 4.3+):
+     *      __classPrivateFieldGet(<any>, <constructor>, "a", void 0)
+     *      NOTE: This always results in a runtime error.
+     *
+     * Reading from a private static method (TS 4.3+):
+     *      __classPrivateFieldGet(<any>, <constructor>, "m", <function>)
+     */
     const classPrivateFieldGetHelper: UnscopedEmitHelper;
+    /**
+     * Parameters:
+     *  @param receiver — The object on which the private member will be set.
+     *  @param state — One of the following:
+     *      - A WeakMap used to store a private instance field.
+     *      - A WeakSet used as an instance brand for private instance methods and accessors.
+     *      - A function value that should be the undecorated class constructor used to brand check private static fields, methods, and accessors.
+     *  @param value — The value to set.
+     *  @param kind — (optional pre TS 4.3, required for TS 4.3+) One of the following values:
+     *       - undefined — Indicates a private instance field (pre TS 4.3).
+     *       - "f" — Indicates a private field (instance or static).
+     *       - "m" — Indicates a private method (instance or static).
+     *       - "a" — Indicates a private accessor (instance or static).
+     *   @param f — (optional pre TS 4.3) Depends on the arguments for state and kind:
+     *       - If kind is "m", this should be the function corresponding to the static or instance method.
+     *       - If kind is "a", this should be the function corresponding to the setter method, or undefined if the setter was not defined.
+     *       - If kind is "f" and state is a function, this should be an object holding the value of a static field, or undefined if the static field declaration has not yet been evaluated.
+     * Usage:
+     * This helper will only ever be used by the compiler in the following ways:
+     *
+     * Writing to a private instance field (pre TS 4.3):
+     *      __classPrivateFieldSet(<any>, <WeakMap>, <any>)
+     *
+     * Writing to a private instance field (TS 4.3+):
+     *      __classPrivateFieldSet(<any>, <WeakMap>, <any>, "f")
+     *
+     * Writing to a private instance set accessor (when defined, TS 4.3+):
+     *      __classPrivateFieldSet(<any>, <WeakSet>, <any>, "a", <function>)
+     *
+     * Writing to a private instance set accessor (when not defined, TS 4.3+):
+     *      __classPrivateFieldSet(<any>, <WeakSet>, <any>, "a", void 0)
+     *      NOTE: This always results in a runtime error.
+     *
+     * Writing to a private instance method (TS 4.3+):
+     *      __classPrivateFieldSet(<any>, <WeakSet>, <any>, "m", <function>)
+     *      NOTE: This always results in a runtime error.
+     *
+     * Writing to a private static field (TS 4.3+):
+     *      __classPrivateFieldSet(<any>, <constructor>, <any>, "f", <{ value: any }>)
+     *
+     * Writing to a private static set accessor (when defined, TS 4.3+):
+     *      __classPrivateFieldSet(<any>, <constructor>, <any>, "a", <function>)
+     *
+     * Writing to a private static set accessor (when not defined, TS 4.3+):
+     *      __classPrivateFieldSet(<any>, <constructor>, <any>, "a", void 0)
+     *      NOTE: This always results in a runtime error.
+     *
+     * Writing to a private static method (TS 4.3+):
+     *      __classPrivateFieldSet(<any>, <constructor>, <any>, "m", <function>)
+     *      NOTE: This always results in a runtime error.
+     */
     const classPrivateFieldSetHelper: UnscopedEmitHelper;
     function getAllUnscopedEmitHelpers(): ReadonlyESMap<string, UnscopedEmitHelper>;
     const asyncSuperHelper: EmitHelper;
@@ -11815,6 +11930,12 @@ declare namespace ts {
     function isInitializedProperty(member: ClassElement): member is PropertyDeclaration & {
         initializer: Expression;
     };
+    /**
+     * Gets a value indicating whether a class element is a private instance method or accessor.
+     *
+     * @param member The class element node.
+     */
+    function isNonStaticMethodOrAccessorWithPrivateName(member: ClassElement): member is PrivateIdentifierMethodDeclaration | PrivateIdentifierAccessorDeclaration;
 }
 declare namespace ts {
     enum FlattenLevel {
@@ -11857,6 +11978,11 @@ declare namespace ts {
     function transformTypeScript(context: TransformationContext): (node: SourceFile | Bundle) => SourceFile | Bundle;
 }
 declare namespace ts {
+    enum PrivateIdentifierKind {
+        Field = "f",
+        Method = "m",
+        Accessor = "a"
+    }
     /**
      * Transforms ECMAScript Class Syntax.
      * TypeScript parameter property syntax is transformed in the TypeScript transformer.
