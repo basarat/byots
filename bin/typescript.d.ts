@@ -979,7 +979,8 @@ declare namespace ts {
         /** Starts tracing for the given project. */
         export function startTracing(tracingMode: Mode, traceDir: string, configFilePath?: string): void;
         /** Stops tracing for the in-progress project and dumps the type catalog. */
-        export function stopTracing(typeCatalog?: readonly Type[]): void;
+        export function stopTracing(): void;
+        export function recordType(type: Type): void;
         export enum Phase {
             Parse = "parse",
             Program = "program",
@@ -3382,7 +3383,6 @@ declare namespace ts {
         dropDiagnosticsProducingTypeChecker(): void;
         getCachedSemanticDiagnostics(sourceFile?: SourceFile): readonly Diagnostic[] | undefined;
         getClassifiableNames(): Set<__String>;
-        getTypeCatalog(): readonly Type[];
         getNodeCount(): number;
         getIdentifierCount(): number;
         getSymbolCount(): number;
@@ -3661,7 +3661,6 @@ declare namespace ts {
         getDiagnostics(sourceFile?: SourceFile, cancellationToken?: CancellationToken): Diagnostic[];
         getGlobalDiagnostics(): Diagnostic[];
         getEmitResolver(sourceFile?: SourceFile, cancellationToken?: CancellationToken): EmitResolver;
-        getTypeCatalog(): readonly Type[];
         getNodeCount(): number;
         getIdentifierCount(): number;
         getSymbolCount(): number;
