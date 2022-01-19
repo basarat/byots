@@ -17,7 +17,7 @@ cd ./TypeScript
 # Get latest
 git clean -xfd # deletes any untracted existing artifacts including node_modules
 git fetch origin
-git reset --hard origin/master
+git reset --hard origin/main
 
 # Install everything
 npm install
@@ -38,5 +38,5 @@ mv ./built/local/typescriptServices.d.ts ../bin/typescript.d.ts
 node ../lib/postBuild.js
 
 # Reset sub typescript
-git reset --hard origin/master
+git reset --hard origin/main
 cd ..
