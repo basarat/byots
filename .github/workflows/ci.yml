@@ -10,6 +10,11 @@ jobs:
       with:
         submodules: 'true'
     - run: ./prepare.sh
+    - name: Add git
+      run: |
+        git config credential.helper "store --file=.git/credentials"
+        echo "https://${GH_TOKEN}:@github.com" > .git/credentials
+        git config --global push.default matching
     - run: ./release.sh
     # Setup .npmrc file to publish to npm
     - uses: actions/setup-node@v2
