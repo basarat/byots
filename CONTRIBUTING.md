@@ -1,3 +1,10 @@
+# Setup 
+```
+git clone https://github.com/basarat/byots.git
+cd byots
+git submodule update --recursive
+```
+
 # What
 `package.json` points to `byots.js` and `boyts.d.ts` in the `bin` folder:
 
