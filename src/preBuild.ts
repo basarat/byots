@@ -59,15 +59,6 @@ const fixesForFiles: utils.FixesForFile[] = [
     ]
   },
   {
-    filePath: '../TypeScript/src/services/codefixes/importFixes.ts',
-    fixes: [
-      {
-        orig: 'const enum ImportKind',
-        new: 'export const enum ImportKind'
-      },
-    ]
-  },
-  {
     filePath:'../TypeScript/src/services/symbolDisplay.ts',
     fixes: [
       {

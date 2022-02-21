@@ -61,7 +61,7 @@ declare namespace ts {
     export {};
 }
 declare namespace ts {
-    const versionMajorMinor = "4.3";
+    const versionMajorMinor = "4.7";
     /** The version of the TypeScript compiler release */
     const version: string;
     /**
@@ -150,20 +150,10 @@ declare namespace ts {
         EqualTo = 0,
         GreaterThan = 1
     }
-    namespace NativeCollections {
-        /**
-         * Returns the native Map implementation if it is available and compatible (i.e. supports iteration).
-         */
-        function tryGetNativeMap(): MapConstructor | undefined;
-        /**
-         * Returns the native Set implementation if it is available and compatible (i.e. supports iteration).
-         */
-        function tryGetNativeSet(): SetConstructor | undefined;
-    }
-}
-declare namespace ts {
     const Map: MapConstructor;
     const Set: SetConstructor;
+}
+declare namespace ts {
     function getIterator<I extends readonly any[] | ReadonlySet<any> | ReadonlyESMap<any, any> | undefined>(iterable: I): Iterator<I extends ReadonlyESMap<infer K, infer V> ? [K, V] : I extends ReadonlySet<infer T> ? T : I extends readonly (infer T)[] ? T : I extends undefined ? undefined : never>;
     function getIterator<K, V>(iterable: ReadonlyESMap<K, V>): Iterator<[K, V]>;
     function getIterator<K, V>(iterable: ReadonlyESMap<K, V> | undefined): Iterator<[K, V]> | undefined;
@@ -172,17 +162,6 @@ declare namespace ts {
     const emptyArray: never[];
     const emptyMap: ReadonlyESMap<never, never>;
     const emptySet: ReadonlySet<never>;
-    /**
-     * Create a new map.
-     * @deprecated Use `new Map()` instead.
-     */
-    function createMap<K, V>(): ESMap<K, V>;
-    function createMap<T>(): ESMap<string, T>;
-    /**
-     * Create a new map from a template object is provided, the map will copy entries from it.
-     * @deprecated Use `new Map(getEntries(template))` instead.
-     */
-    function createMapFromTemplate<T>(template: MapLike<T>): ESMap<string, T>;
     function length(array: readonly any[] | undefined): number;
     /**
      * Iterates through 'array' by index and performs the callback on each element of array until the callback
@@ -312,7 +291,8 @@ declare namespace ts {
      * result will remain in the original order in `array`.
      */
     function deduplicate<T>(array: readonly T[], equalityComparer: EqualityComparer<T>, comparer?: Comparer<T>): T[];
-    function insertSorted<T>(array: SortedArray<T>, insert: T, compare: Comparer<T>): void;
+    function createSortedArray<T>(): SortedArray<T>;
+    function insertSorted<T>(array: SortedArray<T>, insert: T, compare: Comparer<T>, allowDuplicates?: boolean): void;
     function sortAndDeduplicate<T>(array: readonly string[]): SortedReadonlyArray<string>;
     function sortAndDeduplicate<T>(array: readonly T[], comparer: Comparer<T>, equalityComparer?: EqualityComparer<T>): SortedReadonlyArray<T>;
     function arrayIsSorted<T>(array: readonly T[], comparer: Comparer<T>): boolean;
@@ -461,7 +441,7 @@ declare namespace ts {
      */
     function getOwnKeys<T>(map: MapLike<T>): string[];
     function getAllKeys(obj: object): string[];
-    function getOwnValues<T>(sparseArray: T[]): T[];
+    function getOwnValues<T>(collection: MapLike<T> | T[]): T[];
     function getEntries<T>(obj: MapLike<T>): [string, T][];
     function arrayOf<T>(count: number, f: (index: number) => T): T[];
     /** Shims `Array.from`. */
@@ -736,6 +716,18 @@ declare namespace ts {
      */
     function padRight(s: string, length: number, padString?: " "): string;
     function takeWhile<T, U extends T>(array: readonly T[], predicate: (element: T) => element is U): U[];
+    /**
+     * Removes the leading and trailing white space and line terminator characters from a string.
+     */
+    const trimString: (s: string) => string;
+    /**
+     * Returns a copy with trailing whitespace removed.
+     */
+    const trimStringEnd: (s: string) => string;
+    /**
+     * Returns a copy with leading whitespace removed.
+     */
+    const trimStringStart: (s: string) => string;
 }
 declare namespace ts {
     enum LogLevel {
@@ -781,19 +773,9 @@ declare namespace ts {
         function assertGreaterThanOrEqual(a: number, b: number, stackCrawlMark?: AnyFunction): void;
         function assertIsDefined<T>(value: T, message?: string, stackCrawlMark?: AnyFunction): asserts value is NonNullable<T>;
         function checkDefined<T>(value: T | null | undefined, message?: string, stackCrawlMark?: AnyFunction): T;
-        /**
-         * @deprecated Use `checkDefined` to check whether a value is defined inline. Use `assertIsDefined` to check whether
-         * a value is defined at the statement level.
-         */
-        const assertDefined: typeof checkDefined;
         function assertEachIsDefined<T extends Node>(value: NodeArray<T>, message?: string, stackCrawlMark?: AnyFunction): asserts value is NodeArray<T>;
         function assertEachIsDefined<T>(value: readonly T[], message?: string, stackCrawlMark?: AnyFunction): asserts value is readonly NonNullable<T>[];
         function checkEachDefined<T, A extends readonly T[]>(value: A, message?: string, stackCrawlMark?: AnyFunction): A;
-        /**
-         * @deprecated Use `checkEachDefined` to check whether the elements of an array are defined inline. Use `assertEachIsDefined` to check whether
-         * the elements of an array are defined at the statement level.
-         */
-        const assertEachDefined: typeof checkEachDefined;
         function assertNever(member: never, message?: string, stackCrawlMark?: AnyFunction): never;
         function assertEachNode<T extends Node, U extends T>(nodes: NodeArray<T>, test: (node: T) => node is U, message?: string, stackCrawlMark?: AnyFunction): asserts nodes is NodeArray<U>;
         function assertEachNode<T extends Node, U extends T>(nodes: readonly T[], test: (node: T) => node is U, message?: string, stackCrawlMark?: AnyFunction): asserts nodes is readonly U[];
@@ -826,6 +808,7 @@ declare namespace ts {
          */
         function formatEnum(value: number | undefined, enumObject: any, isFlags?: boolean): string;
         function formatSyntaxKind(kind: SyntaxKind | undefined): string;
+        function formatSnippetKind(kind: SnippetKind | undefined): string;
         function formatNodeFlags(flags: NodeFlags | undefined): string;
         function formatModifierFlags(flags: ModifierFlags | undefined): string;
         function formatTransformFlags(flags: TransformFlags | undefined): string;
@@ -860,7 +843,7 @@ declare namespace ts {
         constructor(text: string);
         constructor(major: number, minor?: number, patch?: number, prerelease?: string, build?: string);
         static tryParse(text: string): Version | undefined;
-        compareTo(other: Version | undefined): Comparison | Comparison;
+        compareTo(other: Version | undefined): Comparison;
         increment(field: "major" | "minor" | "patch"): Version;
         toString(): string;
     }
@@ -902,7 +885,7 @@ declare namespace ts {
     interface PerformanceObserver {
         disconnect(): void;
         observe(options: {
-            entryTypes: readonly string[];
+            entryTypes: readonly ("mark" | "measure")[];
         }): void;
     }
     type PerformanceObserverConstructor = new (callback: (list: PerformanceObserverEntryList, observer: PerformanceObserver) => void) => PerformanceObserver;
@@ -1005,6 +988,9 @@ declare namespace ts {
     }
     export const startTracing: typeof tracingEnabled.startTracing;
     export const dumpTracingLegend: typeof tracingEnabled.dumpLegend;
+    export interface TracingNode {
+        tracingPath?: Path;
+    }
     export {};
 }
 declare namespace ts {
@@ -1084,304 +1070,315 @@ declare namespace ts {
         QuestionQuestionToken = 60,
         /** Only the JSDoc scanner produces BacktickToken. The normal scanner produces NoSubstitutionTemplateLiteral and related kinds. */
         BacktickToken = 61,
-        EqualsToken = 62,
-        PlusEqualsToken = 63,
-        MinusEqualsToken = 64,
-        AsteriskEqualsToken = 65,
-        AsteriskAsteriskEqualsToken = 66,
-        SlashEqualsToken = 67,
-        PercentEqualsToken = 68,
-        LessThanLessThanEqualsToken = 69,
-        GreaterThanGreaterThanEqualsToken = 70,
-        GreaterThanGreaterThanGreaterThanEqualsToken = 71,
-        AmpersandEqualsToken = 72,
-        BarEqualsToken = 73,
-        BarBarEqualsToken = 74,
-        AmpersandAmpersandEqualsToken = 75,
-        QuestionQuestionEqualsToken = 76,
-        CaretEqualsToken = 77,
-        Identifier = 78,
-        PrivateIdentifier = 79,
-        BreakKeyword = 80,
-        CaseKeyword = 81,
-        CatchKeyword = 82,
-        ClassKeyword = 83,
-        ConstKeyword = 84,
-        ContinueKeyword = 85,
-        DebuggerKeyword = 86,
-        DefaultKeyword = 87,
-        DeleteKeyword = 88,
-        DoKeyword = 89,
-        ElseKeyword = 90,
-        EnumKeyword = 91,
-        ExportKeyword = 92,
-        ExtendsKeyword = 93,
-        FalseKeyword = 94,
-        FinallyKeyword = 95,
-        ForKeyword = 96,
-        FunctionKeyword = 97,
-        IfKeyword = 98,
-        ImportKeyword = 99,
-        InKeyword = 100,
-        InstanceOfKeyword = 101,
-        NewKeyword = 102,
-        NullKeyword = 103,
-        ReturnKeyword = 104,
-        SuperKeyword = 105,
-        SwitchKeyword = 106,
-        ThisKeyword = 107,
-        ThrowKeyword = 108,
-        TrueKeyword = 109,
-        TryKeyword = 110,
-        TypeOfKeyword = 111,
-        VarKeyword = 112,
-        VoidKeyword = 113,
-        WhileKeyword = 114,
-        WithKeyword = 115,
-        ImplementsKeyword = 116,
-        InterfaceKeyword = 117,
-        LetKeyword = 118,
-        PackageKeyword = 119,
-        PrivateKeyword = 120,
-        ProtectedKeyword = 121,
-        PublicKeyword = 122,
-        StaticKeyword = 123,
-        YieldKeyword = 124,
-        AbstractKeyword = 125,
-        AsKeyword = 126,
-        AssertsKeyword = 127,
-        AnyKeyword = 128,
-        AsyncKeyword = 129,
-        AwaitKeyword = 130,
-        BooleanKeyword = 131,
-        ConstructorKeyword = 132,
-        DeclareKeyword = 133,
-        GetKeyword = 134,
-        InferKeyword = 135,
-        IntrinsicKeyword = 136,
-        IsKeyword = 137,
-        KeyOfKeyword = 138,
-        ModuleKeyword = 139,
-        NamespaceKeyword = 140,
-        NeverKeyword = 141,
-        ReadonlyKeyword = 142,
-        RequireKeyword = 143,
-        NumberKeyword = 144,
-        ObjectKeyword = 145,
-        SetKeyword = 146,
-        StringKeyword = 147,
-        SymbolKeyword = 148,
-        TypeKeyword = 149,
-        UndefinedKeyword = 150,
-        UniqueKeyword = 151,
-        UnknownKeyword = 152,
-        FromKeyword = 153,
-        GlobalKeyword = 154,
-        BigIntKeyword = 155,
-        OfKeyword = 156,
-        QualifiedName = 157,
-        ComputedPropertyName = 158,
-        TypeParameter = 159,
-        Parameter = 160,
-        Decorator = 161,
-        PropertySignature = 162,
-        PropertyDeclaration = 163,
-        MethodSignature = 164,
-        MethodDeclaration = 165,
-        Constructor = 166,
-        GetAccessor = 167,
-        SetAccessor = 168,
-        CallSignature = 169,
-        ConstructSignature = 170,
-        IndexSignature = 171,
-        TypePredicate = 172,
-        TypeReference = 173,
-        FunctionType = 174,
-        ConstructorType = 175,
-        TypeQuery = 176,
-        TypeLiteral = 177,
-        ArrayType = 178,
-        TupleType = 179,
-        OptionalType = 180,
-        RestType = 181,
-        UnionType = 182,
-        IntersectionType = 183,
-        ConditionalType = 184,
-        InferType = 185,
-        ParenthesizedType = 186,
-        ThisType = 187,
-        TypeOperator = 188,
-        IndexedAccessType = 189,
-        MappedType = 190,
-        LiteralType = 191,
-        NamedTupleMember = 192,
-        TemplateLiteralType = 193,
-        TemplateLiteralTypeSpan = 194,
-        ImportType = 195,
-        ObjectBindingPattern = 196,
-        ArrayBindingPattern = 197,
-        BindingElement = 198,
-        ArrayLiteralExpression = 199,
-        ObjectLiteralExpression = 200,
-        PropertyAccessExpression = 201,
-        ElementAccessExpression = 202,
-        CallExpression = 203,
-        NewExpression = 204,
-        TaggedTemplateExpression = 205,
-        TypeAssertionExpression = 206,
-        ParenthesizedExpression = 207,
-        FunctionExpression = 208,
-        ArrowFunction = 209,
-        DeleteExpression = 210,
-        TypeOfExpression = 211,
-        VoidExpression = 212,
-        AwaitExpression = 213,
-        PrefixUnaryExpression = 214,
-        PostfixUnaryExpression = 215,
-        BinaryExpression = 216,
-        ConditionalExpression = 217,
-        TemplateExpression = 218,
-        YieldExpression = 219,
-        SpreadElement = 220,
-        ClassExpression = 221,
-        OmittedExpression = 222,
-        ExpressionWithTypeArguments = 223,
-        AsExpression = 224,
-        NonNullExpression = 225,
-        MetaProperty = 226,
-        SyntheticExpression = 227,
-        TemplateSpan = 228,
-        SemicolonClassElement = 229,
-        Block = 230,
-        EmptyStatement = 231,
-        VariableStatement = 232,
-        ExpressionStatement = 233,
-        IfStatement = 234,
-        DoStatement = 235,
-        WhileStatement = 236,
-        ForStatement = 237,
-        ForInStatement = 238,
-        ForOfStatement = 239,
-        ContinueStatement = 240,
-        BreakStatement = 241,
-        ReturnStatement = 242,
-        WithStatement = 243,
-        SwitchStatement = 244,
-        LabeledStatement = 245,
-        ThrowStatement = 246,
-        TryStatement = 247,
-        DebuggerStatement = 248,
-        VariableDeclaration = 249,
-        VariableDeclarationList = 250,
-        FunctionDeclaration = 251,
-        ClassDeclaration = 252,
-        InterfaceDeclaration = 253,
-        TypeAliasDeclaration = 254,
-        EnumDeclaration = 255,
-        ModuleDeclaration = 256,
-        ModuleBlock = 257,
-        CaseBlock = 258,
-        NamespaceExportDeclaration = 259,
-        ImportEqualsDeclaration = 260,
-        ImportDeclaration = 261,
-        ImportClause = 262,
-        NamespaceImport = 263,
-        NamedImports = 264,
-        ImportSpecifier = 265,
-        ExportAssignment = 266,
-        ExportDeclaration = 267,
-        NamedExports = 268,
-        NamespaceExport = 269,
-        ExportSpecifier = 270,
-        MissingDeclaration = 271,
-        ExternalModuleReference = 272,
-        JsxElement = 273,
-        JsxSelfClosingElement = 274,
-        JsxOpeningElement = 275,
-        JsxClosingElement = 276,
-        JsxFragment = 277,
-        JsxOpeningFragment = 278,
-        JsxClosingFragment = 279,
-        JsxAttribute = 280,
-        JsxAttributes = 281,
-        JsxSpreadAttribute = 282,
-        JsxExpression = 283,
-        CaseClause = 284,
-        DefaultClause = 285,
-        HeritageClause = 286,
-        CatchClause = 287,
-        PropertyAssignment = 288,
-        ShorthandPropertyAssignment = 289,
-        SpreadAssignment = 290,
-        EnumMember = 291,
-        UnparsedPrologue = 292,
-        UnparsedPrepend = 293,
-        UnparsedText = 294,
-        UnparsedInternalText = 295,
-        UnparsedSyntheticReference = 296,
-        SourceFile = 297,
-        Bundle = 298,
-        UnparsedSource = 299,
-        InputFiles = 300,
-        JSDocTypeExpression = 301,
-        JSDocNameReference = 302,
-        JSDocAllType = 303,
-        JSDocUnknownType = 304,
-        JSDocNullableType = 305,
-        JSDocNonNullableType = 306,
-        JSDocOptionalType = 307,
-        JSDocFunctionType = 308,
-        JSDocVariadicType = 309,
-        JSDocNamepathType = 310,
-        JSDocComment = 311,
-        JSDocText = 312,
-        JSDocTypeLiteral = 313,
-        JSDocSignature = 314,
-        JSDocLink = 315,
-        JSDocTag = 316,
-        JSDocAugmentsTag = 317,
-        JSDocImplementsTag = 318,
-        JSDocAuthorTag = 319,
-        JSDocDeprecatedTag = 320,
-        JSDocClassTag = 321,
-        JSDocPublicTag = 322,
-        JSDocPrivateTag = 323,
-        JSDocProtectedTag = 324,
-        JSDocReadonlyTag = 325,
-        JSDocCallbackTag = 326,
-        JSDocEnumTag = 327,
-        JSDocParameterTag = 328,
-        JSDocReturnTag = 329,
-        JSDocThisTag = 330,
-        JSDocTypeTag = 331,
-        JSDocTemplateTag = 332,
-        JSDocTypedefTag = 333,
-        JSDocSeeTag = 334,
-        JSDocPropertyTag = 335,
-        SyntaxList = 336,
-        NotEmittedStatement = 337,
-        PartiallyEmittedExpression = 338,
-        CommaListExpression = 339,
-        MergeDeclarationMarker = 340,
-        EndOfDeclarationMarker = 341,
-        SyntheticReferenceExpression = 342,
-        Count = 343,
-        FirstAssignment = 62,
-        LastAssignment = 77,
-        FirstCompoundAssignment = 63,
-        LastCompoundAssignment = 77,
-        FirstReservedWord = 80,
-        LastReservedWord = 115,
-        FirstKeyword = 80,
-        LastKeyword = 156,
-        FirstFutureReservedWord = 116,
-        LastFutureReservedWord = 124,
-        FirstTypeNode = 172,
-        LastTypeNode = 195,
+        /** Only the JSDoc scanner produces HashToken. The normal scanner produces PrivateIdentifier. */
+        HashToken = 62,
+        EqualsToken = 63,
+        PlusEqualsToken = 64,
+        MinusEqualsToken = 65,
+        AsteriskEqualsToken = 66,
+        AsteriskAsteriskEqualsToken = 67,
+        SlashEqualsToken = 68,
+        PercentEqualsToken = 69,
+        LessThanLessThanEqualsToken = 70,
+        GreaterThanGreaterThanEqualsToken = 71,
+        GreaterThanGreaterThanGreaterThanEqualsToken = 72,
+        AmpersandEqualsToken = 73,
+        BarEqualsToken = 74,
+        BarBarEqualsToken = 75,
+        AmpersandAmpersandEqualsToken = 76,
+        QuestionQuestionEqualsToken = 77,
+        CaretEqualsToken = 78,
+        Identifier = 79,
+        PrivateIdentifier = 80,
+        BreakKeyword = 81,
+        CaseKeyword = 82,
+        CatchKeyword = 83,
+        ClassKeyword = 84,
+        ConstKeyword = 85,
+        ContinueKeyword = 86,
+        DebuggerKeyword = 87,
+        DefaultKeyword = 88,
+        DeleteKeyword = 89,
+        DoKeyword = 90,
+        ElseKeyword = 91,
+        EnumKeyword = 92,
+        ExportKeyword = 93,
+        ExtendsKeyword = 94,
+        FalseKeyword = 95,
+        FinallyKeyword = 96,
+        ForKeyword = 97,
+        FunctionKeyword = 98,
+        IfKeyword = 99,
+        ImportKeyword = 100,
+        InKeyword = 101,
+        InstanceOfKeyword = 102,
+        NewKeyword = 103,
+        NullKeyword = 104,
+        ReturnKeyword = 105,
+        SuperKeyword = 106,
+        SwitchKeyword = 107,
+        ThisKeyword = 108,
+        ThrowKeyword = 109,
+        TrueKeyword = 110,
+        TryKeyword = 111,
+        TypeOfKeyword = 112,
+        VarKeyword = 113,
+        VoidKeyword = 114,
+        WhileKeyword = 115,
+        WithKeyword = 116,
+        ImplementsKeyword = 117,
+        InterfaceKeyword = 118,
+        LetKeyword = 119,
+        PackageKeyword = 120,
+        PrivateKeyword = 121,
+        ProtectedKeyword = 122,
+        PublicKeyword = 123,
+        StaticKeyword = 124,
+        YieldKeyword = 125,
+        AbstractKeyword = 126,
+        AsKeyword = 127,
+        AssertsKeyword = 128,
+        AssertKeyword = 129,
+        AnyKeyword = 130,
+        AsyncKeyword = 131,
+        AwaitKeyword = 132,
+        BooleanKeyword = 133,
+        ConstructorKeyword = 134,
+        DeclareKeyword = 135,
+        GetKeyword = 136,
+        InferKeyword = 137,
+        IntrinsicKeyword = 138,
+        IsKeyword = 139,
+        KeyOfKeyword = 140,
+        ModuleKeyword = 141,
+        NamespaceKeyword = 142,
+        NeverKeyword = 143,
+        ReadonlyKeyword = 144,
+        RequireKeyword = 145,
+        NumberKeyword = 146,
+        ObjectKeyword = 147,
+        SetKeyword = 148,
+        StringKeyword = 149,
+        SymbolKeyword = 150,
+        TypeKeyword = 151,
+        UndefinedKeyword = 152,
+        UniqueKeyword = 153,
+        UnknownKeyword = 154,
+        FromKeyword = 155,
+        GlobalKeyword = 156,
+        BigIntKeyword = 157,
+        OverrideKeyword = 158,
+        OfKeyword = 159,
+        QualifiedName = 160,
+        ComputedPropertyName = 161,
+        TypeParameter = 162,
+        Parameter = 163,
+        Decorator = 164,
+        PropertySignature = 165,
+        PropertyDeclaration = 166,
+        MethodSignature = 167,
+        MethodDeclaration = 168,
+        ClassStaticBlockDeclaration = 169,
+        Constructor = 170,
+        GetAccessor = 171,
+        SetAccessor = 172,
+        CallSignature = 173,
+        ConstructSignature = 174,
+        IndexSignature = 175,
+        TypePredicate = 176,
+        TypeReference = 177,
+        FunctionType = 178,
+        ConstructorType = 179,
+        TypeQuery = 180,
+        TypeLiteral = 181,
+        ArrayType = 182,
+        TupleType = 183,
+        OptionalType = 184,
+        RestType = 185,
+        UnionType = 186,
+        IntersectionType = 187,
+        ConditionalType = 188,
+        InferType = 189,
+        ParenthesizedType = 190,
+        ThisType = 191,
+        TypeOperator = 192,
+        IndexedAccessType = 193,
+        MappedType = 194,
+        LiteralType = 195,
+        NamedTupleMember = 196,
+        TemplateLiteralType = 197,
+        TemplateLiteralTypeSpan = 198,
+        ImportType = 199,
+        ObjectBindingPattern = 200,
+        ArrayBindingPattern = 201,
+        BindingElement = 202,
+        ArrayLiteralExpression = 203,
+        ObjectLiteralExpression = 204,
+        PropertyAccessExpression = 205,
+        ElementAccessExpression = 206,
+        CallExpression = 207,
+        NewExpression = 208,
+        TaggedTemplateExpression = 209,
+        TypeAssertionExpression = 210,
+        ParenthesizedExpression = 211,
+        FunctionExpression = 212,
+        ArrowFunction = 213,
+        DeleteExpression = 214,
+        TypeOfExpression = 215,
+        VoidExpression = 216,
+        AwaitExpression = 217,
+        PrefixUnaryExpression = 218,
+        PostfixUnaryExpression = 219,
+        BinaryExpression = 220,
+        ConditionalExpression = 221,
+        TemplateExpression = 222,
+        YieldExpression = 223,
+        SpreadElement = 224,
+        ClassExpression = 225,
+        OmittedExpression = 226,
+        ExpressionWithTypeArguments = 227,
+        AsExpression = 228,
+        NonNullExpression = 229,
+        MetaProperty = 230,
+        SyntheticExpression = 231,
+        TemplateSpan = 232,
+        SemicolonClassElement = 233,
+        Block = 234,
+        EmptyStatement = 235,
+        VariableStatement = 236,
+        ExpressionStatement = 237,
+        IfStatement = 238,
+        DoStatement = 239,
+        WhileStatement = 240,
+        ForStatement = 241,
+        ForInStatement = 242,
+        ForOfStatement = 243,
+        ContinueStatement = 244,
+        BreakStatement = 245,
+        ReturnStatement = 246,
+        WithStatement = 247,
+        SwitchStatement = 248,
+        LabeledStatement = 249,
+        ThrowStatement = 250,
+        TryStatement = 251,
+        DebuggerStatement = 252,
+        VariableDeclaration = 253,
+        VariableDeclarationList = 254,
+        FunctionDeclaration = 255,
+        ClassDeclaration = 256,
+        InterfaceDeclaration = 257,
+        TypeAliasDeclaration = 258,
+        EnumDeclaration = 259,
+        ModuleDeclaration = 260,
+        ModuleBlock = 261,
+        CaseBlock = 262,
+        NamespaceExportDeclaration = 263,
+        ImportEqualsDeclaration = 264,
+        ImportDeclaration = 265,
+        ImportClause = 266,
+        NamespaceImport = 267,
+        NamedImports = 268,
+        ImportSpecifier = 269,
+        ExportAssignment = 270,
+        ExportDeclaration = 271,
+        NamedExports = 272,
+        NamespaceExport = 273,
+        ExportSpecifier = 274,
+        MissingDeclaration = 275,
+        ExternalModuleReference = 276,
+        JsxElement = 277,
+        JsxSelfClosingElement = 278,
+        JsxOpeningElement = 279,
+        JsxClosingElement = 280,
+        JsxFragment = 281,
+        JsxOpeningFragment = 282,
+        JsxClosingFragment = 283,
+        JsxAttribute = 284,
+        JsxAttributes = 285,
+        JsxSpreadAttribute = 286,
+        JsxExpression = 287,
+        CaseClause = 288,
+        DefaultClause = 289,
+        HeritageClause = 290,
+        CatchClause = 291,
+        AssertClause = 292,
+        AssertEntry = 293,
+        PropertyAssignment = 294,
+        ShorthandPropertyAssignment = 295,
+        SpreadAssignment = 296,
+        EnumMember = 297,
+        UnparsedPrologue = 298,
+        UnparsedPrepend = 299,
+        UnparsedText = 300,
+        UnparsedInternalText = 301,
+        UnparsedSyntheticReference = 302,
+        SourceFile = 303,
+        Bundle = 304,
+        UnparsedSource = 305,
+        InputFiles = 306,
+        JSDocTypeExpression = 307,
+        JSDocNameReference = 308,
+        JSDocMemberName = 309,
+        JSDocAllType = 310,
+        JSDocUnknownType = 311,
+        JSDocNullableType = 312,
+        JSDocNonNullableType = 313,
+        JSDocOptionalType = 314,
+        JSDocFunctionType = 315,
+        JSDocVariadicType = 316,
+        JSDocNamepathType = 317,
+        JSDocComment = 318,
+        JSDocText = 319,
+        JSDocTypeLiteral = 320,
+        JSDocSignature = 321,
+        JSDocLink = 322,
+        JSDocLinkCode = 323,
+        JSDocLinkPlain = 324,
+        JSDocTag = 325,
+        JSDocAugmentsTag = 326,
+        JSDocImplementsTag = 327,
+        JSDocAuthorTag = 328,
+        JSDocDeprecatedTag = 329,
+        JSDocClassTag = 330,
+        JSDocPublicTag = 331,
+        JSDocPrivateTag = 332,
+        JSDocProtectedTag = 333,
+        JSDocReadonlyTag = 334,
+        JSDocOverrideTag = 335,
+        JSDocCallbackTag = 336,
+        JSDocEnumTag = 337,
+        JSDocParameterTag = 338,
+        JSDocReturnTag = 339,
+        JSDocThisTag = 340,
+        JSDocTypeTag = 341,
+        JSDocTemplateTag = 342,
+        JSDocTypedefTag = 343,
+        JSDocSeeTag = 344,
+        JSDocPropertyTag = 345,
+        SyntaxList = 346,
+        NotEmittedStatement = 347,
+        PartiallyEmittedExpression = 348,
+        CommaListExpression = 349,
+        MergeDeclarationMarker = 350,
+        EndOfDeclarationMarker = 351,
+        SyntheticReferenceExpression = 352,
+        Count = 353,
+        FirstAssignment = 63,
+        LastAssignment = 78,
+        FirstCompoundAssignment = 64,
+        LastCompoundAssignment = 78,
+        FirstReservedWord = 81,
+        LastReservedWord = 116,
+        FirstKeyword = 81,
+        LastKeyword = 159,
+        FirstFutureReservedWord = 117,
+        LastFutureReservedWord = 125,
+        FirstTypeNode = 176,
+        LastTypeNode = 199,
         FirstPunctuation = 18,
-        LastPunctuation = 77,
+        LastPunctuation = 78,
         FirstToken = 0,
-        LastToken = 156,
+        LastToken = 159,
         FirstTriviaToken = 2,
         LastTriviaToken = 7,
         FirstLiteralToken = 8,
@@ -1389,28 +1386,28 @@ declare namespace ts {
         FirstTemplateToken = 14,
         LastTemplateToken = 17,
         FirstBinaryOperator = 29,
-        LastBinaryOperator = 77,
-        FirstStatement = 232,
-        LastStatement = 248,
-        FirstNode = 157,
-        FirstJSDocNode = 301,
-        LastJSDocNode = 335,
-        FirstJSDocTagNode = 316,
-        LastJSDocTagNode = 335,
-        FirstContextualKeyword = 125,
-        LastContextualKeyword = 156
+        LastBinaryOperator = 78,
+        FirstStatement = 236,
+        LastStatement = 252,
+        FirstNode = 160,
+        FirstJSDocNode = 307,
+        LastJSDocNode = 345,
+        FirstJSDocTagNode = 325,
+        LastJSDocTagNode = 345,
+        FirstContextualKeyword = 126,
+        LastContextualKeyword = 159
     }
     export type TriviaSyntaxKind = SyntaxKind.SingleLineCommentTrivia | SyntaxKind.MultiLineCommentTrivia | SyntaxKind.NewLineTrivia | SyntaxKind.WhitespaceTrivia | SyntaxKind.ShebangTrivia | SyntaxKind.ConflictMarkerTrivia;
     export type LiteralSyntaxKind = SyntaxKind.NumericLiteral | SyntaxKind.BigIntLiteral | SyntaxKind.StringLiteral | SyntaxKind.JsxText | SyntaxKind.JsxTextAllWhiteSpaces | SyntaxKind.RegularExpressionLiteral | SyntaxKind.NoSubstitutionTemplateLiteral;
     export type PseudoLiteralSyntaxKind = SyntaxKind.TemplateHead | SyntaxKind.TemplateMiddle | SyntaxKind.TemplateTail;
-    export type PunctuationSyntaxKind = SyntaxKind.OpenBraceToken | SyntaxKind.CloseBraceToken | SyntaxKind.OpenParenToken | SyntaxKind.CloseParenToken | SyntaxKind.OpenBracketToken | SyntaxKind.CloseBracketToken | SyntaxKind.DotToken | SyntaxKind.DotDotDotToken | SyntaxKind.SemicolonToken | SyntaxKind.CommaToken | SyntaxKind.QuestionDotToken | SyntaxKind.LessThanToken | SyntaxKind.LessThanSlashToken | SyntaxKind.GreaterThanToken | SyntaxKind.LessThanEqualsToken | SyntaxKind.GreaterThanEqualsToken | SyntaxKind.EqualsEqualsToken | SyntaxKind.ExclamationEqualsToken | SyntaxKind.EqualsEqualsEqualsToken | SyntaxKind.ExclamationEqualsEqualsToken | SyntaxKind.EqualsGreaterThanToken | SyntaxKind.PlusToken | SyntaxKind.MinusToken | SyntaxKind.AsteriskToken | SyntaxKind.AsteriskAsteriskToken | SyntaxKind.SlashToken | SyntaxKind.PercentToken | SyntaxKind.PlusPlusToken | SyntaxKind.MinusMinusToken | SyntaxKind.LessThanLessThanToken | SyntaxKind.GreaterThanGreaterThanToken | SyntaxKind.GreaterThanGreaterThanGreaterThanToken | SyntaxKind.AmpersandToken | SyntaxKind.BarToken | SyntaxKind.CaretToken | SyntaxKind.ExclamationToken | SyntaxKind.TildeToken | SyntaxKind.AmpersandAmpersandToken | SyntaxKind.BarBarToken | SyntaxKind.QuestionQuestionToken | SyntaxKind.QuestionToken | SyntaxKind.ColonToken | SyntaxKind.AtToken | SyntaxKind.BacktickToken | SyntaxKind.EqualsToken | SyntaxKind.PlusEqualsToken | SyntaxKind.MinusEqualsToken | SyntaxKind.AsteriskEqualsToken | SyntaxKind.AsteriskAsteriskEqualsToken | SyntaxKind.SlashEqualsToken | SyntaxKind.PercentEqualsToken | SyntaxKind.LessThanLessThanEqualsToken | SyntaxKind.GreaterThanGreaterThanEqualsToken | SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken | SyntaxKind.AmpersandEqualsToken | SyntaxKind.BarEqualsToken | SyntaxKind.CaretEqualsToken;
-    export type KeywordSyntaxKind = SyntaxKind.AbstractKeyword | SyntaxKind.AnyKeyword | SyntaxKind.AsKeyword | SyntaxKind.AssertsKeyword | SyntaxKind.AsyncKeyword | SyntaxKind.AwaitKeyword | SyntaxKind.BigIntKeyword | SyntaxKind.BooleanKeyword | SyntaxKind.BreakKeyword | SyntaxKind.CaseKeyword | SyntaxKind.CatchKeyword | SyntaxKind.ClassKeyword | SyntaxKind.ConstKeyword | SyntaxKind.ConstructorKeyword | SyntaxKind.ContinueKeyword | SyntaxKind.DebuggerKeyword | SyntaxKind.DeclareKeyword | SyntaxKind.DefaultKeyword | SyntaxKind.DeleteKeyword | SyntaxKind.DoKeyword | SyntaxKind.ElseKeyword | SyntaxKind.EnumKeyword | SyntaxKind.ExportKeyword | SyntaxKind.ExtendsKeyword | SyntaxKind.FalseKeyword | SyntaxKind.FinallyKeyword | SyntaxKind.ForKeyword | SyntaxKind.FromKeyword | SyntaxKind.FunctionKeyword | SyntaxKind.GetKeyword | SyntaxKind.GlobalKeyword | SyntaxKind.IfKeyword | SyntaxKind.ImplementsKeyword | SyntaxKind.ImportKeyword | SyntaxKind.InferKeyword | SyntaxKind.InKeyword | SyntaxKind.InstanceOfKeyword | SyntaxKind.InterfaceKeyword | SyntaxKind.IntrinsicKeyword | SyntaxKind.IsKeyword | SyntaxKind.KeyOfKeyword | SyntaxKind.LetKeyword | SyntaxKind.ModuleKeyword | SyntaxKind.NamespaceKeyword | SyntaxKind.NeverKeyword | SyntaxKind.NewKeyword | SyntaxKind.NullKeyword | SyntaxKind.NumberKeyword | SyntaxKind.ObjectKeyword | SyntaxKind.OfKeyword | SyntaxKind.PackageKeyword | SyntaxKind.PrivateKeyword | SyntaxKind.ProtectedKeyword | SyntaxKind.PublicKeyword | SyntaxKind.ReadonlyKeyword | SyntaxKind.RequireKeyword | SyntaxKind.ReturnKeyword | SyntaxKind.SetKeyword | SyntaxKind.StaticKeyword | SyntaxKind.StringKeyword | SyntaxKind.SuperKeyword | SyntaxKind.SwitchKeyword | SyntaxKind.SymbolKeyword | SyntaxKind.ThisKeyword | SyntaxKind.ThrowKeyword | SyntaxKind.TrueKeyword | SyntaxKind.TryKeyword | SyntaxKind.TypeKeyword | SyntaxKind.TypeOfKeyword | SyntaxKind.UndefinedKeyword | SyntaxKind.UniqueKeyword | SyntaxKind.UnknownKeyword | SyntaxKind.VarKeyword | SyntaxKind.VoidKeyword | SyntaxKind.WhileKeyword | SyntaxKind.WithKeyword | SyntaxKind.YieldKeyword;
-    export type ModifierSyntaxKind = SyntaxKind.AbstractKeyword | SyntaxKind.AsyncKeyword | SyntaxKind.ConstKeyword | SyntaxKind.DeclareKeyword | SyntaxKind.DefaultKeyword | SyntaxKind.ExportKeyword | SyntaxKind.PrivateKeyword | SyntaxKind.ProtectedKeyword | SyntaxKind.PublicKeyword | SyntaxKind.ReadonlyKeyword | SyntaxKind.StaticKeyword;
+    export type PunctuationSyntaxKind = SyntaxKind.OpenBraceToken | SyntaxKind.CloseBraceToken | SyntaxKind.OpenParenToken | SyntaxKind.CloseParenToken | SyntaxKind.OpenBracketToken | SyntaxKind.CloseBracketToken | SyntaxKind.DotToken | SyntaxKind.DotDotDotToken | SyntaxKind.SemicolonToken | SyntaxKind.CommaToken | SyntaxKind.QuestionDotToken | SyntaxKind.LessThanToken | SyntaxKind.LessThanSlashToken | SyntaxKind.GreaterThanToken | SyntaxKind.LessThanEqualsToken | SyntaxKind.GreaterThanEqualsToken | SyntaxKind.EqualsEqualsToken | SyntaxKind.ExclamationEqualsToken | SyntaxKind.EqualsEqualsEqualsToken | SyntaxKind.ExclamationEqualsEqualsToken | SyntaxKind.EqualsGreaterThanToken | SyntaxKind.PlusToken | SyntaxKind.MinusToken | SyntaxKind.AsteriskToken | SyntaxKind.AsteriskAsteriskToken | SyntaxKind.SlashToken | SyntaxKind.PercentToken | SyntaxKind.PlusPlusToken | SyntaxKind.MinusMinusToken | SyntaxKind.LessThanLessThanToken | SyntaxKind.GreaterThanGreaterThanToken | SyntaxKind.GreaterThanGreaterThanGreaterThanToken | SyntaxKind.AmpersandToken | SyntaxKind.BarToken | SyntaxKind.CaretToken | SyntaxKind.ExclamationToken | SyntaxKind.TildeToken | SyntaxKind.AmpersandAmpersandToken | SyntaxKind.BarBarToken | SyntaxKind.QuestionQuestionToken | SyntaxKind.QuestionToken | SyntaxKind.ColonToken | SyntaxKind.AtToken | SyntaxKind.BacktickToken | SyntaxKind.HashToken | SyntaxKind.EqualsToken | SyntaxKind.PlusEqualsToken | SyntaxKind.MinusEqualsToken | SyntaxKind.AsteriskEqualsToken | SyntaxKind.AsteriskAsteriskEqualsToken | SyntaxKind.SlashEqualsToken | SyntaxKind.PercentEqualsToken | SyntaxKind.LessThanLessThanEqualsToken | SyntaxKind.GreaterThanGreaterThanEqualsToken | SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken | SyntaxKind.AmpersandEqualsToken | SyntaxKind.BarEqualsToken | SyntaxKind.CaretEqualsToken;
+    export type KeywordSyntaxKind = SyntaxKind.AbstractKeyword | SyntaxKind.AnyKeyword | SyntaxKind.AsKeyword | SyntaxKind.AssertsKeyword | SyntaxKind.AssertKeyword | SyntaxKind.AsyncKeyword | SyntaxKind.AwaitKeyword | SyntaxKind.BigIntKeyword | SyntaxKind.BooleanKeyword | SyntaxKind.BreakKeyword | SyntaxKind.CaseKeyword | SyntaxKind.CatchKeyword | SyntaxKind.ClassKeyword | SyntaxKind.ConstKeyword | SyntaxKind.ConstructorKeyword | SyntaxKind.ContinueKeyword | SyntaxKind.DebuggerKeyword | SyntaxKind.DeclareKeyword | SyntaxKind.DefaultKeyword | SyntaxKind.DeleteKeyword | SyntaxKind.DoKeyword | SyntaxKind.ElseKeyword | SyntaxKind.EnumKeyword | SyntaxKind.ExportKeyword | SyntaxKind.ExtendsKeyword | SyntaxKind.FalseKeyword | SyntaxKind.FinallyKeyword | SyntaxKind.ForKeyword | SyntaxKind.FromKeyword | SyntaxKind.FunctionKeyword | SyntaxKind.GetKeyword | SyntaxKind.GlobalKeyword | SyntaxKind.IfKeyword | SyntaxKind.ImplementsKeyword | SyntaxKind.ImportKeyword | SyntaxKind.InferKeyword | SyntaxKind.InKeyword | SyntaxKind.InstanceOfKeyword | SyntaxKind.InterfaceKeyword | SyntaxKind.IntrinsicKeyword | SyntaxKind.IsKeyword | SyntaxKind.KeyOfKeyword | SyntaxKind.LetKeyword | SyntaxKind.ModuleKeyword | SyntaxKind.NamespaceKeyword | SyntaxKind.NeverKeyword | SyntaxKind.NewKeyword | SyntaxKind.NullKeyword | SyntaxKind.NumberKeyword | SyntaxKind.ObjectKeyword | SyntaxKind.OfKeyword | SyntaxKind.PackageKeyword | SyntaxKind.PrivateKeyword | SyntaxKind.ProtectedKeyword | SyntaxKind.PublicKeyword | SyntaxKind.ReadonlyKeyword | SyntaxKind.OverrideKeyword | SyntaxKind.RequireKeyword | SyntaxKind.ReturnKeyword | SyntaxKind.SetKeyword | SyntaxKind.StaticKeyword | SyntaxKind.StringKeyword | SyntaxKind.SuperKeyword | SyntaxKind.SwitchKeyword | SyntaxKind.SymbolKeyword | SyntaxKind.ThisKeyword | SyntaxKind.ThrowKeyword | SyntaxKind.TrueKeyword | SyntaxKind.TryKeyword | SyntaxKind.TypeKeyword | SyntaxKind.TypeOfKeyword | SyntaxKind.UndefinedKeyword | SyntaxKind.UniqueKeyword | SyntaxKind.UnknownKeyword | SyntaxKind.VarKeyword | SyntaxKind.VoidKeyword | SyntaxKind.WhileKeyword | SyntaxKind.WithKeyword | SyntaxKind.YieldKeyword;
+    export type ModifierSyntaxKind = SyntaxKind.AbstractKeyword | SyntaxKind.AsyncKeyword | SyntaxKind.ConstKeyword | SyntaxKind.DeclareKeyword | SyntaxKind.DefaultKeyword | SyntaxKind.ExportKeyword | SyntaxKind.PrivateKeyword | SyntaxKind.ProtectedKeyword | SyntaxKind.PublicKeyword | SyntaxKind.ReadonlyKeyword | SyntaxKind.OverrideKeyword | SyntaxKind.StaticKeyword;
     export type KeywordTypeSyntaxKind = SyntaxKind.AnyKeyword | SyntaxKind.BigIntKeyword | SyntaxKind.BooleanKeyword | SyntaxKind.IntrinsicKeyword | SyntaxKind.NeverKeyword | SyntaxKind.NumberKeyword | SyntaxKind.ObjectKeyword | SyntaxKind.StringKeyword | SyntaxKind.SymbolKeyword | SyntaxKind.UndefinedKeyword | SyntaxKind.UnknownKeyword | SyntaxKind.VoidKeyword;
     export type TypeNodeSyntaxKind = KeywordTypeSyntaxKind | SyntaxKind.TypePredicate | SyntaxKind.TypeReference | SyntaxKind.FunctionType | SyntaxKind.ConstructorType | SyntaxKind.TypeQuery | SyntaxKind.TypeLiteral | SyntaxKind.ArrayType | SyntaxKind.TupleType | SyntaxKind.NamedTupleMember | SyntaxKind.OptionalType | SyntaxKind.RestType | SyntaxKind.UnionType | SyntaxKind.IntersectionType | SyntaxKind.ConditionalType | SyntaxKind.InferType | SyntaxKind.ParenthesizedType | SyntaxKind.ThisType | SyntaxKind.TypeOperator | SyntaxKind.IndexedAccessType | SyntaxKind.MappedType | SyntaxKind.LiteralType | SyntaxKind.TemplateLiteralType | SyntaxKind.TemplateLiteralTypeSpan | SyntaxKind.ImportType | SyntaxKind.ExpressionWithTypeArguments | SyntaxKind.JSDocTypeExpression | SyntaxKind.JSDocAllType | SyntaxKind.JSDocUnknownType | SyntaxKind.JSDocNonNullableType | SyntaxKind.JSDocNullableType | SyntaxKind.JSDocOptionalType | SyntaxKind.JSDocFunctionType | SyntaxKind.JSDocVariadicType | SyntaxKind.JSDocNamepathType | SyntaxKind.JSDocSignature | SyntaxKind.JSDocTypeLiteral;
     export type TokenSyntaxKind = SyntaxKind.Unknown | SyntaxKind.EndOfFileToken | TriviaSyntaxKind | LiteralSyntaxKind | PseudoLiteralSyntaxKind | PunctuationSyntaxKind | SyntaxKind.Identifier | KeywordSyntaxKind;
     export type JsxTokenSyntaxKind = SyntaxKind.LessThanSlashToken | SyntaxKind.EndOfFileToken | SyntaxKind.ConflictMarkerTrivia | SyntaxKind.JsxText | SyntaxKind.JsxTextAllWhiteSpaces | SyntaxKind.OpenBraceToken | SyntaxKind.LessThanToken;
-    export type JSDocSyntaxKind = SyntaxKind.EndOfFileToken | SyntaxKind.WhitespaceTrivia | SyntaxKind.AtToken | SyntaxKind.NewLineTrivia | SyntaxKind.AsteriskToken | SyntaxKind.OpenBraceToken | SyntaxKind.CloseBraceToken | SyntaxKind.LessThanToken | SyntaxKind.GreaterThanToken | SyntaxKind.OpenBracketToken | SyntaxKind.CloseBracketToken | SyntaxKind.EqualsToken | SyntaxKind.CommaToken | SyntaxKind.DotToken | SyntaxKind.Identifier | SyntaxKind.BacktickToken | SyntaxKind.Unknown | KeywordSyntaxKind;
+    export type JSDocSyntaxKind = SyntaxKind.EndOfFileToken | SyntaxKind.WhitespaceTrivia | SyntaxKind.AtToken | SyntaxKind.NewLineTrivia | SyntaxKind.AsteriskToken | SyntaxKind.OpenBraceToken | SyntaxKind.CloseBraceToken | SyntaxKind.LessThanToken | SyntaxKind.GreaterThanToken | SyntaxKind.OpenBracketToken | SyntaxKind.CloseBracketToken | SyntaxKind.EqualsToken | SyntaxKind.CommaToken | SyntaxKind.DotToken | SyntaxKind.Identifier | SyntaxKind.BacktickToken | SyntaxKind.HashToken | SyntaxKind.Unknown | KeywordSyntaxKind;
     export enum NodeFlags {
         None = 0,
         Let = 1,
@@ -1463,13 +1460,14 @@ declare namespace ts {
         Const = 2048,
         HasComputedJSDocModifiers = 4096,
         Deprecated = 8192,
+        Override = 16384,
         HasComputedFlags = 536870912,
         AccessibilityModifier = 28,
-        ParameterPropertyModifier = 92,
+        ParameterPropertyModifier = 16476,
         NonPublicAccessibilityModifier = 24,
-        TypeScriptModifier = 2270,
+        TypeScriptModifier = 18654,
         ExportDefault = 513,
-        All = 11263
+        All = 27647
     }
     export enum JsxFlags {
         None = 0,
@@ -1511,15 +1509,18 @@ declare namespace ts {
         jsDoc?: JSDoc[];
         jsDocCache?: readonly JSDocTag[];
     }
-    export type HasJSDoc = ParameterDeclaration | CallSignatureDeclaration | ConstructSignatureDeclaration | MethodSignature | PropertySignature | ArrowFunction | ParenthesizedExpression | SpreadAssignment | ShorthandPropertyAssignment | PropertyAssignment | FunctionExpression | LabeledStatement | ExpressionStatement | VariableStatement | FunctionDeclaration | ConstructorDeclaration | MethodDeclaration | VariableDeclaration | PropertyDeclaration | AccessorDeclaration | ClassLikeDeclaration | InterfaceDeclaration | TypeAliasDeclaration | EnumMember | EnumDeclaration | ModuleDeclaration | ImportEqualsDeclaration | ImportDeclaration | NamespaceExportDeclaration | ExportAssignment | IndexSignatureDeclaration | FunctionTypeNode | ConstructorTypeNode | JSDocFunctionType | ExportDeclaration | NamedTupleMember | EndOfFileToken;
+    export type HasJSDoc = ParameterDeclaration | CallSignatureDeclaration | ClassStaticBlockDeclaration | ConstructSignatureDeclaration | MethodSignature | PropertySignature | ArrowFunction | ParenthesizedExpression | SpreadAssignment | ShorthandPropertyAssignment | PropertyAssignment | FunctionExpression | EmptyStatement | DebuggerStatement | Block | VariableStatement | ExpressionStatement | IfStatement | DoStatement | WhileStatement | ForStatement | ForInStatement | ForOfStatement | BreakStatement | ContinueStatement | ReturnStatement | WithStatement | SwitchStatement | LabeledStatement | ThrowStatement | TryStatement | FunctionDeclaration | ConstructorDeclaration | MethodDeclaration | VariableDeclaration | PropertyDeclaration | AccessorDeclaration | ClassLikeDeclaration | InterfaceDeclaration | TypeAliasDeclaration | EnumMember | EnumDeclaration | ModuleDeclaration | ImportEqualsDeclaration | ImportDeclaration | NamespaceExportDeclaration | ExportAssignment | IndexSignatureDeclaration | FunctionTypeNode | ConstructorTypeNode | JSDocFunctionType | ExportDeclaration | NamedTupleMember | ExportSpecifier | CaseClause | EndOfFileToken;
     export type HasType = SignatureDeclaration | VariableDeclaration | ParameterDeclaration | PropertySignature | PropertyDeclaration | TypePredicateNode | ParenthesizedTypeNode | TypeOperatorNode | MappedTypeNode | AssertionExpression | TypeAliasDeclaration | JSDocTypeExpression | JSDocNonNullableType | JSDocNullableType | JSDocOptionalType | JSDocVariadicType;
     export type HasTypeArguments = CallExpression | NewExpression | TaggedTemplateExpression | JsxOpeningElement | JsxSelfClosingElement;
     export type HasInitializer = HasExpressionInitializer | ForStatement | ForInStatement | ForOfStatement | JsxAttribute;
     export type HasExpressionInitializer = VariableDeclaration | ParameterDeclaration | BindingElement | PropertySignature | PropertyDeclaration | PropertyAssignment | EnumMember;
     export type HasModifiers = ParameterDeclaration | PropertySignature | PropertyDeclaration | MethodSignature | MethodDeclaration | ConstructorDeclaration | GetAccessorDeclaration | SetAccessorDeclaration | IndexSignatureDeclaration | FunctionExpression | ArrowFunction | ClassExpression | VariableStatement | FunctionDeclaration | ClassDeclaration | InterfaceDeclaration | TypeAliasDeclaration | EnumDeclaration | ModuleDeclaration | ImportEqualsDeclaration | ImportDeclaration | ExportAssignment | ExportDeclaration;
-    export type MutableNodeArray<T extends Node> = NodeArray<T> & T[];
+    export interface MutableNodeArray<T extends Node> extends Array<T>, TextRange {
+        hasTrailingComma: boolean;
+        transformFlags: TransformFlags;
+    }
     export interface NodeArray<T extends Node> extends ReadonlyArray<T>, ReadonlyTextRange {
-        hasTrailingComma?: boolean;
+        readonly hasTrailingComma: boolean;
         transformFlags: TransformFlags;
     }
     export interface Token<TKind extends SyntaxKind> extends Node {
@@ -1542,6 +1543,7 @@ declare namespace ts {
     export interface KeywordToken<TKind extends KeywordSyntaxKind> extends Token<TKind> {
     }
     export type AssertsKeyword = KeywordToken<SyntaxKind.AssertsKeyword>;
+    export type AssertKeyword = KeywordToken<SyntaxKind.AssertKeyword>;
     export type AwaitKeyword = KeywordToken<SyntaxKind.AwaitKeyword>;
     /** @deprecated Use `AwaitKeyword` instead. */
     export type AwaitKeywordToken = AwaitKeyword;
@@ -1559,10 +1561,11 @@ declare namespace ts {
     export type ProtectedKeyword = ModifierToken<SyntaxKind.ProtectedKeyword>;
     export type PublicKeyword = ModifierToken<SyntaxKind.PublicKeyword>;
     export type ReadonlyKeyword = ModifierToken<SyntaxKind.ReadonlyKeyword>;
+    export type OverrideKeyword = ModifierToken<SyntaxKind.OverrideKeyword>;
     export type StaticKeyword = ModifierToken<SyntaxKind.StaticKeyword>;
     /** @deprecated Use `ReadonlyKeyword` instead. */
     export type ReadonlyToken = ReadonlyKeyword;
-    export type Modifier = AbstractKeyword | AsyncKeyword | ConstKeyword | DeclareKeyword | DefaultKeyword | ExportKeyword | PrivateKeyword | ProtectedKeyword | PublicKeyword | ReadonlyKeyword | StaticKeyword;
+    export type Modifier = AbstractKeyword | AsyncKeyword | ConstKeyword | DeclareKeyword | DefaultKeyword | ExportKeyword | PrivateKeyword | ProtectedKeyword | PublicKeyword | OverrideKeyword | ReadonlyKeyword | StaticKeyword;
     export type AccessibilityModifier = PublicKeyword | PrivateKeyword | ProtectedKeyword;
     export type ParameterPropertyModifier = AccessibilityModifier | ReadonlyKeyword;
     export type ClassMemberModifier = AccessibilityModifier | ReadonlyKeyword | StaticKeyword;
@@ -1639,7 +1642,7 @@ declare namespace ts {
         readonly parent: Declaration;
         readonly expression: Expression;
     }
-    export interface PrivateIdentifier extends Node {
+    export interface PrivateIdentifier extends PrimaryExpression {
         readonly kind: SyntaxKind.PrivateIdentifier;
         readonly escapedText: __String;
     }
@@ -1836,16 +1839,16 @@ declare namespace ts {
         readonly kind: SyntaxKind.SemicolonClassElement;
         readonly parent: ClassLikeDeclaration;
     }
-    export interface GetAccessorDeclaration extends FunctionLikeDeclarationBase, ClassElement, ObjectLiteralElement, JSDocContainer {
+    export interface GetAccessorDeclaration extends FunctionLikeDeclarationBase, ClassElement, TypeElement, ObjectLiteralElement, JSDocContainer {
         readonly kind: SyntaxKind.GetAccessor;
-        readonly parent: ClassLikeDeclaration | ObjectLiteralExpression;
+        readonly parent: ClassLikeDeclaration | ObjectLiteralExpression | TypeLiteralNode | InterfaceDeclaration;
         readonly name: PropertyName;
         readonly body?: FunctionBody;
         typeParameters?: NodeArray<TypeParameterDeclaration>;
     }
-    export interface SetAccessorDeclaration extends FunctionLikeDeclarationBase, ClassElement, ObjectLiteralElement, JSDocContainer {
+    export interface SetAccessorDeclaration extends FunctionLikeDeclarationBase, ClassElement, TypeElement, ObjectLiteralElement, JSDocContainer {
         readonly kind: SyntaxKind.SetAccessor;
-        readonly parent: ClassLikeDeclaration | ObjectLiteralExpression;
+        readonly parent: ClassLikeDeclaration | ObjectLiteralExpression | TypeLiteralNode | InterfaceDeclaration;
         readonly name: PropertyName;
         readonly body?: FunctionBody;
         typeParameters?: NodeArray<TypeParameterDeclaration>;
@@ -1856,6 +1859,15 @@ declare namespace ts {
         readonly kind: SyntaxKind.IndexSignature;
         readonly parent: ObjectTypeDeclaration;
         readonly type: TypeNode;
+    }
+    export interface ClassStaticBlockDeclaration extends ClassElement, JSDocContainer {
+        readonly kind: SyntaxKind.ClassStaticBlockDeclaration;
+        readonly parent: ClassDeclaration | ClassExpression;
+        readonly body: Block;
+        readonly decorators?: NodeArray<Decorator>;
+        readonly modifier?: ModifiersArray;
+        endFlowNode?: FlowNode;
+        returnFlowNode?: FlowNode;
     }
     export interface TypeNode extends Node {
         _typeNodeBrand: any;
@@ -1902,11 +1914,11 @@ declare namespace ts {
     export interface TypePredicateNode extends TypeNode {
         readonly kind: SyntaxKind.TypePredicate;
         readonly parent: SignatureDeclaration | JSDocTypeExpression;
-        readonly assertsModifier?: AssertsToken;
+        readonly assertsModifier?: AssertsKeyword;
         readonly parameterName: Identifier | ThisTypeNode;
         readonly type?: TypeNode;
     }
-    export interface TypeQueryNode extends TypeNode {
+    export interface TypeQueryNode extends NodeWithTypeArguments {
         readonly kind: SyntaxKind.TypeQuery;
         readonly exprName: EntityName;
     }
@@ -1976,11 +1988,13 @@ declare namespace ts {
     }
     export interface MappedTypeNode extends TypeNode, Declaration {
         readonly kind: SyntaxKind.MappedType;
-        readonly readonlyToken?: ReadonlyToken | PlusToken | MinusToken;
+        readonly readonlyToken?: ReadonlyKeyword | PlusToken | MinusToken;
         readonly typeParameter: TypeParameterDeclaration;
         readonly nameType?: TypeNode;
         readonly questionToken?: QuestionToken | PlusToken | MinusToken;
         readonly type?: TypeNode;
+        /** Used only to produce grammar errors */
+        readonly members?: NodeArray<TypeElement>;
     }
     export interface LiteralTypeNode extends TypeNode {
         readonly kind: SyntaxKind.LiteralType;
@@ -2237,6 +2251,9 @@ declare namespace ts {
         readonly kind: SyntaxKind.ParenthesizedExpression;
         readonly expression: Expression;
     }
+    export interface JSDocTypeAssertion extends ParenthesizedExpression {
+        readonly _jsDocTypeAssertionBrand: never;
+    }
     export interface ArrayLiteralExpression extends PrimaryExpression {
         readonly kind: SyntaxKind.ArrayLiteralExpression;
         readonly elements: NodeArray<Expression>;
@@ -2355,9 +2372,8 @@ declare namespace ts {
     export interface ImportCall extends CallExpression {
         readonly expression: ImportExpression;
     }
-    export interface ExpressionWithTypeArguments extends NodeWithTypeArguments {
+    export interface ExpressionWithTypeArguments extends MemberExpression, NodeWithTypeArguments {
         readonly kind: SyntaxKind.ExpressionWithTypeArguments;
-        readonly parent: HeritageClause | JSDocAugmentsTag | JSDocImplementsTag;
         readonly expression: LeftHandSideExpression;
     }
     export interface NewExpression extends PrimaryExpression, Declaration {
@@ -2464,17 +2480,17 @@ declare namespace ts {
     }
     export interface JsxExpression extends Expression {
         readonly kind: SyntaxKind.JsxExpression;
-        readonly parent: JsxElement | JsxAttributeLike;
+        readonly parent: JsxElement | JsxFragment | JsxAttributeLike;
         readonly dotDotDotToken?: Token<SyntaxKind.DotDotDotToken>;
         readonly expression?: Expression;
     }
     export interface JsxText extends LiteralLikeNode {
         readonly kind: SyntaxKind.JsxText;
-        readonly parent: JsxElement;
+        readonly parent: JsxElement | JsxFragment;
         readonly containsOnlyTriviaWhiteSpaces: boolean;
     }
     export type JsxChild = JsxText | JsxExpression | JsxElement | JsxSelfClosingElement | JsxFragment;
-    export interface Statement extends Node {
+    export interface Statement extends Node, JSDocContainer {
         _statementBrand: any;
     }
     export interface NotEmittedStatement extends Statement {
@@ -2522,12 +2538,12 @@ declare namespace ts {
         readonly statements: NodeArray<Statement>;
         multiLine?: boolean;
     }
-    export interface VariableStatement extends Statement, JSDocContainer {
+    export interface VariableStatement extends Statement {
         decorators?: NodeArray<Decorator>;
         readonly kind: SyntaxKind.VariableStatement;
         readonly declarationList: VariableDeclarationList;
     }
-    export interface ExpressionStatement extends Statement, JSDocContainer {
+    export interface ExpressionStatement extends Statement {
         readonly kind: SyntaxKind.ExpressionStatement;
         readonly expression: Expression;
     }
@@ -2566,7 +2582,7 @@ declare namespace ts {
     }
     export interface ForOfStatement extends IterationStatement {
         readonly kind: SyntaxKind.ForOfStatement;
-        readonly awaitModifier?: AwaitKeywordToken;
+        readonly awaitModifier?: AwaitKeyword;
         readonly initializer: ForInitializer;
         readonly expression: Expression;
     }
@@ -2599,7 +2615,7 @@ declare namespace ts {
         readonly parent: SwitchStatement;
         readonly clauses: NodeArray<CaseOrDefaultClause>;
     }
-    export interface CaseClause extends Node {
+    export interface CaseClause extends Node, JSDocContainer {
         readonly kind: SyntaxKind.CaseClause;
         readonly parent: CaseBlock;
         readonly expression: Expression;
@@ -2613,7 +2629,7 @@ declare namespace ts {
         fallthroughFlowNode?: FlowNode;
     }
     export type CaseOrDefaultClause = CaseClause | DefaultClause;
-    export interface LabeledStatement extends Statement, JSDocContainer {
+    export interface LabeledStatement extends Statement {
         readonly kind: SyntaxKind.LabeledStatement;
         readonly label: Identifier;
         readonly statement: Statement;
@@ -2736,12 +2752,13 @@ declare namespace ts {
         readonly parent: ImportEqualsDeclaration;
         readonly expression: Expression;
     }
-    export interface ImportDeclaration extends Statement, JSDocContainer {
+    export interface ImportDeclaration extends Statement {
         readonly kind: SyntaxKind.ImportDeclaration;
         readonly parent: SourceFile | ModuleBlock;
         readonly importClause?: ImportClause;
         /** If this is not a StringLiteral it will be a grammar error. */
         readonly moduleSpecifier: Expression;
+        readonly assertClause?: AssertClause;
     }
     export type NamedImportBindings = NamespaceImport | NamedImports;
     export type NamedExportBindings = NamespaceExport | NamedExports;
@@ -2751,6 +2768,19 @@ declare namespace ts {
         readonly isTypeOnly: boolean;
         readonly name?: Identifier;
         readonly namedBindings?: NamedImportBindings;
+    }
+    export type AssertionKey = Identifier | StringLiteral;
+    export interface AssertEntry extends Node {
+        readonly kind: SyntaxKind.AssertEntry;
+        readonly parent: AssertClause;
+        readonly name: AssertionKey;
+        readonly value: Expression;
+    }
+    export interface AssertClause extends Node {
+        readonly kind: SyntaxKind.AssertClause;
+        readonly parent: ImportDeclaration | ExportDeclaration;
+        readonly elements: NodeArray<AssertEntry>;
+        readonly multiLine?: boolean;
     }
     export interface NamespaceImport extends NamedDeclaration {
         readonly kind: SyntaxKind.NamespaceImport;
@@ -2776,6 +2806,7 @@ declare namespace ts {
         readonly exportClause?: NamedExportBindings;
         /** If this is not a StringLiteral it will be a grammar error. */
         readonly moduleSpecifier?: Expression;
+        readonly assertClause?: AssertClause;
     }
     export interface NamedImports extends Node {
         readonly kind: SyntaxKind.NamedImports;
@@ -2793,15 +2824,43 @@ declare namespace ts {
         readonly parent: NamedImports;
         readonly propertyName?: Identifier;
         readonly name: Identifier;
+        readonly isTypeOnly: boolean;
     }
-    export interface ExportSpecifier extends NamedDeclaration {
+    export interface ExportSpecifier extends NamedDeclaration, JSDocContainer {
         readonly kind: SyntaxKind.ExportSpecifier;
         readonly parent: NamedExports;
+        readonly isTypeOnly: boolean;
         readonly propertyName?: Identifier;
         readonly name: Identifier;
     }
     export type ImportOrExportSpecifier = ImportSpecifier | ExportSpecifier;
     export type TypeOnlyCompatibleAliasDeclaration = ImportClause | ImportEqualsDeclaration | NamespaceImport | ImportOrExportSpecifier;
+    export type TypeOnlyAliasDeclaration = ImportClause & {
+        readonly isTypeOnly: true;
+        readonly name: Identifier;
+    } | ImportEqualsDeclaration & {
+        readonly isTypeOnly: true;
+    } | NamespaceImport & {
+        readonly parent: ImportClause & {
+            readonly isTypeOnly: true;
+        };
+    } | ImportSpecifier & ({
+        readonly isTypeOnly: true;
+    } | {
+        readonly parent: NamedImports & {
+            readonly parent: ImportClause & {
+                readonly isTypeOnly: true;
+            };
+        };
+    }) | ExportSpecifier & ({
+        readonly isTypeOnly: true;
+    } | {
+        readonly parent: NamedExports & {
+            readonly parent: ExportDeclaration & {
+                readonly isTypeOnly: true;
+            };
+        };
+    });
     /**
      * This is either an `export =` or an `export default` declaration.
      * Unless `isExportEquals` is set, this node was parsed as an `export default`.
@@ -2814,6 +2873,7 @@ declare namespace ts {
     }
     export interface FileReference extends TextRange {
         fileName: string;
+        resolutionMode?: SourceFile["impliedNodeFormat"];
     }
     export interface CheckJsDirective extends TextRange {
         enabled: boolean;
@@ -2835,7 +2895,13 @@ declare namespace ts {
     }
     export interface JSDocNameReference extends Node {
         readonly kind: SyntaxKind.JSDocNameReference;
-        readonly name: EntityName;
+        readonly name: EntityName | JSDocMemberName;
+    }
+    /** Class#method reference in JSDoc */
+    export interface JSDocMemberName extends Node {
+        readonly kind: SyntaxKind.JSDocMemberName;
+        readonly left: EntityName | JSDocMemberName;
+        readonly right: Identifier;
     }
     export interface JSDocType extends TypeNode {
         _jsDocTypeBrand: any;
@@ -2874,18 +2940,29 @@ declare namespace ts {
         readonly kind: SyntaxKind.JSDocComment;
         readonly parent: HasJSDoc;
         readonly tags?: NodeArray<JSDocTag>;
-        readonly comment?: string | NodeArray<JSDocText | JSDocLink>;
+        readonly comment?: string | NodeArray<JSDocComment>;
     }
     export interface JSDocTag extends Node {
         readonly parent: JSDoc | JSDocTypeLiteral;
         readonly tagName: Identifier;
-        readonly comment?: string | NodeArray<JSDocText | JSDocLink>;
+        readonly comment?: string | NodeArray<JSDocComment>;
     }
     export interface JSDocLink extends Node {
         readonly kind: SyntaxKind.JSDocLink;
-        readonly name?: EntityName;
+        readonly name?: EntityName | JSDocMemberName;
         text: string;
     }
+    export interface JSDocLinkCode extends Node {
+        readonly kind: SyntaxKind.JSDocLinkCode;
+        readonly name?: EntityName | JSDocMemberName;
+        text: string;
+    }
+    export interface JSDocLinkPlain extends Node {
+        readonly kind: SyntaxKind.JSDocLinkPlain;
+        readonly name?: EntityName | JSDocMemberName;
+        text: string;
+    }
+    export type JSDocComment = JSDocText | JSDocLink | JSDocLinkCode | JSDocLinkPlain;
     export interface JSDocText extends Node {
         readonly kind: SyntaxKind.JSDocText;
         text: string;
@@ -2929,6 +3006,9 @@ declare namespace ts {
     }
     export interface JSDocReadonlyTag extends JSDocTag {
         readonly kind: SyntaxKind.JSDocReadonlyTag;
+    }
+    export interface JSDocOverrideTag extends JSDocTag {
+        readonly kind: SyntaxKind.JSDocOverrideTag;
     }
     export interface JSDocEnumTag extends JSDocTag, Declaration {
         readonly kind: SyntaxKind.JSDocEnumTag;
@@ -3019,7 +3099,7 @@ declare namespace ts {
         id?: number;
     }
     export interface FlowStart extends FlowNodeBase {
-        node?: FunctionExpression | ArrowFunction | MethodDeclaration;
+        node?: FunctionExpression | ArrowFunction | MethodDeclaration | GetAccessorDeclaration | SetAccessorDeclaration;
     }
     export interface FlowLabel extends FlowNodeBase {
         antecedents: FlowNode[] | undefined;
@@ -3120,6 +3200,18 @@ declare namespace ts {
          */
         hasNoDefaultLib: boolean;
         languageVersion: ScriptTarget;
+        /**
+         * When `module` is `Node12` or `NodeNext`, this field controls whether the
+         * source file in question is an ESNext-output-format file, or a CommonJS-output-format
+         * module. This is derived by the module resolver as it looks up the file, since
+         * it is derived from either the file extension of the module, or the containing
+         * `package.json` context, and affects both checking and emit.
+         *
+         * It is _public_ so that (pre)transformers can set this field,
+         * since it switches the builtin `node` module transform. Generally speaking, if unset,
+         * the field is treated as though it is `ModuleKind.CommonJS`.
+         */
+        impliedNodeFormat?: ModuleKind.ESNext | ModuleKind.CommonJS;
         scriptKind: ScriptKind;
         /**
          * The first "most obvious" node that makes a file an external module.
@@ -3141,8 +3233,8 @@ declare namespace ts {
         lineMap: readonly number[];
         classifiableNames?: ReadonlySet<__String>;
         commentDirectives?: CommentDirective[];
-        resolvedModules?: ESMap<string, ResolvedModuleFull | undefined>;
-        resolvedTypeReferenceDirectiveNames: ESMap<string, ResolvedTypeReferenceDirective | undefined>;
+        resolvedModules?: ModeAwareCache<ResolvedModuleFull | undefined>;
+        resolvedTypeReferenceDirectiveNames: ModeAwareCache<ResolvedTypeReferenceDirective | undefined>;
         imports: readonly StringLiteralLike[];
         moduleAugmentations: readonly (StringLiteral | Identifier)[];
         patternAmbientModules?: PatternAmbientModule[];
@@ -3155,6 +3247,7 @@ declare namespace ts {
         localJsxFactory?: EntityName;
         localJsxFragmentFactory?: EntityName;
         exportedModulesFromDeclarationEmit?: ExportedModulesFromDeclarationEmit;
+        endFlowNode?: FlowNode;
     }
     export interface CommentDirective {
         range: TextRange;
@@ -3195,7 +3288,7 @@ declare namespace ts {
         readonly prologues: readonly UnparsedPrologue[];
         helpers: readonly UnscopedEmitHelper[] | undefined;
         referencedFiles: readonly FileReference[];
-        typeReferenceDirectives: readonly string[] | undefined;
+        typeReferenceDirectives: readonly FileReference[] | undefined;
         libReferenceDirectives: readonly FileReference[];
         hasNoDefaultLib?: boolean;
         sourceMapPath?: string;
@@ -3351,6 +3444,7 @@ declare namespace ts {
          * program source file but could not be located.
          */
         getMissingFilePaths(): readonly Path[];
+        getModuleResolutionCache(): ModuleResolutionCache | undefined;
         getFilesByNameMap(): ESMap<string, SourceFile | false | undefined>;
         /**
          * Emits the JavaScript and declaration files.  If targetSourceFile is not specified, then
@@ -3395,21 +3489,23 @@ declare namespace ts {
             strictSubtype: number;
         };
         getFileProcessingDiagnostics(): FilePreprocessingDiagnostics[] | undefined;
-        getResolvedTypeReferenceDirectives(): ESMap<string, ResolvedTypeReferenceDirective | undefined>;
+        getResolvedTypeReferenceDirectives(): ModeAwareCache<ResolvedTypeReferenceDirective | undefined>;
         isSourceFileFromExternalLibrary(file: SourceFile): boolean;
         isSourceFileDefaultLibrary(file: SourceFile): boolean;
         readonly structureIsReused: StructureIsReused;
         getSourceFileFromReference(referencingFile: SourceFile | UnparsedSource, ref: FileReference): SourceFile | undefined;
         getLibFileFromReference(ref: FileReference): SourceFile | undefined;
         /** Given a source file, get the name of the package it was imported from. */
-        sourceFileToPackageName: ESMap<string, string>;
+        sourceFileToPackageName: ESMap<Path, string>;
         /** Set of all source files that some other source file redirects to. */
-        redirectTargetsMap: MultiMap<string, string>;
+        redirectTargetsMap: MultiMap<Path, string>;
+        /** Whether any (non-external, non-declaration) source files use `node:`-prefixed module specifiers. */
+        readonly usesUriStyleNodeCoreModules: boolean;
         /** Is the file emitted file */
         isEmittedFile(file: string): boolean;
         getFileIncludeReasons(): MultiMap<Path, FileIncludeReason>;
         useCaseSensitiveFileNames(): boolean;
-        getResolvedModuleWithFailedLookupLocationsFromCache(moduleName: string, containingFile: string): ResolvedModuleWithFailedLookupLocations | undefined;
+        getResolvedModuleWithFailedLookupLocationsFromCache(moduleName: string, containingFile: string, mode?: ModuleKind.CommonJS | ModuleKind.ESNext): ResolvedModuleWithFailedLookupLocations | undefined;
         getProjectReferences(): readonly ProjectReference[] | undefined;
         getResolvedProjectReferences(): readonly (ResolvedProjectReference | undefined)[] | undefined;
         getProjectReferenceRedirect(fileName: string): string | undefined;
@@ -3426,7 +3522,7 @@ declare namespace ts {
     }
     export interface Program extends TypeCheckerHost, ModuleSpecifierResolutionHost {
     }
-    export type RedirectTargetsMap = ReadonlyESMap<string, readonly string[]>;
+    export type RedirectTargetsMap = ReadonlyESMap<Path, readonly string[]>;
     export interface ResolvedProjectReference {
         commandLine: ParsedCommandLine;
         sourceFile: SourceFile;
@@ -3494,21 +3590,24 @@ declare namespace ts {
         getCompilerOptions(): CompilerOptions;
         getSourceFiles(): readonly SourceFile[];
         getSourceFile(fileName: string): SourceFile | undefined;
-        getResolvedTypeReferenceDirectives(): ReadonlyESMap<string, ResolvedTypeReferenceDirective | undefined>;
+        getResolvedTypeReferenceDirectives(): ModeAwareCache<ResolvedTypeReferenceDirective | undefined>;
         getProjectReferenceRedirect(fileName: string): string | undefined;
         isSourceOfProjectReferenceRedirect(fileName: string): boolean;
         readonly redirectTargetsMap: RedirectTargetsMap;
     }
     export interface TypeChecker {
         getTypeOfSymbolAtLocation(symbol: Symbol, node: Node): Type;
+        getTypeOfSymbol(symbol: Symbol): Type;
         getDeclaredTypeOfSymbol(symbol: Symbol): Type;
         getPropertiesOfType(type: Type): Symbol[];
         getPropertyOfType(type: Type, propertyName: string): Symbol | undefined;
         getPrivateIdentifierPropertyOfType(leftType: Type, name: string, location: Node): Symbol | undefined;
         getTypeOfPropertyOfType(type: Type, propertyName: string): Type | undefined;
         getIndexInfoOfType(type: Type, kind: IndexKind): IndexInfo | undefined;
+        getIndexInfosOfType(type: Type): readonly IndexInfo[];
         getSignaturesOfType(type: Type, kind: SignatureKind): readonly Signature[];
         getIndexTypeOfType(type: Type, kind: IndexKind): Type | undefined;
+        getIndexType(type: Type): Type;
         getBaseTypes(type: InterfaceType): BaseType[];
         getBaseTypeOfLiteralType(type: Type): Type;
         getWidenedType(type: Type): Type;
@@ -3520,6 +3619,7 @@ declare namespace ts {
          * Returns `any` if the index is not valid.
          */
         getParameterType(signature: Signature, parameterIndex: number): Type;
+        getParameterIdentifierNameAtPosition(signature: Signature, parameterIndex: number): [parameterName: __String, isRestParameter: boolean] | undefined;
         getNullableType(type: Type, flags: TypeFlags): Type;
         getNonNullableType(type: Type): Type;
         getNonOptionalType(type: Type): Type;
@@ -3536,8 +3636,8 @@ declare namespace ts {
             typeArguments?: NodeArray<TypeNode>;
         } | undefined;
         /** Note that the resulting nodes cannot be checked. */
-        indexInfoToIndexSignatureDeclaration(indexInfo: IndexInfo, kind: IndexKind, enclosingDeclaration: Node | undefined, flags: NodeBuilderFlags | undefined): IndexSignatureDeclaration | undefined;
-        indexInfoToIndexSignatureDeclaration(indexInfo: IndexInfo, kind: IndexKind, enclosingDeclaration: Node | undefined, flags: NodeBuilderFlags | undefined, tracker?: SymbolTracker): IndexSignatureDeclaration | undefined;
+        indexInfoToIndexSignatureDeclaration(indexInfo: IndexInfo, enclosingDeclaration: Node | undefined, flags: NodeBuilderFlags | undefined): IndexSignatureDeclaration | undefined;
+        indexInfoToIndexSignatureDeclaration(indexInfo: IndexInfo, enclosingDeclaration: Node | undefined, flags: NodeBuilderFlags | undefined, tracker?: SymbolTracker): IndexSignatureDeclaration | undefined;
         /** Note that the resulting nodes cannot be checked. */
         symbolToEntityName(symbol: Symbol, meaning: SymbolFlags, enclosingDeclaration: Node | undefined, flags: NodeBuilderFlags | undefined): EntityName | undefined;
         /** Note that the resulting nodes cannot be checked. */
@@ -3550,6 +3650,7 @@ declare namespace ts {
         typeParameterToDeclaration(parameter: TypeParameter, enclosingDeclaration: Node | undefined, flags: NodeBuilderFlags | undefined): TypeParameterDeclaration | undefined;
         getSymbolsInScope(location: Node, meaning: SymbolFlags): Symbol[];
         getSymbolAtLocation(node: Node): Symbol | undefined;
+        getIndexInfosAtLocation(node: Node): readonly IndexInfo[] | undefined;
         getSymbolsOfParameterPropertyDeclaration(parameter: ParameterDeclaration, parameterName: string): Symbol[];
         /**
          * The function returns the value (local variable) symbol of an identifier in the short-hand property assignment.
@@ -3588,6 +3689,7 @@ declare namespace ts {
         getContextualTypeForArgumentAtIndex(call: CallLikeExpression, argIndex: number): Type | undefined;
         getContextualTypeForJsxAttribute(attribute: JsxAttribute | JsxSpreadAttribute): Type | undefined;
         isContextSensitive(node: Expression | MethodDeclaration | ObjectLiteralElementLike | JsxAttributeLike): boolean;
+        getTypeOfPropertyOfContextualType(type: Type, name: __String): Type | undefined;
         /**
          * returns unknownSignature in the case of an error.
          * returns undefined if the node is not valid.
@@ -3597,6 +3699,7 @@ declare namespace ts {
         getResolvedSignatureForSignatureHelp(node: CallLikeExpression, candidatesOutArray?: Signature[], argumentCount?: number): Signature | undefined;
         getExpandedParameters(sig: Signature): readonly (readonly Symbol[])[];
         hasEffectiveRestParameter(sig: Signature): boolean;
+        containsArgumentsReference(declaration: SignatureDeclaration): boolean;
         getSignatureFromDeclaration(declaration: SignatureDeclaration): Signature | undefined;
         isImplementationOfOverload(node: SignatureDeclaration): boolean | undefined;
         isUndefinedSymbol(symbol: Symbol): boolean;
@@ -3605,7 +3708,7 @@ declare namespace ts {
         getMergedSymbol(symbol: Symbol): Symbol;
         getConstantValue(node: EnumMember | PropertyAccessExpression | ElementAccessExpression): string | number | undefined;
         isValidPropertyAccess(node: PropertyAccessExpression | QualifiedName | ImportTypeNode, propertyName: string): boolean;
-        /** Exclude accesses to private properties or methods with a `this` parameter that `type` doesn't satisfy. */
+        /** Exclude accesses to private properties. */
         isValidPropertyAccessForCompletions(node: PropertyAccessExpression | ImportTypeNode | QualifiedName, type: Type, property: Symbol): boolean;
         /** Follow all aliases to get the original symbol. */
         getAliasedSymbol(symbol: Symbol): Symbol;
@@ -3614,6 +3717,7 @@ declare namespace ts {
         getExportsOfModule(moduleSymbol: Symbol): Symbol[];
         /** Unlike `getExportsOfModule`, this includes properties of an `export =` value. */
         getExportsAndPropertiesOfModule(moduleSymbol: Symbol): Symbol[];
+        forEachExportAndPropertyOfModule(moduleSymbol: Symbol, cb: (symbol: Symbol, key: __String) => void): void;
         getJsxIntrinsicTagNamesAt(location: Node): Symbol[];
         isOptionalParameter(node: ParameterDeclaration): boolean;
         getAmbientModules(): Symbol[];
@@ -3630,6 +3734,7 @@ declare namespace ts {
         getSuggestedSymbolForNonexistentSymbol(location: Node, name: string, meaning: SymbolFlags): Symbol | undefined;
         getSuggestionForNonexistentSymbol(location: Node, name: string, meaning: SymbolFlags): string | undefined;
         getSuggestedSymbolForNonexistentModule(node: Identifier, target: Symbol): Symbol | undefined;
+        getSuggestedSymbolForNonexistentClassMember(name: string, baseType: Type): Symbol | undefined;
         getSuggestionForNonexistentExport(node: Identifier, target: Symbol): string | undefined;
         getBaseConstraintOfType(type: Type): Type | undefined;
         getDefaultFromTypeParameter(type: Type): Type | undefined;
@@ -3649,11 +3754,13 @@ declare namespace ts {
         createArrayType(elementType: Type): Type;
         getElementTypeOfArrayType(arrayType: Type): Type | undefined;
         createPromiseType(type: Type): Type;
+        getPromiseType(): Type;
+        getPromiseLikeType(): Type;
         isTypeAssignableTo(source: Type, target: Type): boolean;
-        createAnonymousType(symbol: Symbol | undefined, members: SymbolTable, callSignatures: Signature[], constructSignatures: Signature[], stringIndexInfo: IndexInfo | undefined, numberIndexInfo: IndexInfo | undefined): Type;
-        createSignature(declaration: SignatureDeclaration, typeParameters: readonly TypeParameter[] | undefined, thisParameter: Symbol | undefined, parameters: readonly Symbol[], resolvedReturnType: Type, typePredicate: TypePredicate | undefined, minArgumentCount: number, flags: SignatureFlags): Signature;
+        createAnonymousType(symbol: Symbol | undefined, members: SymbolTable, callSignatures: Signature[], constructSignatures: Signature[], indexInfos: IndexInfo[]): Type;
+        createSignature(declaration: SignatureDeclaration | undefined, typeParameters: readonly TypeParameter[] | undefined, thisParameter: Symbol | undefined, parameters: readonly Symbol[], resolvedReturnType: Type, typePredicate: TypePredicate | undefined, minArgumentCount: number, flags: SignatureFlags): Signature;
         createSymbol(flags: SymbolFlags, name: __String): TransientSymbol;
-        createIndexInfo(type: Type, isReadonly: boolean, declaration?: SignatureDeclaration): IndexInfo;
+        createIndexInfo(keyType: Type, type: Type, isReadonly: boolean, declaration?: SignatureDeclaration): IndexInfo;
         isSymbolAccessible(symbol: Symbol, enclosingDeclaration: Node | undefined, meaning: SymbolFlags, shouldComputeAliasToMarkVisible: boolean): SymbolAccessibilityResult;
         tryFindAmbientModule(moduleName: string): Symbol | undefined;
         tryFindAmbientModuleWithoutAugmentations(moduleName: string): Symbol | undefined;
@@ -3673,6 +3780,7 @@ declare namespace ts {
             strictSubtype: number;
         };
         getRecursionIdentity(type: Type): object | undefined;
+        getUnmatchedProperties(source: Type, target: Type, requireOptionalProperties: boolean, matchDiscriminantProperties: boolean): IterableIterator<Symbol>;
         isArrayType(type: Type): boolean;
         isTupleType(type: Type): boolean;
         isArrayLikeType(type: Type): boolean;
@@ -3681,6 +3789,7 @@ declare namespace ts {
          * e.g. it specifies `kind: "a"` and obj has `kind: "b"`.
          */
         isTypeInvalidDueToUnionDiscriminant(contextualType: Type, obj: ObjectLiteralExpression | JsxAttributes): boolean;
+        getExactOptionalProperties(type: Type): Symbol[];
         /**
          * For a union, will include a property if it's defined in *any* of the member types.
          * So for `{ a } | { b }`, this will include both `a` and `b`.
@@ -3723,6 +3832,14 @@ declare namespace ts {
         runWithCancellationToken<T>(token: CancellationToken, cb: (checker: TypeChecker) => T): T;
         getLocalTypeParametersOfClassOrInterfaceOrTypeAlias(symbol: Symbol): readonly TypeParameter[] | undefined;
         isDeclarationVisible(node: Declaration | AnyImportSyntax): boolean;
+        isPropertyAccessible(node: Node, isSuper: boolean, isWrite: boolean, containingType: Type, property: Symbol): boolean;
+        getTypeOnlyAliasDeclaration(symbol: Symbol): TypeOnlyAliasDeclaration | undefined;
+        getMemberOverrideModifierStatus(node: ClassLikeDeclaration, member: ClassElement): MemberOverrideStatus;
+    }
+    export enum MemberOverrideStatus {
+        Ok = 0,
+        NeedsOverride = 1,
+        HasInvalidOverride = 2
     }
     export enum UnionReduction {
         None = 0,
@@ -3770,8 +3887,7 @@ declare namespace ts {
         IgnoreErrors = 70221824,
         InObjectTypeLiteral = 4194304,
         InTypeAlias = 8388608,
-        InInitialEntityName = 16777216,
-        InReverseMappedType = 33554432
+        InInitialEntityName = 16777216
     }
     export enum TypeFormatFlags {
         None = 0,
@@ -3877,7 +3993,7 @@ declare namespace ts {
     }
     export type TypePredicate = ThisTypePredicate | IdentifierTypePredicate | AssertsThisTypePredicate | AssertsIdentifierTypePredicate;
     export type AnyImportSyntax = ImportDeclaration | ImportEqualsDeclaration;
-    export type AnyImportOrRequire = AnyImportSyntax | RequireVariableDeclaration;
+    export type AnyImportOrRequire = AnyImportSyntax | VariableDeclarationInitializedTo<RequireOrImportCall>;
     export type AnyImportOrRequireStatement = AnyImportSyntax | RequireVariableStatement;
     export type AnyImportOrReExport = AnyImportSyntax | ExportDeclaration;
     export interface ValidImportTypeNode extends ImportTypeNode {
@@ -3896,14 +4012,14 @@ declare namespace ts {
         expression: Identifier;
         arguments: [StringLiteralLike];
     };
-    export interface RequireVariableDeclaration extends VariableDeclaration {
-        readonly initializer: RequireOrImportCall;
+    export interface VariableDeclarationInitializedTo<T extends Expression> extends VariableDeclaration {
+        readonly initializer: T;
     }
     export interface RequireVariableStatement extends VariableStatement {
         readonly declarationList: RequireVariableDeclarationList;
     }
     export interface RequireVariableDeclarationList extends VariableDeclarationList {
-        readonly declarations: NodeArray<RequireVariableDeclaration>;
+        readonly declarations: NodeArray<VariableDeclarationInitializedTo<RequireOrImportCall>>;
     }
     export type LateVisibilityPaintedStatement = AnyImportSyntax | VariableStatement | ClassDeclaration | FunctionDeclaration | ModuleDeclaration | TypeAliasDeclaration | InterfaceDeclaration | EnumDeclaration;
     export interface SymbolVisibilityResult {
@@ -3967,8 +4083,8 @@ declare namespace ts {
         moduleExportsSomeValue(moduleReferenceExpression: Expression): boolean;
         isArgumentsLocalBinding(node: Identifier): boolean;
         getExternalModuleFileFromDeclaration(declaration: ImportEqualsDeclaration | ImportDeclaration | ExportDeclaration | ModuleDeclaration | ImportTypeNode | ImportCall): SourceFile | undefined;
-        getTypeReferenceDirectivesForEntityName(name: EntityNameOrEntityNameExpression): string[] | undefined;
-        getTypeReferenceDirectivesForSymbol(symbol: Symbol, meaning?: SymbolFlags): string[] | undefined;
+        getTypeReferenceDirectivesForEntityName(name: EntityNameOrEntityNameExpression): [specifier: string, mode: SourceFile["impliedNodeFormat"] | undefined][] | undefined;
+        getTypeReferenceDirectivesForSymbol(symbol: Symbol, meaning?: SymbolFlags): [specifier: string, mode: SourceFile["impliedNodeFormat"] | undefined][] | undefined;
         isLiteralConstDeclaration(node: VariableDeclaration | PropertyDeclaration | PropertySignature | ParameterDeclaration): boolean;
         getJsxFactoryEntity(location?: Node): EntityName | undefined;
         getJsxFragmentFactoryEntity(location?: Node): EntityName | undefined;
@@ -4067,6 +4183,7 @@ declare namespace ts {
         immediateTarget?: Symbol;
         target?: Symbol;
         type?: Type;
+        writeType?: Type;
         nameType?: Type;
         uniqueESSymbolType?: Type;
         declaredType?: Type;
@@ -4099,11 +4216,13 @@ declare namespace ts {
         extendedContainersByFile?: ESMap<NodeId, Symbol[]>;
         variances?: VarianceFlags[];
         deferralConstituents?: Type[];
+        deferralWriteConstituents?: Type[];
         deferralParent?: Type;
         cjsExportMerged?: Symbol;
-        typeOnlyDeclaration?: TypeOnlyCompatibleAliasDeclaration | false;
+        typeOnlyDeclaration?: TypeOnlyAliasDeclaration | false;
         isConstructorDeclaredProperty?: boolean;
         tupleLabelDeclaration?: NamedTupleMember | ParameterDeclaration;
+        accessibleChainCache?: ESMap<string, Symbol[] | undefined>;
     }
     export enum EnumKind {
         Numeric = 0,
@@ -4130,6 +4249,7 @@ declare namespace ts {
         HasNeverType = 131072,
         Mapped = 262144,
         StripOptional = 524288,
+        Unresolved = 1048576,
         Synthetic = 6,
         Discriminant = 192,
         Partial = 48
@@ -4214,7 +4334,9 @@ declare namespace ts {
         AssignmentsMarked = 8388608,
         ClassWithConstructorReference = 16777216,
         ConstructorReferenceInClass = 33554432,
-        ContainsClassWithPrivateIdentifiers = 67108864
+        ContainsClassWithPrivateIdentifiers = 67108864,
+        ContainsSuperPropertyInStaticInitializer = 134217728,
+        InCheckIdentifier = 268435456
     }
     export interface NodeLinks {
         flags: NodeCheckFlags;
@@ -4236,12 +4358,16 @@ declare namespace ts {
         jsxNamespace?: Symbol | false;
         jsxImplicitImportContainer?: Symbol | false;
         contextFreeType?: Type;
-        deferredNodes?: ESMap<NodeId, Node>;
+        deferredNodes?: Set<Node>;
         capturedBlockScopeBindings?: Symbol[];
         outerTypeParameters?: TypeParameter[];
         isExhaustive?: boolean;
         skipDirectInference?: true;
         declarationRequiresScopeChange?: boolean;
+        serializedTypes?: ESMap<string, TypeNode & {
+            truncating?: boolean;
+            addedLength: number;
+        }>;
     }
     export enum TypeFlags {
         Any = 1,
@@ -4290,6 +4416,7 @@ declare namespace ts {
         EnumLike = 1056,
         ESSymbolLike = 12288,
         VoidLike = 49152,
+        DefinitelyNonNullable = 470302716,
         DisjointDomains = 469892092,
         UnionOrIntersection = 3145728,
         StructuredType = 3670016,
@@ -4300,14 +4427,15 @@ declare namespace ts {
         StructuredOrInstantiable = 469499904,
         ObjectFlagsType = 3899393,
         Simplifiable = 25165824,
-        Substructure = 469237760,
+        Singleton = 67358815,
         Narrowable = 536624127,
-        NotPrimitiveUnion = 468598819,
         IncludesMask = 205258751,
-        IncludesStructuredOrInstantiable = 262144,
+        IncludesMissingType = 262144,
         IncludesNonWideningType = 4194304,
         IncludesWildcard = 8388608,
-        IncludesEmptyObject = 16777216
+        IncludesEmptyObject = 16777216,
+        IncludesInstantiable = 33554432,
+        NotPrimitiveUnion = 36323363
     }
     export type DestructuringPattern = BindingPattern | ObjectLiteralExpression | ArrayLiteralExpression;
     export type TypeId = number;
@@ -4368,32 +4496,35 @@ declare namespace ts {
         ObjectLiteral = 128,
         EvolvingArray = 256,
         ObjectLiteralPatternWithComputedProperties = 512,
-        ContainsSpread = 1024,
-        ReverseMapped = 2048,
-        JsxAttributes = 4096,
-        MarkerType = 8192,
-        JSLiteral = 16384,
-        FreshLiteral = 32768,
-        ArrayLiteral = 65536,
-        ObjectRestType = 131072,
-        PrimitiveUnion = 262144,
-        ContainsWideningType = 524288,
-        ContainsObjectOrArrayLiteral = 1048576,
-        NonInferrableType = 2097152,
-        IsGenericObjectTypeComputed = 4194304,
-        IsGenericObjectType = 8388608,
-        IsGenericIndexTypeComputed = 16777216,
-        IsGenericIndexType = 33554432,
-        CouldContainTypeVariablesComputed = 67108864,
-        CouldContainTypeVariables = 134217728,
-        ContainsIntersections = 268435456,
-        IsNeverIntersectionComputed = 268435456,
-        IsNeverIntersection = 536870912,
-        IsClassInstanceClone = 1073741824,
+        ReverseMapped = 1024,
+        JsxAttributes = 2048,
+        MarkerType = 4096,
+        JSLiteral = 8192,
+        FreshLiteral = 16384,
+        ArrayLiteral = 32768,
+        PrimitiveUnion = 65536,
+        ContainsWideningType = 131072,
+        ContainsObjectOrArrayLiteral = 262144,
+        NonInferrableType = 524288,
+        CouldContainTypeVariablesComputed = 1048576,
+        CouldContainTypeVariables = 2097152,
         ClassOrInterface = 3,
-        RequiresWidening = 1572864,
-        PropagatingFlags = 3670016,
-        ObjectTypeKindMask = 2367
+        RequiresWidening = 393216,
+        PropagatingFlags = 917504,
+        ObjectTypeKindMask = 1343,
+        ContainsSpread = 4194304,
+        ObjectRestType = 8388608,
+        InstantiationExpressionType = 16777216,
+        IsClassInstanceClone = 33554432,
+        IdenticalBaseTypeCalculated = 67108864,
+        IdenticalBaseTypeExists = 134217728,
+        IsGenericTypeComputed = 4194304,
+        IsGenericObjectType = 8388608,
+        IsGenericIndexType = 16777216,
+        IsGenericType = 25165824,
+        ContainsIntersections = 33554432,
+        IsNeverIntersectionComputed = 33554432,
+        IsNeverIntersection = 67108864
     }
     export type ObjectFlagsType = NullableType | ObjectType | UnionType | IntersectionType;
     export interface ObjectType extends Type {
@@ -4402,8 +4533,7 @@ declare namespace ts {
         properties?: Symbol[];
         callSignatures?: readonly Signature[];
         constructSignatures?: readonly Signature[];
-        stringIndexInfo?: IndexInfo;
-        numberIndexInfo?: IndexInfo;
+        indexInfos?: readonly IndexInfo[];
         objectTypeWithoutAbstractConstructSignatures?: ObjectType;
     }
     /** Class and interface types (ObjectFlags.Class and ObjectFlags.Interface). */
@@ -4421,8 +4551,7 @@ declare namespace ts {
         declaredProperties: Symbol[];
         declaredCallSignatures: Signature[];
         declaredConstructSignatures: Signature[];
-        declaredStringIndexInfo?: IndexInfo;
-        declaredNumberIndexInfo?: IndexInfo;
+        declaredIndexInfos: IndexInfo[];
     }
     /**
      * Type references (ObjectFlags.Reference). When a class or interface has type parameters or
@@ -4440,6 +4569,7 @@ declare namespace ts {
         mapper?: TypeMapper;
         resolvedTypeArguments?: readonly Type[];
         literalType?: TypeReference;
+        cachedEquivalentBaseType?: Type;
     }
     export interface DeferredTypeReference extends TypeReference {
         node: TypeReferenceNode | ArrayTypeNode | TupleTypeNode;
@@ -4509,6 +4639,9 @@ declare namespace ts {
         mapper?: TypeMapper;
         instantiations?: ESMap<string, Type>;
     }
+    export interface InstantiationExpressionType extends AnonymousType {
+        node: ExpressionWithTypeArguments | TypeQueryNode;
+    }
     export interface MappedType extends AnonymousType {
         declaration: MappedTypeNode;
         typeParameter?: TypeParameter;
@@ -4533,6 +4666,7 @@ declare namespace ts {
         properties: Symbol[];
         callSignatures: readonly Signature[];
         constructSignatures: readonly Signature[];
+        indexInfos: readonly IndexInfo[];
     }
     export interface FreshObjectLiteralType extends ResolvedType {
         regularType: ResolvedType;
@@ -4558,6 +4692,7 @@ declare namespace ts {
     }
     export interface SyntheticDefaultModuleType extends Type {
         syntheticType?: Type;
+        defaultOnlyType?: Type;
     }
     export interface InstantiableType extends Type {
         resolvedBaseConstraint?: Type;
@@ -4573,15 +4708,23 @@ declare namespace ts {
         isThisType?: boolean;
         resolvedDefaultType?: Type;
     }
+    export enum AccessFlags {
+        None = 0,
+        IncludeUndefined = 1,
+        NoIndexSignatures = 2,
+        Writing = 4,
+        CacheSymbol = 8,
+        NoTupleBoundsCheck = 16,
+        ExpressionPosition = 32,
+        ReportDeprecated = 64,
+        SuppressNoImplicitAnyError = 128,
+        Contextual = 256,
+        Persistent = 1
+    }
     export interface IndexedAccessType extends InstantiableType {
         objectType: Type;
         indexType: Type;
-        /**
-         * @internal
-         * Indicates that --noUncheckedIndexedAccess may introduce 'undefined' into
-         * the resulting type, depending on how type variable constraints are resolved.
-         */
-        noUncheckedIndexedAccessCandidate: boolean;
+        accessFlags: AccessFlags;
         constraint?: Type;
         simplifiedForReading?: Type;
         simplifiedForWriting?: Type;
@@ -4606,8 +4749,8 @@ declare namespace ts {
         root: ConditionalRoot;
         checkType: Type;
         extendsType: Type;
-        resolvedTrueType: Type;
-        resolvedFalseType: Type;
+        resolvedTrueType?: Type;
+        resolvedFalseType?: Type;
         resolvedInferredTrueType?: Type;
         resolvedDefaultConstraint?: Type;
         mapper?: TypeMapper;
@@ -4622,6 +4765,7 @@ declare namespace ts {
         type: Type;
     }
     export interface SubstitutionType extends InstantiableType {
+        objectFlags: ObjectFlags;
         baseType: Type;
         substitute: Type;
     }
@@ -4675,6 +4819,7 @@ declare namespace ts {
         Number = 1
     }
     export interface IndexInfo {
+        keyType: Type;
         type: Type;
         isReadonly: boolean;
         declaration?: IndexSignatureDeclaration;
@@ -4705,16 +4850,17 @@ declare namespace ts {
     export enum InferencePriority {
         NakedTypeVariable = 1,
         SpeculativeTuple = 2,
-        HomomorphicMappedType = 4,
-        PartialHomomorphicMappedType = 8,
-        MappedTypeConstraint = 16,
-        ContravariantConditional = 32,
-        ReturnType = 64,
-        LiteralKeyof = 128,
-        NoConstraints = 256,
-        AlwaysStrict = 512,
-        MaxValue = 1024,
-        PriorityImpliesCombination = 208,
+        SubstituteSource = 4,
+        HomomorphicMappedType = 8,
+        PartialHomomorphicMappedType = 16,
+        MappedTypeConstraint = 32,
+        ContravariantConditional = 64,
+        ReturnType = 128,
+        LiteralKeyof = 256,
+        NoConstraints = 512,
+        AlwaysStrict = 1024,
+        MaxValue = 2048,
+        PriorityImpliesCombination = 416,
         Circularity = -1
     }
     export interface InferenceInfo {
@@ -4842,7 +4988,9 @@ declare namespace ts {
     }, lowerCase?: boolean): string;
     export enum ModuleResolutionKind {
         Classic = 1,
-        NodeJs = 2
+        NodeJs = 2,
+        Node12 = 3,
+        NodeNext = 99
     }
     export interface PluginImport {
         name: string;
@@ -4908,6 +5056,7 @@ declare namespace ts {
         downlevelIteration?: boolean;
         emitBOM?: boolean;
         emitDecoratorMetadata?: boolean;
+        exactOptionalPropertyTypes?: boolean;
         experimentalDecorators?: boolean;
         forceConsistentCasingInFileNames?: boolean;
         generateCpuProfile?: string;
@@ -4958,7 +5107,9 @@ declare namespace ts {
         pathsBasePath?: string;
         plugins?: PluginImport[];
         preserveConstEnums?: boolean;
+        noImplicitOverride?: boolean;
         preserveSymlinks?: boolean;
+        preserveValueImports?: boolean;
         preserveWatchOutput?: boolean;
         project?: string;
         pretty?: boolean;
@@ -4987,6 +5138,7 @@ declare namespace ts {
         suppressOutputPathCheck?: boolean;
         target?: ScriptTarget;
         traceResolution?: boolean;
+        useUnknownInCatchVariables?: boolean;
         resolveJsonModule?: boolean;
         types?: string[];
         /** Paths used to compute primary types search locations */
@@ -5027,7 +5179,10 @@ declare namespace ts {
         System = 4,
         ES2015 = 5,
         ES2020 = 6,
-        ESNext = 99
+        ES2022 = 7,
+        ESNext = 99,
+        Node12 = 100,
+        NodeNext = 199
     }
     export enum JsxEmit {
         None = 0,
@@ -5075,6 +5230,7 @@ declare namespace ts {
         ES2019 = 6,
         ES2020 = 7,
         ES2021 = 8,
+        ES2022 = 9,
         ESNext = 99,
         JSON = 100,
         Latest = 99
@@ -5112,6 +5268,7 @@ declare namespace ts {
         validatedFilesSpec: readonly string[] | undefined;
         validatedIncludeSpecs: readonly string[] | undefined;
         validatedExcludeSpecs: readonly string[] | undefined;
+        pathPatterns: readonly (string | Pattern)[] | undefined;
     }
     export type RequireResult<T = {}> = {
         module: T;
@@ -5139,6 +5296,7 @@ declare namespace ts {
         isFilePath?: boolean;
         shortName?: string;
         description?: DiagnosticMessage;
+        defaultValueDescription?: string | number | boolean | DiagnosticMessage;
         paramType?: DiagnosticMessage;
         isTSConfigOnly?: boolean;
         isCommandLineOnly?: boolean;
@@ -5150,16 +5308,32 @@ declare namespace ts {
         affectsBindDiagnostics?: true;
         affectsSemanticDiagnostics?: true;
         affectsEmit?: true;
+        affectsProgramStructure?: true;
         transpileOptionValue?: boolean | undefined;
         extraValidation?: (value: CompilerOptionsValue) => [DiagnosticMessage, ...string[]] | undefined;
     }
-    export interface CommandLineOptionOfPrimitiveType extends CommandLineOptionBase {
-        type: "string" | "number" | "boolean";
+    export interface CommandLineOptionOfStringType extends CommandLineOptionBase {
+        type: "string";
+        defaultValueDescription?: string | undefined | DiagnosticMessage;
+    }
+    export interface CommandLineOptionOfNumberType extends CommandLineOptionBase {
+        type: "number";
+        defaultValueDescription: number | undefined | DiagnosticMessage;
+    }
+    export interface CommandLineOptionOfBooleanType extends CommandLineOptionBase {
+        type: "boolean";
+        defaultValueDescription: boolean | undefined | DiagnosticMessage;
     }
     export interface CommandLineOptionOfCustomType extends CommandLineOptionBase {
         type: ESMap<string, number | string>;
+        defaultValueDescription: number | string | undefined | DiagnosticMessage;
+    }
+    export interface AlternateModeDiagnostics {
+        diagnostic: DiagnosticMessage;
+        getOptionsNameMap: () => OptionsNameMap;
     }
     export interface DidYouMeanOptionsDiagnostics {
+        alternateMode?: AlternateModeDiagnostics;
         optionDeclarations: CommandLineOption[];
         unknownOptionDiagnostic: DiagnosticMessage;
         unknownDidYouMeanDiagnostic: DiagnosticMessage;
@@ -5171,9 +5345,9 @@ declare namespace ts {
     }
     export interface CommandLineOptionOfListType extends CommandLineOptionBase {
         type: "list";
-        element: CommandLineOptionOfCustomType | CommandLineOptionOfPrimitiveType | TsConfigOnlyOption;
+        element: CommandLineOptionOfCustomType | CommandLineOptionOfStringType | CommandLineOptionOfNumberType | CommandLineOptionOfBooleanType | TsConfigOnlyOption;
     }
-    export type CommandLineOption = CommandLineOptionOfCustomType | CommandLineOptionOfPrimitiveType | TsConfigOnlyOption | CommandLineOptionOfListType;
+    export type CommandLineOption = CommandLineOptionOfCustomType | CommandLineOptionOfStringType | CommandLineOptionOfNumberType | CommandLineOptionOfBooleanType | TsConfigOnlyOption | CommandLineOptionOfListType;
     export enum CharacterCodes {
         nullCharacter = 0,
         maxAsciiCharacter = 127,
@@ -5312,6 +5486,7 @@ declare namespace ts {
         realpath?(path: string): string;
         getCurrentDirectory?(): string;
         getDirectories?(path: string): string[];
+        useCaseSensitiveFileNames?: boolean | (() => boolean);
     }
     /**
      * Represents the result of module resolution.
@@ -5332,6 +5507,10 @@ declare namespace ts {
      * If changing this, remember to change `moduleResolutionIsEqualTo`.
      */
     export interface ResolvedModuleFull extends ResolvedModule {
+        /**
+         * @internal
+         * This is a file name with preserved original casing, not a normalized `Path`.
+         */
         readonly originalPath?: string;
         /**
          * Extension of resolvedFileName. This must match what's at the end of resolvedFileName.
@@ -5366,7 +5545,13 @@ declare namespace ts {
         Js = ".js",
         Jsx = ".jsx",
         Json = ".json",
-        TsBuildInfo = ".tsbuildinfo"
+        TsBuildInfo = ".tsbuildinfo",
+        Mjs = ".mjs",
+        Mts = ".mts",
+        Dmts = ".d.mts",
+        Cjs = ".cjs",
+        Cts = ".cts",
+        Dcts = ".d.cts"
     }
     export interface ResolvedModuleWithFailedLookupLocations {
         readonly resolvedModule: ResolvedModuleFull | undefined;
@@ -5375,6 +5560,12 @@ declare namespace ts {
     export interface ResolvedTypeReferenceDirective {
         primary: boolean;
         resolvedFileName: string | undefined;
+        /**
+         * @internal
+         * The location of the symlink to the .d.ts file we found, if `resolvedFileName` was the realpath.
+         * This is a file name with preserved original casing, not a normalized `Path`.
+         */
+        originalPath?: string;
         packageId?: PackageId;
         /** True if `resolvedFileName` comes from `node_modules`. */
         isExternalLibraryImport?: boolean;
@@ -5397,13 +5588,18 @@ declare namespace ts {
         useCaseSensitiveFileNames(): boolean;
         getNewLine(): string;
         readDirectory?(rootDir: string, extensions: readonly string[], excludes: readonly string[] | undefined, includes: readonly string[], depth?: number): string[];
-        resolveModuleNames?(moduleNames: string[], containingFile: string, reusedNames: string[] | undefined, redirectedReference: ResolvedProjectReference | undefined, options: CompilerOptions): (ResolvedModule | undefined)[];
+        resolveModuleNames?(moduleNames: string[], containingFile: string, reusedNames: string[] | undefined, redirectedReference: ResolvedProjectReference | undefined, options: CompilerOptions, containingSourceFile?: SourceFile): (ResolvedModule | undefined)[];
+        /**
+         * Returns the module resolution cache used by a provided `resolveModuleNames` implementation so that any non-name module resolution operations (eg, package.json lookup) can reuse it
+         */
+        getModuleResolutionCache?(): ModuleResolutionCache | undefined;
         /**
          * This method is a companion for 'resolveModuleNames' and is used to resolve 'types' references to actual type declaration files
          */
-        resolveTypeReferenceDirectives?(typeReferenceDirectiveNames: string[], containingFile: string, redirectedReference: ResolvedProjectReference | undefined, options: CompilerOptions): (ResolvedTypeReferenceDirective | undefined)[];
+        resolveTypeReferenceDirectives?(typeReferenceDirectiveNames: string[] | readonly FileReference[], containingFile: string, redirectedReference: ResolvedProjectReference | undefined, options: CompilerOptions, containingFileMode?: SourceFile["impliedNodeFormat"] | undefined): (ResolvedTypeReferenceDirective | undefined)[];
         getEnvironmentVariable?(name: string): string | undefined;
         onReleaseOldSourceFile?(oldSourceFile: SourceFile, oldOptions: CompilerOptions, hasSourceFileByPath: boolean): void;
+        onReleaseParsedCommandLine?(configFileName: string, oldResolvedRef: ResolvedProjectReference | undefined, optionOptions: CompilerOptions): void;
         hasInvalidatedResolution?: HasInvalidatedResolution;
         hasChangedAutomaticTypeDirectiveNames?: HasChangedAutomaticTypeDirectiveNames;
         createHash?(data: string): string;
@@ -5424,15 +5620,16 @@ declare namespace ts {
         ContainsTypeScript = 1,
         ContainsJsx = 2,
         ContainsESNext = 4,
-        ContainsES2021 = 8,
-        ContainsES2020 = 16,
-        ContainsES2019 = 32,
-        ContainsES2018 = 64,
-        ContainsES2017 = 128,
-        ContainsES2016 = 256,
-        ContainsES2015 = 512,
-        ContainsGenerator = 1024,
-        ContainsDestructuringAssignment = 2048,
+        ContainsES2022 = 8,
+        ContainsES2021 = 16,
+        ContainsES2020 = 32,
+        ContainsES2019 = 64,
+        ContainsES2018 = 128,
+        ContainsES2017 = 256,
+        ContainsES2016 = 512,
+        ContainsES2015 = 1024,
+        ContainsGenerator = 2048,
+        ContainsDestructuringAssignment = 4096,
         ContainsTypeScriptClassSyntax = 4096,
         ContainsLexicalThis = 8192,
         ContainsRestOrSpread = 16384,
@@ -5446,29 +5643,32 @@ declare namespace ts {
         ContainsDynamicImport = 4194304,
         ContainsClassFields = 8388608,
         ContainsPossibleTopLevelAwait = 16777216,
+        ContainsLexicalSuper = 33554432,
+        ContainsUpdateExpressionForIdentifier = 67108864,
         HasComputedFlags = 536870912,
         AssertTypeScript = 1,
         AssertJsx = 2,
         AssertESNext = 4,
-        AssertES2021 = 8,
-        AssertES2020 = 16,
-        AssertES2019 = 32,
-        AssertES2018 = 64,
-        AssertES2017 = 128,
-        AssertES2016 = 256,
-        AssertES2015 = 512,
-        AssertGenerator = 1024,
-        AssertDestructuringAssignment = 2048,
+        AssertES2022 = 8,
+        AssertES2021 = 16,
+        AssertES2020 = 32,
+        AssertES2019 = 64,
+        AssertES2018 = 128,
+        AssertES2017 = 256,
+        AssertES2016 = 512,
+        AssertES2015 = 1024,
+        AssertGenerator = 2048,
+        AssertDestructuringAssignment = 4096,
         OuterExpressionExcludes = 536870912,
         PropertyAccessExcludes = 536870912,
         NodeExcludes = 536870912,
         ArrowFunctionExcludes = 557748224,
-        FunctionExcludes = 557756416,
-        ConstructorExcludes = 557752320,
-        MethodOrAccessorExcludes = 540975104,
-        PropertyExcludes = 536879104,
+        FunctionExcludes = 591310848,
+        ConstructorExcludes = 591306752,
+        MethodOrAccessorExcludes = 574529536,
+        PropertyExcludes = 570433536,
         ClassExcludes = 536940544,
-        ModuleExcludes = 555888640,
+        ModuleExcludes = 589443072,
         TypeExcludes = -2,
         ObjectLiteralExcludes = 536973312,
         ArrayLiteralOrCallOrNewExcludes = 536887296,
@@ -5476,7 +5676,8 @@ declare namespace ts {
         ParameterExcludes = 536870912,
         CatchClauseExcludes = 536903680,
         BindingPatternExcludes = 536887296,
-        PropertyNamePropagatingFlags = 8192
+        ContainsLexicalThisOrSuper = 33562624,
+        PropertyNamePropagatingFlags = 33562624
     }
     export interface SourceMapRange extends TextRange {
         source?: SourceMapSource;
@@ -5500,6 +5701,22 @@ declare namespace ts {
         externalHelpers?: boolean;
         helpers?: EmitHelper[];
         startsOnNewLine?: boolean;
+        snippetElement?: SnippetElement;
+    }
+    export type SnippetElement = TabStop | Placeholder;
+    export interface TabStop {
+        kind: SnippetKind.TabStop;
+        order: number;
+    }
+    export interface Placeholder {
+        kind: SnippetKind.Placeholder;
+        order: number;
+    }
+    export enum SnippetKind {
+        TabStop = 0,
+        Placeholder = 1,
+        Choice = 2,
+        Variable = 3
     }
     export enum EmitFlags {
         None = 0,
@@ -5533,7 +5750,9 @@ declare namespace ts {
         NoAsciiEscaping = 16777216,
         TypeScriptClassWrapper = 33554432,
         NeverApplyImportHelper = 67108864,
-        IgnoreSourceNewlines = 134217728
+        IgnoreSourceNewlines = 134217728,
+        Immutable = 268435456,
+        IndirectCall = 536870912
     }
     export interface EmitHelperBase {
         readonly name: string;
@@ -5579,9 +5798,10 @@ declare namespace ts {
         MakeTemplateObject = 262144,
         ClassPrivateFieldGet = 524288,
         ClassPrivateFieldSet = 1048576,
-        CreateBinding = 2097152,
+        ClassPrivateFieldIn = 2097152,
+        CreateBinding = 4194304,
         FirstEmitHelper = 1,
-        LastEmitHelper = 2097152,
+        LastEmitHelper = 4194304,
         ForOfIncludes = 256,
         ForAwaitOfIncludes = 16384,
         AsyncGeneratorIncludes = 6144,
@@ -5632,7 +5852,8 @@ declare namespace ts {
         NonNullAssertions = 4,
         PartiallyEmittedExpressions = 8,
         Assertions = 6,
-        All = 15
+        All = 15,
+        ExcludeJSDocTypeAssertion = 16
     }
     export type OuterExpression = ParenthesizedExpression | TypeAssertion | AsExpression | NonNullExpression | PartiallyEmittedExpression;
     export type TypeOfTag = "undefined" | "number" | "bigint" | "boolean" | "string" | "symbol" | "object" | "function";
@@ -5641,6 +5862,8 @@ declare namespace ts {
         thisArg: Expression;
     }
     export interface ParenthesizerRules {
+        getParenthesizeLeftSideOfBinaryForOperator(binaryOperator: SyntaxKind): (leftSide: Expression) => Expression;
+        getParenthesizeRightSideOfBinaryForOperator(binaryOperator: SyntaxKind): (rightSide: Expression) => Expression;
         parenthesizeLeftSideOfBinary(binaryOperator: SyntaxKind, leftSide: Expression): Expression;
         parenthesizeRightSideOfBinary(binaryOperator: SyntaxKind, leftSide: Expression | undefined, rightSide: Expression): Expression;
         parenthesizeExpressionOfComputedPropertyName(expression: Expression): Expression;
@@ -5654,6 +5877,7 @@ declare namespace ts {
         parenthesizeExpressionsOfCommaDelimitedList(elements: readonly Expression[]): NodeArray<Expression>;
         parenthesizeExpressionForDisallowedComma(expression: Expression): Expression;
         parenthesizeExpressionOfExpressionStatement(expression: Expression): Expression;
+        parenthesizeConciseBodyOfArrowFunction(body: Expression): Expression;
         parenthesizeConciseBodyOfArrowFunction(body: ConciseBody): ConciseBody;
         parenthesizeMemberOfConditionalType(member: TypeNode): TypeNode;
         parenthesizeMemberOfElementType(member: TypeNode): TypeNode;
@@ -5723,7 +5947,7 @@ declare namespace ts {
         createTrue(): TrueLiteral;
         createFalse(): FalseLiteral;
         createModifier<T extends ModifierSyntaxKind>(kind: T): ModifierToken<T>;
-        createModifiersFromModifierFlags(flags: ModifierFlags): Modifier[];
+        createModifiersFromModifierFlags(flags: ModifierFlags): Modifier[] | undefined;
         createQualifiedName(left: EntityName, right: string | Identifier): QualifiedName;
         updateQualifiedName(node: QualifiedName, left: EntityName, right: Identifier): QualifiedName;
         createComputedPropertyName(expression: Expression): ComputedPropertyName;
@@ -5757,6 +5981,8 @@ declare namespace ts {
         updateIndexSignature(node: IndexSignatureDeclaration, decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, parameters: readonly ParameterDeclaration[], type: TypeNode): IndexSignatureDeclaration;
         createTemplateLiteralTypeSpan(type: TypeNode, literal: TemplateMiddle | TemplateTail): TemplateLiteralTypeSpan;
         updateTemplateLiteralTypeSpan(node: TemplateLiteralTypeSpan, type: TypeNode, literal: TemplateMiddle | TemplateTail): TemplateLiteralTypeSpan;
+        createClassStaticBlockDeclaration(decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, body: Block): ClassStaticBlockDeclaration;
+        updateClassStaticBlockDeclaration(node: ClassStaticBlockDeclaration, decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, body: Block): ClassStaticBlockDeclaration;
         createKeywordTypeNode<TKind extends KeywordTypeSyntaxKind>(kind: TKind): KeywordTypeNode<TKind>;
         createTypePredicateNode(assertsModifier: AssertsKeyword | undefined, parameterName: Identifier | ThisTypeNode | string, type: TypeNode | undefined): TypePredicateNode;
         updateTypePredicateNode(node: TypePredicateNode, assertsModifier: AssertsKeyword | undefined, parameterName: Identifier | ThisTypeNode, type: TypeNode | undefined): TypePredicateNode;
@@ -5770,8 +5996,8 @@ declare namespace ts {
         updateConstructorTypeNode(node: ConstructorTypeNode, modifiers: readonly Modifier[] | undefined, typeParameters: NodeArray<TypeParameterDeclaration> | undefined, parameters: NodeArray<ParameterDeclaration>, type: TypeNode): ConstructorTypeNode;
         /** @deprecated */
         updateConstructorTypeNode(node: ConstructorTypeNode, typeParameters: NodeArray<TypeParameterDeclaration> | undefined, parameters: NodeArray<ParameterDeclaration>, type: TypeNode): ConstructorTypeNode;
-        createTypeQueryNode(exprName: EntityName): TypeQueryNode;
-        updateTypeQueryNode(node: TypeQueryNode, exprName: EntityName): TypeQueryNode;
+        createTypeQueryNode(exprName: EntityName, typeArguments?: readonly TypeNode[]): TypeQueryNode;
+        updateTypeQueryNode(node: TypeQueryNode, exprName: EntityName, typeArguments?: readonly TypeNode[]): TypeQueryNode;
         createTypeLiteralNode(members: readonly TypeElement[] | undefined): TypeLiteralNode;
         updateTypeLiteralNode(node: TypeLiteralNode, members: NodeArray<TypeElement>): TypeLiteralNode;
         createArrayTypeNode(elementType: TypeNode): ArrayTypeNode;
@@ -5801,8 +6027,8 @@ declare namespace ts {
         updateTypeOperatorNode(node: TypeOperatorNode, type: TypeNode): TypeOperatorNode;
         createIndexedAccessTypeNode(objectType: TypeNode, indexType: TypeNode): IndexedAccessTypeNode;
         updateIndexedAccessTypeNode(node: IndexedAccessTypeNode, objectType: TypeNode, indexType: TypeNode): IndexedAccessTypeNode;
-        createMappedTypeNode(readonlyToken: ReadonlyKeyword | PlusToken | MinusToken | undefined, typeParameter: TypeParameterDeclaration, nameType: TypeNode | undefined, questionToken: QuestionToken | PlusToken | MinusToken | undefined, type: TypeNode | undefined): MappedTypeNode;
-        updateMappedTypeNode(node: MappedTypeNode, readonlyToken: ReadonlyKeyword | PlusToken | MinusToken | undefined, typeParameter: TypeParameterDeclaration, nameType: TypeNode | undefined, questionToken: QuestionToken | PlusToken | MinusToken | undefined, type: TypeNode | undefined): MappedTypeNode;
+        createMappedTypeNode(readonlyToken: ReadonlyKeyword | PlusToken | MinusToken | undefined, typeParameter: TypeParameterDeclaration, nameType: TypeNode | undefined, questionToken: QuestionToken | PlusToken | MinusToken | undefined, type: TypeNode | undefined, members: NodeArray<TypeElement> | undefined): MappedTypeNode;
+        updateMappedTypeNode(node: MappedTypeNode, readonlyToken: ReadonlyKeyword | PlusToken | MinusToken | undefined, typeParameter: TypeParameterDeclaration, nameType: TypeNode | undefined, questionToken: QuestionToken | PlusToken | MinusToken | undefined, type: TypeNode | undefined, members: NodeArray<TypeElement> | undefined): MappedTypeNode;
         createLiteralTypeNode(literal: LiteralTypeNode["literal"]): LiteralTypeNode;
         updateLiteralTypeNode(node: LiteralTypeNode, literal: LiteralTypeNode["literal"]): LiteralTypeNode;
         createTemplateLiteralType(head: TemplateHead, templateSpans: readonly TemplateLiteralTypeSpan[]): TemplateLiteralTypeNode;
@@ -5951,26 +6177,30 @@ declare namespace ts {
         updateNamespaceExportDeclaration(node: NamespaceExportDeclaration, name: Identifier): NamespaceExportDeclaration;
         createImportEqualsDeclaration(decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, isTypeOnly: boolean, name: string | Identifier, moduleReference: ModuleReference): ImportEqualsDeclaration;
         updateImportEqualsDeclaration(node: ImportEqualsDeclaration, decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, isTypeOnly: boolean, name: Identifier, moduleReference: ModuleReference): ImportEqualsDeclaration;
-        createImportDeclaration(decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, importClause: ImportClause | undefined, moduleSpecifier: Expression): ImportDeclaration;
-        updateImportDeclaration(node: ImportDeclaration, decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, importClause: ImportClause | undefined, moduleSpecifier: Expression): ImportDeclaration;
+        createImportDeclaration(decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, importClause: ImportClause | undefined, moduleSpecifier: Expression, assertClause?: AssertClause): ImportDeclaration;
+        updateImportDeclaration(node: ImportDeclaration, decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, importClause: ImportClause | undefined, moduleSpecifier: Expression, assertClause: AssertClause | undefined): ImportDeclaration;
         createImportClause(isTypeOnly: boolean, name: Identifier | undefined, namedBindings: NamedImportBindings | undefined): ImportClause;
         updateImportClause(node: ImportClause, isTypeOnly: boolean, name: Identifier | undefined, namedBindings: NamedImportBindings | undefined): ImportClause;
+        createAssertClause(elements: NodeArray<AssertEntry>, multiLine?: boolean): AssertClause;
+        updateAssertClause(node: AssertClause, elements: NodeArray<AssertEntry>, multiLine?: boolean): AssertClause;
+        createAssertEntry(name: AssertionKey, value: Expression): AssertEntry;
+        updateAssertEntry(node: AssertEntry, name: AssertionKey, value: Expression): AssertEntry;
         createNamespaceImport(name: Identifier): NamespaceImport;
         updateNamespaceImport(node: NamespaceImport, name: Identifier): NamespaceImport;
         createNamespaceExport(name: Identifier): NamespaceExport;
         updateNamespaceExport(node: NamespaceExport, name: Identifier): NamespaceExport;
         createNamedImports(elements: readonly ImportSpecifier[]): NamedImports;
         updateNamedImports(node: NamedImports, elements: readonly ImportSpecifier[]): NamedImports;
-        createImportSpecifier(propertyName: Identifier | undefined, name: Identifier): ImportSpecifier;
-        updateImportSpecifier(node: ImportSpecifier, propertyName: Identifier | undefined, name: Identifier): ImportSpecifier;
+        createImportSpecifier(isTypeOnly: boolean, propertyName: Identifier | undefined, name: Identifier): ImportSpecifier;
+        updateImportSpecifier(node: ImportSpecifier, isTypeOnly: boolean, propertyName: Identifier | undefined, name: Identifier): ImportSpecifier;
         createExportAssignment(decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, isExportEquals: boolean | undefined, expression: Expression): ExportAssignment;
         updateExportAssignment(node: ExportAssignment, decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, expression: Expression): ExportAssignment;
-        createExportDeclaration(decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, isTypeOnly: boolean, exportClause: NamedExportBindings | undefined, moduleSpecifier?: Expression): ExportDeclaration;
-        updateExportDeclaration(node: ExportDeclaration, decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, isTypeOnly: boolean, exportClause: NamedExportBindings | undefined, moduleSpecifier: Expression | undefined): ExportDeclaration;
+        createExportDeclaration(decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, isTypeOnly: boolean, exportClause: NamedExportBindings | undefined, moduleSpecifier?: Expression, assertClause?: AssertClause): ExportDeclaration;
+        updateExportDeclaration(node: ExportDeclaration, decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, isTypeOnly: boolean, exportClause: NamedExportBindings | undefined, moduleSpecifier: Expression | undefined, assertClause: AssertClause | undefined): ExportDeclaration;
         createNamedExports(elements: readonly ExportSpecifier[]): NamedExports;
         updateNamedExports(node: NamedExports, elements: readonly ExportSpecifier[]): NamedExports;
-        createExportSpecifier(propertyName: string | Identifier | undefined, name: string | Identifier): ExportSpecifier;
-        updateExportSpecifier(node: ExportSpecifier, propertyName: Identifier | undefined, name: Identifier): ExportSpecifier;
+        createExportSpecifier(isTypeOnly: boolean, propertyName: string | Identifier | undefined, name: string | Identifier): ExportSpecifier;
+        updateExportSpecifier(node: ExportSpecifier, isTypeOnly: boolean, propertyName: Identifier | undefined, name: Identifier): ExportSpecifier;
         createMissingDeclaration(): MissingDeclaration;
         createExternalModuleReference(expression: Expression): ExternalModuleReference;
         updateExternalModuleReference(node: ExternalModuleReference, expression: Expression): ExternalModuleReference;
@@ -5990,58 +6220,66 @@ declare namespace ts {
         updateJSDocNamepathType(node: JSDocNamepathType, type: TypeNode): JSDocNamepathType;
         createJSDocTypeExpression(type: TypeNode): JSDocTypeExpression;
         updateJSDocTypeExpression(node: JSDocTypeExpression, type: TypeNode): JSDocTypeExpression;
-        createJSDocNameReference(name: EntityName): JSDocNameReference;
-        updateJSDocNameReference(node: JSDocNameReference, name: EntityName): JSDocNameReference;
-        createJSDocLink(name: EntityName | undefined, text: string): JSDocLink;
-        updateJSDocLink(node: JSDocLink, name: EntityName | undefined, text: string): JSDocLink;
+        createJSDocNameReference(name: EntityName | JSDocMemberName): JSDocNameReference;
+        updateJSDocNameReference(node: JSDocNameReference, name: EntityName | JSDocMemberName): JSDocNameReference;
+        createJSDocMemberName(left: EntityName | JSDocMemberName, right: Identifier): JSDocMemberName;
+        updateJSDocMemberName(node: JSDocMemberName, left: EntityName | JSDocMemberName, right: Identifier): JSDocMemberName;
+        createJSDocLink(name: EntityName | JSDocMemberName | undefined, text: string): JSDocLink;
+        updateJSDocLink(node: JSDocLink, name: EntityName | JSDocMemberName | undefined, text: string): JSDocLink;
+        createJSDocLinkCode(name: EntityName | JSDocMemberName | undefined, text: string): JSDocLinkCode;
+        updateJSDocLinkCode(node: JSDocLinkCode, name: EntityName | JSDocMemberName | undefined, text: string): JSDocLinkCode;
+        createJSDocLinkPlain(name: EntityName | JSDocMemberName | undefined, text: string): JSDocLinkPlain;
+        updateJSDocLinkPlain(node: JSDocLinkPlain, name: EntityName | JSDocMemberName | undefined, text: string): JSDocLinkPlain;
         createJSDocTypeLiteral(jsDocPropertyTags?: readonly JSDocPropertyLikeTag[], isArrayType?: boolean): JSDocTypeLiteral;
         updateJSDocTypeLiteral(node: JSDocTypeLiteral, jsDocPropertyTags: readonly JSDocPropertyLikeTag[] | undefined, isArrayType: boolean | undefined): JSDocTypeLiteral;
         createJSDocSignature(typeParameters: readonly JSDocTemplateTag[] | undefined, parameters: readonly JSDocParameterTag[], type?: JSDocReturnTag): JSDocSignature;
         updateJSDocSignature(node: JSDocSignature, typeParameters: readonly JSDocTemplateTag[] | undefined, parameters: readonly JSDocParameterTag[], type: JSDocReturnTag | undefined): JSDocSignature;
-        createJSDocTemplateTag(tagName: Identifier | undefined, constraint: JSDocTypeExpression | undefined, typeParameters: readonly TypeParameterDeclaration[], comment?: string | NodeArray<JSDocText | JSDocLink>): JSDocTemplateTag;
-        updateJSDocTemplateTag(node: JSDocTemplateTag, tagName: Identifier | undefined, constraint: JSDocTypeExpression | undefined, typeParameters: readonly TypeParameterDeclaration[], comment: string | NodeArray<JSDocText | JSDocLink> | undefined): JSDocTemplateTag;
-        createJSDocTypedefTag(tagName: Identifier | undefined, typeExpression?: JSDocTypeExpression | JSDocTypeLiteral, fullName?: Identifier | JSDocNamespaceDeclaration, comment?: string | NodeArray<JSDocText | JSDocLink>): JSDocTypedefTag;
-        updateJSDocTypedefTag(node: JSDocTypedefTag, tagName: Identifier | undefined, typeExpression: JSDocTypeExpression | JSDocTypeLiteral | undefined, fullName: Identifier | JSDocNamespaceDeclaration | undefined, comment: string | NodeArray<JSDocText | JSDocLink> | undefined): JSDocTypedefTag;
-        createJSDocParameterTag(tagName: Identifier | undefined, name: EntityName, isBracketed: boolean, typeExpression?: JSDocTypeExpression, isNameFirst?: boolean, comment?: string | NodeArray<JSDocText | JSDocLink>): JSDocParameterTag;
-        updateJSDocParameterTag(node: JSDocParameterTag, tagName: Identifier | undefined, name: EntityName, isBracketed: boolean, typeExpression: JSDocTypeExpression | undefined, isNameFirst: boolean, comment: string | NodeArray<JSDocText | JSDocLink> | undefined): JSDocParameterTag;
-        createJSDocPropertyTag(tagName: Identifier | undefined, name: EntityName, isBracketed: boolean, typeExpression?: JSDocTypeExpression, isNameFirst?: boolean, comment?: string | NodeArray<JSDocText | JSDocLink>): JSDocPropertyTag;
-        updateJSDocPropertyTag(node: JSDocPropertyTag, tagName: Identifier | undefined, name: EntityName, isBracketed: boolean, typeExpression: JSDocTypeExpression | undefined, isNameFirst: boolean, comment: string | NodeArray<JSDocText | JSDocLink> | undefined): JSDocPropertyTag;
-        createJSDocTypeTag(tagName: Identifier | undefined, typeExpression: JSDocTypeExpression, comment?: string | NodeArray<JSDocText | JSDocLink>): JSDocTypeTag;
-        updateJSDocTypeTag(node: JSDocTypeTag, tagName: Identifier | undefined, typeExpression: JSDocTypeExpression, comment: string | NodeArray<JSDocText | JSDocLink> | undefined): JSDocTypeTag;
-        createJSDocSeeTag(tagName: Identifier | undefined, nameExpression: JSDocNameReference | undefined, comment?: string | NodeArray<JSDocText | JSDocLink>): JSDocSeeTag;
-        updateJSDocSeeTag(node: JSDocSeeTag, tagName: Identifier | undefined, nameExpression: JSDocNameReference | undefined, comment?: string | NodeArray<JSDocText | JSDocLink>): JSDocSeeTag;
-        createJSDocReturnTag(tagName: Identifier | undefined, typeExpression?: JSDocTypeExpression, comment?: string | NodeArray<JSDocText | JSDocLink>): JSDocReturnTag;
-        updateJSDocReturnTag(node: JSDocReturnTag, tagName: Identifier | undefined, typeExpression: JSDocTypeExpression | undefined, comment: string | NodeArray<JSDocText | JSDocLink> | undefined): JSDocReturnTag;
-        createJSDocThisTag(tagName: Identifier | undefined, typeExpression: JSDocTypeExpression, comment?: string | NodeArray<JSDocText | JSDocLink>): JSDocThisTag;
-        updateJSDocThisTag(node: JSDocThisTag, tagName: Identifier | undefined, typeExpression: JSDocTypeExpression | undefined, comment: string | NodeArray<JSDocText | JSDocLink> | undefined): JSDocThisTag;
-        createJSDocEnumTag(tagName: Identifier | undefined, typeExpression: JSDocTypeExpression, comment?: string | NodeArray<JSDocText | JSDocLink>): JSDocEnumTag;
-        updateJSDocEnumTag(node: JSDocEnumTag, tagName: Identifier | undefined, typeExpression: JSDocTypeExpression, comment: string | NodeArray<JSDocText | JSDocLink> | undefined): JSDocEnumTag;
-        createJSDocCallbackTag(tagName: Identifier | undefined, typeExpression: JSDocSignature, fullName?: Identifier | JSDocNamespaceDeclaration, comment?: string | NodeArray<JSDocText | JSDocLink>): JSDocCallbackTag;
-        updateJSDocCallbackTag(node: JSDocCallbackTag, tagName: Identifier | undefined, typeExpression: JSDocSignature, fullName: Identifier | JSDocNamespaceDeclaration | undefined, comment: string | NodeArray<JSDocText | JSDocLink> | undefined): JSDocCallbackTag;
-        createJSDocAugmentsTag(tagName: Identifier | undefined, className: JSDocAugmentsTag["class"], comment?: string | NodeArray<JSDocText | JSDocLink>): JSDocAugmentsTag;
-        updateJSDocAugmentsTag(node: JSDocAugmentsTag, tagName: Identifier | undefined, className: JSDocAugmentsTag["class"], comment: string | NodeArray<JSDocText | JSDocLink> | undefined): JSDocAugmentsTag;
-        createJSDocImplementsTag(tagName: Identifier | undefined, className: JSDocImplementsTag["class"], comment?: string | NodeArray<JSDocText | JSDocLink>): JSDocImplementsTag;
-        updateJSDocImplementsTag(node: JSDocImplementsTag, tagName: Identifier | undefined, className: JSDocImplementsTag["class"], comment: string | NodeArray<JSDocText | JSDocLink> | undefined): JSDocImplementsTag;
-        createJSDocAuthorTag(tagName: Identifier | undefined, comment?: string | NodeArray<JSDocText | JSDocLink>): JSDocAuthorTag;
-        updateJSDocAuthorTag(node: JSDocAuthorTag, tagName: Identifier | undefined, comment: string | NodeArray<JSDocText | JSDocLink> | undefined): JSDocAuthorTag;
-        createJSDocClassTag(tagName: Identifier | undefined, comment?: string | NodeArray<JSDocText | JSDocLink>): JSDocClassTag;
-        updateJSDocClassTag(node: JSDocClassTag, tagName: Identifier | undefined, comment: string | NodeArray<JSDocText | JSDocLink> | undefined): JSDocClassTag;
-        createJSDocPublicTag(tagName: Identifier | undefined, comment?: string | NodeArray<JSDocText | JSDocLink>): JSDocPublicTag;
-        updateJSDocPublicTag(node: JSDocPublicTag, tagName: Identifier | undefined, comment: string | NodeArray<JSDocText | JSDocLink> | undefined): JSDocPublicTag;
-        createJSDocPrivateTag(tagName: Identifier | undefined, comment?: string | NodeArray<JSDocText | JSDocLink>): JSDocPrivateTag;
-        updateJSDocPrivateTag(node: JSDocPrivateTag, tagName: Identifier | undefined, comment: string | NodeArray<JSDocText | JSDocLink> | undefined): JSDocPrivateTag;
-        createJSDocProtectedTag(tagName: Identifier | undefined, comment?: string | NodeArray<JSDocText | JSDocLink>): JSDocProtectedTag;
-        updateJSDocProtectedTag(node: JSDocProtectedTag, tagName: Identifier | undefined, comment: string | NodeArray<JSDocText | JSDocLink> | undefined): JSDocProtectedTag;
-        createJSDocReadonlyTag(tagName: Identifier | undefined, comment?: string | NodeArray<JSDocText | JSDocLink>): JSDocReadonlyTag;
-        updateJSDocReadonlyTag(node: JSDocReadonlyTag, tagName: Identifier | undefined, comment: string | NodeArray<JSDocText | JSDocLink> | undefined): JSDocReadonlyTag;
-        createJSDocUnknownTag(tagName: Identifier, comment?: string | NodeArray<JSDocText | JSDocLink>): JSDocUnknownTag;
-        updateJSDocUnknownTag(node: JSDocUnknownTag, tagName: Identifier, comment: string | NodeArray<JSDocText | JSDocLink> | undefined): JSDocUnknownTag;
-        createJSDocDeprecatedTag(tagName: Identifier, comment?: string | NodeArray<JSDocText | JSDocLink>): JSDocDeprecatedTag;
-        updateJSDocDeprecatedTag(node: JSDocDeprecatedTag, tagName: Identifier, comment?: string | NodeArray<JSDocText | JSDocLink>): JSDocDeprecatedTag;
+        createJSDocTemplateTag(tagName: Identifier | undefined, constraint: JSDocTypeExpression | undefined, typeParameters: readonly TypeParameterDeclaration[], comment?: string | NodeArray<JSDocComment>): JSDocTemplateTag;
+        updateJSDocTemplateTag(node: JSDocTemplateTag, tagName: Identifier | undefined, constraint: JSDocTypeExpression | undefined, typeParameters: readonly TypeParameterDeclaration[], comment: string | NodeArray<JSDocComment> | undefined): JSDocTemplateTag;
+        createJSDocTypedefTag(tagName: Identifier | undefined, typeExpression?: JSDocTypeExpression | JSDocTypeLiteral, fullName?: Identifier | JSDocNamespaceDeclaration, comment?: string | NodeArray<JSDocComment>): JSDocTypedefTag;
+        updateJSDocTypedefTag(node: JSDocTypedefTag, tagName: Identifier | undefined, typeExpression: JSDocTypeExpression | JSDocTypeLiteral | undefined, fullName: Identifier | JSDocNamespaceDeclaration | undefined, comment: string | NodeArray<JSDocComment> | undefined): JSDocTypedefTag;
+        createJSDocParameterTag(tagName: Identifier | undefined, name: EntityName, isBracketed: boolean, typeExpression?: JSDocTypeExpression, isNameFirst?: boolean, comment?: string | NodeArray<JSDocComment>): JSDocParameterTag;
+        updateJSDocParameterTag(node: JSDocParameterTag, tagName: Identifier | undefined, name: EntityName, isBracketed: boolean, typeExpression: JSDocTypeExpression | undefined, isNameFirst: boolean, comment: string | NodeArray<JSDocComment> | undefined): JSDocParameterTag;
+        createJSDocPropertyTag(tagName: Identifier | undefined, name: EntityName, isBracketed: boolean, typeExpression?: JSDocTypeExpression, isNameFirst?: boolean, comment?: string | NodeArray<JSDocComment>): JSDocPropertyTag;
+        updateJSDocPropertyTag(node: JSDocPropertyTag, tagName: Identifier | undefined, name: EntityName, isBracketed: boolean, typeExpression: JSDocTypeExpression | undefined, isNameFirst: boolean, comment: string | NodeArray<JSDocComment> | undefined): JSDocPropertyTag;
+        createJSDocTypeTag(tagName: Identifier | undefined, typeExpression: JSDocTypeExpression, comment?: string | NodeArray<JSDocComment>): JSDocTypeTag;
+        updateJSDocTypeTag(node: JSDocTypeTag, tagName: Identifier | undefined, typeExpression: JSDocTypeExpression, comment: string | NodeArray<JSDocComment> | undefined): JSDocTypeTag;
+        createJSDocSeeTag(tagName: Identifier | undefined, nameExpression: JSDocNameReference | undefined, comment?: string | NodeArray<JSDocComment>): JSDocSeeTag;
+        updateJSDocSeeTag(node: JSDocSeeTag, tagName: Identifier | undefined, nameExpression: JSDocNameReference | undefined, comment?: string | NodeArray<JSDocComment>): JSDocSeeTag;
+        createJSDocReturnTag(tagName: Identifier | undefined, typeExpression?: JSDocTypeExpression, comment?: string | NodeArray<JSDocComment>): JSDocReturnTag;
+        updateJSDocReturnTag(node: JSDocReturnTag, tagName: Identifier | undefined, typeExpression: JSDocTypeExpression | undefined, comment: string | NodeArray<JSDocComment> | undefined): JSDocReturnTag;
+        createJSDocThisTag(tagName: Identifier | undefined, typeExpression: JSDocTypeExpression, comment?: string | NodeArray<JSDocComment>): JSDocThisTag;
+        updateJSDocThisTag(node: JSDocThisTag, tagName: Identifier | undefined, typeExpression: JSDocTypeExpression | undefined, comment: string | NodeArray<JSDocComment> | undefined): JSDocThisTag;
+        createJSDocEnumTag(tagName: Identifier | undefined, typeExpression: JSDocTypeExpression, comment?: string | NodeArray<JSDocComment>): JSDocEnumTag;
+        updateJSDocEnumTag(node: JSDocEnumTag, tagName: Identifier | undefined, typeExpression: JSDocTypeExpression, comment: string | NodeArray<JSDocComment> | undefined): JSDocEnumTag;
+        createJSDocCallbackTag(tagName: Identifier | undefined, typeExpression: JSDocSignature, fullName?: Identifier | JSDocNamespaceDeclaration, comment?: string | NodeArray<JSDocComment>): JSDocCallbackTag;
+        updateJSDocCallbackTag(node: JSDocCallbackTag, tagName: Identifier | undefined, typeExpression: JSDocSignature, fullName: Identifier | JSDocNamespaceDeclaration | undefined, comment: string | NodeArray<JSDocComment> | undefined): JSDocCallbackTag;
+        createJSDocAugmentsTag(tagName: Identifier | undefined, className: JSDocAugmentsTag["class"], comment?: string | NodeArray<JSDocComment>): JSDocAugmentsTag;
+        updateJSDocAugmentsTag(node: JSDocAugmentsTag, tagName: Identifier | undefined, className: JSDocAugmentsTag["class"], comment: string | NodeArray<JSDocComment> | undefined): JSDocAugmentsTag;
+        createJSDocImplementsTag(tagName: Identifier | undefined, className: JSDocImplementsTag["class"], comment?: string | NodeArray<JSDocComment>): JSDocImplementsTag;
+        updateJSDocImplementsTag(node: JSDocImplementsTag, tagName: Identifier | undefined, className: JSDocImplementsTag["class"], comment: string | NodeArray<JSDocComment> | undefined): JSDocImplementsTag;
+        createJSDocAuthorTag(tagName: Identifier | undefined, comment?: string | NodeArray<JSDocComment>): JSDocAuthorTag;
+        updateJSDocAuthorTag(node: JSDocAuthorTag, tagName: Identifier | undefined, comment: string | NodeArray<JSDocComment> | undefined): JSDocAuthorTag;
+        createJSDocClassTag(tagName: Identifier | undefined, comment?: string | NodeArray<JSDocComment>): JSDocClassTag;
+        updateJSDocClassTag(node: JSDocClassTag, tagName: Identifier | undefined, comment: string | NodeArray<JSDocComment> | undefined): JSDocClassTag;
+        createJSDocPublicTag(tagName: Identifier | undefined, comment?: string | NodeArray<JSDocComment>): JSDocPublicTag;
+        updateJSDocPublicTag(node: JSDocPublicTag, tagName: Identifier | undefined, comment: string | NodeArray<JSDocComment> | undefined): JSDocPublicTag;
+        createJSDocPrivateTag(tagName: Identifier | undefined, comment?: string | NodeArray<JSDocComment>): JSDocPrivateTag;
+        updateJSDocPrivateTag(node: JSDocPrivateTag, tagName: Identifier | undefined, comment: string | NodeArray<JSDocComment> | undefined): JSDocPrivateTag;
+        createJSDocProtectedTag(tagName: Identifier | undefined, comment?: string | NodeArray<JSDocComment>): JSDocProtectedTag;
+        updateJSDocProtectedTag(node: JSDocProtectedTag, tagName: Identifier | undefined, comment: string | NodeArray<JSDocComment> | undefined): JSDocProtectedTag;
+        createJSDocReadonlyTag(tagName: Identifier | undefined, comment?: string | NodeArray<JSDocComment>): JSDocReadonlyTag;
+        updateJSDocReadonlyTag(node: JSDocReadonlyTag, tagName: Identifier | undefined, comment: string | NodeArray<JSDocComment> | undefined): JSDocReadonlyTag;
+        createJSDocUnknownTag(tagName: Identifier, comment?: string | NodeArray<JSDocComment>): JSDocUnknownTag;
+        updateJSDocUnknownTag(node: JSDocUnknownTag, tagName: Identifier, comment: string | NodeArray<JSDocComment> | undefined): JSDocUnknownTag;
+        createJSDocDeprecatedTag(tagName: Identifier, comment?: string | NodeArray<JSDocComment>): JSDocDeprecatedTag;
+        updateJSDocDeprecatedTag(node: JSDocDeprecatedTag, tagName: Identifier, comment?: string | NodeArray<JSDocComment>): JSDocDeprecatedTag;
+        createJSDocOverrideTag(tagName: Identifier, comment?: string | NodeArray<JSDocComment>): JSDocOverrideTag;
+        updateJSDocOverrideTag(node: JSDocOverrideTag, tagName: Identifier, comment?: string | NodeArray<JSDocComment>): JSDocOverrideTag;
         createJSDocText(text: string): JSDocText;
         updateJSDocText(node: JSDocText, text: string): JSDocText;
-        createJSDocComment(comment?: string | NodeArray<JSDocText | JSDocLink> | undefined, tags?: readonly JSDocTag[] | undefined): JSDoc;
-        updateJSDocComment(node: JSDoc, comment: string | NodeArray<JSDocText | JSDocLink> | undefined, tags: readonly JSDocTag[] | undefined): JSDoc;
+        createJSDocComment(comment?: string | NodeArray<JSDocComment> | undefined, tags?: readonly JSDocTag[] | undefined): JSDoc;
+        updateJSDocComment(node: JSDoc, comment: string | NodeArray<JSDocComment> | undefined, tags: readonly JSDocTag[] | undefined): JSDoc;
         createJsxElement(openingElement: JsxOpeningElement, children: readonly JsxChild[], closingElement: JsxClosingElement): JsxElement;
         updateJsxElement(node: JsxElement, openingElement: JsxOpeningElement, children: readonly JsxChild[], closingElement: JsxClosingElement): JsxElement;
         createJsxSelfClosingElement(tagName: JsxTagNameExpression, typeArguments: readonly TypeNode[] | undefined, attributes: JsxAttributes): JsxSelfClosingElement;
@@ -6070,7 +6308,7 @@ declare namespace ts {
         updateDefaultClause(node: DefaultClause, statements: readonly Statement[]): DefaultClause;
         createHeritageClause(token: HeritageClause["token"], types: readonly ExpressionWithTypeArguments[]): HeritageClause;
         updateHeritageClause(node: HeritageClause, types: readonly ExpressionWithTypeArguments[]): HeritageClause;
-        createCatchClause(variableDeclaration: string | VariableDeclaration | undefined, block: Block): CatchClause;
+        createCatchClause(variableDeclaration: string | BindingName | VariableDeclaration | undefined, block: Block): CatchClause;
         updateCatchClause(node: CatchClause, variableDeclaration: VariableDeclaration | undefined, block: Block): CatchClause;
         createPropertyAssignment(name: string | PropertyName, initializer: Expression): PropertyAssignment;
         updatePropertyAssignment(node: PropertyAssignment, name: PropertyName, initializer: Expression): PropertyAssignment;
@@ -6148,10 +6386,28 @@ declare namespace ts {
         createFunctionCallCall(target: Expression, thisArg: Expression, argumentsList: readonly Expression[]): CallExpression;
         createFunctionApplyCall(target: Expression, thisArg: Expression, argumentsExpression: Expression): CallExpression;
         createObjectDefinePropertyCall(target: Expression, propertyName: string | Expression, attributes: Expression): CallExpression;
+        createReflectGetCall(target: Expression, propertyKey: Expression, receiver?: Expression): CallExpression;
+        createReflectSetCall(target: Expression, propertyKey: Expression, value: Expression, receiver?: Expression): CallExpression;
         createPropertyDescriptor(attributes: PropertyDescriptorAttributes, singleLine?: boolean): ObjectLiteralExpression;
         createArraySliceCall(array: Expression, start?: number | Expression): CallExpression;
         createArrayConcatCall(array: Expression, values: readonly Expression[]): CallExpression;
         createCallBinding(expression: Expression, recordTempVariable: (temp: Identifier) => void, languageVersion?: ScriptTarget, cacheIdentifiers?: boolean): CallBinding;
+        /**
+         * Wraps an expression that cannot be an assignment target in an expression that can be.
+         *
+         * Given a `paramName` of `_a`:
+         * ```
+         * Reflect.set(obj, "x", _a)
+         * ```
+         * Becomes
+         * ```ts
+         * ({ set value(_a) { Reflect.set(obj, "x", _a); } }).value
+         * ```
+         *
+         * @param paramName
+         * @param expression
+         */
+        createAssignmentTargetWrapper(paramName: Identifier, expression: Expression): LeftHandSideExpression;
         inlineExpressions(expressions: readonly Expression[]): Expression;
         /**
          * Gets the internal name of a declaration. This is primarily used for declarations that can be
@@ -6231,9 +6487,10 @@ declare namespace ts {
          * Copies only the standard (string-expression) prologue-directives into the target statement-array.
          * @param source origin statements array
          * @param target result statements array
+         * @param statementOffset The offset at which to begin the copy.
          * @param ensureUseStrict boolean determining whether the function need to add prologue-directives
          */
-        copyStandardPrologue(source: readonly Statement[], target: Push<Statement>, ensureUseStrict?: boolean): number;
+        copyStandardPrologue(source: readonly Statement[], target: Push<Statement>, statementOffset: number | undefined, ensureUseStrict?: boolean): number;
         /**
          * Copies only the custom prologue-directives into target statement-array.
          * @param source origin statements array
@@ -6260,7 +6517,7 @@ declare namespace ts {
          * - *DO NOT USE THIS* if a more appropriate function is available.
          */
         cloneNode<T extends Node | undefined>(node: T): T;
-        updateModifiers<T extends HasModifiers>(node: T, modifiers: readonly Modifier[] | ModifierFlags): T;
+        updateModifiers<T extends HasModifiers>(node: T, modifiers: readonly Modifier[] | ModifierFlags | undefined): T;
     }
     export enum LexicalEnvironmentFlags {
         None = 0,
@@ -6423,6 +6680,8 @@ declare namespace ts {
         NoDefaultLib = "no-default-lib",
         Reference = "reference",
         Type = "type",
+        TypeResolutionModeRequire = "type-require",
+        TypeResolutionModeImport = "type-import",
         Lib = "lib",
         Prepend = "prepend",
         Text = "text",
@@ -6444,7 +6703,7 @@ declare namespace ts {
         kind: BundleFileSectionKind.NoDefaultLib;
     }
     export interface BundleFileReference extends BundleFileSectionBase {
-        kind: BundleFileSectionKind.Reference | BundleFileSectionKind.Type | BundleFileSectionKind.Lib;
+        kind: BundleFileSectionKind.Reference | BundleFileSectionKind.Type | BundleFileSectionKind.Lib | BundleFileSectionKind.TypeResolutionModeImport | BundleFileSectionKind.TypeResolutionModeRequire;
         data: string;
     }
     export interface BundleFilePrepend extends BundleFileSectionBase {
@@ -6643,10 +6902,14 @@ declare namespace ts {
         hasTrailingComment(): boolean;
         hasTrailingWhitespace(): boolean;
         getTextPosWithWriteLine?(): number;
+        nonEscapingWrite?(text: string): void;
     }
     export interface GetEffectiveTypeRootsHost {
         directoryExists?(directoryName: string): boolean;
         getCurrentDirectory?(): string;
+    }
+    export interface HasCurrentDirectory {
+        getCurrentDirectory(): string;
     }
     export interface ModuleSpecifierResolutionHost {
         useCaseSensitiveFileNames?(): boolean;
@@ -6656,16 +6919,35 @@ declare namespace ts {
         readFile?(path: string): string | undefined;
         realpath?(path: string): string;
         getSymlinkCache?(): SymlinkCache;
+        getModuleSpecifierCache?(): ModuleSpecifierCache;
+        getPackageJsonInfoCache?(): PackageJsonInfoCache | undefined;
         getGlobalTypingsCacheLocation?(): string | undefined;
         getNearestAncestorDirectoryWithPackageJson?(fileName: string, rootDir?: string): string | undefined;
-        getSourceFiles(): readonly SourceFile[];
         readonly redirectTargetsMap: RedirectTargetsMap;
         getProjectReferenceRedirect(fileName: string): string | undefined;
         isSourceOfProjectReferenceRedirect(fileName: string): boolean;
         getFileIncludeReasons(): MultiMap<Path, FileIncludeReason>;
     }
+    export interface ModulePath {
+        path: string;
+        isInNodeModules: boolean;
+        isRedirect: boolean;
+    }
+    export interface ResolvedModuleSpecifierInfo {
+        modulePaths: readonly ModulePath[] | undefined;
+        moduleSpecifiers: readonly string[] | undefined;
+        isAutoImportable: boolean | undefined;
+    }
+    export interface ModuleSpecifierCache {
+        get(fromFileName: Path, toFileName: Path, preferences: UserPreferences): Readonly<ResolvedModuleSpecifierInfo> | undefined;
+        set(fromFileName: Path, toFileName: Path, preferences: UserPreferences, modulePaths: readonly ModulePath[], moduleSpecifiers: readonly string[]): void;
+        setIsAutoImportable(fromFileName: Path, toFileName: Path, preferences: UserPreferences, isAutoImportable: boolean): void;
+        setModulePaths(fromFileName: Path, toFileName: Path, preferences: UserPreferences, modulePaths: readonly ModulePath[]): void;
+        clear(): void;
+        count(): number;
+    }
     export interface SymbolTracker {
-        trackSymbol?(symbol: Symbol, enclosingDeclaration: Node | undefined, meaning: SymbolFlags): void;
+        trackSymbol?(symbol: Symbol, enclosingDeclaration: Node | undefined, meaning: SymbolFlags): boolean;
         reportInaccessibleThisError?(): void;
         reportPrivateInBaseOfClassExpression?(propertyName: string): void;
         reportInaccessibleUniqueSymbolError?(): void;
@@ -6678,6 +6960,7 @@ declare namespace ts {
         trackReferencedAmbientModule?(decl: ModuleDeclaration, symbol: Symbol): void;
         trackExternalModuleSymbolOfImportTypeNode?(symbol: Symbol): void;
         reportNonlocalAugmentation?(containingFile: SourceFile, parentSymbol: Symbol, augmentingSymbol: Symbol): void;
+        reportNonSerializableProperty?(propertyName: string): void;
     }
     export interface TextSpan {
         start: number;
@@ -6739,6 +7022,7 @@ declare namespace ts {
         ObjectBindingPatternElements = 525136,
         ArrayBindingPatternElements = 524880,
         ObjectLiteralExpressionProperties = 526226,
+        ImportClauseEntries = 526226,
         ArrayLiteralExpressionElements = 8914,
         CommaListElements = 528,
         CallExpressionArguments = 2576,
@@ -6814,6 +7098,9 @@ declare namespace ts {
                 readonly captureSpan: true;
             }, {
                 readonly name: "no-default-lib";
+                readonly optional: true;
+            }, {
+                readonly name: "resolution-mode";
                 readonly optional: true;
             }];
             readonly kind: PragmaKindFlags;
@@ -6925,8 +7212,12 @@ declare namespace ts {
         readonly disableSuggestions?: boolean;
         readonly quotePreference?: "auto" | "double" | "single";
         readonly includeCompletionsForModuleExports?: boolean;
+        readonly includeCompletionsForImportStatements?: boolean;
+        readonly includeCompletionsWithSnippetText?: boolean;
         readonly includeAutomaticOptionalChainCompletions?: boolean;
         readonly includeCompletionsWithInsertText?: boolean;
+        readonly includeCompletionsWithClassMemberSnippets?: boolean;
+        readonly allowIncompleteCompletions?: boolean;
         readonly importModuleSpecifierPreference?: "shortest" | "project-relative" | "relative" | "non-relative";
         /** Determines whether we import `foo/index.ts` as "foo", "foo/index", or "foo/index.js" */
         readonly importModuleSpecifierEnding?: "auto" | "minimal" | "index" | "js";
@@ -6934,12 +7225,261 @@ declare namespace ts {
         readonly providePrefixAndSuffixTextForRename?: boolean;
         readonly includePackageJsonAutoImports?: "auto" | "on" | "off";
         readonly provideRefactorNotApplicableReason?: boolean;
+        readonly jsxAttributeCompletionStyle?: "auto" | "braces" | "none";
+        readonly includeInlayParameterNameHints?: "none" | "literals" | "all";
+        readonly includeInlayParameterNameHintsWhenArgumentMatchesName?: boolean;
+        readonly includeInlayFunctionParameterTypeHints?: boolean;
+        readonly includeInlayVariableTypeHints?: boolean;
+        readonly includeInlayPropertyDeclarationTypeHints?: boolean;
+        readonly includeInlayFunctionLikeReturnTypeHints?: boolean;
+        readonly includeInlayEnumMemberValueHints?: boolean;
     }
     /** Represents a bigint literal value without requiring bigint support */
     export interface PseudoBigInt {
         negative: boolean;
         base10Value: string;
     }
+    export {};
+}
+declare function setTimeout(handler: (...args: any[]) => void, timeout: number): any;
+declare function clearTimeout(handle: any): void;
+declare namespace ts {
+    /**
+     * djb2 hashing algorithm
+     * http://www.cse.yorku.ca/~oz/hash.html
+     */
+    export function generateDjb2Hash(data: string): string;
+    /**
+     * Set a high stack trace limit to provide more information in case of an error.
+     * Called for command-line and server use cases.
+     * Not called if TypeScript is used as a library.
+     */
+    export function setStackTraceLimit(): void;
+    export enum FileWatcherEventKind {
+        Created = 0,
+        Changed = 1,
+        Deleted = 2
+    }
+    export type FileWatcherCallback = (fileName: string, eventKind: FileWatcherEventKind) => void;
+    export type DirectoryWatcherCallback = (fileName: string) => void;
+    export interface WatchedFile {
+        readonly fileName: string;
+        readonly callback: FileWatcherCallback;
+        mtime: Date;
+    }
+    export enum PollingInterval {
+        High = 2000,
+        Medium = 500,
+        Low = 250
+    }
+    export type HostWatchFile = (fileName: string, callback: FileWatcherCallback, pollingInterval: PollingInterval, options: WatchOptions | undefined) => FileWatcher;
+    export type HostWatchDirectory = (fileName: string, callback: DirectoryWatcherCallback, recursive: boolean, options: WatchOptions | undefined) => FileWatcher;
+    export const missingFileModifiedTime: Date;
+    export function getModifiedTime(host: {
+        getModifiedTime: NonNullable<System["getModifiedTime"]>;
+    }, fileName: string): Date;
+    export let unchangedPollThresholds: {
+        250: number;
+        500: number;
+        2000: number;
+    };
+    export function setCustomPollingValues(system: System): void;
+    export function createDynamicPriorityPollingWatchFile(host: {
+        getModifiedTime: NonNullable<System["getModifiedTime"]>;
+        setTimeout: NonNullable<System["setTimeout"]>;
+    }): HostWatchFile;
+    export function createSingleFileWatcherPerName(watchFile: HostWatchFile, useCaseSensitiveFileNames: boolean): HostWatchFile;
+    /**
+     * Returns true if file status changed
+     */
+    export function onWatchedFileStat(watchedFile: WatchedFile, modifiedTime: Date): boolean;
+    export function getFileWatcherEventKind(oldTime: number, newTime: number): FileWatcherEventKind;
+    export const ignoredPaths: string[];
+    export function sysLog(s: string): void;
+    export function setSysLog(logger: typeof sysLog): void;
+    export interface RecursiveDirectoryWatcherHost {
+        watchDirectory: HostWatchDirectory;
+        useCaseSensitiveFileNames: boolean;
+        getCurrentDirectory: System["getCurrentDirectory"];
+        getAccessibleSortedChildDirectories(path: string): readonly string[];
+        directoryExists(dir: string): boolean;
+        realpath(s: string): string;
+        setTimeout: NonNullable<System["setTimeout"]>;
+        clearTimeout: NonNullable<System["clearTimeout"]>;
+    }
+    /**
+     * Watch the directory recursively using host provided method to watch child directories
+     * that means if this is recursive watcher, watch the children directories as well
+     * (eg on OS that dont support recursive watch using fs.watch use fs.watchFile)
+     */
+    export function createDirectoryWatcherSupportingRecursive({ watchDirectory, useCaseSensitiveFileNames, getCurrentDirectory, getAccessibleSortedChildDirectories, directoryExists, realpath, setTimeout, clearTimeout }: RecursiveDirectoryWatcherHost): HostWatchDirectory;
+    export type FsWatchCallback = (eventName: "rename" | "change", relativeFileName: string | undefined) => void;
+    export type FsWatch = (fileOrDirectory: string, entryKind: FileSystemEntryKind, callback: FsWatchCallback, recursive: boolean, fallbackPollingInterval: PollingInterval, fallbackOptions: WatchOptions | undefined) => FileWatcher;
+    export enum FileSystemEntryKind {
+        File = 0,
+        Directory = 1
+    }
+    export function createFileWatcherCallback(callback: FsWatchCallback): FileWatcherCallback;
+    export interface CreateSystemWatchFunctions {
+        pollingWatchFile: HostWatchFile;
+        getModifiedTime: NonNullable<System["getModifiedTime"]>;
+        setTimeout: NonNullable<System["setTimeout"]>;
+        clearTimeout: NonNullable<System["clearTimeout"]>;
+        fsWatch: FsWatch;
+        fileExists: System["fileExists"];
+        useCaseSensitiveFileNames: boolean;
+        getCurrentDirectory: System["getCurrentDirectory"];
+        fsSupportsRecursiveFsWatch: boolean;
+        directoryExists: System["directoryExists"];
+        getAccessibleSortedChildDirectories(path: string): readonly string[];
+        realpath(s: string): string;
+        tscWatchFile: string | undefined;
+        useNonPollingWatchers?: boolean;
+        tscWatchDirectory: string | undefined;
+        defaultWatchFileKind: System["defaultWatchFileKind"];
+    }
+    export function createSystemWatchFunctions({ pollingWatchFile, getModifiedTime, setTimeout, clearTimeout, fsWatch, fileExists, useCaseSensitiveFileNames, getCurrentDirectory, fsSupportsRecursiveFsWatch, directoryExists, getAccessibleSortedChildDirectories, realpath, tscWatchFile, useNonPollingWatchers, tscWatchDirectory, defaultWatchFileKind, }: CreateSystemWatchFunctions): {
+        watchFile: HostWatchFile;
+        watchDirectory: HostWatchDirectory;
+    };
+    /**
+     * patch writefile to create folder before writing the file
+     */
+    export function patchWriteFileEnsuringDirectory(sys: System): void;
+    export type BufferEncoding = "ascii" | "utf8" | "utf-8" | "utf16le" | "ucs2" | "ucs-2" | "base64" | "latin1" | "binary" | "hex";
+    interface NodeBuffer extends Uint8Array {
+        constructor: any;
+        write(str: string, encoding?: BufferEncoding): number;
+        write(str: string, offset: number, encoding?: BufferEncoding): number;
+        write(str: string, offset: number, length: number, encoding?: BufferEncoding): number;
+        toString(encoding?: string, start?: number, end?: number): string;
+        toJSON(): {
+            type: "Buffer";
+            data: number[];
+        };
+        equals(otherBuffer: Uint8Array): boolean;
+        compare(otherBuffer: Uint8Array, targetStart?: number, targetEnd?: number, sourceStart?: number, sourceEnd?: number): number;
+        copy(targetBuffer: Uint8Array, targetStart?: number, sourceStart?: number, sourceEnd?: number): number;
+        slice(begin?: number, end?: number): Buffer;
+        subarray(begin?: number, end?: number): Buffer;
+        writeUIntLE(value: number, offset: number, byteLength: number): number;
+        writeUIntBE(value: number, offset: number, byteLength: number): number;
+        writeIntLE(value: number, offset: number, byteLength: number): number;
+        writeIntBE(value: number, offset: number, byteLength: number): number;
+        readUIntLE(offset: number, byteLength: number): number;
+        readUIntBE(offset: number, byteLength: number): number;
+        readIntLE(offset: number, byteLength: number): number;
+        readIntBE(offset: number, byteLength: number): number;
+        readUInt8(offset: number): number;
+        readUInt16LE(offset: number): number;
+        readUInt16BE(offset: number): number;
+        readUInt32LE(offset: number): number;
+        readUInt32BE(offset: number): number;
+        readInt8(offset: number): number;
+        readInt16LE(offset: number): number;
+        readInt16BE(offset: number): number;
+        readInt32LE(offset: number): number;
+        readInt32BE(offset: number): number;
+        readFloatLE(offset: number): number;
+        readFloatBE(offset: number): number;
+        readDoubleLE(offset: number): number;
+        readDoubleBE(offset: number): number;
+        reverse(): this;
+        swap16(): Buffer;
+        swap32(): Buffer;
+        swap64(): Buffer;
+        writeUInt8(value: number, offset: number): number;
+        writeUInt16LE(value: number, offset: number): number;
+        writeUInt16BE(value: number, offset: number): number;
+        writeUInt32LE(value: number, offset: number): number;
+        writeUInt32BE(value: number, offset: number): number;
+        writeInt8(value: number, offset: number): number;
+        writeInt16LE(value: number, offset: number): number;
+        writeInt16BE(value: number, offset: number): number;
+        writeInt32LE(value: number, offset: number): number;
+        writeInt32BE(value: number, offset: number): number;
+        writeFloatLE(value: number, offset: number): number;
+        writeFloatBE(value: number, offset: number): number;
+        writeDoubleLE(value: number, offset: number): number;
+        writeDoubleBE(value: number, offset: number): number;
+        readBigUInt64BE?(offset?: number): bigint;
+        readBigUInt64LE?(offset?: number): bigint;
+        readBigInt64BE?(offset?: number): bigint;
+        readBigInt64LE?(offset?: number): bigint;
+        writeBigInt64BE?(value: bigint, offset?: number): number;
+        writeBigInt64LE?(value: bigint, offset?: number): number;
+        writeBigUInt64BE?(value: bigint, offset?: number): number;
+        writeBigUInt64LE?(value: bigint, offset?: number): number;
+        fill(value: string | Uint8Array | number, offset?: number, end?: number, encoding?: BufferEncoding): this;
+        indexOf(value: string | number | Uint8Array, byteOffset?: number, encoding?: BufferEncoding): number;
+        lastIndexOf(value: string | number | Uint8Array, byteOffset?: number, encoding?: BufferEncoding): number;
+        entries(): IterableIterator<[number, number]>;
+        includes(value: string | number | Buffer, byteOffset?: number, encoding?: BufferEncoding): boolean;
+        keys(): IterableIterator<number>;
+        values(): IterableIterator<number>;
+    }
+    interface Buffer extends NodeBuffer {
+    }
+    export interface System {
+        args: string[];
+        newLine: string;
+        useCaseSensitiveFileNames: boolean;
+        write(s: string): void;
+        writeOutputIsTTY?(): boolean;
+        getWidthOfTerminal?(): number;
+        readFile(path: string, encoding?: string): string | undefined;
+        getFileSize?(path: string): number;
+        writeFile(path: string, data: string, writeByteOrderMark?: boolean): void;
+        /**
+         * @pollingInterval - this parameter is used in polling-based watchers and ignored in watchers that
+         * use native OS file watching
+         */
+        watchFile?(path: string, callback: FileWatcherCallback, pollingInterval?: number, options?: WatchOptions): FileWatcher;
+        watchDirectory?(path: string, callback: DirectoryWatcherCallback, recursive?: boolean, options?: WatchOptions): FileWatcher;
+        resolvePath(path: string): string;
+        fileExists(path: string): boolean;
+        directoryExists(path: string): boolean;
+        createDirectory(path: string): void;
+        getExecutingFilePath(): string;
+        getCurrentDirectory(): string;
+        getDirectories(path: string): string[];
+        readDirectory(path: string, extensions?: readonly string[], exclude?: readonly string[], include?: readonly string[], depth?: number): string[];
+        getModifiedTime?(path: string): Date | undefined;
+        setModifiedTime?(path: string, time: Date): void;
+        deleteFile?(path: string): void;
+        /**
+         * A good implementation is node.js' `crypto.createHash`. (https://nodejs.org/api/crypto.html#crypto_crypto_createhash_algorithm)
+         */
+        createHash?(data: string): string;
+        /** This must be cryptographically secure. Only implement this method using `crypto.createHash("sha256")`. */
+        createSHA256Hash?(data: string): string;
+        getMemoryUsage?(): number;
+        exit(exitCode?: number): void;
+        enableCPUProfiler?(path: string, continuation: () => void): boolean;
+        disableCPUProfiler?(continuation: () => void): boolean;
+        cpuProfilingEnabled?(): boolean;
+        realpath?(path: string): string;
+        getEnvironmentVariable(name: string): string;
+        tryEnableSourceMapsForHost?(): void;
+        debugMode?: boolean;
+        setTimeout?(callback: (...args: any[]) => void, ms: number, ...args: any[]): any;
+        clearTimeout?(timeoutId: any): void;
+        clearScreen?(): void;
+        setBlocking?(): void;
+        base64decode?(input: string): string;
+        base64encode?(input: string): string;
+        bufferFrom?(input: string, encoding?: string): Buffer;
+        now?(): Date;
+        disableUseFileVersionAsSignature?: boolean;
+        require?(baseDir: string, moduleName: string): RequireResult;
+        defaultWatchFileKind?(): WatchFileKind | undefined;
+    }
+    export interface FileWatcher {
+        close(): void;
+    }
+    export function getNodeMajorVersion(): number | undefined;
+    export let sys: System;
+    export function setSys(s: System): void;
     export {};
 }
 declare namespace ts {
@@ -7235,10 +7775,6 @@ declare namespace ts {
     function normalizePath(path: string): string;
     function getNormalizedAbsolutePathWithoutRoot(fileName: string, currentDirectory: string | undefined): string;
     function toPath(fileName: string, basePath: string | undefined, getCanonicalFileName: (path: string) => string): Path;
-    function normalizePathAndParts(path: string): {
-        path: string;
-        parts: string[];
-    };
     /**
      * Removes a trailing directory separator from a path, if it does not already have one.
      *
@@ -7292,11 +7828,11 @@ declare namespace ts {
     /**
      * Performs a case-sensitive comparison of two paths. Path roots are always compared case-insensitively.
      */
-    function comparePathsCaseSensitive(a: string, b: string): Comparison | Comparison;
+    function comparePathsCaseSensitive(a: string, b: string): Comparison;
     /**
      * Performs a case-insensitive comparison of two paths.
      */
-    function comparePathsCaseInsensitive(a: string, b: string): Comparison | Comparison;
+    function comparePathsCaseInsensitive(a: string, b: string): Comparison;
     /**
      * Compare two paths using the provided case sensitivity.
      */
@@ -7333,245 +7869,6 @@ declare namespace ts {
     function forEachAncestorDirectory<T>(directory: string, callback: (directory: string) => T | undefined): T | undefined;
     function isNodeModulesDirectory(dirPath: Path): boolean;
 }
-declare function setTimeout(handler: (...args: any[]) => void, timeout: number): any;
-declare function clearTimeout(handle: any): void;
-declare namespace ts {
-    /**
-     * djb2 hashing algorithm
-     * http://www.cse.yorku.ca/~oz/hash.html
-     */
-    export function generateDjb2Hash(data: string): string;
-    /**
-     * Set a high stack trace limit to provide more information in case of an error.
-     * Called for command-line and server use cases.
-     * Not called if TypeScript is used as a library.
-     */
-    export function setStackTraceLimit(): void;
-    export enum FileWatcherEventKind {
-        Created = 0,
-        Changed = 1,
-        Deleted = 2
-    }
-    export type FileWatcherCallback = (fileName: string, eventKind: FileWatcherEventKind) => void;
-    export type DirectoryWatcherCallback = (fileName: string) => void;
-    export interface WatchedFile {
-        readonly fileName: string;
-        readonly callback: FileWatcherCallback;
-        mtime: Date;
-    }
-    export enum PollingInterval {
-        High = 2000,
-        Medium = 500,
-        Low = 250
-    }
-    export type HostWatchFile = (fileName: string, callback: FileWatcherCallback, pollingInterval: PollingInterval, options: WatchOptions | undefined) => FileWatcher;
-    export type HostWatchDirectory = (fileName: string, callback: DirectoryWatcherCallback, recursive: boolean, options: WatchOptions | undefined) => FileWatcher;
-    export const missingFileModifiedTime: Date;
-    export function getModifiedTime(host: {
-        getModifiedTime: NonNullable<System["getModifiedTime"]>;
-    }, fileName: string): Date;
-    export let unchangedPollThresholds: {
-        250: number;
-        500: number;
-        2000: number;
-    };
-    export function setCustomPollingValues(system: System): void;
-    export function createDynamicPriorityPollingWatchFile(host: {
-        getModifiedTime: NonNullable<System["getModifiedTime"]>;
-        setTimeout: NonNullable<System["setTimeout"]>;
-    }): HostWatchFile;
-    export function createSingleFileWatcherPerName(watchFile: HostWatchFile, useCaseSensitiveFileNames: boolean): HostWatchFile;
-    /**
-     * Returns true if file status changed
-     */
-    export function onWatchedFileStat(watchedFile: WatchedFile, modifiedTime: Date): boolean;
-    export function getFileWatcherEventKind(oldTime: number, newTime: number): FileWatcherEventKind;
-    export const ignoredPaths: string[];
-    export let sysLog: (s: string) => void;
-    export function setSysLog(logger: typeof sysLog): void;
-    export interface RecursiveDirectoryWatcherHost {
-        watchDirectory: HostWatchDirectory;
-        useCaseSensitiveFileNames: boolean;
-        getCurrentDirectory: System["getCurrentDirectory"];
-        getAccessibleSortedChildDirectories(path: string): readonly string[];
-        directoryExists(dir: string): boolean;
-        realpath(s: string): string;
-        setTimeout: NonNullable<System["setTimeout"]>;
-        clearTimeout: NonNullable<System["clearTimeout"]>;
-    }
-    /**
-     * Watch the directory recursively using host provided method to watch child directories
-     * that means if this is recursive watcher, watch the children directories as well
-     * (eg on OS that dont support recursive watch using fs.watch use fs.watchFile)
-     */
-    export function createDirectoryWatcherSupportingRecursive({ watchDirectory, useCaseSensitiveFileNames, getCurrentDirectory, getAccessibleSortedChildDirectories, directoryExists, realpath, setTimeout, clearTimeout }: RecursiveDirectoryWatcherHost): HostWatchDirectory;
-    export type FsWatchCallback = (eventName: "rename" | "change", relativeFileName: string | undefined) => void;
-    export type FsWatch = (fileOrDirectory: string, entryKind: FileSystemEntryKind, callback: FsWatchCallback, recursive: boolean, fallbackPollingInterval: PollingInterval, fallbackOptions: WatchOptions | undefined) => FileWatcher;
-    export enum FileSystemEntryKind {
-        File = 0,
-        Directory = 1
-    }
-    export function createFileWatcherCallback(callback: FsWatchCallback): FileWatcherCallback;
-    export interface CreateSystemWatchFunctions {
-        pollingWatchFile: HostWatchFile;
-        getModifiedTime: NonNullable<System["getModifiedTime"]>;
-        setTimeout: NonNullable<System["setTimeout"]>;
-        clearTimeout: NonNullable<System["clearTimeout"]>;
-        fsWatch: FsWatch;
-        fileExists: System["fileExists"];
-        useCaseSensitiveFileNames: boolean;
-        getCurrentDirectory: System["getCurrentDirectory"];
-        fsSupportsRecursiveFsWatch: boolean;
-        directoryExists: System["directoryExists"];
-        getAccessibleSortedChildDirectories(path: string): readonly string[];
-        realpath(s: string): string;
-        tscWatchFile: string | undefined;
-        useNonPollingWatchers?: boolean;
-        tscWatchDirectory: string | undefined;
-        defaultWatchFileKind: System["defaultWatchFileKind"];
-    }
-    export function createSystemWatchFunctions({ pollingWatchFile, getModifiedTime, setTimeout, clearTimeout, fsWatch, fileExists, useCaseSensitiveFileNames, getCurrentDirectory, fsSupportsRecursiveFsWatch, directoryExists, getAccessibleSortedChildDirectories, realpath, tscWatchFile, useNonPollingWatchers, tscWatchDirectory, defaultWatchFileKind, }: CreateSystemWatchFunctions): {
-        watchFile: HostWatchFile;
-        watchDirectory: HostWatchDirectory;
-    };
-    /**
-     * patch writefile to create folder before writing the file
-     */
-    export function patchWriteFileEnsuringDirectory(sys: System): void;
-    export type BufferEncoding = "ascii" | "utf8" | "utf-8" | "utf16le" | "ucs2" | "ucs-2" | "base64" | "latin1" | "binary" | "hex";
-    interface NodeBuffer extends Uint8Array {
-        constructor: any;
-        write(str: string, encoding?: BufferEncoding): number;
-        write(str: string, offset: number, encoding?: BufferEncoding): number;
-        write(str: string, offset: number, length: number, encoding?: BufferEncoding): number;
-        toString(encoding?: string, start?: number, end?: number): string;
-        toJSON(): {
-            type: "Buffer";
-            data: number[];
-        };
-        equals(otherBuffer: Uint8Array): boolean;
-        compare(otherBuffer: Uint8Array, targetStart?: number, targetEnd?: number, sourceStart?: number, sourceEnd?: number): number;
-        copy(targetBuffer: Uint8Array, targetStart?: number, sourceStart?: number, sourceEnd?: number): number;
-        slice(begin?: number, end?: number): Buffer;
-        subarray(begin?: number, end?: number): Buffer;
-        writeUIntLE(value: number, offset: number, byteLength: number): number;
-        writeUIntBE(value: number, offset: number, byteLength: number): number;
-        writeIntLE(value: number, offset: number, byteLength: number): number;
-        writeIntBE(value: number, offset: number, byteLength: number): number;
-        readUIntLE(offset: number, byteLength: number): number;
-        readUIntBE(offset: number, byteLength: number): number;
-        readIntLE(offset: number, byteLength: number): number;
-        readIntBE(offset: number, byteLength: number): number;
-        readUInt8(offset: number): number;
-        readUInt16LE(offset: number): number;
-        readUInt16BE(offset: number): number;
-        readUInt32LE(offset: number): number;
-        readUInt32BE(offset: number): number;
-        readInt8(offset: number): number;
-        readInt16LE(offset: number): number;
-        readInt16BE(offset: number): number;
-        readInt32LE(offset: number): number;
-        readInt32BE(offset: number): number;
-        readFloatLE(offset: number): number;
-        readFloatBE(offset: number): number;
-        readDoubleLE(offset: number): number;
-        readDoubleBE(offset: number): number;
-        reverse(): this;
-        swap16(): Buffer;
-        swap32(): Buffer;
-        swap64(): Buffer;
-        writeUInt8(value: number, offset: number): number;
-        writeUInt16LE(value: number, offset: number): number;
-        writeUInt16BE(value: number, offset: number): number;
-        writeUInt32LE(value: number, offset: number): number;
-        writeUInt32BE(value: number, offset: number): number;
-        writeInt8(value: number, offset: number): number;
-        writeInt16LE(value: number, offset: number): number;
-        writeInt16BE(value: number, offset: number): number;
-        writeInt32LE(value: number, offset: number): number;
-        writeInt32BE(value: number, offset: number): number;
-        writeFloatLE(value: number, offset: number): number;
-        writeFloatBE(value: number, offset: number): number;
-        writeDoubleLE(value: number, offset: number): number;
-        writeDoubleBE(value: number, offset: number): number;
-        readBigUInt64BE?(offset?: number): bigint;
-        readBigUInt64LE?(offset?: number): bigint;
-        readBigInt64BE?(offset?: number): bigint;
-        readBigInt64LE?(offset?: number): bigint;
-        writeBigInt64BE?(value: bigint, offset?: number): number;
-        writeBigInt64LE?(value: bigint, offset?: number): number;
-        writeBigUInt64BE?(value: bigint, offset?: number): number;
-        writeBigUInt64LE?(value: bigint, offset?: number): number;
-        fill(value: string | Uint8Array | number, offset?: number, end?: number, encoding?: BufferEncoding): this;
-        indexOf(value: string | number | Uint8Array, byteOffset?: number, encoding?: BufferEncoding): number;
-        lastIndexOf(value: string | number | Uint8Array, byteOffset?: number, encoding?: BufferEncoding): number;
-        entries(): IterableIterator<[number, number]>;
-        includes(value: string | number | Buffer, byteOffset?: number, encoding?: BufferEncoding): boolean;
-        keys(): IterableIterator<number>;
-        values(): IterableIterator<number>;
-    }
-    interface Buffer extends NodeBuffer {
-    }
-    export interface System {
-        args: string[];
-        newLine: string;
-        useCaseSensitiveFileNames: boolean;
-        write(s: string): void;
-        writeOutputIsTTY?(): boolean;
-        readFile(path: string, encoding?: string): string | undefined;
-        getFileSize?(path: string): number;
-        writeFile(path: string, data: string, writeByteOrderMark?: boolean): void;
-        /**
-         * @pollingInterval - this parameter is used in polling-based watchers and ignored in watchers that
-         * use native OS file watching
-         */
-        watchFile?(path: string, callback: FileWatcherCallback, pollingInterval?: number, options?: WatchOptions): FileWatcher;
-        watchDirectory?(path: string, callback: DirectoryWatcherCallback, recursive?: boolean, options?: WatchOptions): FileWatcher;
-        resolvePath(path: string): string;
-        fileExists(path: string): boolean;
-        directoryExists(path: string): boolean;
-        createDirectory(path: string): void;
-        getExecutingFilePath(): string;
-        getCurrentDirectory(): string;
-        getDirectories(path: string): string[];
-        readDirectory(path: string, extensions?: readonly string[], exclude?: readonly string[], include?: readonly string[], depth?: number): string[];
-        getModifiedTime?(path: string): Date | undefined;
-        setModifiedTime?(path: string, time: Date): void;
-        deleteFile?(path: string): void;
-        /**
-         * A good implementation is node.js' `crypto.createHash`. (https://nodejs.org/api/crypto.html#crypto_crypto_createhash_algorithm)
-         */
-        createHash?(data: string): string;
-        /** This must be cryptographically secure. Only implement this method using `crypto.createHash("sha256")`. */
-        createSHA256Hash?(data: string): string;
-        getMemoryUsage?(): number;
-        exit(exitCode?: number): void;
-        enableCPUProfiler?(path: string, continuation: () => void): boolean;
-        disableCPUProfiler?(continuation: () => void): boolean;
-        cpuProfilingEnabled?(): boolean;
-        realpath?(path: string): string;
-        getEnvironmentVariable(name: string): string;
-        tryEnableSourceMapsForHost?(): void;
-        debugMode?: boolean;
-        setTimeout?(callback: (...args: any[]) => void, ms: number, ...args: any[]): any;
-        clearTimeout?(timeoutId: any): void;
-        clearScreen?(): void;
-        setBlocking?(): void;
-        base64decode?(input: string): string;
-        base64encode?(input: string): string;
-        bufferFrom?(input: string, encoding?: string): Buffer;
-        now?(): Date;
-        disableUseFileVersionAsSignature?: boolean;
-        require?(baseDir: string, moduleName: string): RequireResult;
-        defaultWatchFileKind?(): WatchFileKind | undefined;
-    }
-    export interface FileWatcher {
-        close(): void;
-    }
-    export function getNodeMajorVersion(): number | undefined;
-    export let sys: System;
-    export {};
-}
 declare namespace ts {
     const Diagnostics: {
         Unterminated_string_literal: DiagnosticMessage;
@@ -7593,7 +7890,6 @@ declare namespace ts {
         An_index_signature_parameter_cannot_have_an_initializer: DiagnosticMessage;
         An_index_signature_must_have_a_type_annotation: DiagnosticMessage;
         An_index_signature_parameter_must_have_a_type_annotation: DiagnosticMessage;
-        An_index_signature_parameter_type_must_be_either_string_or_number: DiagnosticMessage;
         readonly_modifier_can_only_appear_on_a_property_declaration_or_index_signature: DiagnosticMessage;
         An_index_signature_cannot_have_a_trailing_comma: DiagnosticMessage;
         Accessibility_modifier_already_seen: DiagnosticMessage;
@@ -7606,11 +7902,8 @@ declare namespace ts {
         A_declare_modifier_cannot_be_used_in_an_already_ambient_context: DiagnosticMessage;
         Initializers_are_not_allowed_in_ambient_contexts: DiagnosticMessage;
         _0_modifier_cannot_be_used_in_an_ambient_context: DiagnosticMessage;
-        _0_modifier_cannot_be_used_with_a_class_declaration: DiagnosticMessage;
         _0_modifier_cannot_be_used_here: DiagnosticMessage;
-        _0_modifier_cannot_appear_on_a_data_property: DiagnosticMessage;
         _0_modifier_cannot_appear_on_a_module_or_namespace_element: DiagnosticMessage;
-        A_0_modifier_cannot_be_used_with_an_interface_declaration: DiagnosticMessage;
         Top_level_declarations_in_d_ts_files_must_start_with_either_a_declare_or_export_modifier: DiagnosticMessage;
         A_rest_parameter_cannot_be_optional: DiagnosticMessage;
         A_rest_parameter_cannot_have_an_initializer: DiagnosticMessage;
@@ -7621,7 +7914,6 @@ declare namespace ts {
         A_get_accessor_cannot_have_parameters: DiagnosticMessage;
         Type_0_is_not_a_valid_async_function_return_type_in_ES5_SlashES3_because_it_does_not_refer_to_a_Promise_compatible_constructor_value: DiagnosticMessage;
         Accessors_are_only_available_when_targeting_ECMAScript_5_and_higher: DiagnosticMessage;
-        An_async_function_or_method_must_have_a_valid_awaitable_return_type: DiagnosticMessage;
         The_return_type_of_an_async_function_must_either_be_a_valid_promise_or_must_not_contain_a_callable_then_member: DiagnosticMessage;
         A_promise_must_have_a_then_method: DiagnosticMessage;
         The_first_parameter_of_the_then_method_of_a_promise_must_be_a_callback: DiagnosticMessage;
@@ -7654,6 +7946,7 @@ declare namespace ts {
         for_await_loops_are_only_allowed_within_async_functions_and_at_the_top_levels_of_modules: DiagnosticMessage;
         A_continue_statement_can_only_be_used_within_an_enclosing_iteration_statement: DiagnosticMessage;
         A_break_statement_can_only_be_used_within_an_enclosing_iteration_or_switch_statement: DiagnosticMessage;
+        The_left_hand_side_of_a_for_of_statement_may_not_be_async: DiagnosticMessage;
         Jump_target_cannot_cross_function_boundary: DiagnosticMessage;
         A_return_statement_can_only_be_used_within_a_function_body: DiagnosticMessage;
         Expression_expected: DiagnosticMessage;
@@ -7662,7 +7955,7 @@ declare namespace ts {
         Duplicate_label_0: DiagnosticMessage;
         A_continue_statement_can_only_jump_to_a_label_of_an_enclosing_iteration_statement: DiagnosticMessage;
         A_break_statement_can_only_jump_to_a_label_of_an_enclosing_statement: DiagnosticMessage;
-        An_object_literal_cannot_have_multiple_properties_with_the_same_name_in_strict_mode: DiagnosticMessage;
+        An_object_literal_cannot_have_multiple_properties_with_the_same_name: DiagnosticMessage;
         An_object_literal_cannot_have_multiple_get_Slashset_accessors_with_the_same_name: DiagnosticMessage;
         An_object_literal_cannot_have_property_and_accessor_with_the_same_name: DiagnosticMessage;
         An_export_assignment_cannot_have_modifiers: DiagnosticMessage;
@@ -7740,7 +8033,7 @@ declare namespace ts {
         Decorators_are_not_valid_here: DiagnosticMessage;
         Decorators_cannot_be_applied_to_multiple_get_Slashset_accessors_of_the_same_name: DiagnosticMessage;
         _0_cannot_be_compiled_under_isolatedModules_because_it_is_considered_a_global_script_file_Add_an_import_export_or_an_empty_export_statement_to_make_it_a_module: DiagnosticMessage;
-        Invalid_use_of_0_Class_definitions_are_automatically_in_strict_mode: DiagnosticMessage;
+        Code_contained_in_a_class_is_evaluated_in_JavaScript_s_strict_mode_which_does_not_allow_this_use_of_0_For_more_information_see_https_Colon_Slash_Slashdeveloper_mozilla_org_Slashen_US_Slashdocs_SlashWeb_SlashJavaScript_SlashReference_SlashStrict_mode: DiagnosticMessage;
         A_class_declaration_without_the_default_modifier_must_have_a_name: DiagnosticMessage;
         Identifier_expected_0_is_a_reserved_word_in_strict_mode: DiagnosticMessage;
         Identifier_expected_0_is_a_reserved_word_in_strict_mode_Class_definitions_are_automatically_in_strict_mode: DiagnosticMessage;
@@ -7749,7 +8042,6 @@ declare namespace ts {
         Identifier_expected_esModule_is_reserved_as_an_exported_marker_when_transforming_ECMAScript_modules: DiagnosticMessage;
         Export_assignment_is_not_supported_when_module_flag_is_system: DiagnosticMessage;
         Experimental_support_for_decorators_is_a_feature_that_is_subject_to_change_in_a_future_release_Set_the_experimentalDecorators_option_in_your_tsconfig_or_jsconfig_to_remove_this_warning: DiagnosticMessage;
-        Generators_are_only_available_when_targeting_ECMAScript_2015_or_higher: DiagnosticMessage;
         Generators_are_not_allowed_in_an_ambient_context: DiagnosticMessage;
         An_overload_signature_cannot_be_declared_as_a_generator: DiagnosticMessage;
         _0_tag_already_specified: DiagnosticMessage;
@@ -7760,11 +8052,11 @@ declare namespace ts {
         A_type_predicate_is_only_allowed_in_return_type_position_for_functions_and_methods: DiagnosticMessage;
         A_type_predicate_cannot_reference_a_rest_parameter: DiagnosticMessage;
         A_type_predicate_cannot_reference_element_0_in_a_binding_pattern: DiagnosticMessage;
-        An_export_assignment_can_only_be_used_in_a_module: DiagnosticMessage;
-        An_import_declaration_can_only_be_used_in_a_namespace_or_module: DiagnosticMessage;
-        An_export_declaration_can_only_be_used_in_a_module: DiagnosticMessage;
+        An_export_assignment_must_be_at_the_top_level_of_a_file_or_module_declaration: DiagnosticMessage;
+        An_import_declaration_can_only_be_used_at_the_top_level_of_a_namespace_or_module: DiagnosticMessage;
+        An_export_declaration_can_only_be_used_at_the_top_level_of_a_namespace_or_module: DiagnosticMessage;
         An_ambient_module_declaration_is_only_allowed_at_the_top_level_in_a_file: DiagnosticMessage;
-        A_namespace_declaration_is_only_allowed_in_a_namespace_or_module: DiagnosticMessage;
+        A_namespace_declaration_is_only_allowed_at_the_top_level_of_a_namespace_or_module: DiagnosticMessage;
         The_return_type_of_a_property_decorator_function_must_be_either_void_or_any: DiagnosticMessage;
         The_return_type_of_a_parameter_decorator_function_must_be_either_void_or_any: DiagnosticMessage;
         Unable_to_resolve_signature_of_class_decorator_when_called_as_an_expression: DiagnosticMessage;
@@ -7782,10 +8074,10 @@ declare namespace ts {
         Function_declarations_are_not_allowed_inside_blocks_in_strict_mode_when_targeting_ES3_or_ES5: DiagnosticMessage;
         Function_declarations_are_not_allowed_inside_blocks_in_strict_mode_when_targeting_ES3_or_ES5_Class_definitions_are_automatically_in_strict_mode: DiagnosticMessage;
         Function_declarations_are_not_allowed_inside_blocks_in_strict_mode_when_targeting_ES3_or_ES5_Modules_are_automatically_in_strict_mode: DiagnosticMessage;
-        _0_tag_cannot_be_used_independently_as_a_top_level_JSDoc_tag: DiagnosticMessage;
         A_const_initializer_in_an_ambient_context_must_be_a_string_or_numeric_literal_or_literal_enum_reference: DiagnosticMessage;
         A_definite_assignment_assertion_is_not_permitted_in_this_context: DiagnosticMessage;
         A_required_element_cannot_follow_an_optional_element: DiagnosticMessage;
+        A_default_export_must_be_at_the_top_level_of_a_file_or_module_declaration: DiagnosticMessage;
         Module_0_can_only_be_default_imported_using_the_1_flag: DiagnosticMessage;
         Keywords_cannot_contain_escape_characters: DiagnosticMessage;
         Already_included_file_name_0_differs_from_file_name_1_only_in_casing: DiagnosticMessage;
@@ -7794,6 +8086,11 @@ declare namespace ts {
         Declarations_with_definite_assignment_assertions_must_also_have_type_annotations: DiagnosticMessage;
         A_rest_element_cannot_follow_another_rest_element: DiagnosticMessage;
         An_optional_element_cannot_follow_a_rest_element: DiagnosticMessage;
+        Property_0_cannot_have_an_initializer_because_it_is_marked_abstract: DiagnosticMessage;
+        An_index_signature_parameter_type_must_be_string_number_symbol_or_a_template_literal_type: DiagnosticMessage;
+        Cannot_use_export_import_on_a_type_or_type_only_namespace_when_the_isolatedModules_flag_is_provided: DiagnosticMessage;
+        Decorator_function_return_type_0_is_not_assignable_to_type_1: DiagnosticMessage;
+        Decorator_function_return_type_is_0_but_is_expected_to_be_void_or_any: DiagnosticMessage;
         with_statements_are_not_allowed_in_an_async_function_block: DiagnosticMessage;
         await_expressions_are_only_allowed_within_async_functions_and_at_the_top_levels_of_modules: DiagnosticMessage;
         Did_you_mean_to_use_a_Colon_An_can_only_follow_a_property_name_when_the_containing_object_literal_is_part_of_a_destructuring_pattern: DiagnosticMessage;
@@ -7807,9 +8104,9 @@ declare namespace ts {
         Type_of_await_operand_must_either_be_a_valid_promise_or_must_not_contain_a_callable_then_member: DiagnosticMessage;
         Type_of_yield_operand_in_an_async_generator_must_either_be_a_valid_promise_or_must_not_contain_a_callable_then_member: DiagnosticMessage;
         Type_of_iterated_elements_of_a_yield_Asterisk_operand_must_either_be_a_valid_promise_or_must_not_contain_a_callable_then_member: DiagnosticMessage;
-        Dynamic_imports_are_only_supported_when_the_module_flag_is_set_to_es2020_esnext_commonjs_amd_system_or_umd: DiagnosticMessage;
-        Dynamic_import_must_have_one_specifier_as_an_argument: DiagnosticMessage;
-        Specifier_of_dynamic_import_cannot_be_spread_element: DiagnosticMessage;
+        Dynamic_imports_are_only_supported_when_the_module_flag_is_set_to_es2020_es2022_esnext_commonjs_amd_system_umd_node12_or_nodenext: DiagnosticMessage;
+        Dynamic_imports_only_support_a_second_argument_when_the_module_option_is_set_to_esnext_or_nodenext: DiagnosticMessage;
+        Argument_of_dynamic_import_cannot_be_spread_element: DiagnosticMessage;
         Dynamic_import_cannot_have_type_arguments: DiagnosticMessage;
         String_literal_with_double_quotes_expected: DiagnosticMessage;
         Property_value_can_only_be_string_literal_numeric_literal_true_false_null_object_literal_or_array_literal: DiagnosticMessage;
@@ -7820,13 +8117,12 @@ declare namespace ts {
         unique_symbol_types_may_not_be_used_on_a_variable_declaration_with_a_binding_name: DiagnosticMessage;
         unique_symbol_types_are_only_allowed_on_variables_in_a_variable_statement: DiagnosticMessage;
         unique_symbol_types_are_not_allowed_here: DiagnosticMessage;
-        An_index_signature_parameter_type_cannot_be_a_type_alias_Consider_writing_0_Colon_1_Colon_2_instead: DiagnosticMessage;
-        An_index_signature_parameter_type_cannot_be_a_union_type_Consider_using_a_mapped_object_type_instead: DiagnosticMessage;
+        An_index_signature_parameter_type_cannot_be_a_literal_type_or_generic_type_Consider_using_a_mapped_object_type_instead: DiagnosticMessage;
         infer_declarations_are_only_permitted_in_the_extends_clause_of_a_conditional_type: DiagnosticMessage;
         Module_0_does_not_refer_to_a_value_but_is_used_as_a_value_here: DiagnosticMessage;
         Module_0_does_not_refer_to_a_type_but_is_used_as_a_type_here_Did_you_mean_typeof_import_0: DiagnosticMessage;
         Type_arguments_cannot_be_used_here: DiagnosticMessage;
-        The_import_meta_meta_property_is_only_allowed_when_the_module_option_is_es2020_esnext_or_system: DiagnosticMessage;
+        The_import_meta_meta_property_is_only_allowed_when_the_module_option_is_es2020_es2022_esnext_system_node12_or_nodenext: DiagnosticMessage;
         A_label_is_not_allowed_here: DiagnosticMessage;
         An_expression_of_type_void_cannot_be_tested_for_truthiness: DiagnosticMessage;
         This_parameter_is_not_allowed_with_use_strict_directive: DiagnosticMessage;
@@ -7843,7 +8139,6 @@ declare namespace ts {
         An_enum_member_name_must_be_followed_by_a_or: DiagnosticMessage;
         Tagged_template_expressions_are_not_permitted_in_an_optional_chain: DiagnosticMessage;
         Identifier_expected_0_is_a_reserved_word_that_cannot_be_used_here: DiagnosticMessage;
-        Did_you_mean_to_parenthesize_this_function_type: DiagnosticMessage;
         _0_cannot_be_used_as_a_value_because_it_was_imported_using_import_type: DiagnosticMessage;
         _0_cannot_be_used_as_a_value_because_it_was_exported_using_export_type: DiagnosticMessage;
         A_type_only_import_can_specify_a_default_import_or_named_bindings_but_not_both: DiagnosticMessage;
@@ -7851,7 +8146,6 @@ declare namespace ts {
         Convert_all_re_exported_types_to_type_only_exports: DiagnosticMessage;
         Split_into_two_separate_import_declarations: DiagnosticMessage;
         Split_all_invalid_type_only_imports: DiagnosticMessage;
-        Specify_emit_Slashchecking_behavior_for_imports_that_are_only_used_for_types: DiagnosticMessage;
         Did_you_mean_0: DiagnosticMessage;
         This_import_is_never_used_as_a_value_and_must_use_import_type_because_importsNotUsedAsValues_is_set_to_error: DiagnosticMessage;
         Convert_to_type_only_import: DiagnosticMessage;
@@ -7859,20 +8153,18 @@ declare namespace ts {
         await_expressions_are_only_allowed_at_the_top_level_of_a_file_when_that_file_is_a_module_but_this_file_has_no_imports_or_exports_Consider_adding_an_empty_export_to_make_this_file_a_module: DiagnosticMessage;
         _0_was_imported_here: DiagnosticMessage;
         _0_was_exported_here: DiagnosticMessage;
-        Top_level_await_expressions_are_only_allowed_when_the_module_option_is_set_to_esnext_or_system_and_the_target_option_is_set_to_es2017_or_higher: DiagnosticMessage;
+        Top_level_await_expressions_are_only_allowed_when_the_module_option_is_set_to_es2022_esnext_system_or_nodenext_and_the_target_option_is_set_to_es2017_or_higher: DiagnosticMessage;
         An_import_alias_cannot_reference_a_declaration_that_was_exported_using_export_type: DiagnosticMessage;
         An_import_alias_cannot_reference_a_declaration_that_was_imported_using_import_type: DiagnosticMessage;
         Unexpected_token_Did_you_mean_or_rbrace: DiagnosticMessage;
         Unexpected_token_Did_you_mean_or_gt: DiagnosticMessage;
         Only_named_exports_may_use_export_type: DiagnosticMessage;
-        A_new_expression_with_type_arguments_must_always_be_followed_by_a_parenthesized_argument_list: DiagnosticMessage;
         Function_type_notation_must_be_parenthesized_when_used_in_a_union_type: DiagnosticMessage;
         Constructor_type_notation_must_be_parenthesized_when_used_in_a_union_type: DiagnosticMessage;
         Function_type_notation_must_be_parenthesized_when_used_in_an_intersection_type: DiagnosticMessage;
         Constructor_type_notation_must_be_parenthesized_when_used_in_an_intersection_type: DiagnosticMessage;
         _0_is_not_allowed_as_a_variable_declaration_name: DiagnosticMessage;
-        Provides_a_root_package_name_when_using_outFile_with_declarations: DiagnosticMessage;
-        The_bundledPackageName_option_must_be_provided_when_using_outFile_and_node_module_resolution_with_declaration_emit: DiagnosticMessage;
+        _0_is_not_allowed_as_a_parameter_name: DiagnosticMessage;
         An_import_alias_cannot_use_import_type: DiagnosticMessage;
         Imported_via_0_from_file_1: DiagnosticMessage;
         Imported_via_0_from_file_1_with_packageId_2: DiagnosticMessage;
@@ -7913,13 +8205,39 @@ declare namespace ts {
         File_redirects_to_file_0: DiagnosticMessage;
         The_file_is_in_the_program_because_Colon: DiagnosticMessage;
         for_await_loops_are_only_allowed_at_the_top_level_of_a_file_when_that_file_is_a_module_but_this_file_has_no_imports_or_exports_Consider_adding_an_empty_export_to_make_this_file_a_module: DiagnosticMessage;
-        Top_level_for_await_loops_are_only_allowed_when_the_module_option_is_set_to_esnext_or_system_and_the_target_option_is_set_to_es2017_or_higher: DiagnosticMessage;
+        Top_level_for_await_loops_are_only_allowed_when_the_module_option_is_set_to_es2022_esnext_system_or_nodenext_and_the_target_option_is_set_to_es2017_or_higher: DiagnosticMessage;
+        Decorators_may_not_be_applied_to_this_parameters: DiagnosticMessage;
+        Unexpected_keyword_or_identifier: DiagnosticMessage;
+        Unknown_keyword_or_identifier_Did_you_mean_0: DiagnosticMessage;
+        Decorators_must_precede_the_name_and_all_keywords_of_property_declarations: DiagnosticMessage;
+        Namespace_must_be_given_a_name: DiagnosticMessage;
+        Interface_must_be_given_a_name: DiagnosticMessage;
+        Type_alias_must_be_given_a_name: DiagnosticMessage;
+        Variable_declaration_not_allowed_at_this_location: DiagnosticMessage;
+        Cannot_start_a_function_call_in_a_type_annotation: DiagnosticMessage;
+        Expected_for_property_initializer: DiagnosticMessage;
+        Module_declaration_names_may_only_use_or_quoted_strings: DiagnosticMessage;
+        _0_is_a_type_and_must_be_imported_using_a_type_only_import_when_preserveValueImports_and_isolatedModules_are_both_enabled: DiagnosticMessage;
+        _0_resolves_to_a_type_only_declaration_and_must_be_imported_using_a_type_only_import_when_preserveValueImports_and_isolatedModules_are_both_enabled: DiagnosticMessage;
+        _0_resolves_to_a_type_only_declaration_and_must_be_re_exported_using_a_type_only_re_export_when_isolatedModules_is_enabled: DiagnosticMessage;
+        Preserve_unused_imported_values_in_the_JavaScript_output_that_would_otherwise_be_removed: DiagnosticMessage;
+        Dynamic_imports_can_only_accept_a_module_specifier_and_an_optional_assertion_as_arguments: DiagnosticMessage;
+        Private_identifiers_are_only_allowed_in_class_bodies_and_may_only_be_used_as_part_of_a_class_member_declaration_property_access_or_on_the_left_hand_side_of_an_in_expression: DiagnosticMessage;
+        Resolution_modes_are_only_supported_when_moduleResolution_is_node12_or_nodenext: DiagnosticMessage;
+        resolution_mode_should_be_either_require_or_import: DiagnosticMessage;
+        The_import_meta_meta_property_is_not_allowed_in_files_which_will_build_into_CommonJS_output: DiagnosticMessage;
+        Module_0_cannot_be_imported_using_this_construct_The_specifier_only_resolves_to_an_ES_module_which_cannot_be_imported_synchronously_Use_dynamic_import_instead: DiagnosticMessage;
+        catch_or_finally_expected: DiagnosticMessage;
+        An_import_declaration_can_only_be_used_at_the_top_level_of_a_module: DiagnosticMessage;
+        An_export_declaration_can_only_be_used_at_the_top_level_of_a_module: DiagnosticMessage;
         The_types_of_0_are_incompatible_between_these_types: DiagnosticMessage;
         The_types_returned_by_0_are_incompatible_between_these_types: DiagnosticMessage;
         Call_signature_return_types_0_and_1_are_incompatible: DiagnosticMessage;
         Construct_signature_return_types_0_and_1_are_incompatible: DiagnosticMessage;
         Call_signatures_with_no_arguments_have_incompatible_return_types_0_and_1: DiagnosticMessage;
         Construct_signatures_with_no_arguments_have_incompatible_return_types_0_and_1: DiagnosticMessage;
+        The_type_modifier_cannot_be_used_on_a_named_import_when_import_type_is_used_on_its_import_statement: DiagnosticMessage;
+        The_type_modifier_cannot_be_used_on_a_named_export_when_export_type_is_used_on_its_export_statement: DiagnosticMessage;
         Duplicate_identifier_0: DiagnosticMessage;
         Initializer_of_instance_member_variable_0_cannot_reference_identifier_1_declared_in_the_constructor: DiagnosticMessage;
         Static_members_cannot_reference_class_type_parameters: DiagnosticMessage;
@@ -7931,7 +8249,7 @@ declare namespace ts {
         Module_0_has_already_exported_a_member_named_1_Consider_explicitly_re_exporting_to_resolve_the_ambiguity: DiagnosticMessage;
         An_export_assignment_cannot_be_used_in_a_module_with_other_exported_elements: DiagnosticMessage;
         Type_0_recursively_references_itself_as_a_base_type: DiagnosticMessage;
-        A_class_may_only_extend_another_class: DiagnosticMessage;
+        Cannot_find_name_0_Did_you_mean_to_write_this_in_an_async_function: DiagnosticMessage;
         An_interface_can_only_extend_an_object_type_or_intersection_of_object_types_with_statically_known_members: DiagnosticMessage;
         Type_parameter_0_has_a_circular_constraint: DiagnosticMessage;
         Generic_type_0_requires_1_type_argument_s: DiagnosticMessage;
@@ -7949,8 +8267,8 @@ declare namespace ts {
         Types_of_property_0_are_incompatible: DiagnosticMessage;
         Property_0_is_optional_in_type_1_but_required_in_type_2: DiagnosticMessage;
         Types_of_parameters_0_and_1_are_incompatible: DiagnosticMessage;
-        Index_signature_is_missing_in_type_0: DiagnosticMessage;
-        Index_signatures_are_incompatible: DiagnosticMessage;
+        Index_signature_for_type_0_is_missing_in_type_1: DiagnosticMessage;
+        _0_and_1_index_signatures_are_incompatible: DiagnosticMessage;
         this_cannot_be_referenced_in_a_module_or_namespace_body: DiagnosticMessage;
         this_cannot_be_referenced_in_current_location: DiagnosticMessage;
         this_cannot_be_referenced_in_constructor_arguments: DiagnosticMessage;
@@ -7962,7 +8280,6 @@ declare namespace ts {
         Property_0_does_not_exist_on_type_1: DiagnosticMessage;
         Only_public_and_protected_methods_of_the_base_class_are_accessible_via_the_super_keyword: DiagnosticMessage;
         Property_0_is_private_and_only_accessible_within_class_1: DiagnosticMessage;
-        An_index_expression_argument_must_be_of_type_string_number_symbol_or_any: DiagnosticMessage;
         This_syntax_requires_an_imported_helper_named_1_which_does_not_exist_in_0_Consider_upgrading_your_version_of_0: DiagnosticMessage;
         Type_0_does_not_satisfy_the_constraint_1: DiagnosticMessage;
         Argument_of_type_0_is_not_assignable_to_parameter_of_type_1: DiagnosticMessage;
@@ -7980,7 +8297,7 @@ declare namespace ts {
         The_operand_of_an_increment_or_decrement_operator_must_be_a_variable_or_a_property_access: DiagnosticMessage;
         The_left_hand_side_of_an_instanceof_expression_must_be_of_type_any_an_object_type_or_a_type_parameter: DiagnosticMessage;
         The_right_hand_side_of_an_instanceof_expression_must_be_of_type_any_or_of_a_type_assignable_to_the_Function_interface_type: DiagnosticMessage;
-        The_left_hand_side_of_an_in_expression_must_be_of_type_any_string_number_or_symbol: DiagnosticMessage;
+        The_left_hand_side_of_an_in_expression_must_be_a_private_identifier_or_of_type_any_string_number_or_symbol: DiagnosticMessage;
         The_right_hand_side_of_an_in_expression_must_not_be_a_primitive: DiagnosticMessage;
         The_left_hand_side_of_an_arithmetic_operation_must_be_of_type_any_number_bigint_or_an_enum_type: DiagnosticMessage;
         The_right_hand_side_of_an_arithmetic_operation_must_be_of_type_any_number_bigint_or_an_enum_type: DiagnosticMessage;
@@ -7994,15 +8311,13 @@ declare namespace ts {
         A_parameter_initializer_is_only_allowed_in_a_function_or_constructor_implementation: DiagnosticMessage;
         Parameter_0_cannot_reference_itself: DiagnosticMessage;
         Parameter_0_cannot_reference_identifier_1_declared_after_it: DiagnosticMessage;
-        Duplicate_string_index_signature: DiagnosticMessage;
-        Duplicate_number_index_signature: DiagnosticMessage;
-        A_super_call_must_be_the_first_statement_in_the_constructor_when_a_class_contains_initialized_properties_parameter_properties_or_private_identifiers: DiagnosticMessage;
+        Duplicate_index_signature_for_type_0: DiagnosticMessage;
+        Type_0_is_not_assignable_to_type_1_with_exactOptionalPropertyTypes_Colon_true_Consider_adding_undefined_to_the_types_of_the_target_s_properties: DiagnosticMessage;
+        A_super_call_must_be_the_first_statement_in_the_constructor_to_refer_to_super_or_this_when_a_derived_class_contains_initialized_properties_parameter_properties_or_private_identifiers: DiagnosticMessage;
         Constructors_for_derived_classes_must_contain_a_super_call: DiagnosticMessage;
         A_get_accessor_must_return_a_value: DiagnosticMessage;
-        Getter_and_setter_accessors_do_not_agree_in_visibility: DiagnosticMessage;
-        get_and_set_accessor_must_have_the_same_type: DiagnosticMessage;
-        A_signature_with_an_implementation_cannot_use_a_string_literal_type: DiagnosticMessage;
-        Specialized_overload_signature_is_not_assignable_to_any_non_specialized_signature: DiagnosticMessage;
+        Argument_of_type_0_is_not_assignable_to_parameter_of_type_1_with_exactOptionalPropertyTypes_Colon_true_Consider_adding_undefined_to_the_types_of_the_target_s_properties: DiagnosticMessage;
+        The_return_type_of_a_get_accessor_must_be_assignable_to_its_set_accessor_type: DiagnosticMessage;
         Overload_signatures_must_all_be_exported_or_non_exported: DiagnosticMessage;
         Overload_signatures_must_all_be_ambient_or_non_ambient: DiagnosticMessage;
         Overload_signatures_must_all_be_public_private_or_protected: DiagnosticMessage;
@@ -8021,7 +8336,7 @@ declare namespace ts {
         constructor_cannot_be_used_as_a_parameter_property_name: DiagnosticMessage;
         Duplicate_identifier_this_Compiler_uses_variable_declaration_this_to_capture_this_reference: DiagnosticMessage;
         Expression_resolves_to_variable_declaration_this_that_compiler_uses_to_capture_this_reference: DiagnosticMessage;
-        Duplicate_identifier_super_Compiler_uses_super_to_capture_base_class_reference: DiagnosticMessage;
+        A_super_call_must_be_a_root_level_statement_within_a_constructor_of_a_derived_class_that_contains_initialized_properties_parameter_properties_or_private_identifiers: DiagnosticMessage;
         Expression_resolves_to_super_that_compiler_uses_to_capture_base_class_reference: DiagnosticMessage;
         Subsequent_variable_declarations_must_have_the_same_type_Variable_0_must_be_of_type_1_but_here_has_type_2: DiagnosticMessage;
         The_left_hand_side_of_a_for_in_statement_cannot_use_a_type_annotation: DiagnosticMessage;
@@ -8031,9 +8346,9 @@ declare namespace ts {
         Setters_cannot_return_a_value: DiagnosticMessage;
         Return_type_of_constructor_signature_must_be_assignable_to_the_instance_type_of_the_class: DiagnosticMessage;
         The_with_statement_is_not_supported_All_symbols_in_a_with_block_will_have_type_any: DiagnosticMessage;
-        Property_0_of_type_1_is_not_assignable_to_string_index_type_2: DiagnosticMessage;
-        Property_0_of_type_1_is_not_assignable_to_numeric_index_type_2: DiagnosticMessage;
-        Numeric_index_type_0_is_not_assignable_to_string_index_type_1: DiagnosticMessage;
+        Type_0_is_not_assignable_to_type_1_with_exactOptionalPropertyTypes_Colon_true_Consider_adding_undefined_to_the_type_of_the_target: DiagnosticMessage;
+        Property_0_of_type_1_is_not_assignable_to_2_index_type_3: DiagnosticMessage;
+        _0_index_type_1_is_not_assignable_to_2_index_type_3: DiagnosticMessage;
         Class_name_cannot_be_0: DiagnosticMessage;
         Class_0_incorrectly_extends_base_class_1: DiagnosticMessage;
         Property_0_in_type_1_is_not_assignable_to_the_same_property_in_base_type_2: DiagnosticMessage;
@@ -8070,9 +8385,7 @@ declare namespace ts {
         Enum_0_used_before_its_declaration: DiagnosticMessage;
         Cannot_redeclare_block_scoped_variable_0: DiagnosticMessage;
         An_enum_member_cannot_have_a_numeric_name: DiagnosticMessage;
-        The_type_argument_for_type_parameter_0_cannot_be_inferred_from_the_usage_Consider_specifying_the_type_arguments_explicitly: DiagnosticMessage;
         Variable_0_is_used_before_being_assigned: DiagnosticMessage;
-        Type_argument_candidate_1_is_not_a_valid_type_argument_because_it_is_not_a_supertype_of_candidate_0: DiagnosticMessage;
         Type_alias_0_circularly_references_itself: DiagnosticMessage;
         Type_alias_name_cannot_be_0: DiagnosticMessage;
         An_AMD_module_cannot_have_multiple_name_assignments: DiagnosticMessage;
@@ -8087,8 +8400,6 @@ declare namespace ts {
         A_computed_property_name_cannot_reference_a_type_parameter_from_its_containing_type: DiagnosticMessage;
         Cannot_find_global_value_0: DiagnosticMessage;
         The_0_operator_cannot_be_applied_to_type_symbol: DiagnosticMessage;
-        Symbol_reference_does_not_refer_to_the_global_Symbol_constructor_object: DiagnosticMessage;
-        A_computed_property_name_of_the_form_0_must_be_of_type_symbol: DiagnosticMessage;
         Spread_operator_in_new_expressions_is_only_available_when_targeting_ECMAScript_5_and_higher: DiagnosticMessage;
         Enum_declarations_must_all_be_const_or_non_const: DiagnosticMessage;
         const_enum_member_initializers_can_only_contain_literal_values_and_other_computed_enum_values: DiagnosticMessage;
@@ -8096,7 +8407,6 @@ declare namespace ts {
         A_const_enum_member_can_only_be_accessed_using_a_string_literal: DiagnosticMessage;
         const_enum_member_initializer_was_evaluated_to_a_non_finite_value: DiagnosticMessage;
         const_enum_member_initializer_was_evaluated_to_disallowed_value_NaN: DiagnosticMessage;
-        Property_0_does_not_exist_on_const_enum_1: DiagnosticMessage;
         let_is_not_allowed_to_be_used_as_a_name_in_let_or_const_declarations: DiagnosticMessage;
         Cannot_initialize_outer_scoped_variable_0_in_the_same_scope_as_block_scoped_declaration_1: DiagnosticMessage;
         The_left_hand_side_of_a_for_of_statement_cannot_use_a_type_annotation: DiagnosticMessage;
@@ -8128,14 +8438,12 @@ declare namespace ts {
         Cannot_create_an_instance_of_an_abstract_class: DiagnosticMessage;
         Overload_signatures_must_all_be_abstract_or_non_abstract: DiagnosticMessage;
         Abstract_method_0_in_class_1_cannot_be_accessed_via_super_expression: DiagnosticMessage;
-        Classes_containing_abstract_methods_must_be_marked_abstract: DiagnosticMessage;
         Non_abstract_class_0_does_not_implement_inherited_abstract_member_1_from_class_2: DiagnosticMessage;
         All_declarations_of_an_abstract_method_must_be_consecutive: DiagnosticMessage;
         Cannot_assign_an_abstract_constructor_type_to_a_non_abstract_constructor_type: DiagnosticMessage;
         A_this_based_type_guard_is_not_compatible_with_a_parameter_based_type_guard: DiagnosticMessage;
         An_async_iterator_must_have_a_next_method: DiagnosticMessage;
         Duplicate_identifier_0_Compiler_uses_declaration_1_to_support_async_functions: DiagnosticMessage;
-        Expression_resolves_to_variable_declaration_0_that_compiler_uses_to_support_async_functions: DiagnosticMessage;
         The_arguments_object_cannot_be_referenced_in_an_async_function_or_method_in_ES3_and_ES5_Consider_using_a_standard_function_or_method: DiagnosticMessage;
         yield_expressions_cannot_be_used_in_a_parameter_initializer: DiagnosticMessage;
         await_expressions_cannot_be_used_in_a_parameter_initializer: DiagnosticMessage;
@@ -8155,7 +8463,6 @@ declare namespace ts {
         Type_0_cannot_be_used_as_an_index_type: DiagnosticMessage;
         Cannot_assign_to_0_because_it_is_not_a_variable: DiagnosticMessage;
         Cannot_assign_to_0_because_it_is_a_read_only_property: DiagnosticMessage;
-        The_target_of_an_assignment_must_be_a_variable_or_a_property_access: DiagnosticMessage;
         Index_signature_in_type_0_only_permits_reading: DiagnosticMessage;
         Duplicate_identifier_newTarget_Compiler_uses_variable_declaration_newTarget_to_capture_new_target_meta_property_reference: DiagnosticMessage;
         Expression_resolves_to_variable_declaration_newTarget_that_compiler_uses_to_capture_new_target_meta_property_reference: DiagnosticMessage;
@@ -8169,8 +8476,7 @@ declare namespace ts {
         Computed_values_are_not_permitted_in_an_enum_with_string_valued_members: DiagnosticMessage;
         Expected_0_arguments_but_got_1: DiagnosticMessage;
         Expected_at_least_0_arguments_but_got_1: DiagnosticMessage;
-        Expected_0_arguments_but_got_1_or_more: DiagnosticMessage;
-        Expected_at_least_0_arguments_but_got_1_or_more: DiagnosticMessage;
+        A_spread_argument_must_either_have_a_tuple_type_or_be_passed_to_a_rest_parameter: DiagnosticMessage;
         Expected_0_type_arguments_but_got_1: DiagnosticMessage;
         Type_0_has_no_properties_in_common_with_type_1: DiagnosticMessage;
         Value_of_type_0_has_no_properties_in_common_with_type_1_Did_you_mean_to_call_it: DiagnosticMessage;
@@ -8181,10 +8487,10 @@ declare namespace ts {
         Property_0_is_used_before_being_assigned: DiagnosticMessage;
         A_rest_element_cannot_have_a_property_name: DiagnosticMessage;
         Enum_declarations_can_only_merge_with_namespace_or_other_enum_declarations: DiagnosticMessage;
+        Property_0_may_not_exist_on_type_1_Did_you_mean_2: DiagnosticMessage;
         Type_0_is_not_an_array_type_or_a_string_type_Use_compiler_option_downlevelIteration_to_allow_iterating_of_iterators: DiagnosticMessage;
+        Could_not_find_name_0_Did_you_mean_1: DiagnosticMessage;
         Object_is_of_type_unknown: DiagnosticMessage;
-        Rest_signatures_are_incompatible: DiagnosticMessage;
-        Property_0_is_incompatible_with_rest_element_type: DiagnosticMessage;
         A_rest_element_type_must_be_an_array_type: DiagnosticMessage;
         No_overload_expects_0_arguments_but_overloads_do_exist_that_expect_either_1_or_2_arguments: DiagnosticMessage;
         Property_0_does_not_exist_on_type_1_Did_you_mean_to_access_the_static_member_2_instead: DiagnosticMessage;
@@ -8196,8 +8502,6 @@ declare namespace ts {
         Cannot_find_name_0_Do_you_need_to_change_your_target_library_Try_changing_the_lib_compiler_option_to_1_or_later: DiagnosticMessage;
         Cannot_find_name_0_Do_you_need_to_change_your_target_library_Try_changing_the_lib_compiler_option_to_include_dom: DiagnosticMessage;
         _0_only_refers_to_a_type_but_is_being_used_as_a_value_here_Do_you_need_to_change_your_target_library_Try_changing_the_lib_compiler_option_to_es2015_or_later: DiagnosticMessage;
-        Enum_type_0_circularly_references_itself: DiagnosticMessage;
-        JSDoc_type_0_circularly_references_itself: DiagnosticMessage;
         Cannot_assign_to_0_because_it_is_a_constant: DiagnosticMessage;
         Type_instantiation_is_excessively_deep_and_possibly_infinite: DiagnosticMessage;
         Expression_produces_a_union_type_that_is_too_complex_to_represent: DiagnosticMessage;
@@ -8209,12 +8513,9 @@ declare namespace ts {
         _0_can_only_be_imported_by_turning_on_the_esModuleInterop_flag_and_using_a_default_import: DiagnosticMessage;
         _0_can_only_be_imported_by_using_a_require_call_or_by_using_a_default_import: DiagnosticMessage;
         _0_can_only_be_imported_by_using_a_require_call_or_by_turning_on_the_esModuleInterop_flag_and_using_a_default_import: DiagnosticMessage;
-        JSX_element_attributes_type_0_may_not_be_a_union_type: DiagnosticMessage;
-        The_return_type_of_a_JSX_element_constructor_must_return_an_object_type: DiagnosticMessage;
         JSX_element_implicitly_has_type_any_because_the_global_type_JSX_Element_does_not_exist: DiagnosticMessage;
         Property_0_in_type_1_is_not_assignable_to_type_2: DiagnosticMessage;
         JSX_element_type_0_does_not_have_any_construct_or_call_signatures: DiagnosticMessage;
-        JSX_element_type_0_is_not_a_constructor_function_for_JSX_elements: DiagnosticMessage;
         Property_0_of_JSX_spread_attribute_is_not_assignable_to_target_property: DiagnosticMessage;
         JSX_element_class_does_not_support_attributes_because_it_does_not_have_a_0_property: DiagnosticMessage;
         The_global_type_JSX_0_may_not_have_more_than_one_property: DiagnosticMessage;
@@ -8242,12 +8543,12 @@ declare namespace ts {
         Cannot_assign_to_0_because_it_is_a_namespace: DiagnosticMessage;
         Cannot_assign_to_0_because_it_is_an_import: DiagnosticMessage;
         JSX_property_access_expressions_cannot_include_JSX_namespace_names: DiagnosticMessage;
+        _0_index_signatures_are_incompatible: DiagnosticMessage;
+        Type_0_has_no_signatures_for_which_the_type_argument_list_is_applicable: DiagnosticMessage;
         Cannot_augment_module_0_with_value_exports_because_it_resolves_to_a_non_module_entity: DiagnosticMessage;
         A_member_initializer_in_a_enum_declaration_cannot_reference_members_declared_after_it_including_members_defined_in_other_enums: DiagnosticMessage;
         Merged_declaration_0_cannot_include_a_default_export_declaration_Consider_adding_a_separate_export_default_0_declaration_instead: DiagnosticMessage;
         Non_abstract_class_expression_does_not_implement_inherited_abstract_member_0_from_class_1: DiagnosticMessage;
-        Exported_external_package_typings_file_cannot_contain_tripleslash_references_Please_contact_the_package_author_to_update_the_package_definition: DiagnosticMessage;
-        Exported_external_package_typings_file_0_is_not_a_module_Please_contact_the_package_author_to_update_the_package_definition: DiagnosticMessage;
         JSX_expressions_must_have_one_parent_element: DiagnosticMessage;
         Type_0_provides_no_match_for_the_signature_1: DiagnosticMessage;
         super_is_only_allowed_in_members_of_object_literal_expressions_when_option_target_is_ES2015_or_higher: DiagnosticMessage;
@@ -8273,7 +8574,6 @@ declare namespace ts {
         A_function_that_is_called_with_the_new_keyword_cannot_have_a_this_type_that_is_void: DiagnosticMessage;
         A_0_parameter_must_be_the_first_parameter: DiagnosticMessage;
         A_constructor_cannot_have_a_this_parameter: DiagnosticMessage;
-        get_and_set_accessor_must_have_the_same_this_type: DiagnosticMessage;
         this_implicitly_has_type_any_because_it_does_not_have_a_type_annotation: DiagnosticMessage;
         The_this_context_of_type_0_is_not_assignable_to_method_s_this_of_type_1: DiagnosticMessage;
         The_this_types_of_each_signature_are_incompatible: DiagnosticMessage;
@@ -8365,7 +8665,7 @@ declare namespace ts {
         The_last_overload_is_declared_here: DiagnosticMessage;
         Overload_0_of_1_2_gave_the_following_error: DiagnosticMessage;
         Did_you_forget_to_use_await: DiagnosticMessage;
-        This_condition_will_always_return_true_since_the_function_is_always_defined_Did_you_mean_to_call_it_instead: DiagnosticMessage;
+        This_condition_will_always_return_true_since_this_function_is_always_defined_Did_you_mean_to_call_it_instead: DiagnosticMessage;
         Assertions_require_every_name_in_the_call_target_to_be_declared_with_an_explicit_type_annotation: DiagnosticMessage;
         Assertions_require_the_call_target_to_be_an_identifier_or_qualified_name: DiagnosticMessage;
         The_operand_of_an_increment_or_decrement_operator_may_not_be_an_optional_property_access: DiagnosticMessage;
@@ -8392,13 +8692,31 @@ declare namespace ts {
         The_declaration_was_marked_as_deprecated_here: DiagnosticMessage;
         Type_produces_a_tuple_type_that_is_too_large_to_represent: DiagnosticMessage;
         Expression_produces_a_tuple_type_that_is_too_large_to_represent: DiagnosticMessage;
-        This_condition_will_always_return_true_since_the_Promise_is_always_truthy: DiagnosticMessage;
+        This_condition_will_always_return_true_since_this_0_is_always_defined: DiagnosticMessage;
         Type_0_can_only_be_iterated_through_when_using_the_downlevelIteration_flag_or_with_a_target_of_es2015_or_higher: DiagnosticMessage;
         Cannot_assign_to_private_method_0_Private_methods_are_not_writable: DiagnosticMessage;
         Duplicate_identifier_0_Static_and_instance_elements_cannot_share_the_same_private_name: DiagnosticMessage;
-        Static_fields_with_private_names_can_t_have_initializers_when_the_useDefineForClassFields_flag_is_not_specified_with_a_target_of_esnext_Consider_adding_the_useDefineForClassFields_flag: DiagnosticMessage;
         Private_accessor_was_defined_without_a_getter: DiagnosticMessage;
         This_syntax_requires_an_imported_helper_named_1_with_2_parameters_which_is_not_compatible_with_the_one_in_0_Consider_upgrading_your_version_of_0: DiagnosticMessage;
+        A_get_accessor_must_be_at_least_as_accessible_as_the_setter: DiagnosticMessage;
+        Declaration_or_statement_expected_This_follows_a_block_of_statements_so_if_you_intended_to_write_a_destructuring_assignment_you_might_need_to_wrap_the_the_whole_assignment_in_parentheses: DiagnosticMessage;
+        Initializer_for_property_0: DiagnosticMessage;
+        Property_0_does_not_exist_on_type_1_Try_changing_the_lib_compiler_option_to_include_dom: DiagnosticMessage;
+        Class_declaration_cannot_implement_overload_list_for_0: DiagnosticMessage;
+        Function_with_bodies_can_only_merge_with_classes_that_are_ambient: DiagnosticMessage;
+        arguments_cannot_be_referenced_in_property_initializers: DiagnosticMessage;
+        Cannot_use_this_in_a_static_property_initializer_of_a_decorated_class: DiagnosticMessage;
+        Property_0_has_no_initializer_and_is_not_definitely_assigned_in_a_class_static_block: DiagnosticMessage;
+        Duplicate_identifier_0_Compiler_reserves_name_1_when_emitting_super_references_in_static_initializers: DiagnosticMessage;
+        Namespace_name_cannot_be_0: DiagnosticMessage;
+        Type_0_is_not_assignable_to_type_1_Did_you_mean_2: DiagnosticMessage;
+        Import_assertions_are_only_supported_when_the_module_option_is_set_to_esnext_or_nodenext: DiagnosticMessage;
+        Import_assertions_cannot_be_used_with_type_only_imports_or_exports: DiagnosticMessage;
+        Cannot_find_namespace_0_Did_you_mean_1: DiagnosticMessage;
+        Relative_import_paths_need_explicit_file_extensions_in_EcmaScript_imports_when_moduleResolution_is_node12_or_nodenext_Consider_adding_an_extension_to_the_import_path: DiagnosticMessage;
+        Relative_import_paths_need_explicit_file_extensions_in_EcmaScript_imports_when_moduleResolution_is_node12_or_nodenext_Did_you_mean_0: DiagnosticMessage;
+        Import_assertions_are_not_allowed_on_statements_that_transpile_to_commonjs_require_calls: DiagnosticMessage;
+        Import_assertion_values_must_be_string_literal_expressions: DiagnosticMessage;
         Import_declaration_0_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_interface_has_or_is_using_private_name_1: DiagnosticMessage;
@@ -8493,6 +8811,19 @@ declare namespace ts {
         Type_arguments_for_0_circularly_reference_themselves: DiagnosticMessage;
         Tuple_type_arguments_circularly_reference_themselves: DiagnosticMessage;
         Property_0_comes_from_an_index_signature_so_it_must_be_accessed_with_0: DiagnosticMessage;
+        This_member_cannot_have_an_override_modifier_because_its_containing_class_0_does_not_extend_another_class: DiagnosticMessage;
+        This_member_cannot_have_an_override_modifier_because_it_is_not_declared_in_the_base_class_0: DiagnosticMessage;
+        This_member_must_have_an_override_modifier_because_it_overrides_a_member_in_the_base_class_0: DiagnosticMessage;
+        This_parameter_property_must_have_an_override_modifier_because_it_overrides_a_member_in_base_class_0: DiagnosticMessage;
+        This_member_must_have_an_override_modifier_because_it_overrides_an_abstract_method_that_is_declared_in_the_base_class_0: DiagnosticMessage;
+        This_member_cannot_have_an_override_modifier_because_it_is_not_declared_in_the_base_class_0_Did_you_mean_1: DiagnosticMessage;
+        The_type_of_this_node_cannot_be_serialized_because_its_property_0_cannot_be_serialized: DiagnosticMessage;
+        This_member_must_have_a_JSDoc_comment_with_an_override_tag_because_it_overrides_a_member_in_the_base_class_0: DiagnosticMessage;
+        This_parameter_property_must_have_a_JSDoc_comment_with_an_override_tag_because_it_overrides_a_member_in_the_base_class_0: DiagnosticMessage;
+        This_member_cannot_have_a_JSDoc_comment_with_an_override_tag_because_its_containing_class_0_does_not_extend_another_class: DiagnosticMessage;
+        This_member_cannot_have_a_JSDoc_comment_with_an_override_tag_because_it_is_not_declared_in_the_base_class_0: DiagnosticMessage;
+        This_member_cannot_have_a_JSDoc_comment_with_an_override_tag_because_it_is_not_declared_in_the_base_class_0_Did_you_mean_1: DiagnosticMessage;
+        Compiler_option_0_of_value_1_is_unstable_Use_nightly_TypeScript_to_silence_this_error_Try_updating_with_npm_install_D_typescript_next: DiagnosticMessage;
         The_current_host_does_not_support_the_0_option: DiagnosticMessage;
         Cannot_find_the_common_subdirectory_path_for_the_input_files: DiagnosticMessage;
         File_specification_cannot_end_in_a_recursive_directory_wildcard_Asterisk_Asterisk_Colon_0: DiagnosticMessage;
@@ -8546,10 +8877,12 @@ declare namespace ts {
         Non_relative_paths_are_not_allowed_when_baseUrl_is_not_set_Did_you_forget_a_leading_Slash: DiagnosticMessage;
         Option_preserveConstEnums_cannot_be_disabled_when_isolatedModules_is_enabled: DiagnosticMessage;
         The_root_value_of_a_0_file_must_be_an_object: DiagnosticMessage;
+        Compiler_option_0_may_only_be_used_with_build: DiagnosticMessage;
+        Compiler_option_0_may_not_be_used_with_build: DiagnosticMessage;
+        Option_preserveValueImports_can_only_be_used_when_module_is_set_to_es2015_or_later: DiagnosticMessage;
         Generates_a_sourcemap_for_each_corresponding_d_ts_file: DiagnosticMessage;
         Concatenate_and_emit_output_to_single_file: DiagnosticMessage;
         Generates_corresponding_d_ts_file: DiagnosticMessage;
-        Specify_the_location_where_debugger_should_locate_map_files_instead_of_generated_locations: DiagnosticMessage;
         Specify_the_location_where_debugger_should_locate_TypeScript_files_instead_of_source_locations: DiagnosticMessage;
         Watch_input_files: DiagnosticMessage;
         Redirect_output_structure_to_the_directory: DiagnosticMessage;
@@ -8561,8 +8894,8 @@ declare namespace ts {
         Skip_type_checking_of_declaration_files: DiagnosticMessage;
         Do_not_resolve_the_real_path_of_symlinks: DiagnosticMessage;
         Only_emit_d_ts_declaration_files: DiagnosticMessage;
-        Specify_ECMAScript_target_version_Colon_ES3_default_ES5_ES2015_ES2016_ES2017_ES2018_ES2019_ES2020_ES2021_or_ESNEXT: DiagnosticMessage;
-        Specify_module_code_generation_Colon_none_commonjs_amd_system_umd_es2015_es2020_or_ESNext: DiagnosticMessage;
+        Specify_ECMAScript_target_version: DiagnosticMessage;
+        Specify_module_code_generation: DiagnosticMessage;
         Print_this_message: DiagnosticMessage;
         Print_the_compiler_s_version: DiagnosticMessage;
         Compile_the_project_given_the_path_to_its_configuration_file_or_to_a_folder_with_a_tsconfig_json: DiagnosticMessage;
@@ -8582,12 +8915,12 @@ declare namespace ts {
         DIRECTORY: DiagnosticMessage;
         STRATEGY: DiagnosticMessage;
         FILE_OR_DIRECTORY: DiagnosticMessage;
+        Errors_Files: DiagnosticMessage;
         Generates_corresponding_map_file: DiagnosticMessage;
         Compiler_option_0_expects_an_argument: DiagnosticMessage;
         Unterminated_quoted_string_in_response_file_0: DiagnosticMessage;
         Argument_for_0_option_must_be_Colon_1: DiagnosticMessage;
         Locale_must_be_of_the_form_language_or_language_territory_For_example_0_or_1: DiagnosticMessage;
-        Unsupported_locale_0: DiagnosticMessage;
         Unable_to_open_file_0: DiagnosticMessage;
         Corrupted_locale_file_0: DiagnosticMessage;
         Raise_error_on_expressions_and_declarations_with_an_implied_any_type: DiagnosticMessage;
@@ -8602,7 +8935,6 @@ declare namespace ts {
         Option_0_can_only_be_specified_in_tsconfig_json_file_or_set_to_null_on_command_line: DiagnosticMessage;
         Enables_experimental_support_for_ES7_decorators: DiagnosticMessage;
         Enables_experimental_support_for_emitting_type_metadata_for_decorators: DiagnosticMessage;
-        Enables_experimental_support_for_ES7_async_functions: DiagnosticMessage;
         Specify_module_resolution_strategy_Colon_node_Node_js_or_classic_TypeScript_pre_1_6: DiagnosticMessage;
         Initializes_a_TypeScript_project_and_creates_a_tsconfig_json_file: DiagnosticMessage;
         Successfully_created_a_tsconfig_json_file: DiagnosticMessage;
@@ -8614,7 +8946,7 @@ declare namespace ts {
         Do_not_report_errors_on_unreachable_code: DiagnosticMessage;
         Disallow_inconsistently_cased_references_to_the_same_file: DiagnosticMessage;
         Specify_library_files_to_be_included_in_the_compilation: DiagnosticMessage;
-        Specify_JSX_code_generation_Colon_preserve_react_native_react_react_jsx_or_react_jsxdev: DiagnosticMessage;
+        Specify_JSX_code_generation: DiagnosticMessage;
         File_0_has_an_unsupported_extension_so_skipping_it: DiagnosticMessage;
         Only_amd_and_system_modules_are_supported_alongside_0: DiagnosticMessage;
         Base_directory_to_resolve_non_absolute_module_names: DiagnosticMessage;
@@ -8637,7 +8969,6 @@ declare namespace ts {
         package_json_does_not_have_a_0_field: DiagnosticMessage;
         package_json_has_0_field_1_that_references_2: DiagnosticMessage;
         Allow_javascript_files_to_be_compiled: DiagnosticMessage;
-        Option_0_should_have_array_of_strings_as_a_value: DiagnosticMessage;
         Checking_if_0_is_the_longest_matching_prefix_for_1_2: DiagnosticMessage;
         Expected_type_of_0_field_in_package_json_to_be_1_got_2: DiagnosticMessage;
         baseUrl_option_is_set_to_0_using_this_value_to_resolve_non_relative_module_name_1: DiagnosticMessage;
@@ -8651,8 +8982,6 @@ declare namespace ts {
         Unknown_option_excludes_Did_you_mean_exclude: DiagnosticMessage;
         Raise_error_on_this_expressions_with_an_implied_any_type: DiagnosticMessage;
         Resolving_type_reference_directive_0_containing_file_1_root_directory_2: DiagnosticMessage;
-        Resolving_using_primary_search_paths: DiagnosticMessage;
-        Resolving_from_node_modules_folder: DiagnosticMessage;
         Type_reference_directive_0_was_successfully_resolved_to_1_primary_Colon_2: DiagnosticMessage;
         Type_reference_directive_0_was_not_resolved: DiagnosticMessage;
         Resolving_with_primary_search_path_0: DiagnosticMessage;
@@ -8696,7 +9025,6 @@ declare namespace ts {
         List_of_folders_to_include_type_definitions_from: DiagnosticMessage;
         Disable_size_limitations_on_JavaScript_projects: DiagnosticMessage;
         The_character_set_of_the_input_files: DiagnosticMessage;
-        Emit_a_UTF_8_Byte_Order_Mark_BOM_in_the_beginning_of_output_files: DiagnosticMessage;
         Do_not_truncate_error_messages: DiagnosticMessage;
         Output_directory_for_generated_declaration_files: DiagnosticMessage;
         A_series_of_entries_which_re_map_imports_to_lookup_locations_relative_to_the_baseUrl: DiagnosticMessage;
@@ -8704,20 +9032,12 @@ declare namespace ts {
         Show_all_compiler_options: DiagnosticMessage;
         Deprecated_Use_outFile_instead_Concatenate_and_emit_output_to_single_file: DiagnosticMessage;
         Command_line_Options: DiagnosticMessage;
-        Basic_Options: DiagnosticMessage;
-        Strict_Type_Checking_Options: DiagnosticMessage;
-        Module_Resolution_Options: DiagnosticMessage;
-        Source_Map_Options: DiagnosticMessage;
-        Additional_Checks: DiagnosticMessage;
-        Experimental_Options: DiagnosticMessage;
-        Advanced_Options: DiagnosticMessage;
         Provide_full_support_for_iterables_in_for_of_spread_and_destructuring_when_targeting_ES5_or_ES3: DiagnosticMessage;
         Enable_all_strict_type_checking_options: DiagnosticMessage;
         List_of_language_service_plugins: DiagnosticMessage;
         Scoped_package_detected_looking_in_0: DiagnosticMessage;
-        Reusing_resolution_of_module_0_to_file_1_from_old_program: DiagnosticMessage;
-        Reusing_module_resolutions_originating_in_0_since_resolutions_are_unchanged_from_old_program: DiagnosticMessage;
-        Disable_strict_checking_of_generic_signatures_in_function_types: DiagnosticMessage;
+        Reusing_resolution_of_module_0_from_1_of_old_program_it_was_successfully_resolved_to_2: DiagnosticMessage;
+        Reusing_resolution_of_module_0_from_1_of_old_program_it_was_successfully_resolved_to_2_with_Package_ID_3: DiagnosticMessage;
         Enable_strict_checking_of_function_types: DiagnosticMessage;
         Enable_strict_checking_of_property_initialization_in_classes: DiagnosticMessage;
         Numeric_separators_are_not_allowed_here: DiagnosticMessage;
@@ -8759,7 +9079,6 @@ declare namespace ts {
         Specify_strategy_for_watching_file_Colon_FixedPollingInterval_default_PriorityPollingInterval_DynamicPriorityPolling_FixedChunkSizePolling_UseFsEvents_UseFsEventsOnParentDirectory: DiagnosticMessage;
         Specify_strategy_for_watching_directory_on_platforms_that_don_t_support_recursive_watching_natively_Colon_UseFsEvents_default_FixedPollingInterval_DynamicPriorityPolling_FixedChunkSizePolling: DiagnosticMessage;
         Specify_strategy_for_creating_a_polling_watch_when_it_fails_to_create_using_file_system_events_Colon_FixedInterval_default_PriorityInterval_DynamicPriority_FixedChunkSize: DiagnosticMessage;
-        Synchronously_call_callbacks_and_update_the_state_of_directory_watchers_on_platforms_that_don_t_support_recursive_watching_natively: DiagnosticMessage;
         Tag_0_expects_at_least_1_arguments_but_the_JSX_factory_2_provides_at_most_3: DiagnosticMessage;
         Option_0_can_only_be_specified_in_tsconfig_json_file_or_set_to_false_or_null_on_command_line: DiagnosticMessage;
         Could_not_resolve_the_path_0_with_the_extensions_Colon_1: DiagnosticMessage;
@@ -8770,7 +9089,36 @@ declare namespace ts {
         Arguments_for_the_rest_parameter_0_were_not_provided: DiagnosticMessage;
         Generates_an_event_trace_and_a_list_of_types: DiagnosticMessage;
         Specify_the_module_specifier_to_be_used_to_import_the_jsx_and_jsxs_factory_functions_from_eg_react: DiagnosticMessage;
-        Projects_to_reference: DiagnosticMessage;
+        File_0_exists_according_to_earlier_cached_lookups: DiagnosticMessage;
+        File_0_does_not_exist_according_to_earlier_cached_lookups: DiagnosticMessage;
+        Resolution_for_type_reference_directive_0_was_found_in_cache_from_location_1: DiagnosticMessage;
+        Resolving_type_reference_directive_0_containing_file_1: DiagnosticMessage;
+        Interpret_optional_property_types_as_written_rather_than_adding_undefined: DiagnosticMessage;
+        Modules: DiagnosticMessage;
+        File_Management: DiagnosticMessage;
+        Emit: DiagnosticMessage;
+        JavaScript_Support: DiagnosticMessage;
+        Type_Checking: DiagnosticMessage;
+        Editor_Support: DiagnosticMessage;
+        Watch_and_Build_Modes: DiagnosticMessage;
+        Compiler_Diagnostics: DiagnosticMessage;
+        Interop_Constraints: DiagnosticMessage;
+        Backwards_Compatibility: DiagnosticMessage;
+        Language_and_Environment: DiagnosticMessage;
+        Projects: DiagnosticMessage;
+        Output_Formatting: DiagnosticMessage;
+        Completeness: DiagnosticMessage;
+        _0_should_be_set_inside_the_compilerOptions_object_of_the_config_json_file: DiagnosticMessage;
+        Found_1_error_in_1: DiagnosticMessage;
+        Found_0_errors_in_the_same_file_starting_at_Colon_1: DiagnosticMessage;
+        Found_0_errors_in_1_files: DiagnosticMessage;
+        Directory_0_has_no_containing_package_json_scope_Imports_will_not_resolve: DiagnosticMessage;
+        Import_specifier_0_does_not_exist_in_package_json_scope_at_path_1: DiagnosticMessage;
+        Invalid_import_specifier_0_has_no_possible_resolutions: DiagnosticMessage;
+        package_json_scope_0_has_no_imports_defined: DiagnosticMessage;
+        package_json_scope_0_explicitly_maps_specifier_1_to_null: DiagnosticMessage;
+        package_json_scope_0_has_invalid_type_for_target_of_specifier_1: DiagnosticMessage;
+        Export_specifier_0_does_not_exist_in_package_json_scope_at_path_1: DiagnosticMessage;
         Enable_project_compilation: DiagnosticMessage;
         Composite_projects_may_not_disable_declaration_emit: DiagnosticMessage;
         Output_file_0_has_not_been_built_from_source_file_1: DiagnosticMessage;
@@ -8789,15 +9137,12 @@ declare namespace ts {
         A_non_dry_build_would_build_project_0: DiagnosticMessage;
         Building_project_0: DiagnosticMessage;
         Updating_output_timestamps_of_project_0: DiagnosticMessage;
-        delete_this_Project_0_is_up_to_date_because_it_was_previously_built: DiagnosticMessage;
         Project_0_is_up_to_date: DiagnosticMessage;
         Skipping_build_of_project_0_because_its_dependency_1_has_errors: DiagnosticMessage;
         Project_0_can_t_be_built_because_its_dependency_1_has_errors: DiagnosticMessage;
         Build_one_or_more_projects_and_their_dependencies_if_out_of_date: DiagnosticMessage;
         Delete_the_outputs_of_all_projects: DiagnosticMessage;
-        Enable_verbose_logging: DiagnosticMessage;
         Show_what_would_be_built_or_deleted_if_specified_with_clean: DiagnosticMessage;
-        Build_all_projects_including_those_that_appear_to_be_up_to_date: DiagnosticMessage;
         Option_build_must_be_the_first_command_line_argument: DiagnosticMessage;
         Options_0_and_1_cannot_be_combined: DiagnosticMessage;
         Updating_unchanged_output_timestamps_of_project_0: DiagnosticMessage;
@@ -8817,14 +9162,171 @@ declare namespace ts {
         _0_is_deprecated: DiagnosticMessage;
         Performance_timings_for_diagnostics_or_extendedDiagnostics_are_not_available_in_this_session_A_native_implementation_of_the_Web_Performance_API_could_not_be_found: DiagnosticMessage;
         The_signature_0_of_1_is_deprecated: DiagnosticMessage;
+        Project_0_is_being_forcibly_rebuilt: DiagnosticMessage;
+        Reusing_resolution_of_module_0_from_1_of_old_program_it_was_not_resolved: DiagnosticMessage;
+        Reusing_resolution_of_type_reference_directive_0_from_1_of_old_program_it_was_successfully_resolved_to_2: DiagnosticMessage;
+        Reusing_resolution_of_type_reference_directive_0_from_1_of_old_program_it_was_successfully_resolved_to_2_with_Package_ID_3: DiagnosticMessage;
+        Reusing_resolution_of_type_reference_directive_0_from_1_of_old_program_it_was_not_resolved: DiagnosticMessage;
+        Reusing_resolution_of_module_0_from_1_found_in_cache_from_location_2_it_was_successfully_resolved_to_3: DiagnosticMessage;
+        Reusing_resolution_of_module_0_from_1_found_in_cache_from_location_2_it_was_successfully_resolved_to_3_with_Package_ID_4: DiagnosticMessage;
+        Reusing_resolution_of_module_0_from_1_found_in_cache_from_location_2_it_was_not_resolved: DiagnosticMessage;
+        Reusing_resolution_of_type_reference_directive_0_from_1_found_in_cache_from_location_2_it_was_successfully_resolved_to_3: DiagnosticMessage;
+        Reusing_resolution_of_type_reference_directive_0_from_1_found_in_cache_from_location_2_it_was_successfully_resolved_to_3_with_Package_ID_4: DiagnosticMessage;
+        Reusing_resolution_of_type_reference_directive_0_from_1_found_in_cache_from_location_2_it_was_not_resolved: DiagnosticMessage;
         The_expected_type_comes_from_property_0_which_is_declared_here_on_type_1: DiagnosticMessage;
         The_expected_type_comes_from_this_index_signature: DiagnosticMessage;
         The_expected_type_comes_from_the_return_type_of_this_signature: DiagnosticMessage;
         Print_names_of_files_that_are_part_of_the_compilation_and_then_stop_processing: DiagnosticMessage;
         File_0_is_a_JavaScript_file_Did_you_mean_to_enable_the_allowJs_option: DiagnosticMessage;
         Print_names_of_files_and_the_reason_they_are_part_of_the_compilation: DiagnosticMessage;
-        Require_undeclared_properties_from_index_signatures_to_use_element_accesses: DiagnosticMessage;
+        Consider_adding_a_declare_modifier_to_this_class: DiagnosticMessage;
+        Allow_JavaScript_files_to_be_a_part_of_your_program_Use_the_checkJS_option_to_get_errors_from_these_files: DiagnosticMessage;
+        Allow_import_x_from_y_when_a_module_doesn_t_have_a_default_export: DiagnosticMessage;
+        Allow_accessing_UMD_globals_from_modules: DiagnosticMessage;
+        Disable_error_reporting_for_unreachable_code: DiagnosticMessage;
+        Disable_error_reporting_for_unused_labels: DiagnosticMessage;
+        Ensure_use_strict_is_always_emitted: DiagnosticMessage;
+        Have_recompiles_in_projects_that_use_incremental_and_watch_mode_assume_that_changes_within_a_file_will_only_affect_files_directly_depending_on_it: DiagnosticMessage;
+        Specify_the_base_directory_to_resolve_non_relative_module_names: DiagnosticMessage;
+        No_longer_supported_In_early_versions_manually_set_the_text_encoding_for_reading_files: DiagnosticMessage;
+        Enable_error_reporting_in_type_checked_JavaScript_files: DiagnosticMessage;
+        Enable_constraints_that_allow_a_TypeScript_project_to_be_used_with_project_references: DiagnosticMessage;
+        Generate_d_ts_files_from_TypeScript_and_JavaScript_files_in_your_project: DiagnosticMessage;
+        Specify_the_output_directory_for_generated_declaration_files: DiagnosticMessage;
+        Create_sourcemaps_for_d_ts_files: DiagnosticMessage;
+        Output_compiler_performance_information_after_building: DiagnosticMessage;
+        Disables_inference_for_type_acquisition_by_looking_at_filenames_in_a_project: DiagnosticMessage;
+        Reduce_the_number_of_projects_loaded_automatically_by_TypeScript: DiagnosticMessage;
+        Remove_the_20mb_cap_on_total_source_code_size_for_JavaScript_files_in_the_TypeScript_language_server: DiagnosticMessage;
+        Opt_a_project_out_of_multi_project_reference_checking_when_editing: DiagnosticMessage;
+        Disable_preferring_source_files_instead_of_declaration_files_when_referencing_composite_projects: DiagnosticMessage;
+        Emit_more_compliant_but_verbose_and_less_performant_JavaScript_for_iteration: DiagnosticMessage;
+        Emit_a_UTF_8_Byte_Order_Mark_BOM_in_the_beginning_of_output_files: DiagnosticMessage;
+        Only_output_d_ts_files_and_not_JavaScript_files: DiagnosticMessage;
+        Emit_design_type_metadata_for_decorated_declarations_in_source_files: DiagnosticMessage;
+        Disable_the_type_acquisition_for_JavaScript_projects: DiagnosticMessage;
+        Emit_additional_JavaScript_to_ease_support_for_importing_CommonJS_modules_This_enables_allowSyntheticDefaultImports_for_type_compatibility: DiagnosticMessage;
+        Filters_results_from_the_include_option: DiagnosticMessage;
+        Remove_a_list_of_directories_from_the_watch_process: DiagnosticMessage;
+        Remove_a_list_of_files_from_the_watch_mode_s_processing: DiagnosticMessage;
+        Enable_experimental_support_for_TC39_stage_2_draft_decorators: DiagnosticMessage;
+        Print_files_read_during_the_compilation_including_why_it_was_included: DiagnosticMessage;
+        Output_more_detailed_compiler_performance_information_after_building: DiagnosticMessage;
+        Specify_one_or_more_path_or_node_module_references_to_base_configuration_files_from_which_settings_are_inherited: DiagnosticMessage;
+        Specify_what_approach_the_watcher_should_use_if_the_system_runs_out_of_native_file_watchers: DiagnosticMessage;
+        Include_a_list_of_files_This_does_not_support_glob_patterns_as_opposed_to_include: DiagnosticMessage;
+        Build_all_projects_including_those_that_appear_to_be_up_to_date: DiagnosticMessage;
+        Ensure_that_casing_is_correct_in_imports: DiagnosticMessage;
+        Emit_a_v8_CPU_profile_of_the_compiler_run_for_debugging: DiagnosticMessage;
+        Allow_importing_helper_functions_from_tslib_once_per_project_instead_of_including_them_per_file: DiagnosticMessage;
+        Specify_a_list_of_glob_patterns_that_match_files_to_be_included_in_compilation: DiagnosticMessage;
+        Save_tsbuildinfo_files_to_allow_for_incremental_compilation_of_projects: DiagnosticMessage;
+        Include_sourcemap_files_inside_the_emitted_JavaScript: DiagnosticMessage;
+        Include_source_code_in_the_sourcemaps_inside_the_emitted_JavaScript: DiagnosticMessage;
+        Ensure_that_each_file_can_be_safely_transpiled_without_relying_on_other_imports: DiagnosticMessage;
+        Specify_what_JSX_code_is_generated: DiagnosticMessage;
+        Specify_the_JSX_factory_function_used_when_targeting_React_JSX_emit_e_g_React_createElement_or_h: DiagnosticMessage;
+        Specify_the_JSX_Fragment_reference_used_for_fragments_when_targeting_React_JSX_emit_e_g_React_Fragment_or_Fragment: DiagnosticMessage;
+        Specify_module_specifier_used_to_import_the_JSX_factory_functions_when_using_jsx_Colon_react_jsx_Asterisk: DiagnosticMessage;
+        Make_keyof_only_return_strings_instead_of_string_numbers_or_symbols_Legacy_option: DiagnosticMessage;
+        Specify_a_set_of_bundled_library_declaration_files_that_describe_the_target_runtime_environment: DiagnosticMessage;
+        Print_the_names_of_emitted_files_after_a_compilation: DiagnosticMessage;
+        Print_all_of_the_files_read_during_the_compilation: DiagnosticMessage;
+        Set_the_language_of_the_messaging_from_TypeScript_This_does_not_affect_emit: DiagnosticMessage;
+        Specify_the_location_where_debugger_should_locate_map_files_instead_of_generated_locations: DiagnosticMessage;
+        Specify_the_maximum_folder_depth_used_for_checking_JavaScript_files_from_node_modules_Only_applicable_with_allowJs: DiagnosticMessage;
+        Specify_what_module_code_is_generated: DiagnosticMessage;
+        Specify_how_TypeScript_looks_up_a_file_from_a_given_module_specifier: DiagnosticMessage;
+        Set_the_newline_character_for_emitting_files: DiagnosticMessage;
+        Disable_emitting_files_from_a_compilation: DiagnosticMessage;
+        Disable_generating_custom_helper_functions_like_extends_in_compiled_output: DiagnosticMessage;
+        Disable_emitting_files_if_any_type_checking_errors_are_reported: DiagnosticMessage;
+        Disable_truncating_types_in_error_messages: DiagnosticMessage;
+        Enable_error_reporting_for_fallthrough_cases_in_switch_statements: DiagnosticMessage;
+        Enable_error_reporting_for_expressions_and_declarations_with_an_implied_any_type: DiagnosticMessage;
+        Ensure_overriding_members_in_derived_classes_are_marked_with_an_override_modifier: DiagnosticMessage;
+        Enable_error_reporting_for_codepaths_that_do_not_explicitly_return_in_a_function: DiagnosticMessage;
+        Enable_error_reporting_when_this_is_given_the_type_any: DiagnosticMessage;
+        Disable_adding_use_strict_directives_in_emitted_JavaScript_files: DiagnosticMessage;
+        Disable_including_any_library_files_including_the_default_lib_d_ts: DiagnosticMessage;
+        Enforces_using_indexed_accessors_for_keys_declared_using_an_indexed_type: DiagnosticMessage;
+        Disallow_import_s_require_s_or_reference_s_from_expanding_the_number_of_files_TypeScript_should_add_to_a_project: DiagnosticMessage;
+        Disable_strict_checking_of_generic_signatures_in_function_types: DiagnosticMessage;
+        Add_undefined_to_a_type_when_accessed_using_an_index: DiagnosticMessage;
+        Enable_error_reporting_when_a_local_variables_aren_t_read: DiagnosticMessage;
+        Raise_an_error_when_a_function_parameter_isn_t_read: DiagnosticMessage;
+        Deprecated_setting_Use_outFile_instead: DiagnosticMessage;
+        Specify_an_output_folder_for_all_emitted_files: DiagnosticMessage;
+        Specify_a_file_that_bundles_all_outputs_into_one_JavaScript_file_If_declaration_is_true_also_designates_a_file_that_bundles_all_d_ts_output: DiagnosticMessage;
+        Specify_a_set_of_entries_that_re_map_imports_to_additional_lookup_locations: DiagnosticMessage;
+        Specify_a_list_of_language_service_plugins_to_include: DiagnosticMessage;
+        Disable_erasing_const_enum_declarations_in_generated_code: DiagnosticMessage;
+        Disable_resolving_symlinks_to_their_realpath_This_correlates_to_the_same_flag_in_node: DiagnosticMessage;
+        Disable_wiping_the_console_in_watch_mode: DiagnosticMessage;
+        Enable_color_and_formatting_in_TypeScript_s_output_to_make_compiler_errors_easier_to_read: DiagnosticMessage;
+        Specify_the_object_invoked_for_createElement_This_only_applies_when_targeting_react_JSX_emit: DiagnosticMessage;
+        Specify_an_array_of_objects_that_specify_paths_for_projects_Used_in_project_references: DiagnosticMessage;
+        Disable_emitting_comments: DiagnosticMessage;
+        Enable_importing_json_files: DiagnosticMessage;
+        Specify_the_root_folder_within_your_source_files: DiagnosticMessage;
+        Allow_multiple_folders_to_be_treated_as_one_when_resolving_modules: DiagnosticMessage;
+        Skip_type_checking_d_ts_files_that_are_included_with_TypeScript: DiagnosticMessage;
+        Skip_type_checking_all_d_ts_files: DiagnosticMessage;
+        Create_source_map_files_for_emitted_JavaScript_files: DiagnosticMessage;
+        Specify_the_root_path_for_debuggers_to_find_the_reference_source_code: DiagnosticMessage;
+        Check_that_the_arguments_for_bind_call_and_apply_methods_match_the_original_function: DiagnosticMessage;
+        When_assigning_functions_check_to_ensure_parameters_and_the_return_values_are_subtype_compatible: DiagnosticMessage;
+        When_type_checking_take_into_account_null_and_undefined: DiagnosticMessage;
+        Check_for_class_properties_that_are_declared_but_not_set_in_the_constructor: DiagnosticMessage;
+        Disable_emitting_declarations_that_have_internal_in_their_JSDoc_comments: DiagnosticMessage;
+        Disable_reporting_of_excess_property_errors_during_the_creation_of_object_literals: DiagnosticMessage;
+        Suppress_noImplicitAny_errors_when_indexing_objects_that_lack_index_signatures: DiagnosticMessage;
+        Synchronously_call_callbacks_and_update_the_state_of_directory_watchers_on_platforms_that_don_t_support_recursive_watching_natively: DiagnosticMessage;
+        Set_the_JavaScript_language_version_for_emitted_JavaScript_and_include_compatible_library_declarations: DiagnosticMessage;
+        Log_paths_used_during_the_moduleResolution_process: DiagnosticMessage;
+        Specify_the_folder_for_tsbuildinfo_incremental_compilation_files: DiagnosticMessage;
+        Specify_options_for_automatic_acquisition_of_declaration_files: DiagnosticMessage;
+        Specify_multiple_folders_that_act_like_Slashnode_modules_Slash_types: DiagnosticMessage;
+        Specify_type_package_names_to_be_included_without_being_referenced_in_a_source_file: DiagnosticMessage;
+        Emit_ECMAScript_standard_compliant_class_fields: DiagnosticMessage;
+        Enable_verbose_logging: DiagnosticMessage;
+        Specify_how_directories_are_watched_on_systems_that_lack_recursive_file_watching_functionality: DiagnosticMessage;
+        Specify_how_the_TypeScript_watch_mode_works: DiagnosticMessage;
         Include_undefined_in_index_signature_results: DiagnosticMessage;
+        Require_undeclared_properties_from_index_signatures_to_use_element_accesses: DiagnosticMessage;
+        Specify_emit_Slashchecking_behavior_for_imports_that_are_only_used_for_types: DiagnosticMessage;
+        Type_catch_clause_variables_as_unknown_instead_of_any: DiagnosticMessage;
+        one_of_Colon: DiagnosticMessage;
+        one_or_more_Colon: DiagnosticMessage;
+        type_Colon: DiagnosticMessage;
+        default_Colon: DiagnosticMessage;
+        module_system_or_esModuleInterop: DiagnosticMessage;
+        false_unless_strict_is_set: DiagnosticMessage;
+        false_unless_composite_is_set: DiagnosticMessage;
+        node_modules_bower_components_jspm_packages_plus_the_value_of_outDir_if_one_is_specified: DiagnosticMessage;
+        if_files_is_specified_otherwise_Asterisk_Asterisk_Slash_Asterisk: DiagnosticMessage;
+        true_if_composite_false_otherwise: DiagnosticMessage;
+        module_AMD_or_UMD_or_System_or_ES6_then_Classic_Otherwise_Node: DiagnosticMessage;
+        Computed_from_the_list_of_input_files: DiagnosticMessage;
+        Platform_specific: DiagnosticMessage;
+        You_can_learn_about_all_of_the_compiler_options_at_0: DiagnosticMessage;
+        Including_watch_w_will_start_watching_the_current_project_for_the_file_changes_Once_set_you_can_config_watch_mode_with_Colon: DiagnosticMessage;
+        Using_build_b_will_make_tsc_behave_more_like_a_build_orchestrator_than_a_compiler_This_is_used_to_trigger_building_composite_projects_which_you_can_learn_more_about_at_0: DiagnosticMessage;
+        COMMON_COMMANDS: DiagnosticMessage;
+        ALL_COMPILER_OPTIONS: DiagnosticMessage;
+        WATCH_OPTIONS: DiagnosticMessage;
+        BUILD_OPTIONS: DiagnosticMessage;
+        COMMON_COMPILER_OPTIONS: DiagnosticMessage;
+        COMMAND_LINE_FLAGS: DiagnosticMessage;
+        tsc_Colon_The_TypeScript_Compiler: DiagnosticMessage;
+        Compiles_the_current_project_tsconfig_json_in_the_working_directory: DiagnosticMessage;
+        Ignoring_tsconfig_json_compiles_the_specified_files_with_default_compiler_options: DiagnosticMessage;
+        Build_a_composite_project_in_the_working_directory: DiagnosticMessage;
+        Creates_a_tsconfig_json_with_the_recommended_settings_in_the_working_directory: DiagnosticMessage;
+        Compiles_the_TypeScript_project_located_at_the_specified_path: DiagnosticMessage;
+        An_expanded_version_of_this_information_showing_all_possible_compiler_options: DiagnosticMessage;
+        Compiles_the_current_project_with_additional_settings: DiagnosticMessage;
+        true_for_ES2022_and_above_including_ESNext: DiagnosticMessage;
         Variable_0_implicitly_has_an_1_type: DiagnosticMessage;
         Parameter_0_implicitly_has_an_1_type: DiagnosticMessage;
         Member_0_implicitly_has_an_1_type: DiagnosticMessage;
@@ -8875,6 +9377,11 @@ declare namespace ts {
         _0_which_lacks_return_type_annotation_implicitly_has_an_1_yield_type: DiagnosticMessage;
         The_inferred_type_of_this_node_exceeds_the_maximum_length_the_compiler_will_serialize_An_explicit_type_annotation_is_needed: DiagnosticMessage;
         yield_expression_implicitly_results_in_an_any_type_because_its_containing_generator_lacks_a_return_type_annotation: DiagnosticMessage;
+        If_the_0_package_actually_exposes_this_module_try_adding_a_new_declaration_d_ts_file_containing_declare_module_1: DiagnosticMessage;
+        This_syntax_is_reserved_in_files_with_the_mts_or_cts_extension_Use_an_as_expression_instead: DiagnosticMessage;
+        This_syntax_is_reserved_in_files_with_the_mts_or_cts_extension_Add_a_trailing_comma_or_explicit_constraint: DiagnosticMessage;
+        A_mapped_type_may_not_declare_properties_or_methods: DiagnosticMessage;
+        JSON_imports_are_experimental_in_ES_module_mode_imports: DiagnosticMessage;
         You_cannot_rename_this_element: DiagnosticMessage;
         You_cannot_rename_elements_that_are_defined_in_the_standard_TypeScript_library: DiagnosticMessage;
         import_can_only_be_used_in_TypeScript_files: DiagnosticMessage;
@@ -8907,15 +9414,11 @@ declare namespace ts {
         Qualified_name_0_is_not_allowed_without_a_leading_param_object_1: DiagnosticMessage;
         A_JSDoc_typedef_comment_may_not_contain_multiple_type_tags: DiagnosticMessage;
         The_tag_was_first_specified_here: DiagnosticMessage;
-        Only_identifiers_Slashqualified_names_with_optional_type_arguments_are_currently_supported_in_a_class_extends_clause: DiagnosticMessage;
-        class_expressions_are_not_currently_supported: DiagnosticMessage;
-        Language_service_is_disabled: DiagnosticMessage;
         Declaration_emit_for_this_file_requires_using_private_name_0_An_explicit_type_annotation_may_unblock_declaration_emit: DiagnosticMessage;
         Declaration_emit_for_this_file_requires_using_private_name_0_from_module_1_An_explicit_type_annotation_may_unblock_declaration_emit: DiagnosticMessage;
         JSX_attributes_must_only_be_assigned_a_non_empty_expression: DiagnosticMessage;
         JSX_elements_cannot_have_multiple_attributes_with_the_same_name: DiagnosticMessage;
         Expected_corresponding_JSX_closing_tag_for_0: DiagnosticMessage;
-        JSX_attribute_expected: DiagnosticMessage;
         Cannot_use_JSX_unless_the_jsx_flag_is_provided: DiagnosticMessage;
         A_constructor_cannot_contain_a_super_call_when_its_class_extends_null: DiagnosticMessage;
         An_unary_expression_with_the_0_operator_is_not_allowed_in_the_left_hand_side_of_an_exponentiation_expression_Consider_enclosing_the_expression_in_parentheses: DiagnosticMessage;
@@ -8932,10 +9435,9 @@ declare namespace ts {
         An_jsxFrag_pragma_is_required_when_using_an_jsx_pragma_with_JSX_fragments: DiagnosticMessage;
         Unknown_type_acquisition_option_0_Did_you_mean_1: DiagnosticMessage;
         Circularity_detected_while_resolving_configuration_Colon_0: DiagnosticMessage;
-        A_path_in_an_extends_option_must_be_relative_or_rooted_but_0_is_not: DiagnosticMessage;
         The_files_list_in_config_file_0_is_empty: DiagnosticMessage;
         No_inputs_were_found_in_config_file_0_Specified_include_paths_were_1_and_exclude_paths_were_2: DiagnosticMessage;
-        File_is_a_CommonJS_module_it_may_be_converted_to_an_ES6_module: DiagnosticMessage;
+        File_is_a_CommonJS_module_it_may_be_converted_to_an_ES_module: DiagnosticMessage;
         This_constructor_function_may_be_converted_to_a_class_declaration: DiagnosticMessage;
         Import_may_be_converted_to_a_default_import: DiagnosticMessage;
         JSDoc_types_may_be_moved_to_TypeScript_types: DiagnosticMessage;
@@ -8954,9 +9456,8 @@ declare namespace ts {
         Remove_variable_statement: DiagnosticMessage;
         Remove_template_tag: DiagnosticMessage;
         Remove_type_parameters: DiagnosticMessage;
-        Import_0_from_module_1: DiagnosticMessage;
+        Import_0_from_1: DiagnosticMessage;
         Change_0_to_1: DiagnosticMessage;
-        Add_0_to_existing_import_declaration_from_1: DiagnosticMessage;
         Declare_property_0: DiagnosticMessage;
         Add_index_signature_for_property_0: DiagnosticMessage;
         Disable_checking_for_this_file: DiagnosticMessage;
@@ -8973,8 +9474,6 @@ declare namespace ts {
         Add_async_modifier_to_containing_function: DiagnosticMessage;
         Replace_infer_0_with_unknown: DiagnosticMessage;
         Replace_all_unused_infer_with_unknown: DiagnosticMessage;
-        Import_default_0_from_module_1: DiagnosticMessage;
-        Add_default_import_0_to_existing_import_declaration_from_1: DiagnosticMessage;
         Add_parameter_name: DiagnosticMessage;
         Declare_private_property_0: DiagnosticMessage;
         Replace_0_with_Promise_1: DiagnosticMessage;
@@ -8983,8 +9482,12 @@ declare namespace ts {
         Remove_unused_destructuring_declaration: DiagnosticMessage;
         Remove_unused_declarations_for_Colon_0: DiagnosticMessage;
         Declare_a_private_field_named_0: DiagnosticMessage;
+        Includes_imports_of_types_referenced_by_0: DiagnosticMessage;
+        Remove_type_from_import_declaration_from_0: DiagnosticMessage;
+        Remove_type_from_import_of_0_from_1: DiagnosticMessage;
+        Add_import_from_0: DiagnosticMessage;
+        Update_import_from_0: DiagnosticMessage;
         Convert_function_to_an_ES2015_class: DiagnosticMessage;
-        Convert_function_0_to_class: DiagnosticMessage;
         Convert_0_to_1_in_0: DiagnosticMessage;
         Extract_to_0_in_1: DiagnosticMessage;
         Extract_function: DiagnosticMessage;
@@ -8992,14 +9495,13 @@ declare namespace ts {
         Extract_to_0_in_enclosing_scope: DiagnosticMessage;
         Extract_to_0_in_1_scope: DiagnosticMessage;
         Annotate_with_type_from_JSDoc: DiagnosticMessage;
-        Annotate_with_types_from_JSDoc: DiagnosticMessage;
         Infer_type_of_0_from_usage: DiagnosticMessage;
         Infer_parameter_types_from_usage: DiagnosticMessage;
         Convert_to_default_import: DiagnosticMessage;
         Install_0: DiagnosticMessage;
         Replace_import_with_0: DiagnosticMessage;
         Use_synthetic_default_member: DiagnosticMessage;
-        Convert_to_ES6_module: DiagnosticMessage;
+        Convert_to_ES_module: DiagnosticMessage;
         Add_undefined_type_to_property_0: DiagnosticMessage;
         Add_initializer_to_property_0: DiagnosticMessage;
         Add_definite_assignment_assertion_to_property_0: DiagnosticMessage;
@@ -9058,7 +9560,6 @@ declare namespace ts {
         Add_names_to_all_parameters_without_names: DiagnosticMessage;
         Enable_the_experimentalDecorators_option_in_your_configuration_file: DiagnosticMessage;
         Convert_parameters_to_destructured_object: DiagnosticMessage;
-        Allow_accessing_UMD_globals_from_modules: DiagnosticMessage;
         Extract_type: DiagnosticMessage;
         Extract_to_type_alias: DiagnosticMessage;
         Extract_to_typedef: DiagnosticMessage;
@@ -9084,15 +9585,12 @@ declare namespace ts {
         Set_the_module_option_in_your_configuration_file_to_0: DiagnosticMessage;
         Convert_invalid_character_to_its_html_entity_code: DiagnosticMessage;
         Convert_all_invalid_characters_to_HTML_entity_code: DiagnosticMessage;
-        Add_class_tag: DiagnosticMessage;
-        Add_this_tag: DiagnosticMessage;
-        Add_this_parameter: DiagnosticMessage;
         Convert_function_expression_0_to_arrow_function: DiagnosticMessage;
         Convert_function_declaration_0_to_arrow_function: DiagnosticMessage;
         Fix_all_implicit_this_errors: DiagnosticMessage;
         Wrap_invalid_character_in_an_expression_container: DiagnosticMessage;
         Wrap_all_invalid_characters_in_an_expression_container: DiagnosticMessage;
-        Visit_https_Colon_Slash_Slashaka_ms_Slashtsconfig_json_to_read_more_about_this_file: DiagnosticMessage;
+        Visit_https_Colon_Slash_Slashaka_ms_Slashtsconfig_to_read_more_about_this_file: DiagnosticMessage;
         Add_a_return_statement: DiagnosticMessage;
         Remove_braces_from_arrow_function_body: DiagnosticMessage;
         Wrap_the_following_body_with_parentheses_which_should_be_an_object_literal: DiagnosticMessage;
@@ -9142,6 +9640,20 @@ declare namespace ts {
         Add_all_missing_function_declarations: DiagnosticMessage;
         Method_not_implemented: DiagnosticMessage;
         Function_not_implemented: DiagnosticMessage;
+        Add_override_modifier: DiagnosticMessage;
+        Remove_override_modifier: DiagnosticMessage;
+        Add_all_missing_override_modifiers: DiagnosticMessage;
+        Remove_all_unnecessary_override_modifiers: DiagnosticMessage;
+        Can_only_convert_named_export: DiagnosticMessage;
+        Add_missing_properties: DiagnosticMessage;
+        Add_all_missing_properties: DiagnosticMessage;
+        Add_missing_attributes: DiagnosticMessage;
+        Add_all_missing_attributes: DiagnosticMessage;
+        Add_undefined_to_optional_property_type: DiagnosticMessage;
+        Convert_named_imports_to_default_import: DiagnosticMessage;
+        Delete_unused_param_tag_0: DiagnosticMessage;
+        Delete_all_unused_param_tags: DiagnosticMessage;
+        Rename_param_tag_name_0_to_1: DiagnosticMessage;
         No_value_exists_in_scope_for_the_shorthand_property_0_Either_declare_one_or_provide_an_initializer: DiagnosticMessage;
         Classes_may_not_have_a_field_named_constructor: DiagnosticMessage;
         JSX_expressions_may_not_use_the_comma_operator_Did_you_mean_to_write_an_array: DiagnosticMessage;
@@ -9168,6 +9680,10 @@ declare namespace ts {
         Specify_the_JSX_fragment_factory_function_to_use_when_targeting_react_JSX_emit_with_jsxFactory_compiler_option_is_specified_e_g_Fragment: DiagnosticMessage;
         Invalid_value_for_jsxFragmentFactory_0_is_not_a_valid_identifier_or_qualified_name: DiagnosticMessage;
         Class_decorators_can_t_be_used_with_static_private_identifier_Consider_removing_the_experimental_decorator: DiagnosticMessage;
+        Await_expression_cannot_be_used_inside_a_class_static_block: DiagnosticMessage;
+        For_await_loops_cannot_be_used_inside_a_class_static_block: DiagnosticMessage;
+        Invalid_use_of_0_It_cannot_be_used_inside_a_class_static_block: DiagnosticMessage;
+        A_return_statement_cannot_be_used_inside_a_class_static_block: DiagnosticMessage;
     };
 }
 declare namespace ts {
@@ -9201,6 +9717,7 @@ declare namespace ts {
         reScanJsxAttributeValue(): SyntaxKind;
         reScanJsxToken(allowMultilineJsxText?: boolean): JsxTokenSyntaxKind;
         reScanLessThanToken(): SyntaxKind;
+        reScanHashToken(): SyntaxKind;
         reScanQuestionToken(): SyntaxKind;
         reScanInvalidIdentifier(): SyntaxKind;
         scanJsxToken(): JsxTokenSyntaxKind;
@@ -9218,6 +9735,8 @@ declare namespace ts {
         scanRange<T>(start: number, length: number, callback: () => T): T;
         tryScan<T>(callback: () => T): T;
     }
+    /** @internal */
+    const textToKeywordObj: MapLike<KeywordSyntaxKind>;
     function isUnicodeIdentifierStart(code: number, languageVersion: ScriptTarget | undefined): boolean;
     function tokenToString(t: SyntaxKind): string | undefined;
     function stringToToken(s: string): SyntaxKind | undefined;
@@ -9241,7 +9760,7 @@ declare namespace ts {
     function isLineBreak(ch: number): boolean;
     function isOctalDigit(ch: number): boolean;
     function couldStartTrivia(text: string, pos: number): boolean;
-    function skipTrivia(text: string, pos: number, stopAfterLineBreak?: boolean, stopAtComments?: boolean): number;
+    function skipTrivia(text: string, pos: number, stopAfterLineBreak?: boolean, stopAtComments?: boolean, inJSDoc?: boolean): number;
     function isShebangTrivia(text: string, pos: number): boolean;
     function scanShebangTrivia(text: string, pos: number): number;
     function forEachLeadingCommentRange<U>(text: string, pos: number, cb: (pos: number, end: number, kind: CommentKind, hasTrailingNewLine: boolean) => U): U | undefined;
@@ -9420,6 +9939,7 @@ declare namespace ts {
     /** Gets the JSDoc protected tag for the node if present */
     function getJSDocReadonlyTag(node: Node): JSDocReadonlyTag | undefined;
     function getJSDocReadonlyTagNoCache(node: Node): JSDocReadonlyTag | undefined;
+    function getJSDocOverrideTagNoCache(node: Node): JSDocOverrideTag | undefined;
     /** Gets the JSDoc deprecated tag for the node if present */
     function getJSDocDeprecatedTag(node: Node): JSDocDeprecatedTag | undefined;
     function getJSDocDeprecatedTagNoCache(node: Node): JSDocDeprecatedTag | undefined;
@@ -9460,7 +9980,7 @@ declare namespace ts {
     /** Gets all JSDoc tags of a specified kind */
     function getAllJSDocTagsOfKind(node: Node, kind: SyntaxKind): readonly JSDocTag[];
     /** Gets the text of a jsdoc comment, flattening links to their text. */
-    function getTextOfJSDocComment(comment?: string | NodeArray<JSDocText | JSDocLink>): string | undefined;
+    function getTextOfJSDocComment(comment?: string | NodeArray<JSDocComment>): string | undefined;
     /**
      * Gets the effective type parameters. If the node was parsed in a
      * JavaScript file, gets the type parameters from the `@template` tag from JSDoc.
@@ -9523,7 +10043,8 @@ declare namespace ts {
     function isTemplateLiteralToken(node: Node): node is TemplateLiteralToken;
     function isTemplateMiddleOrTemplateTail(node: Node): node is TemplateMiddle | TemplateTail;
     function isImportOrExportSpecifier(node: Node): node is ImportSpecifier | ExportSpecifier;
-    function isTypeOnlyImportOrExportDeclaration(node: Node): node is TypeOnlyCompatibleAliasDeclaration;
+    function isTypeOnlyImportOrExportDeclaration(node: Node): node is TypeOnlyAliasDeclaration;
+    function isAssertionKey(node: Node): node is AssertionKey;
     function isStringTextContainingNode(node: Node): node is StringLiteral | TemplateLiteralToken;
     function isGeneratedIdentifier(node: Node): node is GeneratedIdentifier;
     function isPrivateIdentifierClassElementDeclaration(node: Node): node is PrivateClassElementDeclaration;
@@ -9536,7 +10057,9 @@ declare namespace ts {
     function isPropertyName(node: Node): node is PropertyName;
     function isBindingName(node: Node): node is BindingName;
     function isFunctionLike(node: Node | undefined): node is SignatureDeclaration;
+    function isFunctionLikeOrClassStaticBlockDeclaration(node: Node | undefined): node is SignatureDeclaration | ClassStaticBlockDeclaration;
     function isFunctionLikeDeclaration(node: Node): node is FunctionLikeDeclaration;
+    function isBooleanLiteral(node: Node): node is BooleanLiteral;
     function isFunctionLikeKind(kind: SyntaxKind): boolean;
     function isFunctionOrModuleBlock(node: Node): boolean;
     function isClassElement(node: Node): node is ClassElement;
@@ -9568,6 +10091,7 @@ declare namespace ts {
      * Determines whether a node is an ObjectBindingOrAssignmentPattern
      */
     function isObjectBindingOrAssignmentPattern(node: BindingOrAssignmentElementTarget): node is ObjectBindingOrAssignmentPattern;
+    function isObjectBindingOrAssignmentElement(node: Node): node is ObjectBindingOrAssignmentElement;
     /**
      * Determines whether a node is an ArrayBindingOrAssignmentPattern
      */
@@ -9639,6 +10163,7 @@ declare namespace ts {
     function isTypeReferenceType(node: Node): node is TypeReferenceType;
     function guessIndentation(lines: string[]): number | undefined;
     function isStringLiteralLike(node: Node): node is StringLiteralLike;
+    function isJSDocLinkLike(node: Node): node is JSDocLink | JSDocLinkCode | JSDocLinkPlain;
 }
 declare namespace ts {
     export const resolvingEmptyArray: never[];
@@ -9646,19 +10171,13 @@ declare namespace ts {
     export const defaultMaximumTruncationLength = 160;
     export const noTruncationMaximumTruncationLength = 1000000;
     export function getDeclarationOfKind<T extends Declaration>(symbol: Symbol, kind: T["kind"]): T | undefined;
-    /**
-     * Create a new escaped identifier map.
-     * @deprecated Use `new Map<__String, T>()` instead.
-     */
-    export function createUnderscoreEscapedMap<T>(): UnderscoreEscapedMap<T>;
-    /**
-     * @deprecated Use `!!map?.size` instead
-     */
-    export function hasEntries(map: ReadonlyCollection<any> | undefined): map is ReadonlyCollection<any>;
+    export function getDeclarationsOfKind<T extends Declaration>(symbol: Symbol, kind: T["kind"]): T[];
     export function createSymbolTable(symbols?: readonly Symbol[]): SymbolTable;
     export function isTransientSymbol(symbol: Symbol): symbol is TransientSymbol;
     export function changesAffectModuleResolution(oldOptions: CompilerOptions, newOptions: CompilerOptions): boolean;
     export function optionsHaveModuleResolutionChanges(oldOptions: CompilerOptions, newOptions: CompilerOptions): boolean;
+    export function changesAffectingProgramStructure(oldOptions: CompilerOptions, newOptions: CompilerOptions): boolean;
+    export function optionsHaveChanges(oldOptions: CompilerOptions, newOptions: CompilerOptions, optionDeclarations: readonly CommandLineOption[]): boolean;
     export function forEachAncestor<T>(node: Node, callback: (n: Node) => T | undefined | "quit"): T | undefined;
     /**
      * Calls `callback` for each entry in the map, returning the first truthy result.
@@ -9671,17 +10190,20 @@ declare namespace ts {
     export function copyEntries<K, V>(source: ReadonlyESMap<K, V>, target: ESMap<K, V>): void;
     export function usingSingleLineStringWriter(action: (writer: EmitTextWriter) => void): string;
     export function getFullWidth(node: Node): number;
-    export function getResolvedModule(sourceFile: SourceFile | undefined, moduleNameText: string): ResolvedModuleFull | undefined;
-    export function setResolvedModule(sourceFile: SourceFile, moduleNameText: string, resolvedModule: ResolvedModuleFull): void;
+    export function getResolvedModule(sourceFile: SourceFile | undefined, moduleNameText: string, mode: ModuleKind.CommonJS | ModuleKind.ESNext | undefined): ResolvedModuleFull | undefined;
+    export function setResolvedModule(sourceFile: SourceFile, moduleNameText: string, resolvedModule: ResolvedModuleFull, mode: ModuleKind.CommonJS | ModuleKind.ESNext | undefined): void;
     export function setResolvedTypeReferenceDirective(sourceFile: SourceFile, typeReferenceDirectiveName: string, resolvedTypeReferenceDirective?: ResolvedTypeReferenceDirective): void;
     export function projectReferenceIsEqualTo(oldRef: ProjectReference, newRef: ProjectReference): boolean;
     export function moduleResolutionIsEqualTo(oldResolution: ResolvedModuleFull, newResolution: ResolvedModuleFull): boolean;
-    export function packageIdToString({ name, subModuleName, version }: PackageId): string;
+    export function packageIdToPackageName({ name, subModuleName }: PackageId): string;
+    export function packageIdToString(packageId: PackageId): string;
     export function typeDirectiveIsEqualTo(oldResolution: ResolvedTypeReferenceDirective, newResolution: ResolvedTypeReferenceDirective): boolean;
-    export function hasChangesInResolutions<T>(names: readonly string[], newResolutions: readonly T[], oldResolutions: ReadonlyESMap<string, T> | undefined, comparer: (oldResolution: T, newResolution: T) => boolean): boolean;
+    export function hasChangesInResolutions<T>(names: readonly string[] | readonly FileReference[], newResolutions: readonly T[], oldResolutions: ModeAwareCache<T> | undefined, oldSourceFile: SourceFile | undefined, comparer: (oldResolution: T, newResolution: T) => boolean): boolean;
     export function containsParseError(node: Node): boolean;
     export function getSourceFileOfNode(node: Node): SourceFile;
     export function getSourceFileOfNode(node: Node | undefined): SourceFile | undefined;
+    export function getSourceFileOfModule(module: Symbol): SourceFile | undefined;
+    export function isPlainJsFile(file: SourceFile | undefined, checkJs: boolean | undefined): boolean;
     export function isStatementWithLocals(node: Node): boolean;
     export function getStartPositionOfLine(line: number, sourceFile: SourceFileLike): number;
     export function nodePosToString(node: Node): string;
@@ -9768,7 +10290,7 @@ declare namespace ts {
      * Returns whether the source file will be treated as if it were in strict mode at runtime.
      */
     export function isEffectiveStrictModeSourceFile(node: SourceFile, compilerOptions: CompilerOptions): boolean;
-    export function isBlockScope(node: Node, parentNode: Node): boolean;
+    export function isBlockScope(node: Node, parentNode: Node | undefined): boolean;
     export function isDeclarationWithTypeParameters(node: Node): node is DeclarationWithTypeParameters;
     export function isDeclarationWithTypeParameterChildren(node: Node): node is DeclarationWithTypeParameterChildren;
     export function isAnyImportSyntax(node: Node): node is AnyImportSyntax;
@@ -9776,17 +10298,19 @@ declare namespace ts {
     export function hasPossibleExternalModuleReference(node: Node): node is AnyImportOrReExport | ModuleDeclaration | ImportTypeNode | ImportCall;
     export function isAnyImportOrReExport(node: Node): node is AnyImportOrReExport;
     export function getEnclosingBlockScopeContainer(node: Node): Node;
+    export function forEachEnclosingBlockScopeContainer(node: Node, cb: (container: Node) => void): void;
     export function declarationNameToString(name: DeclarationName | QualifiedName | undefined): string;
     export function getNameFromIndexInfo(info: IndexInfo): string | undefined;
     export function isComputedNonLiteralName(name: PropertyName): boolean;
     export function getTextOfPropertyName(name: PropertyName | NoSubstitutionTemplateLiteral): __String;
-    export function entityNameToString(name: EntityNameOrEntityNameExpression | JsxTagNameExpression | PrivateIdentifier): string;
+    export function entityNameToString(name: EntityNameOrEntityNameExpression | JSDocMemberName | JsxTagNameExpression | PrivateIdentifier): string;
     export function createDiagnosticForNode(node: Node, message: DiagnosticMessage, arg0?: string | number, arg1?: string | number, arg2?: string | number, arg3?: string | number): DiagnosticWithLocation;
     export function createDiagnosticForNodeArray(sourceFile: SourceFile, nodes: NodeArray<Node>, message: DiagnosticMessage, arg0?: string | number, arg1?: string | number, arg2?: string | number, arg3?: string | number): DiagnosticWithLocation;
     export function createDiagnosticForNodeInSourceFile(sourceFile: SourceFile, node: Node, message: DiagnosticMessage, arg0?: string | number, arg1?: string | number, arg2?: string | number, arg3?: string | number): DiagnosticWithLocation;
     export function createDiagnosticForNodeFromMessageChain(node: Node, messageChain: DiagnosticMessageChain, relatedInformation?: DiagnosticRelatedInformation[]): DiagnosticWithLocation;
     export function createFileDiagnosticFromMessageChain(file: SourceFile, start: number, length: number, messageChain: DiagnosticMessageChain, relatedInformation?: DiagnosticRelatedInformation[]): DiagnosticWithLocation;
     export function createDiagnosticForFileFromMessageChain(sourceFile: SourceFile, messageChain: DiagnosticMessageChain, relatedInformation?: DiagnosticRelatedInformation[]): DiagnosticWithLocation;
+    export function createDiagnosticMessageChainFromDiagnostic(diagnostic: DiagnosticRelatedInformation): DiagnosticMessageChain;
     export function createDiagnosticForRange(sourceFile: SourceFile, range: TextRange, message: DiagnosticMessage): DiagnosticWithLocation;
     export function getSpanOfTokenAtPosition(sourceFile: SourceFile, pos: number): TextSpan;
     export function getErrorSpanForNode(sourceFile: SourceFile, node: Node): TextSpan;
@@ -9810,7 +10334,7 @@ declare namespace ts {
     export const fullTripleSlashAMDReferencePathRegEx: RegExp;
     export function isPartOfTypeNode(node: Node): boolean;
     export function isChildOfNodeWithKind(node: Node, kind: SyntaxKind): boolean;
-    export function forEachReturnStatement<T>(body: Block, visitor: (stmt: ReturnStatement) => T): T | undefined;
+    export function forEachReturnStatement<T>(body: Block | Statement, visitor: (stmt: ReturnStatement) => T): T | undefined;
     export function forEachYieldExpression(body: Block, visitor: (expr: YieldExpression) => void): void;
     /**
      * Gets the most likely element type for a TypeNode. This is not an exhaustive test
@@ -9828,7 +10352,7 @@ declare namespace ts {
     export function unwrapInnermostStatementOfLabel(node: LabeledStatement, beforeUnwrapLabelCallback?: (node: LabeledStatement) => void): Statement;
     export function isFunctionBlock(node: Node): boolean;
     export function isObjectLiteralMethod(node: Node): node is MethodDeclaration;
-    export function isObjectLiteralOrClassExpressionMethod(node: Node): node is MethodDeclaration;
+    export function isObjectLiteralOrClassExpressionMethodOrAccessor(node: Node): node is MethodDeclaration;
     export function isIdentifierTypePredicate(predicate: TypePredicate): predicate is IdentifierTypePredicate;
     export function isThisTypePredicate(predicate: TypePredicate): predicate is ThisTypePredicate;
     export function getPropertyAssignment(objectLiteral: ObjectLiteralExpression, key: string, key2?: string): readonly PropertyAssignment[];
@@ -9839,7 +10363,13 @@ declare namespace ts {
     export function getContainingFunction(node: Node): SignatureDeclaration | undefined;
     export function getContainingFunctionDeclaration(node: Node): FunctionLikeDeclaration | undefined;
     export function getContainingClass(node: Node): ClassLikeDeclaration | undefined;
+    export function getContainingClassStaticBlock(node: Node): Node | undefined;
+    export function getContainingFunctionOrClassStaticBlock(node: Node): SignatureDeclaration | ClassStaticBlockDeclaration | undefined;
     export function getThisContainer(node: Node, includeArrowFunctions: boolean): Node;
+    /**
+     * @returns Whether the node creates a new 'this' scope for its children.
+     */
+    export function isThisContainerOrFunctionBlock(node: Node): boolean;
     export function isInTopLevelContext(node: Node): boolean;
     export function getNewTargetContainer(node: Node): Node | undefined;
     /**
@@ -9876,10 +10406,12 @@ declare namespace ts {
     export function nodeOrChildIsDecorated(node: Node, parent: Node, grandparent: Node): boolean;
     export function childIsDecorated(node: ClassDeclaration): boolean;
     export function childIsDecorated(node: Node, parent: Node): boolean;
+    export function classOrConstructorParameterIsDecorated(node: ClassDeclaration): boolean;
     export function isJSXTagName(node: Node): boolean;
     export function isExpressionNode(node: Node): boolean;
     export function isInExpressionContext(node: Node): boolean;
     export function isPartOfTypeQuery(node: Node): boolean;
+    export function isNamespaceReexportDeclaration(node: Node): boolean;
     export function isExternalModuleImportEqualsDeclaration(node: Node): node is ImportEqualsDeclaration & {
         moduleReference: ExternalModuleReference;
     };
@@ -9907,7 +10439,11 @@ declare namespace ts {
      * Returns true if the node is a VariableDeclaration initialized to a require call (see `isRequireCall`).
      * This function does not test if the node is in a JavaScript file or not.
      */
-    export function isRequireVariableDeclaration(node: Node): node is RequireVariableDeclaration;
+    export function isVariableDeclarationInitializedToRequire(node: Node): node is VariableDeclarationInitializedTo<RequireOrImportCall>;
+    /**
+     * Like {@link isVariableDeclarationInitializedToRequire} but allows things like `require("...").foo.bar` or `require("...")["baz"]`.
+     */
+    export function isVariableDeclarationInitializedToBareOrAccessedRequire(node: Node): node is VariableDeclarationInitializedTo<RequireOrImportCall | AccessExpression>;
     export function isRequireVariableStatement(node: Node): node is RequireVariableStatement;
     export function isSingleOrDoubleQuote(charCode: number): boolean;
     export function isStringDoubleQuoted(str: StringLiteralLike, sourceFile: SourceFile): boolean;
@@ -9972,10 +10508,11 @@ declare namespace ts {
     export function getElementOrPropertyAccessName(node: AccessExpression): __String | undefined;
     export function getAssignmentDeclarationPropertyAccessKind(lhs: AccessExpression): AssignmentDeclarationKind;
     export function getInitializerOfBinaryExpression(expr: BinaryExpression): Expression;
-    export function isPrototypePropertyAssignment(node: Node): boolean;
+    export function isPrototypePropertyAssignment(node: Node): node is BinaryExpression;
     export function isSpecialPropertyDeclaration(expr: PropertyAccessExpression | ElementAccessExpression): expr is PropertyAccessExpression | LiteralLikeElementAccessExpression;
     export function setValueDeclaration(symbol: Symbol, node: Declaration): void;
     export function isFunctionSymbol(symbol: Symbol | undefined): boolean | undefined;
+    export function tryGetModuleSpecifierFromDeclaration(node: AnyImportOrRequire): string | undefined;
     export function importFromModuleSpecifier(node: StringLiteralLike): AnyValidImportOrReExport;
     export function tryGetImportFromModuleSpecifier(node: StringLiteralLike): AnyValidImportOrReExport | undefined;
     export function getExternalModuleName(node: AnyImportOrReExport | ImportTypeNode | ImportCall | ModuleDeclaration): Expression | undefined;
@@ -9992,6 +10529,7 @@ declare namespace ts {
     export function getNextJSDocCommentLocation(node: Node): Node | undefined;
     /** Does the opposite of `getJSDocParameterTags`: given a JSDoc parameter, finds the parameter corresponding to it. */
     export function getParameterSymbolFromJSDoc(node: JSDocParameterTag): Symbol | undefined;
+    export function getEffectiveContainerForJSDocTemplateTag(node: JSDocTemplateTag): SignatureDeclaration | JSDocTypedefTag | JSDocCallbackTag | JSDocEnumTag | undefined;
     export function getHostSignatureFromJSDoc(node: Node): SignatureDeclaration | undefined;
     export function getEffectiveJSDocHost(node: Node): Node | undefined;
     /** Use getEffectiveJSDocHost if you additionally need to look for jsdoc on parent nodes, like assignments. */
@@ -10026,8 +10564,8 @@ declare namespace ts {
      * If given node is not a parenthesiezd type, undefined is return as the former.
      */
     export function walkUpParenthesizedTypesAndGetParentAndChild(node: Node): [ParenthesizedTypeNode | undefined, Node];
-    export function skipParentheses(node: Expression): Expression;
-    export function skipParentheses(node: Node): Node;
+    export function skipParentheses(node: Expression, excludeJSDocTypeAssertions?: boolean): Expression;
+    export function skipParentheses(node: Node, excludeJSDocTypeAssertions?: boolean): Node;
     export function isDeleteTarget(node: Node): boolean;
     export function isNodeDescendantOf(node: Node, ancestor: Node | undefined): boolean;
     export function isDeclarationName(name: Node): boolean;
@@ -10048,7 +10586,7 @@ declare namespace ts {
     export function getInterfaceBaseTypeNodes(node: InterfaceDeclaration): NodeArray<ExpressionWithTypeArguments> | undefined;
     export function getHeritageClause(clauses: NodeArray<HeritageClause> | undefined, kind: SyntaxKind): HeritageClause | undefined;
     export function getAncestor(node: Node | undefined, kind: SyntaxKind): Node | undefined;
-    export function isKeyword(token: SyntaxKind): boolean;
+    export function isKeyword(token: SyntaxKind): token is KeywordSyntaxKind;
     export function isContextualKeyword(token: SyntaxKind): boolean;
     export function isNonContextualKeyword(token: SyntaxKind): boolean;
     export function isFutureReservedKeyword(token: SyntaxKind): boolean;
@@ -10086,6 +10624,7 @@ declare namespace ts {
     export function getPropertyNameForUniqueESSymbol(symbol: Symbol): __String;
     export function getSymbolNameForPrivateIdentifier(containingClassSymbol: Symbol, description: __String): __String;
     export function isKnownSymbol(symbol: Symbol): boolean;
+    export function isPrivateIdentifierSymbol(symbol: Symbol): boolean;
     /**
      * Includes the word "Symbol" with unicode escapes
      */
@@ -10102,7 +10641,7 @@ declare namespace ts {
     }
     export function getExpressionAssociativity(expression: Expression): Associativity;
     export function getOperatorAssociativity(kind: SyntaxKind, operator: SyntaxKind, hasArguments?: boolean): Associativity;
-    export function getExpressionPrecedence(expression: Expression): OperatorPrecedence.Comma | OperatorPrecedence.Spread | OperatorPrecedence.Yield | OperatorPrecedence.Assignment | OperatorPrecedence.Conditional | OperatorPrecedence.Relational | OperatorPrecedence.Unary | OperatorPrecedence.Update | OperatorPrecedence.LeftHandSide | OperatorPrecedence.Member | OperatorPrecedence.Primary | OperatorPrecedence.Invalid | OperatorPrecedence;
+    export function getExpressionPrecedence(expression: Expression): OperatorPrecedence;
     export function getOperator(expression: Expression): SyntaxKind;
     export enum OperatorPrecedence {
         Comma = 0,
@@ -10131,7 +10670,7 @@ declare namespace ts {
         Lowest = 0,
         Invalid = -1
     }
-    export function getOperatorPrecedence(nodeKind: SyntaxKind, operatorKind: SyntaxKind, hasArguments?: boolean): OperatorPrecedence.Comma | OperatorPrecedence.Spread | OperatorPrecedence.Yield | OperatorPrecedence.Assignment | OperatorPrecedence.Conditional | OperatorPrecedence.Relational | OperatorPrecedence.Unary | OperatorPrecedence.Update | OperatorPrecedence.LeftHandSide | OperatorPrecedence.Member | OperatorPrecedence.Primary | OperatorPrecedence.Invalid | OperatorPrecedence;
+    export function getOperatorPrecedence(nodeKind: SyntaxKind, operatorKind: SyntaxKind, hasArguments?: boolean): OperatorPrecedence;
     export function getBinaryOperatorPrecedence(kind: SyntaxKind): OperatorPrecedence;
     export function getSemanticJsxChildren(children: readonly JsxChild[]): readonly JsxChild[];
     export function createDiagnosticCollection(): DiagnosticCollection;
@@ -10176,6 +10715,7 @@ declare namespace ts {
     export function getOwnEmitOutputFilePath(fileName: string, host: EmitHost, extension: string): string;
     export function getDeclarationEmitOutputFilePath(fileName: string, host: EmitHost): string;
     export function getDeclarationEmitOutputFilePathWorker(fileName: string, options: CompilerOptions, currentDirectory: string, commonSourceDirectory: string, getCanonicalFileName: GetCanonicalFileName): string;
+    export function getDeclarationEmitExtensionForPath(path: string): Extension.Dts | Extension.Dmts | Extension.Dcts | ".json.d.ts";
     export function outFile(options: CompilerOptions): string | undefined;
     /** Returns 'undefined' if and only if 'options.paths' is undefined. */
     export function getPathsBasePath(options: CompilerOptions, host: {
@@ -10217,6 +10757,7 @@ declare namespace ts {
     export function getThisParameter(signature: SignatureDeclaration | JSDocSignature): ParameterDeclaration | undefined;
     export function parameterIsThisKeyword(parameter: ParameterDeclaration): boolean;
     export function isThisIdentifier(node: Node | undefined): boolean;
+    export function isThisInTypeQuery(node: Node): boolean;
     export function identifierIsThisKeyword(id: Identifier): boolean;
     export function getAllAccessorDeclarations(declarations: readonly Declaration[], accessor: AccessorDeclaration): AllAccessorDeclarations;
     /**
@@ -10254,7 +10795,11 @@ declare namespace ts {
     export function hasSyntacticModifiers(node: Node): boolean;
     export function hasEffectiveModifier(node: Node, flags: ModifierFlags): boolean;
     export function hasSyntacticModifier(node: Node, flags: ModifierFlags): boolean;
+    export function isStatic(node: Node): boolean;
     export function hasStaticModifier(node: Node): boolean;
+    export function hasOverrideModifier(node: Node): boolean;
+    export function hasAbstractModifier(node: Node): boolean;
+    export function hasAmbientModifier(node: Node): boolean;
     export function hasEffectiveReadonlyModifier(node: Node): boolean;
     export function getSelectedEffectiveModifierFlags(node: Node, flags: ModifierFlags): ModifierFlags;
     export function getSelectedSyntacticModifierFlags(node: Node, flags: ModifierFlags): ModifierFlags;
@@ -10285,6 +10830,7 @@ declare namespace ts {
     export function getSyntacticModifierFlagsNoCache(node: Node): ModifierFlags;
     export function modifiersToFlags(modifiers: readonly Modifier[] | undefined): ModifierFlags;
     export function modifierToFlag(token: SyntaxKind): ModifierFlags;
+    export function createModifiers(modifierFlags: ModifierFlags): ModifiersArray | undefined;
     export function isLogicalOperator(token: SyntaxKind): boolean;
     export function isLogicalOrCoalescingAssignmentOperator(token: SyntaxKind): token is LogicalOrCoalescingAssignmentOperator;
     export function isLogicalOrCoalescingAssignmentExpression(expr: BinaryExpression): expr is AssignmentExpression<Token<LogicalOrCoalescingAssignmentOperator>>;
@@ -10308,6 +10854,7 @@ declare namespace ts {
     export function tryGetPropertyAccessOrIdentifierToString(expr: Expression): string | undefined;
     export function isPrototypeAccess(node: Node): node is BindableStaticAccessExpression;
     export function isRightSideOfQualifiedNameOrPropertyAccess(node: Node): boolean;
+    export function isRightSideOfQualifiedNameOrPropertyAccessOrJSDocMemberName(node: Node): boolean;
     export function isEmptyObjectLiteral(expression: Node): boolean;
     export function isEmptyArrayLiteral(expression: Node): boolean;
     export function getLocalSymbolForExportDefault(symbol: Symbol): Symbol | undefined;
@@ -10393,7 +10940,7 @@ declare namespace ts {
     export function isWatchSet(options: CompilerOptions): boolean | undefined;
     export function closeFileWatcher(watcher: FileWatcher): void;
     export function getCheckFlags(symbol: Symbol): CheckFlags;
-    export function getDeclarationModifierFlagsFromSymbol(s: Symbol): ModifierFlags;
+    export function getDeclarationModifierFlagsFromSymbol(s: Symbol, isWrite?: boolean): ModifierFlags;
     export function skipAlias(symbol: Symbol, checker: TypeChecker): Symbol;
     /** See comment on `declareModuleMember` in `binder.ts`. */
     export function getCombinedLocalAndExportSymbolFlags(symbol: Symbol): SymbolFlags;
@@ -10403,31 +10950,31 @@ declare namespace ts {
     /**
      * clears already present map by calling onDeleteExistingValue callback before deleting that key/value
      */
-    export function clearMap<T>(map: {
-        forEach: ESMap<string, T>["forEach"];
-        clear: ESMap<string, T>["clear"];
-    }, onDeleteValue: (valueInMap: T, key: string) => void): void;
-    export interface MutateMapSkippingNewValuesOptions<T, U> {
-        onDeleteValue(existingValue: T, key: string): void;
+    export function clearMap<K, T>(map: {
+        forEach: ESMap<K, T>["forEach"];
+        clear: ESMap<K, T>["clear"];
+    }, onDeleteValue: (valueInMap: T, key: K) => void): void;
+    export interface MutateMapSkippingNewValuesOptions<K, T, U> {
+        onDeleteValue(existingValue: T, key: K): void;
         /**
          * If present this is called with the key when there is value for that key both in new map as well as existing map provided
          * Caller can then decide to update or remove this key.
          * If the key is removed, caller will get callback of createNewValue for that key.
          * If this callback is not provided, the value of such keys is not updated.
          */
-        onExistingValue?(existingValue: T, valueInNewMap: U, key: string): void;
+        onExistingValue?(existingValue: T, valueInNewMap: U, key: K): void;
     }
     /**
      * Mutates the map with newMap such that keys in map will be same as newMap.
      */
-    export function mutateMapSkippingNewValues<T, U>(map: ESMap<string, T>, newMap: ReadonlyESMap<string, U>, options: MutateMapSkippingNewValuesOptions<T, U>): void;
-    export interface MutateMapOptions<T, U> extends MutateMapSkippingNewValuesOptions<T, U> {
-        createNewValue(key: string, valueInNewMap: U): T;
+    export function mutateMapSkippingNewValues<K, T, U>(map: ESMap<K, T>, newMap: ReadonlyESMap<K, U>, options: MutateMapSkippingNewValuesOptions<K, T, U>): void;
+    export interface MutateMapOptions<K, T, U> extends MutateMapSkippingNewValuesOptions<K, T, U> {
+        createNewValue(key: K, valueInNewMap: U): T;
     }
     /**
      * Mutates the map with newMap such that keys in map will be same as newMap.
      */
-    export function mutateMap<T, U>(map: ESMap<string, T>, newMap: ReadonlyESMap<string, U>, options: MutateMapOptions<T, U>): void;
+    export function mutateMap<K, T, U>(map: ESMap<K, T>, newMap: ReadonlyESMap<K, U>, options: MutateMapOptions<K, T, U>): void;
     export function isAbstractConstructorSymbol(symbol: Symbol): boolean;
     export function getClassLikeDeclarationOfSymbol(symbol: Symbol): ClassLikeDeclaration | undefined;
     export function getObjectFlags(type: Type): ObjectFlags;
@@ -10442,7 +10989,7 @@ declare namespace ts {
     export function isObjectTypeDeclaration(node: Node): node is ObjectTypeDeclaration;
     export function isTypeNodeKind(kind: SyntaxKind): kind is TypeNodeSyntaxKind;
     export function isAccessExpression(node: Node): node is AccessExpression;
-    export function getNameOfAccessExpression(node: AccessExpression): Expression | PrivateIdentifier;
+    export function getNameOfAccessExpression(node: AccessExpression): Expression;
     export function isBundleFileTextLike(section: BundleFileSection): section is BundleFileTextLike;
     export function isNamedImportsOrExports(node: Node): node is NamedImportsOrExports;
     export function getLeftmostAccessExpression(expr: Expression): Expression;
@@ -10458,11 +11005,12 @@ declare namespace ts {
         getSignatureConstructor(): new (checker: TypeChecker, flags: SignatureFlags) => Signature;
         getSourceMapSourceConstructor(): new (fileName: string, text: string, skipTrivia?: (pos: number) => number) => SourceMapSource;
     }
-    export let objectAllocator: ObjectAllocator;
+    export const objectAllocator: ObjectAllocator;
     export function setObjectAllocator(alloc: ObjectAllocator): void;
     export function formatStringFromArgs(text: string, args: ArrayLike<string | number>, baseIndex?: number): string;
-    export let localizedDiagnosticMessages: MapLike<string> | undefined;
+    let localizedDiagnosticMessages: MapLike<string> | undefined;
     export function setLocalizedDiagnosticMessages(messages: typeof localizedDiagnosticMessages): void;
+    export function maybeSetLocalizedDiagnosticMessages(getMessages: undefined | (() => typeof localizedDiagnosticMessages)): void;
     export function getLocaleSpecificMessage(message: DiagnosticMessage): string;
     export function createDetachedDiagnostic(fileName: string, start: number, length: number, message: DiagnosticMessage, ...args: (string | number | undefined)[]): DiagnosticWithDetachedLocation;
     export function attachFileToDiagnostics(diagnostics: DiagnosticWithDetachedLocation[], file: SourceFile): DiagnosticWithLocation[];
@@ -10475,32 +11023,39 @@ declare namespace ts {
     export function compareDiagnostics(d1: Diagnostic, d2: Diagnostic): Comparison;
     export function compareDiagnosticsSkipRelatedInformation(d1: Diagnostic, d2: Diagnostic): Comparison;
     export function getLanguageVariant(scriptKind: ScriptKind): LanguageVariant;
-    export function getEmitScriptTarget(compilerOptions: CompilerOptions): ScriptTarget;
+    export function getEmitScriptTarget(compilerOptions: {
+        module?: CompilerOptions["module"];
+        target?: CompilerOptions["target"];
+    }): ScriptTarget;
     export function getEmitModuleKind(compilerOptions: {
         module?: CompilerOptions["module"];
         target?: CompilerOptions["target"];
-    }): ModuleKind.None | ModuleKind.CommonJS | ModuleKind;
+    }): ModuleKind;
     export function getEmitModuleResolutionKind(compilerOptions: CompilerOptions): ModuleResolutionKind;
     export function hasJsonModuleEmitEnabled(options: CompilerOptions): boolean;
     export function unreachableCodeIsError(options: CompilerOptions): boolean;
     export function unusedLabelIsError(options: CompilerOptions): boolean;
     export function getAreDeclarationMapsEnabled(options: CompilerOptions): boolean;
+    export function getESModuleInterop(compilerOptions: CompilerOptions): boolean | undefined;
     export function getAllowSyntheticDefaultImports(compilerOptions: CompilerOptions): boolean;
     export function getEmitDeclarations(compilerOptions: CompilerOptions): boolean;
     export function shouldPreserveConstEnums(compilerOptions: CompilerOptions): boolean;
     export function isIncrementalCompilation(options: CompilerOptions): boolean;
-    export type StrictOptionName = "noImplicitAny" | "noImplicitThis" | "strictNullChecks" | "strictFunctionTypes" | "strictBindCallApply" | "strictPropertyInitialization" | "alwaysStrict";
+    export type StrictOptionName = "noImplicitAny" | "noImplicitThis" | "strictNullChecks" | "strictFunctionTypes" | "strictBindCallApply" | "strictPropertyInitialization" | "alwaysStrict" | "useUnknownInCatchVariables";
     export function getStrictOptionValue(compilerOptions: CompilerOptions, flag: StrictOptionName): boolean;
     export function getAllowJSCompilerOption(compilerOptions: CompilerOptions): boolean;
+    export function getUseDefineForClassFields(compilerOptions: CompilerOptions): boolean;
     export function compilerOptionsAffectSemanticDiagnostics(newOptions: CompilerOptions, oldOptions: CompilerOptions): boolean;
     export function compilerOptionsAffectEmit(newOptions: CompilerOptions, oldOptions: CompilerOptions): boolean;
     export function getCompilerOptionValue(options: CompilerOptions, option: CommandLineOption): unknown;
     export function getJSXTransformEnabled(options: CompilerOptions): boolean;
     export function getJSXImplicitImportBase(compilerOptions: CompilerOptions, file?: SourceFile): string | undefined;
-    export function getJSXRuntimeImport(base: string | undefined, options: CompilerOptions): `${string}/jsx-dev-runtime` | `${string}/jsx-runtime` | undefined;
+    export function getJSXRuntimeImport(base: string | undefined, options: CompilerOptions): string | undefined;
     export function hasZeroOrOneAsteriskCharacter(str: string): boolean;
     export interface SymlinkedDirectory {
+        /** Matches the casing returned by `realpath`.  Used to compute the `realpath` of children. */
         real: string;
+        /** toPath(real).  Stored to avoid repeated recomputation. */
         realPath: Path;
     }
     export interface SymlinkCache {
@@ -10512,9 +11067,20 @@ declare namespace ts {
         getSymlinkedFiles(): ReadonlyESMap<Path, string> | undefined;
         setSymlinkedDirectory(symlink: string, real: SymlinkedDirectory | false): void;
         setSymlinkedFile(symlinkPath: Path, real: string): void;
+        /**
+         * @internal
+         * Uses resolvedTypeReferenceDirectives from program instead of from files, since files
+         * don't include automatic type reference directives. Must be called only when
+         * `hasProcessedResolutions` returns false (once per cache instance).
+         */
+        setSymlinksFromResolutions(files: readonly SourceFile[], typeReferenceDirectives: ModeAwareCache<ResolvedTypeReferenceDirective | undefined> | undefined): void;
+        /**
+         * @internal
+         * Whether `setSymlinksFromResolutions` has already been called.
+         */
+        hasProcessedResolutions(): boolean;
     }
     export function createSymlinkCache(cwd: string, getCanonicalFileName: GetCanonicalFileName): SymlinkCache;
-    export function discoverProbableSymlinks(files: readonly SourceFile[], getCanonicalFileName: GetCanonicalFileName, cwd: string): SymlinkCache;
     export function tryRemoveDirectoryPrefix(path: string, dirPath: string, getCanonicalFileName: GetCanonicalFileName): string | undefined;
     export function regExpEscape(text: string): string;
     export const commonPackageFolders: readonly string[];
@@ -10525,7 +11091,7 @@ declare namespace ts {
      * and does not contain any glob characters itself.
      */
     export function isImplicitGlob(lastPathComponent: string): boolean;
-    export function getPatternFromSpec(spec: string, basePath: string, usage: "files" | "directories" | "exclude"): "" | `^(${string})($|/)` | `^(${string})$` | undefined;
+    export function getPatternFromSpec(spec: string, basePath: string, usage: "files" | "directories" | "exclude"): string | undefined;
     export interface FileSystemEntries {
         readonly files: readonly string[];
         readonly directories: readonly string[];
@@ -10547,46 +11113,30 @@ declare namespace ts {
     export function ensureScriptKind(fileName: string, scriptKind: ScriptKind | undefined): ScriptKind;
     export function getScriptKindFromFileName(fileName: string): ScriptKind;
     /**
-     *  List of supported extensions in order of file resolution precedence.
+     *  Groups of supported extensions in order of file resolution precedence. (eg, TS > TSX > DTS and seperately, CTS > DCTS)
      */
-    export const supportedTSExtensions: readonly Extension[];
-    export const supportedTSExtensionsWithJson: readonly Extension[];
-    /** Must have ".d.ts" first because if ".ts" goes first, that will be detected as the extension instead of ".d.ts". */
-    export const supportedTSExtensionsForExtractExtension: readonly Extension[];
-    export const supportedJSExtensions: readonly Extension[];
-    export const supportedJSAndJsonExtensions: readonly Extension[];
-    export function getSupportedExtensions(options?: CompilerOptions): readonly Extension[];
-    export function getSupportedExtensions(options?: CompilerOptions, extraFileExtensions?: readonly FileExtensionInfo[]): readonly string[];
-    export function getSuppoertedExtensionsWithJsonIfResolveJsonModule(options: CompilerOptions | undefined, supportedExtensions: readonly string[]): readonly string[];
+    export const supportedTSExtensions: readonly Extension[][];
+    export const supportedTSExtensionsFlat: readonly Extension[];
+    export const supportedJSExtensions: readonly Extension[][];
+    export const supportedJSExtensionsFlat: readonly Extension[];
+    export function getSupportedExtensions(options?: CompilerOptions): readonly Extension[][];
+    export function getSupportedExtensions(options?: CompilerOptions, extraFileExtensions?: readonly FileExtensionInfo[]): readonly string[][];
+    export function getSupportedExtensionsWithJsonIfResolveJsonModule(options: CompilerOptions | undefined, supportedExtensions: readonly Extension[][]): readonly Extension[][];
+    export function getSupportedExtensionsWithJsonIfResolveJsonModule(options: CompilerOptions | undefined, supportedExtensions: readonly string[][]): readonly string[][];
     export function hasJSFileExtension(fileName: string): boolean;
     export function hasTSFileExtension(fileName: string): boolean;
     export function isSupportedSourceFileName(fileName: string, compilerOptions?: CompilerOptions, extraFileExtensions?: readonly FileExtensionInfo[]): boolean;
     export function compareNumberOfDirectorySeparators(path1: string, path2: string): Comparison;
-    /**
-     * Extension boundaries by priority. Lower numbers indicate higher priorities, and are
-     * aligned to the offset of the highest priority extension in the
-     * allSupportedExtensions array.
-     */
-    export enum ExtensionPriority {
-        TypeScriptFiles = 0,
-        DeclarationAndJavaScriptFiles = 2,
-        Highest = 0,
-        Lowest = 2
-    }
-    export function getExtensionPriority(path: string, supportedExtensions: readonly string[]): ExtensionPriority;
-    /**
-     * Adjusts an extension priority to be the highest priority within the same range.
-     */
-    export function adjustExtensionPriority(extensionPriority: ExtensionPriority, supportedExtensions: readonly string[]): ExtensionPriority;
-    /**
-     * Gets the next lowest extension priority for a given priority.
-     */
-    export function getNextLowestExtensionPriority(extensionPriority: ExtensionPriority, supportedExtensions: readonly string[]): ExtensionPriority;
     export function removeFileExtension(path: string): string;
     export function tryRemoveExtension(path: string, extension: string): string | undefined;
     export function removeExtension(path: string, extension: string): string;
     export function changeExtension<T extends string | Path>(path: T, newExtension: string): T;
-    export function tryParsePattern(pattern: string): Pattern | undefined;
+    /**
+     * Returns the input if there are no stars, a pattern if there is exactly one,
+     * and undefined if there are more.
+     */
+    export function tryParsePattern(pattern: string): string | Pattern | undefined;
+    export function tryParsePatterns(paths: MapLike<string[]>): (string | Pattern)[];
     export function positionIsSynthesized(pos: number): boolean;
     /** True if an extension is one of the supported TypeScript extensions. */
     export function extensionIsTS(ext: Extension): boolean;
@@ -10601,11 +11151,11 @@ declare namespace ts {
     export function isCheckJsEnabledForFile(sourceFile: SourceFile, compilerOptions: CompilerOptions): boolean | undefined;
     export const emptyFileSystemEntries: FileSystemEntries;
     /**
-     * patternStrings contains both pattern strings (containing "*") and regular strings.
+     * patternOrStrings contains both patterns (containing "*") and regular strings.
      * Return an exact match if possible, or a pattern match, or undefined.
      * (These are verified by verifyCompilerOptions to have 0 or 1 "*" characters.)
      */
-    export function matchPatternOrExact(patternStrings: readonly string[], candidate: string): string | Pattern | undefined;
+    export function matchPatternOrExact(patternOrStrings: readonly (string | Pattern)[], candidate: string): string | Pattern | undefined;
     export type Mutable<T extends object> = {
         -readonly [K in keyof T]: T[K];
     };
@@ -10615,14 +11165,6 @@ declare namespace ts {
         readonly min: number;
         readonly max: number;
     };
-    /** @deprecated Use `ReadonlySet<TNode>` instead. */
-    export type ReadonlyNodeSet<TNode extends Node> = ReadonlySet<TNode>;
-    /** @deprecated Use `Set<TNode>` instead. */
-    export type NodeSet<TNode extends Node> = Set<TNode>;
-    /** @deprecated Use `ReadonlyMap<TNode, TValue>` instead. */
-    export type ReadonlyNodeMap<TNode extends Node, TValue> = ReadonlyESMap<TNode, TValue>;
-    /** @deprecated Use `Map<TNode, TValue>` instead. */
-    export type NodeMap<TNode extends Node, TValue> = ESMap<TNode, TValue>;
     export function rangeOfNode(node: Node): TextRange;
     export function rangeOfTypeParameters(sourceFile: SourceFile, typeParameters: NodeArray<TypeParameterDeclaration>): TextRange;
     export interface HostWithIsSourceOfProjectReferenceRedirect {
@@ -10637,7 +11179,6 @@ declare namespace ts {
     export function parsePseudoBigInt(stringValue: string): string;
     export function pseudoBigIntToString({ negative, base10Value }: PseudoBigInt): string;
     export function isValidTypeOnlyAliasUseSite(useSite: Node): boolean;
-    export function typeOnlyDeclarationIsExport(typeOnlyDeclaration: Node): boolean;
     export function isIdentifierTypeReference(node: Node): node is TypeReferenceNode & {
         typeName: Identifier;
     };
@@ -10694,6 +11235,22 @@ declare namespace ts {
     export function expressionResultIsUnused(node: Expression): boolean;
     export function containsIgnoredPath(path: string): boolean;
     export function getContainingNodeArray(node: Node): NodeArray<Node> | undefined;
+    export function hasContextSensitiveParameters(node: FunctionLikeDeclaration): boolean;
+    export function isInfinityOrNaNString(name: string | __String): boolean;
+    export function isCatchClauseVariableDeclaration(node: Node): boolean;
+    export function isParameterOrCatchClauseVariable(symbol: Symbol): boolean;
+    export function isFunctionExpressionOrArrowFunction(node: Node): node is FunctionExpression | ArrowFunction;
+    export function escapeSnippetText(text: string): string;
+    export function isNumericLiteralName(name: string | __String): boolean;
+    export function createPropertyNameNodeForIdentifierOrLiteral(name: string, target: ScriptTarget, singleQuote?: boolean, stringNamed?: boolean): Identifier | StringLiteral | NumericLiteral;
+    export function isThisTypeParameter(type: Type): boolean;
+    export interface NodeModulePathParts {
+        readonly topLevelNodeModulesIndex: number;
+        readonly topLevelPackageNameIndex: number;
+        readonly packageRootIndex: number;
+        readonly fileNameIndex: number;
+    }
+    export function getNodeModulePathParts(fullPath: string): NodeModulePathParts | undefined;
     export {};
 }
 declare namespace ts {
@@ -10845,6 +11402,14 @@ declare namespace ts {
      * Moves matching emit helpers from a source node to a target node.
      */
     function moveEmitHelpers(source: Node, target: Node, predicate: (helper: EmitHelper) => boolean): void;
+    /**
+     * Gets the SnippetElement of a node.
+     */
+    function getSnippetElement(node: Node): SnippetElement | undefined;
+    /**
+     * Sets the SnippetElement of a node.
+     */
+    function setSnippetElement<T extends Node>(node: T, snippet: SnippetElement): T;
     function ignoreSourceNewlines<T extends Node>(node: T): T;
 }
 declare namespace ts {
@@ -10862,7 +11427,7 @@ declare namespace ts {
         createAwaiterHelper(hasLexicalThis: boolean, hasLexicalArguments: boolean, promiseConstructor: EntityName | Expression | undefined, body: Block): Expression;
         createExtendsHelper(name: Identifier): Expression;
         createTemplateObjectHelper(cooked: ArrayLiteralExpression, raw: ArrayLiteralExpression): Expression;
-        createSpreadArrayHelper(to: Expression, from: Expression): Expression;
+        createSpreadArrayHelper(to: Expression, from: Expression, packFrom: boolean): Expression;
         createValuesHelper(expression: Expression): Expression;
         createReadHelper(iteratorRecord: Expression, count: number | undefined): Expression;
         createGeneratorHelper(body: FunctionExpression): Expression;
@@ -10873,9 +11438,10 @@ declare namespace ts {
         createExportStarHelper(moduleExpression: Expression, exportsExpression?: Expression): Expression;
         createClassPrivateFieldGetHelper(receiver: Expression, state: Identifier, kind: PrivateIdentifierKind, f: Identifier | undefined): Expression;
         createClassPrivateFieldSetHelper(receiver: Expression, state: Identifier, value: Expression, kind: PrivateIdentifierKind, f: Identifier | undefined): Expression;
+        createClassPrivateFieldInHelper(state: Identifier, receiver: Expression): Expression;
     }
     function createEmitHelperFactory(context: TransformationContext): EmitHelperFactory;
-    function compareEmitHelpers(x: EmitHelper, y: EmitHelper): Comparison | Comparison;
+    function compareEmitHelpers(x: EmitHelper, y: EmitHelper): Comparison;
     /**
      * @param input Template string input strings
      * @param args Names which need to be made file-level unique
@@ -11003,10 +11569,23 @@ declare namespace ts {
      *      NOTE: This always results in a runtime error.
      */
     const classPrivateFieldSetHelper: UnscopedEmitHelper;
+    /**
+     * Parameters:
+     *  @param state — One of the following:
+     *      - A WeakMap when the member is a private instance field.
+     *      - A WeakSet when the member is a private instance method or accessor.
+     *      - A function value that should be the undecorated class constructor when the member is a private static field, method, or accessor.
+     *  @param receiver — The object being checked if it has the private member.
+     *
+     * Usage:
+     * This helper is used to transform `#field in expression` to
+     *      `__classPrivateFieldIn(<weakMap/weakSet/constructor>, expression)`
+     */
+    const classPrivateFieldInHelper: UnscopedEmitHelper;
     function getAllUnscopedEmitHelpers(): ReadonlyESMap<string, UnscopedEmitHelper>;
     const asyncSuperHelper: EmitHelper;
     const advancedAsyncSuperHelper: EmitHelper;
-    function isCallToHelper(firstSegment: Expression, helperName: __String): boolean | 0;
+    function isCallToHelper(firstSegment: Expression, helperName: __String): boolean;
 }
 declare namespace ts {
     function isNumericLiteral(node: Node): node is NumericLiteral;
@@ -11036,6 +11615,7 @@ declare namespace ts {
     function isAwaitKeyword(node: Node): node is AwaitKeyword;
     function isReadonlyKeyword(node: Node): node is ReadonlyKeyword;
     function isStaticModifier(node: Node): node is StaticKeyword;
+    function isAbstractModifier(node: Node): node is AbstractKeyword;
     function isSuperKeyword(node: Node): node is SuperExpression;
     function isImportKeyword(node: Node): node is ImportExpression;
     function isQualifiedName(node: Node): node is QualifiedName;
@@ -11047,6 +11627,7 @@ declare namespace ts {
     function isPropertyDeclaration(node: Node): node is PropertyDeclaration;
     function isMethodSignature(node: Node): node is MethodSignature;
     function isMethodDeclaration(node: Node): node is MethodDeclaration;
+    function isClassStaticBlockDeclaration(node: Node): node is ClassStaticBlockDeclaration;
     function isConstructorDeclaration(node: Node): node is ConstructorDeclaration;
     function isGetAccessorDeclaration(node: Node): node is GetAccessorDeclaration;
     function isSetAccessorDeclaration(node: Node): node is SetAccessorDeclaration;
@@ -11146,6 +11727,8 @@ declare namespace ts {
     function isImportEqualsDeclaration(node: Node): node is ImportEqualsDeclaration;
     function isImportDeclaration(node: Node): node is ImportDeclaration;
     function isImportClause(node: Node): node is ImportClause;
+    function isAssertClause(node: Node): node is AssertClause;
+    function isAssertEntry(node: Node): node is AssertEntry;
     function isNamespaceImport(node: Node): node is NamespaceImport;
     function isNamespaceExport(node: Node): node is NamespaceExport;
     function isNamedImports(node: Node): node is NamedImports;
@@ -11185,7 +11768,10 @@ declare namespace ts {
     function isUnparsedSource(node: Node): node is UnparsedSource;
     function isJSDocTypeExpression(node: Node): node is JSDocTypeExpression;
     function isJSDocNameReference(node: Node): node is JSDocNameReference;
+    function isJSDocMemberName(node: Node): node is JSDocMemberName;
     function isJSDocLink(node: Node): node is JSDocLink;
+    function isJSDocLinkCode(node: Node): node is JSDocLinkCode;
+    function isJSDocLinkPlain(node: Node): node is JSDocLinkPlain;
     function isJSDocAllType(node: Node): node is JSDocAllType;
     function isJSDocUnknownType(node: Node): node is JSDocUnknownType;
     function isJSDocNullableType(node: Node): node is JSDocNullableType;
@@ -11205,6 +11791,7 @@ declare namespace ts {
     function isJSDocPrivateTag(node: Node): node is JSDocPrivateTag;
     function isJSDocProtectedTag(node: Node): node is JSDocProtectedTag;
     function isJSDocReadonlyTag(node: Node): node is JSDocReadonlyTag;
+    function isJSDocOverrideTag(node: Node): node is JSDocOverrideTag;
     function isJSDocDeprecatedTag(node: Node): node is JSDocDeprecatedTag;
     function isJSDocSeeTag(node: Node): node is JSDocSeeTag;
     function isJSDocEnumTag(node: Node): node is JSDocEnumTag;
@@ -11231,6 +11818,39 @@ declare namespace ts {
     function createExpressionForPropertyName(factory: NodeFactory, memberName: Exclude<PropertyName, PrivateIdentifier>): Expression;
     function createExpressionForObjectLiteralElementLike(factory: NodeFactory, node: ObjectLiteralExpression, property: ObjectLiteralElementLike, receiver: Expression): Expression | undefined;
     /**
+     * Expand the read and increment/decrement operations a pre- or post-increment or pre- or post-decrement expression.
+     *
+     * ```ts
+     * // input
+     * <expression>++
+     * // output (if result is not discarded)
+     * var <temp>;
+     * (<temp> = <expression>, <resultVariable> = <temp>++, <temp>)
+     * // output (if result is discarded)
+     * var <temp>;
+     * (<temp> = <expression>, <temp>++, <temp>)
+     *
+     * // input
+     * ++<expression>
+     * // output (if result is not discarded)
+     * var <temp>;
+     * (<temp> = <expression>, <resultVariable> = ++<temp>)
+     * // output (if result is discarded)
+     * var <temp>;
+     * (<temp> = <expression>, ++<temp>)
+     * ```
+     *
+     * It is up to the caller to supply a temporary variable for `<resultVariable>` if one is needed.
+     * The temporary variable `<temp>` is injected so that `++` and `--` work uniformly with `number` and `bigint`.
+     * The result of the expression is always the final result of incrementing or decrementing the expression, so that it can be used for storage.
+     *
+     * @param factory {@link NodeFactory} used to create the expanded representation.
+     * @param node The original prefix or postfix unary node.
+     * @param expression The expression to use as the value to increment or decrement
+     * @param resultVariable A temporary variable in which to store the result. Pass `undefined` if the result is discarded, or if the value of `<temp>` is the expected result.
+     */
+    function expandPreOrPostfixIncrementOrDecrementExpression(factory: NodeFactory, node: PrefixUnaryExpression | PostfixUnaryExpression, expression: Expression, recordTempVariable: (node: Identifier) => void, resultVariable: Identifier | undefined): Expression;
+    /**
      * Gets whether an identifier should only be referred to by its internal name.
      */
     function isInternalName(node: Identifier): boolean;
@@ -11248,6 +11868,8 @@ declare namespace ts {
     function isCommaSequence(node: Expression): node is BinaryExpression & {
         operatorToken: Token<SyntaxKind.CommaToken>;
     } | CommaListExpression;
+    function isJSDocTypeAssertion(node: Node): node is JSDocTypeAssertion;
+    function getJSDocTypeAssertionType(node: JSDocTypeAssertion): TypeNode;
     function isOuterExpression(node: Node, kinds?: OuterExpressionKinds): node is OuterExpression;
     function skipOuterExpressions(node: Expression, kinds?: OuterExpressionKinds): Expression;
     function skipOuterExpressions(node: Node, kinds?: OuterExpressionKinds): Node;
@@ -11429,7 +12051,9 @@ declare namespace ts {
     export const affectsEmitOptionDeclarations: readonly CommandLineOption[];
     export const moduleResolutionOptionDeclarations: readonly CommandLineOption[];
     export const sourceFileAffectingCompilerOptions: readonly CommandLineOption[];
+    export const optionsAffectingProgramStructure: readonly CommandLineOption[];
     export const transpileOptionValueCompilerOptions: readonly CommandLineOption[];
+    export const optionsForBuild: CommandLineOption[];
     export const buildOpts: CommandLineOption[];
     export const typeAcquisitionDeclarations: CommandLineOption[];
     export interface OptionsNameMap {
@@ -11487,7 +12111,7 @@ declare namespace ts {
     /**
      * Reads the config file, reports errors if any and exits if the config file cannot be found
      */
-    export function getParsedCommandLineOfConfigFile(configFileName: string, optionsToExtend: CompilerOptions, host: ParseConfigFileHost, extendedConfigCache?: Map<ExtendedConfigCacheEntry>, watchOptionsToExtend?: WatchOptions, extraFileExtensions?: readonly FileExtensionInfo[]): ParsedCommandLine | undefined;
+    export function getParsedCommandLineOfConfigFile(configFileName: string, optionsToExtend: CompilerOptions | undefined, host: ParseConfigFileHost, extendedConfigCache?: Map<ExtendedConfigCacheEntry>, watchOptionsToExtend?: WatchOptions, extraFileExtensions?: readonly FileExtensionInfo[]): ParsedCommandLine | undefined;
     /**
      * Read tsconfig.json file
      * @param fileName The path to the config file
@@ -11571,6 +12195,11 @@ declare namespace ts {
     /** @internal */
     export function convertToTSConfig(configParseResult: ParsedCommandLine, configFileName: string, host: ConvertToTSConfigHost): TSConfig;
     /**
+     * Generate a list of the compiler options whose value is not the default.
+     * @param options compilerOptions to be evaluated.
+    /** @internal */
+    export function getCompilerOptionsDiffValue(options: CompilerOptions, newLine: string): string;
+    /**
      * Generate tsconfig configuration when running command line "--init"
      * @param options commandlineOptions to be generated into tsconfig.json
      * @param fileNames array of filenames to be generated into tsconfig.json
@@ -11639,19 +12268,50 @@ declare namespace ts {
     export {};
 }
 declare namespace ts {
-    function trace(host: ModuleResolutionHost, message: DiagnosticMessage, ...args: any[]): void;
-    function isTraceEnabled(compilerOptions: CompilerOptions, host: ModuleResolutionHost): boolean;
-    function getPackageJsonTypesVersionsPaths(typesVersions: MapLike<MapLike<string[]>>): {
+    export function trace(host: ModuleResolutionHost, message: DiagnosticMessage, ...args: any[]): void;
+    export function isTraceEnabled(compilerOptions: CompilerOptions, host: ModuleResolutionHost): boolean;
+    interface ModuleResolutionState {
+        host: ModuleResolutionHost;
+        compilerOptions: CompilerOptions;
+        traceEnabled: boolean;
+        failedLookupLocations: Push<string>;
+        resultFromCache?: ResolvedModuleWithFailedLookupLocations;
+        packageJsonInfoCache: PackageJsonInfoCache | undefined;
+        features: NodeResolutionFeatures;
+        conditions: string[];
+    }
+    /** Just the fields that we use for module resolution. */
+    interface PackageJsonPathFields {
+        typings?: string;
+        types?: string;
+        typesVersions?: MapLike<MapLike<string[]>>;
+        main?: string;
+        tsconfig?: string;
+        type?: string;
+        imports?: object;
+        exports?: object;
+        name?: string;
+    }
+    interface VersionPaths {
+        version: string;
+        paths: MapLike<string[]>;
+    }
+    export function getPackageJsonTypesVersionsPaths(typesVersions: MapLike<MapLike<string[]>>): {
         version: string;
         paths: MapLike<string[]>;
     } | undefined;
-    function getEffectiveTypeRoots(options: CompilerOptions, host: GetEffectiveTypeRootsHost): string[] | undefined;
+    export function getEffectiveTypeRoots(options: CompilerOptions, host: GetEffectiveTypeRootsHost): string[] | undefined;
     /**
      * @param {string | undefined} containingFile - file that contains type reference directive, can be undefined if containing file is unknown.
      * This is possible in case if resolution is performed for directives specified via 'types' parameter. In this case initial path for secondary lookups
      * is assumed to be the same as root directory of the project.
      */
-    function resolveTypeReferenceDirective(typeReferenceDirectiveName: string, containingFile: string | undefined, options: CompilerOptions, host: ModuleResolutionHost, redirectedReference?: ResolvedProjectReference): ResolvedTypeReferenceDirectiveWithFailedLookupLocations;
+    export function resolveTypeReferenceDirective(typeReferenceDirectiveName: string, containingFile: string | undefined, options: CompilerOptions, host: ModuleResolutionHost, redirectedReference?: ResolvedProjectReference, cache?: TypeReferenceDirectiveResolutionCache, resolutionMode?: SourceFile["impliedNodeFormat"]): ResolvedTypeReferenceDirectiveWithFailedLookupLocations;
+    /**
+     * @internal
+     * Does not try `@types/${packageName}` - use a second pass if needed.
+     */
+    export function resolvePackageNameToPackageJson(packageName: string, containingDirectory: string, options: CompilerOptions, host: ModuleResolutionHost, cache: ModuleResolutionCache | undefined): PackageJsonInfo | undefined;
     /**
      * Given a set of options, returns the set of type directive names
      *   that should be included for this program automatically.
@@ -11660,65 +12320,129 @@ declare namespace ts {
      * More type directives might appear in the program later as a result of loading actual source files;
      *   this list is only the set of defaults that are implicitly included.
      */
-    function getAutomaticTypeDirectiveNames(options: CompilerOptions, host: ModuleResolutionHost): string[];
+    export function getAutomaticTypeDirectiveNames(options: CompilerOptions, host: ModuleResolutionHost): string[];
+    export interface TypeReferenceDirectiveResolutionCache extends PerDirectoryResolutionCache<ResolvedTypeReferenceDirectiveWithFailedLookupLocations>, PackageJsonInfoCache {
+    }
+    export interface ModeAwareCache<T> {
+        get(key: string, mode: ModuleKind.CommonJS | ModuleKind.ESNext | undefined): T | undefined;
+        set(key: string, mode: ModuleKind.CommonJS | ModuleKind.ESNext | undefined, value: T): this;
+        delete(key: string, mode: ModuleKind.CommonJS | ModuleKind.ESNext | undefined): this;
+        has(key: string, mode: ModuleKind.CommonJS | ModuleKind.ESNext | undefined): boolean;
+        forEach(cb: (elem: T, key: string, mode: ModuleKind.CommonJS | ModuleKind.ESNext | undefined) => void): void;
+        size(): number;
+    }
     /**
-     * Cached module resolutions per containing directory.
+     * Cached resolutions per containing directory.
      * This assumes that any module id will have the same resolution for sibling files located in the same folder.
      */
-    interface ModuleResolutionCache extends NonRelativeModuleNameResolutionCache {
-        getOrCreateCacheForDirectory(directoryName: string, redirectedReference?: ResolvedProjectReference): Map<ResolvedModuleWithFailedLookupLocations>;
-        directoryToModuleNameMap: CacheWithRedirects<ESMap<string, ResolvedModuleWithFailedLookupLocations>>;
+    export interface PerDirectoryResolutionCache<T> {
+        getOrCreateCacheForDirectory(directoryName: string, redirectedReference?: ResolvedProjectReference): ModeAwareCache<T>;
+        clear(): void;
+        /**
+         *  Updates with the current compilerOptions the cache will operate with.
+         *  This updates the redirects map as well if needed so module resolutions are cached if they can across the projects
+         */
+        update(options: CompilerOptions): void;
+    }
+    export interface ModuleResolutionCache extends PerDirectoryResolutionCache<ResolvedModuleWithFailedLookupLocations>, NonRelativeModuleNameResolutionCache, PackageJsonInfoCache {
+        getPackageJsonInfoCache(): PackageJsonInfoCache;
     }
     /**
      * Stored map from non-relative module name to a table: directory -> result of module lookup in this directory
      * We support only non-relative module names because resolution of relative module names is usually more deterministic and thus less expensive.
      */
-    interface NonRelativeModuleNameResolutionCache {
-        getOrCreateCacheForModuleName(nonRelativeModuleName: string, redirectedReference?: ResolvedProjectReference): PerModuleNameCache;
-        moduleNameToDirectoryMap: CacheWithRedirects<PerModuleNameCache>;
+    export interface NonRelativeModuleNameResolutionCache extends PackageJsonInfoCache {
+        getOrCreateCacheForModuleName(nonRelativeModuleName: string, mode: ModuleKind.CommonJS | ModuleKind.ESNext | undefined, redirectedReference?: ResolvedProjectReference): PerModuleNameCache;
     }
-    interface PerModuleNameCache {
+    export interface PackageJsonInfoCache {
+        getPackageJsonInfo(packageJsonPath: string): PackageJsonInfo | boolean | undefined;
+        setPackageJsonInfo(packageJsonPath: string, info: PackageJsonInfo | boolean): void;
+        entries(): [Path, PackageJsonInfo | boolean][];
+        clear(): void;
+    }
+    export interface PerModuleNameCache {
         get(directory: string): ResolvedModuleWithFailedLookupLocations | undefined;
         set(directory: string, result: ResolvedModuleWithFailedLookupLocations): void;
     }
-    function createModuleResolutionCache(currentDirectory: string, getCanonicalFileName: (s: string) => string, options?: CompilerOptions): ModuleResolutionCache;
-    interface CacheWithRedirects<T> {
-        ownMap: ESMap<string, T>;
+    export interface CacheWithRedirects<T> {
+        getOwnMap: () => ESMap<string, T>;
         redirectsMap: ESMap<Path, ESMap<string, T>>;
         getOrCreateMapOfCacheRedirects(redirectedReference: ResolvedProjectReference | undefined): ESMap<string, T>;
         clear(): void;
         setOwnOptions(newOptions: CompilerOptions): void;
         setOwnMap(newOwnMap: ESMap<string, T>): void;
     }
-    function createCacheWithRedirects<T>(options?: CompilerOptions): CacheWithRedirects<T>;
-    function createModuleResolutionCacheWithMaps(directoryToModuleNameMap: CacheWithRedirects<ESMap<string, ResolvedModuleWithFailedLookupLocations>>, moduleNameToDirectoryMap: CacheWithRedirects<PerModuleNameCache>, currentDirectory: string, getCanonicalFileName: GetCanonicalFileName): ModuleResolutionCache;
-    function resolveModuleNameFromCache(moduleName: string, containingFile: string, cache: ModuleResolutionCache): ResolvedModuleWithFailedLookupLocations | undefined;
-    function resolveModuleName(moduleName: string, containingFile: string, compilerOptions: CompilerOptions, host: ModuleResolutionHost, cache?: ModuleResolutionCache, redirectedReference?: ResolvedProjectReference): ResolvedModuleWithFailedLookupLocations;
+    export function createCacheWithRedirects<T>(options?: CompilerOptions): CacheWithRedirects<T>;
+    export function createModeAwareCache<T>(): ModeAwareCache<T>;
+    export function zipToModeAwareCache<V>(file: SourceFile, keys: readonly string[] | readonly FileReference[], values: readonly V[]): ModeAwareCache<V>;
+    export function createModuleResolutionCache(currentDirectory: string, getCanonicalFileName: (s: string) => string, options?: CompilerOptions): ModuleResolutionCache;
+    export function createModuleResolutionCache(currentDirectory: string, getCanonicalFileName: GetCanonicalFileName, options: undefined, directoryToModuleNameMap: CacheWithRedirects<ModeAwareCache<ResolvedModuleWithFailedLookupLocations>>, moduleNameToDirectoryMap: CacheWithRedirects<PerModuleNameCache>): ModuleResolutionCache;
+    export function createTypeReferenceDirectiveResolutionCache(currentDirectory: string, getCanonicalFileName: (s: string) => string, options?: CompilerOptions, packageJsonInfoCache?: PackageJsonInfoCache): TypeReferenceDirectiveResolutionCache;
+    export function createTypeReferenceDirectiveResolutionCache(currentDirectory: string, getCanonicalFileName: GetCanonicalFileName, options: undefined, packageJsonInfoCache: PackageJsonInfoCache | undefined, directoryToModuleNameMap: CacheWithRedirects<ModeAwareCache<ResolvedTypeReferenceDirectiveWithFailedLookupLocations>>): TypeReferenceDirectiveResolutionCache;
+    export function resolveModuleNameFromCache(moduleName: string, containingFile: string, cache: ModuleResolutionCache, mode?: ModuleKind.CommonJS | ModuleKind.ESNext): ResolvedModuleWithFailedLookupLocations | undefined;
+    export function resolveModuleName(moduleName: string, containingFile: string, compilerOptions: CompilerOptions, host: ModuleResolutionHost, cache?: ModuleResolutionCache, redirectedReference?: ResolvedProjectReference, resolutionMode?: ModuleKind.CommonJS | ModuleKind.ESNext): ResolvedModuleWithFailedLookupLocations;
     /**
      * Expose resolution logic to allow us to use Node module resolution logic from arbitrary locations.
      * No way to do this with `require()`: https://github.com/nodejs/node/issues/5963
      * Throws an error if the module can't be resolved.
      */
-    function resolveJSModule(moduleName: string, initialDir: string, host: ModuleResolutionHost): string;
-    function tryResolveJSModule(moduleName: string, initialDir: string, host: ModuleResolutionHost): string | undefined;
-    function nodeModuleNameResolver(moduleName: string, containingFile: string, compilerOptions: CompilerOptions, host: ModuleResolutionHost, cache?: ModuleResolutionCache, redirectedReference?: ResolvedProjectReference): ResolvedModuleWithFailedLookupLocations;
-    function nodeModuleNameResolver(moduleName: string, containingFile: string, compilerOptions: CompilerOptions, host: ModuleResolutionHost, cache?: ModuleResolutionCache, redirectedReference?: ResolvedProjectReference, lookupConfig?: boolean): ResolvedModuleWithFailedLookupLocations;
-    const nodeModulesPathPart = "/node_modules/";
-    function pathContainsNodeModules(path: string): boolean;
-    function parsePackageName(moduleName: string): {
+    export function resolveJSModule(moduleName: string, initialDir: string, host: ModuleResolutionHost): string;
+    enum NodeResolutionFeatures {
+        None = 0,
+        Imports = 2,
+        SelfName = 4,
+        Exports = 8,
+        ExportsPatternTrailers = 16,
+        AllFeatures = 30,
+        Node12Default = 14,
+        NodeNextDefault = 30,
+        EsmMode = 32
+    }
+    export function nodeModuleNameResolver(moduleName: string, containingFile: string, compilerOptions: CompilerOptions, host: ModuleResolutionHost, cache?: ModuleResolutionCache, redirectedReference?: ResolvedProjectReference): ResolvedModuleWithFailedLookupLocations;
+    export function nodeModuleNameResolver(moduleName: string, containingFile: string, compilerOptions: CompilerOptions, host: ModuleResolutionHost, cache?: ModuleResolutionCache, redirectedReference?: ResolvedProjectReference, lookupConfig?: boolean): ResolvedModuleWithFailedLookupLocations;
+    export const nodeModulesPathPart = "/node_modules/";
+    export function pathContainsNodeModules(path: string): boolean;
+    /**
+     * This will be called on the successfully resolved path from `loadModuleFromFile`.
+     * (Not needed for `loadModuleFromNodeModules` as that looks up the `package.json` as part of resolution.)
+     *
+     * packageDirectory is the directory of the package itself.
+     *   For `blah/node_modules/foo/index.d.ts` this is packageDirectory: "foo"
+     *   For `/node_modules/foo/bar.d.ts` this is packageDirectory: "foo"
+     *   For `/node_modules/@types/foo/bar/index.d.ts` this is packageDirectory: "@types/foo"
+     *   For `/node_modules/foo/bar/index.d.ts` this is packageDirectory: "foo"
+     */
+    export function parseNodeModuleFromPath(resolved: string): string | undefined;
+    export function getEntrypointsFromPackageJsonInfo(packageJsonInfo: PackageJsonInfo, options: CompilerOptions, host: ModuleResolutionHost, cache: ModuleResolutionCache | undefined, resolveJs?: boolean): string[] | false;
+    interface PackageJsonInfo {
+        packageDirectory: string;
+        packageJsonContent: PackageJsonPathFields;
+        versionPaths: VersionPaths | undefined;
+        /** false: resolved to nothing. undefined: not yet resolved */
+        resolvedEntrypoints: string[] | false | undefined;
+    }
+    /**
+     * A function for locating the package.json scope for a given path
+     */
+    export function getPackageScopeForPath(fileName: Path, packageJsonInfoCache: PackageJsonInfoCache | undefined, host: ModuleResolutionHost, options: CompilerOptions): PackageJsonInfo | undefined;
+    export function getPackageJsonInfo(packageDirectory: string, onlyRecordFailures: boolean, state: ModuleResolutionState): PackageJsonInfo | undefined;
+    export function parsePackageName(moduleName: string): {
         packageName: string;
         rest: string;
     };
-    function getTypesPackageName(packageName: string): string;
-    function mangleScopedPackageName(packageName: string): string;
-    function getPackageNameFromTypesPackageName(mangledName: string): string;
-    function unmangleScopedPackageName(typesPackageName: string): string;
-    function classicNameResolver(moduleName: string, containingFile: string, compilerOptions: CompilerOptions, host: ModuleResolutionHost, cache?: NonRelativeModuleNameResolutionCache, redirectedReference?: ResolvedProjectReference): ResolvedModuleWithFailedLookupLocations;
+    export function allKeysStartWithDot(obj: MapLike<unknown>): boolean;
+    export function isApplicableVersionedTypesKey(conditions: string[], key: string): boolean;
+    export function getTypesPackageName(packageName: string): string;
+    export function mangleScopedPackageName(packageName: string): string;
+    export function getPackageNameFromTypesPackageName(mangledName: string): string;
+    export function unmangleScopedPackageName(typesPackageName: string): string;
+    export function classicNameResolver(moduleName: string, containingFile: string, compilerOptions: CompilerOptions, host: ModuleResolutionHost, cache?: NonRelativeModuleNameResolutionCache, redirectedReference?: ResolvedProjectReference): ResolvedModuleWithFailedLookupLocations;
     /**
      * A host may load a module from a global cache of typings.
      * This is the minumum code needed to expose that functionality; the rest is in the host.
      */
-    function loadModuleFromGlobalCache(moduleName: string, projectName: string | undefined, compilerOptions: CompilerOptions, host: ModuleResolutionHost, globalCache: string): ResolvedModuleWithFailedLookupLocations;
+    export function loadModuleFromGlobalCache(moduleName: string, projectName: string | undefined, compilerOptions: CompilerOptions, host: ModuleResolutionHost, globalCache: string, packageJsonInfoCache: PackageJsonInfoCache): ResolvedModuleWithFailedLookupLocations;
+    export {};
 }
 declare namespace ts {
     enum ModuleInstanceState {
@@ -11732,7 +12456,7 @@ declare namespace ts {
 }
 /** @internal */
 declare namespace ts {
-    function createGetSymbolWalker(getRestTypeOfSignature: (sig: Signature) => Type, getTypePredicateOfSignature: (sig: Signature) => TypePredicate | undefined, getReturnTypeOfSignature: (sig: Signature) => Type, getBaseTypes: (type: Type) => Type[], resolveStructuredTypeMembers: (type: ObjectType) => ResolvedType, getTypeOfSymbol: (sym: Symbol) => Type, getResolvedSymbol: (node: Node) => Symbol, getIndexTypeOfStructuredType: (type: Type, kind: IndexKind) => Type | undefined, getConstraintOfTypeParameter: (typeParameter: TypeParameter) => Type | undefined, getFirstIdentifier: (node: EntityNameOrEntityNameExpression) => Identifier, getTypeArguments: (type: TypeReference) => readonly Type[]): (accept?: (symbol: Symbol) => boolean) => SymbolWalker;
+    function createGetSymbolWalker(getRestTypeOfSignature: (sig: Signature) => Type, getTypePredicateOfSignature: (sig: Signature) => TypePredicate | undefined, getReturnTypeOfSignature: (sig: Signature) => Type, getBaseTypes: (type: Type) => Type[], resolveStructuredTypeMembers: (type: ObjectType) => ResolvedType, getTypeOfSymbol: (sym: Symbol) => Type, getResolvedSymbol: (node: Node) => Symbol, getConstraintOfTypeParameter: (typeParameter: TypeParameter) => Type | undefined, getFirstIdentifier: (node: EntityNameOrEntityNameExpression) => Identifier, getTypeArguments: (type: TypeReference) => readonly Type[]): (accept?: (symbol: Symbol) => boolean) => SymbolWalker;
 }
 declare namespace ts {
     function getNodeId(node: Node): number;
@@ -11904,14 +12628,13 @@ declare namespace ts {
     function isCompoundAssignment(kind: BinaryOperator): kind is CompoundAssignmentOperator;
     function getNonAssignmentOperatorForCompoundAssignment(kind: CompoundAssignmentOperator): LogicalOperatorOrHigher | SyntaxKind.QuestionQuestionToken;
     /**
-     * Adds super call and preceding prologue directives into the list of statements.
-     *
-     * @param ctor The constructor node.
-     * @param result The list of statements.
-     * @param visitor The visitor to apply to each node added to the result array.
-     * @returns index of the statement that follows super call
+     * @returns Contained super() call from descending into the statement ignoring parentheses, if that call exists.
      */
-    function addPrologueDirectivesAndInitialSuperCall(factory: NodeFactory, ctor: ConstructorDeclaration, result: Statement[], visitor: Visitor): number;
+    function getSuperCallFromStatement(statement: Statement): SuperCall | undefined;
+    /**
+     * @returns The index (after prologue statements) of a super call, or -1 if not found.
+     */
+    function findSuperStatementIndex(statements: NodeArray<Statement>, indexAfterLastPrologueStatement: number): number;
     /**
      * Gets all the static or all the instance property declarations of a class
      *
@@ -11920,6 +12643,8 @@ declare namespace ts {
      */
     function getProperties(node: ClassExpression | ClassDeclaration, requireInitializer: true, isStatic: boolean): readonly InitializedPropertyDeclaration[];
     function getProperties(node: ClassExpression | ClassDeclaration, requireInitializer: boolean, isStatic: boolean): readonly PropertyDeclaration[];
+    function getStaticPropertiesAndClassStaticBlock(node: ClassExpression | ClassDeclaration): readonly (PropertyDeclaration | ClassStaticBlockDeclaration)[];
+    function getStaticPropertiesAndClassStaticBlock(node: ClassExpression | ClassDeclaration): readonly (PropertyDeclaration | ClassStaticBlockDeclaration)[];
     /**
      * Gets a value indicating whether a class element is either a static or an instance property declaration with an initializer.
      *
@@ -12041,6 +12766,9 @@ declare namespace ts {
     function transformECMAScriptModule(context: TransformationContext): (x: SourceFile | Bundle) => SourceFile | Bundle;
 }
 declare namespace ts {
+    function transformNodeModule(context: TransformationContext): (node: SourceFile | Bundle) => SourceFile | Bundle;
+}
+declare namespace ts {
     type GetSymbolAccessibilityDiagnostic = (symbolAccessibilityResult: SymbolAccessibilityResult) => (SymbolAccessibilityDiagnostic | undefined);
     interface SymbolAccessibilityDiagnostic {
         errorNode: Node;
@@ -12100,7 +12828,7 @@ declare namespace ts {
     function getTsBuildInfoEmitOutputFilePath(options: CompilerOptions): string | undefined;
     function getOutputPathsForBundle(options: CompilerOptions, forceDtsPaths: boolean): EmitFileNames;
     function getOutputPathsFor(sourceFile: SourceFile | Bundle, host: EmitHost, forceDtsPaths: boolean): EmitFileNames;
-    function getOutputExtension(sourceFile: SourceFile, options: CompilerOptions): Extension;
+    function getOutputExtension(fileName: string, options: CompilerOptions): Extension;
     function getOutputDeclarationFileName(inputFileName: string, configFile: ParsedCommandLine, ignoreCase: boolean, getCommonSourceDirectory?: () => string): string;
     function getCommonSourceDirectory(options: CompilerOptions, emittedFiles: () => readonly string[], currentDirectory: string, getCanonicalFileName: GetCanonicalFileName, checkSourceFilesBelongToPath?: (commonSourceDirectory: string) => void): string;
     function getCommonSourceDirectoryOfConfig({ options, fileNames }: ParsedCommandLine, ignoreCase: boolean): string;
@@ -12158,13 +12886,25 @@ declare namespace ts {
         Full = 2
     }
     interface SharedExtendedConfigFileWatcher<T> extends FileWatcher {
-        fileWatcher: FileWatcher;
+        watcher: FileWatcher;
         projects: Set<T>;
     }
     /**
      * Updates the map of shared extended config file watches with a new set of extended config files from a base config file of the project
      */
-    function updateSharedExtendedConfigFileWatcher<T>(projectPath: T, parsed: ParsedCommandLine | undefined, extendedConfigFilesMap: ESMap<Path, SharedExtendedConfigFileWatcher<T>>, createExtendedConfigFileWatch: (extendedConfigPath: string, extendedConfigFilePath: Path) => FileWatcher, toPath: (fileName: string) => Path): void;
+    function updateSharedExtendedConfigFileWatcher<T>(projectPath: T, options: CompilerOptions | undefined, extendedConfigFilesMap: ESMap<Path, SharedExtendedConfigFileWatcher<T>>, createExtendedConfigFileWatch: (extendedConfigPath: string, extendedConfigFilePath: Path) => FileWatcher, toPath: (fileName: string) => Path): void;
+    /**
+     * Remove the project from the extended config file watchers and close not needed watches
+     */
+    function clearSharedExtendedConfigFileWatcher<T>(projectPath: T, extendedConfigFilesMap: ESMap<Path, SharedExtendedConfigFileWatcher<T>>): void;
+    /**
+     * Clean the extendsConfigCache when extended config file has changed
+     */
+    function cleanExtendedConfigCache(extendedConfigCache: ESMap<string, ExtendedConfigCacheEntry>, extendedConfigFilePath: Path, toPath: (fileName: string) => Path): void;
+    /**
+     * Updates watchers based on the package json files used in module resolution
+     */
+    function updatePackageJsonWatch(lookups: readonly (readonly [Path, object | boolean])[], packageJsonWatches: ESMap<Path, FileWatcher>, createPackageJsonWatch: (packageJsonPath: Path, data: object | boolean) => FileWatcher): void;
     /**
      * Updates the existing missing file watches with the new set of missing files after new program is created
      */
@@ -12186,13 +12926,14 @@ declare namespace ts {
         fileOrDirectoryPath: Path;
         configFileName: string;
         options: CompilerOptions;
-        program: BuilderProgram | Program | undefined;
+        program: BuilderProgram | Program | readonly string[] | undefined;
         extraFileExtensions?: readonly FileExtensionInfo[];
         currentDirectory: string;
         useCaseSensitiveFileNames: boolean;
         writeLog: (s: string) => void;
+        toPath: (fileName: string) => Path;
     }
-    function isIgnoredFileFromWildCardWatching({ watchedDirPath, fileOrDirectory, fileOrDirectoryPath, configFileName, options, program, extraFileExtensions, currentDirectory, useCaseSensitiveFileNames, writeLog, }: IsIgnoredFileFromWildCardWatchingInput): boolean;
+    function isIgnoredFileFromWildCardWatching({ watchedDirPath, fileOrDirectory, fileOrDirectoryPath, configFileName, options, program, extraFileExtensions, currentDirectory, useCaseSensitiveFileNames, writeLog, toPath, }: IsIgnoredFileFromWildCardWatchingInput): boolean;
     function isEmittedFileOfProgram(program: Program | undefined, file: string): boolean;
     enum WatchLogLevel {
         None = 0,
@@ -12260,7 +13001,18 @@ declare namespace ts {
     export function formatLocation(file: SourceFile, start: number, host: FormatDiagnosticsHost, color?: typeof formatColorAndReset): string;
     export function formatDiagnosticsWithColorAndContext(diagnostics: readonly Diagnostic[], host: FormatDiagnosticsHost): string;
     export function flattenDiagnosticMessageText(diag: string | DiagnosticMessageChain | undefined, newLine: string, indent?: number): string;
-    export function loadWithLocalCache<T>(names: string[], containingFile: string, redirectedReference: ResolvedProjectReference | undefined, loader: (name: string, containingFile: string, redirectedReference: ResolvedProjectReference | undefined) => T): T[];
+    export function loadWithTypeDirectiveCache<T>(names: string[] | readonly FileReference[], containingFile: string, redirectedReference: ResolvedProjectReference | undefined, containingFileMode: SourceFile["impliedNodeFormat"], loader: (name: string, containingFile: string, redirectedReference: ResolvedProjectReference | undefined, resolutionMode: SourceFile["impliedNodeFormat"]) => T): T[];
+    interface SourceFileImportsList {
+        imports: SourceFile["imports"];
+        moduleAugmentations: SourceFile["moduleAugmentations"];
+        impliedNodeFormat?: SourceFile["impliedNodeFormat"];
+    }
+    export function getModeForFileReference(ref: FileReference | string, containingFileMode: SourceFile["impliedNodeFormat"]): ModuleKind.CommonJS | ModuleKind.ESNext | undefined;
+    export function getModeForResolutionAtIndex(file: SourceFileImportsList, index: number): ModuleKind.CommonJS | ModuleKind.ESNext | undefined;
+    export function getModeForUsageLocation(file: {
+        impliedNodeFormat?: SourceFile["impliedNodeFormat"];
+    }, usage: StringLiteralLike): ModuleKind.CommonJS | ModuleKind.ESNext | undefined;
+    export function loadWithModeAwareCache<T>(names: string[], containingFile: SourceFile, containingFileName: string, redirectedReference: ResolvedProjectReference | undefined, loader: (name: string, resolverMode: ModuleKind.CommonJS | ModuleKind.ESNext | undefined, containingFileName: string, redirectedReference: ResolvedProjectReference | undefined) => T): T[];
     export function forEachResolvedProjectReference<T>(resolvedProjectReferences: readonly (ResolvedProjectReference | undefined)[] | undefined, cb: (resolvedProjectReference: ResolvedProjectReference, parent: ResolvedProjectReference | undefined) => T | undefined): T | undefined;
     export const inferredTypesContainingFile = "__inferred type names__.ts";
     export function isReferencedFile(reason: FileIncludeReason | undefined): reason is ReferencedFile;
@@ -12280,8 +13032,21 @@ declare namespace ts {
     /**
      * Determines if program structure is upto date or needs to be recreated
      */
-    export function isProgramUptoDate(program: Program | undefined, rootFileNames: string[], newOptions: CompilerOptions, getSourceVersion: (path: Path, fileName: string) => string | undefined, fileExists: (fileName: string) => boolean, hasInvalidatedResolution: HasInvalidatedResolution, hasChangedAutomaticTypeDirectiveNames: HasChangedAutomaticTypeDirectiveNames | undefined, projectReferences: readonly ProjectReference[] | undefined): boolean;
+    export function isProgramUptoDate(program: Program | undefined, rootFileNames: string[], newOptions: CompilerOptions, getSourceVersion: (path: Path, fileName: string) => string | undefined, fileExists: (fileName: string) => boolean, hasInvalidatedResolution: HasInvalidatedResolution, hasChangedAutomaticTypeDirectiveNames: HasChangedAutomaticTypeDirectiveNames | undefined, getParsedCommandLine: (fileName: string) => ParsedCommandLine | undefined, projectReferences: readonly ProjectReference[] | undefined): boolean;
     export function getConfigFileParsingDiagnostics(configFileParseResult: ParsedCommandLine): readonly Diagnostic[];
+    /**
+     * A function for determining if a given file is esm or cjs format, assuming modern node module resolution rules, as configured by the
+     * `options` parameter.
+     *
+     * @param fileName The normalized absolute path to check the format of (it need not exist on disk)
+     * @param [packageJsonInfoCache] A cache for package file lookups - it's best to have a cache when this function is called often
+     * @param host The ModuleResolutionHost which can perform the filesystem lookups for package json data
+     * @param options The compiler options to perform the analysis under - relevant options are `moduleResolution` and `traceResolution`
+     * @returns `undefined` if the path has no relevant implied format, `ModuleKind.ESNext` for esm format, and `ModuleKind.CommonJS` for cjs format
+     */
+    export function getImpliedNodeFormatForFile(fileName: Path, packageJsonInfoCache: PackageJsonInfoCache | undefined, host: ModuleResolutionHost, options: CompilerOptions): ModuleKind.ESNext | ModuleKind.CommonJS | undefined;
+    /** @internal */
+    export const plainJSErrors: Set<number>;
     /**
      * Create a new 'Program' instance. A Program is an immutable collection of 'SourceFile's and a 'CompilerOptions'
      * that represent a compilation unit.
@@ -12310,7 +13075,7 @@ declare namespace ts {
     export function createProgram(rootNames: readonly string[], options: CompilerOptions, host?: CompilerHost, oldProgram?: Program, configFileParsingDiagnostics?: readonly Diagnostic[]): Program;
     export const emitSkippedWithNoDiagnostics: EmitResult;
     export function handleNoEmitOptions<T extends BuilderProgram>(program: Program | T, sourceFile: SourceFile | undefined, writeFile: WriteFileCallback | undefined, cancellationToken: CancellationToken | undefined): EmitResult | undefined;
-    export function filterSemanticDiagnotics(diagnostic: readonly Diagnostic[], option: CompilerOptions): readonly Diagnostic[];
+    export function filterSemanticDiagnostics(diagnostic: readonly Diagnostic[], option: CompilerOptions): readonly Diagnostic[];
     interface CompilerHostLike {
         useCaseSensitiveFileNames(): boolean;
         getCurrentDirectory(): string;
@@ -12337,7 +13102,7 @@ declare namespace ts {
      * This returns a diagnostic even if the module will be an untyped module.
      */
     export function getResolutionDiagnostic(options: CompilerOptions, { extension }: ResolvedModuleFull): DiagnosticMessage | undefined;
-    export function getModuleNameStringLiteralAt({ imports, moduleAugmentations }: SourceFile, index: number): StringLiteralLike;
+    export function getModuleNameStringLiteralAt({ imports, moduleAugmentations }: SourceFileImportsList, index: number): StringLiteralLike;
     export {};
 }
 declare namespace ts {
@@ -12365,12 +13130,12 @@ declare namespace ts {
          * Otherwise undefined
          * Thus non undefined value indicates, module emit
          */
-        readonly referencedMap?: ReadonlyESMap<Path, BuilderState.ReferencedSet> | undefined;
+        readonly referencedMap?: BuilderState.ReadonlyManyToManyPathMap | undefined;
         /**
          * Contains the map of exported modules ReferencedSet=exported module files from the file if module emit is enabled
          * Otherwise undefined
          */
-        readonly exportedModulesMap?: ReadonlyESMap<Path, BuilderState.ReferencedSet> | undefined;
+        readonly exportedModulesMap?: BuilderState.ReadonlyManyToManyPathMap | undefined;
     }
     interface BuilderState {
         /**
@@ -12382,12 +13147,18 @@ declare namespace ts {
          * Otherwise undefined
          * Thus non undefined value indicates, module emit
          */
-        readonly referencedMap: ReadonlyESMap<Path, BuilderState.ReferencedSet> | undefined;
+        readonly referencedMap: BuilderState.ReadonlyManyToManyPathMap | undefined;
         /**
          * Contains the map of exported modules ReferencedSet=exported module files from the file if module emit is enabled
          * Otherwise undefined
+         *
+         * This is equivalent to referencedMap, but for the emitted .d.ts file.
          */
-        readonly exportedModulesMap: ESMap<Path, BuilderState.ReferencedSet> | undefined;
+        readonly exportedModulesMap: BuilderState.ManyToManyPathMap | undefined;
+        previousCache?: {
+            id: number;
+            version: number;
+        };
         /**
          * true if file version is used as signature
          * This helps in delaying the calculation of the d.ts hash as version for the file till reasonable time
@@ -12415,25 +13186,38 @@ declare namespace ts {
         interface FileInfo {
             readonly version: string;
             signature: string | undefined;
-            affectsGlobalScope: boolean;
+            affectsGlobalScope: boolean | undefined;
+            impliedFormat: number | undefined;
         }
-        /**
-         * Referenced files with values for the keys as referenced file's path to be true
-         */
-        type ReferencedSet = ReadonlySet<Path>;
+        interface ReadonlyManyToManyPathMap {
+            readonly id: number;
+            clone(): ManyToManyPathMap;
+            forEach(action: (v: ReadonlySet<Path>, k: Path) => void): void;
+            getKeys(v: Path): ReadonlySet<Path> | undefined;
+            getValues(k: Path): ReadonlySet<Path> | undefined;
+            hasKey(k: Path): boolean;
+            keys(): Iterator<Path>;
+            /**
+             * The set of arguments to {@link deleteKeys} which have not subsequently
+             * been arguments to {@link set}.  Note that a key does not have to have
+             * ever been in the map to appear in this set.
+             */
+            deletedKeys(): ReadonlySet<Path> | undefined;
+        }
+        interface ManyToManyPathMap extends ReadonlyManyToManyPathMap {
+            version(): number;
+            deleteKey(k: Path): boolean;
+            set(k: Path, v: ReadonlySet<Path>): void;
+        }
+        function createManyToManyPathMap(): ManyToManyPathMap;
         /**
          * Compute the hash to store the shape of the file
          */
         type ComputeHash = ((data: string) => string) | undefined;
         /**
-         * Exported modules to from declaration emit being computed.
-         * This can contain false in the affected file path to specify that there are no exported module(types from other modules) for this file
-         */
-        type ComputingExportedModulesMap = ESMap<Path, ReferencedSet | false>;
-        /**
          * Returns true if oldState is reusable, that is the emitKind = module/non module has not changed
          */
-        function canReuseOldState(newReferencedMap: ReadonlyESMap<Path, ReferencedSet> | undefined, oldState: Readonly<ReusableBuilderState> | undefined): boolean | undefined;
+        function canReuseOldState(newReferencedMap: ReadonlyManyToManyPathMap | undefined, oldState: Readonly<ReusableBuilderState> | undefined): boolean | undefined;
         /**
          * Creates the state of file references and signature for the new program from oldState if it is safe
          */
@@ -12449,7 +13233,7 @@ declare namespace ts {
         /**
          * Gets the files affected by the path from the program
          */
-        function getFilesAffectedBy(state: BuilderState, programOfThisState: Program, path: Path, cancellationToken: CancellationToken | undefined, computeHash: ComputeHash, cacheToUpdateSignature?: ESMap<Path, string>, exportedModulesMapCache?: ComputingExportedModulesMap): readonly SourceFile[];
+        function getFilesAffectedBy(state: BuilderState, programOfThisState: Program, path: Path, cancellationToken: CancellationToken | undefined, computeHash: ComputeHash, cacheToUpdateSignature?: ESMap<Path, string>, exportedModulesMapCache?: ManyToManyPathMap): readonly SourceFile[];
         /**
          * Updates the signatures from the cache into state's fileinfo signatures
          * This should be called whenever it is safe to commit the state of the builder
@@ -12459,12 +13243,12 @@ declare namespace ts {
         /**
          * Returns if the shape of the signature has changed since last emit
          */
-        function updateShapeSignature(state: Readonly<BuilderState>, programOfThisState: Program, sourceFile: SourceFile, cacheToUpdateSignature: ESMap<Path, string>, cancellationToken: CancellationToken | undefined, computeHash: ComputeHash, exportedModulesMapCache?: ComputingExportedModulesMap): boolean;
+        function updateShapeSignature(state: Readonly<BuilderState>, programOfThisState: Program, sourceFile: SourceFile, cacheToUpdateSignature: ESMap<Path, string>, cancellationToken: CancellationToken | undefined, computeHash: ComputeHash, exportedModulesMapCache?: ManyToManyPathMap, useFileVersionAsSignature?: boolean): boolean;
         /**
          * Updates the exported modules from cache into state's exported modules map
          * This should be called whenever it is safe to commit the state of the builder
          */
-        function updateExportedFilesMapFromCache(state: BuilderState, exportedModulesMapCache: ComputingExportedModulesMap | undefined): void;
+        function updateExportedFilesMapFromCache(state: BuilderState, exportedModulesMapCache: ManyToManyPathMap | undefined): void;
         /**
          * Get all the dependencies of the sourceFile
          */
@@ -12522,7 +13306,7 @@ declare namespace ts {
         /**
          * Newly computed visible to outside referencedSet
          */
-        currentAffectedFilesExportedModulesMap?: Readonly<BuilderState.ComputingExportedModulesMap> | undefined;
+        currentAffectedFilesExportedModulesMap?: BuilderState.ReadonlyManyToManyPathMap | undefined;
         /**
          * True if the semantic diagnostics were copied from the old state
          */
@@ -12584,8 +13368,10 @@ declare namespace ts {
         currentAffectedFilesSignatures: ESMap<Path, string> | undefined;
         /**
          * Newly computed visible to outside referencedSet
+         * We need to store the updates separately in case the in-progress build is cancelled
+         * and we need to roll back.
          */
-        currentAffectedFilesExportedModulesMap: BuilderState.ComputingExportedModulesMap | undefined;
+        currentAffectedFilesExportedModulesMap: BuilderState.ManyToManyPathMap | undefined;
         /**
          * Already seen affected files
          */
@@ -12631,14 +13417,33 @@ declare namespace ts {
          */
         programEmitComplete?: true;
     }
-    type ProgramBuildInfoDiagnostic = number | [fileId: number, diagnostics: readonly ReusableDiagnostic[]];
-    type ProgramBuilderInfoFilePendingEmit = [fileId: number, emitKind: BuilderFileEmit];
-    type ProgramBuildInfoReferencedMap = [fileId: number, fileIdListId: number][];
+    type ProgramBuildInfoFileId = number & {
+        __programBuildInfoFileIdBrand: any;
+    };
+    type ProgramBuildInfoFileIdListId = number & {
+        __programBuildInfoFileIdListIdBrand: any;
+    };
+    type ProgramBuildInfoDiagnostic = ProgramBuildInfoFileId | [fileId: ProgramBuildInfoFileId, diagnostics: readonly ReusableDiagnostic[]];
+    type ProgramBuilderInfoFilePendingEmit = [fileId: ProgramBuildInfoFileId, emitKind: BuilderFileEmit];
+    type ProgramBuildInfoReferencedMap = [fileId: ProgramBuildInfoFileId, fileIdListId: ProgramBuildInfoFileIdListId][];
+    type ProgramBuildInfoBuilderStateFileInfo = Omit<BuilderState.FileInfo, "signature"> & {
+        /**
+         * Signature is
+         * - undefined if FileInfo.version === FileInfo.signature
+         * - false if FileInfo has signature as undefined (not calculated)
+         * - string actual signature
+         */
+        signature: string | false | undefined;
+    };
+    /**
+     * ProgramBuildInfoFileInfo is string if FileInfo.version === FileInfo.signature && !FileInfo.affectsGlobalScope otherwise encoded FileInfo
+     */
+    type ProgramBuildInfoFileInfo = string | ProgramBuildInfoBuilderStateFileInfo;
     interface ProgramBuildInfo {
         fileNames: readonly string[];
-        fileInfos: readonly BuilderState.FileInfo[];
-        options: CompilerOptions;
-        fileIdsList?: readonly (readonly number[])[];
+        fileInfos: readonly ProgramBuildInfoFileInfo[];
+        options: CompilerOptions | undefined;
+        fileIdsList?: readonly (readonly ProgramBuildInfoFileId[])[];
         referencedMap?: ProgramBuildInfoReferencedMap;
         exportedModulesMap?: ProgramBuildInfoReferencedMap;
         semanticDiagnosticsPerFile?: ProgramBuildInfoDiagnostic[];
@@ -12657,8 +13462,9 @@ declare namespace ts {
     function getBuilderCreationParameters(newProgramOrRootNames: Program | readonly string[] | undefined, hostOrOptions: BuilderProgramHost | CompilerOptions | undefined, oldProgramOrHost?: BuilderProgram | CompilerHost, configFileParsingDiagnosticsOrOldProgram?: readonly Diagnostic[] | BuilderProgram, configFileParsingDiagnostics?: readonly Diagnostic[], projectReferences?: readonly ProjectReference[]): BuilderCreationParameters;
     function createBuilderProgram(kind: BuilderProgramKind.SemanticDiagnosticsBuilderProgram, builderCreationParameters: BuilderCreationParameters): SemanticDiagnosticsBuilderProgram;
     function createBuilderProgram(kind: BuilderProgramKind.EmitAndSemanticDiagnosticsBuilderProgram, builderCreationParameters: BuilderCreationParameters): EmitAndSemanticDiagnosticsBuilderProgram;
+    function toBuilderStateFileInfo(fileInfo: ProgramBuildInfoFileInfo): BuilderState.FileInfo;
     function createBuildProgramUsingProgramBuildInfo(program: ProgramBuildInfo, buildInfoPath: string, host: ReadBuildProgramHost): EmitAndSemanticDiagnosticsBuilderProgram;
-    function createRedirectedBuilderProgram(state: {
+    function createRedirectedBuilderProgram(getState: () => {
         program: Program | undefined;
         compilerOptions: CompilerOptions;
     }, configFileParsingDiagnostics: readonly Diagnostic[]): BuilderProgram;
@@ -12814,9 +13620,9 @@ declare namespace ts {
     export interface ResolutionCache {
         startRecordingFilesWithChangedResolutions(): void;
         finishRecordingFilesWithChangedResolutions(): Path[] | undefined;
-        resolveModuleNames(moduleNames: string[], containingFile: string, reusedNames: string[] | undefined, redirectedReference?: ResolvedProjectReference): (ResolvedModuleFull | undefined)[];
-        getResolvedModuleWithFailedLookupLocationsFromCache(moduleName: string, containingFile: string): CachedResolvedModuleWithFailedLookupLocations | undefined;
-        resolveTypeReferenceDirectives(typeDirectiveNames: string[], containingFile: string, redirectedReference?: ResolvedProjectReference): (ResolvedTypeReferenceDirective | undefined)[];
+        resolveModuleNames(moduleNames: string[], containingFile: string, reusedNames: string[] | undefined, redirectedReference?: ResolvedProjectReference, containingSourceFile?: SourceFile): (ResolvedModuleFull | undefined)[];
+        getResolvedModuleWithFailedLookupLocationsFromCache(moduleName: string, containingFile: string, resolutionMode?: ModuleKind.CommonJS | ModuleKind.ESNext): CachedResolvedModuleWithFailedLookupLocations | undefined;
+        resolveTypeReferenceDirectives(typeDirectiveNames: string[] | readonly FileReference[], containingFile: string, redirectedReference?: ResolvedProjectReference, containingFileMode?: SourceFile["impliedNodeFormat"]): (ResolvedTypeReferenceDirective | undefined)[];
         invalidateResolutionsOfFailedLookupLocations(): boolean;
         invalidateResolutionOfFile(filePath: Path): void;
         removeResolutionsOfFile(filePath: Path): void;
@@ -12829,6 +13635,7 @@ declare namespace ts {
         finishCachingPerDirectoryResolution(): void;
         updateTypeRootsWatch(): void;
         closeTypeRootsWatch(): void;
+        getModuleResolutionCache(): ModuleResolutionCache;
         clear(): void;
     }
     interface ResolutionWithFailedLookupLocations {
@@ -12856,6 +13663,7 @@ declare namespace ts {
         getCurrentProgram(): Program | undefined;
         fileIsOpen(filePath: Path): boolean;
         getCompilerHost?(): CompilerHost | undefined;
+        onDiscoveredSymlink?(): void;
     }
     export function removeIgnoredPath(path: Path): Path | undefined;
     /**
@@ -12869,17 +13677,23 @@ declare namespace ts {
     export {};
 }
 declare namespace ts.moduleSpecifiers {
-    function updateModuleSpecifier(compilerOptions: CompilerOptions, importingSourceFileName: Path, toFileName: string, host: ModuleSpecifierResolutionHost, oldImportSpecifier: string): string | undefined;
-    function getModuleSpecifier(compilerOptions: CompilerOptions, importingSourceFile: SourceFile, importingSourceFileName: Path, toFileName: string, host: ModuleSpecifierResolutionHost, preferences?: UserPreferences): string;
-    function getNodeModulesPackageName(compilerOptions: CompilerOptions, importingSourceFileName: Path, nodeModulesFileName: string, host: ModuleSpecifierResolutionHost): string | undefined;
+    function updateModuleSpecifier(compilerOptions: CompilerOptions, importingSourceFile: SourceFile, importingSourceFileName: Path, toFileName: string, host: ModuleSpecifierResolutionHost, oldImportSpecifier: string): string | undefined;
+    function getModuleSpecifier(compilerOptions: CompilerOptions, importingSourceFile: SourceFile, importingSourceFileName: Path, toFileName: string, host: ModuleSpecifierResolutionHost): string;
+    function getNodeModulesPackageName(compilerOptions: CompilerOptions, importingSourceFile: SourceFile, nodeModulesFileName: string, host: ModuleSpecifierResolutionHost, preferences: UserPreferences): string | undefined;
+    function tryGetModuleSpecifiersFromCache(moduleSymbol: Symbol, importingSourceFile: SourceFile, host: ModuleSpecifierResolutionHost, userPreferences: UserPreferences): readonly string[] | undefined;
     /** Returns an import for each symlink and for the realpath. */
     function getModuleSpecifiers(moduleSymbol: Symbol, checker: TypeChecker, compilerOptions: CompilerOptions, importingSourceFile: SourceFile, host: ModuleSpecifierResolutionHost, userPreferences: UserPreferences): readonly string[];
+    function getModuleSpecifiersWithCacheInfo(moduleSymbol: Symbol, checker: TypeChecker, compilerOptions: CompilerOptions, importingSourceFile: SourceFile, host: ModuleSpecifierResolutionHost, userPreferences: UserPreferences): {
+        moduleSpecifiers: readonly string[];
+        computedWithoutCache: boolean;
+    };
     function countPathComponents(path: string): number;
     function forEachFileNameOfModule<T>(importingFileName: string, importedFileName: string, host: ModuleSpecifierResolutionHost, preferSymlinks: boolean, cb: (fileName: string, isRedirect: boolean) => T | undefined): T | undefined;
+    function tryGetJSExtensionForFile(fileName: string, options: CompilerOptions): Extension | undefined;
 }
 declare namespace ts {
     /**
-     * Create a function that reports error by writing to the system and handles the formating of the diagnostic
+     * Create a function that reports error by writing to the system and handles the formatting of the diagnostic
      */
     export function createDiagnosticReporter(system: System, pretty?: boolean): DiagnosticReporter;
     export const screenStartingMessageCodes: number[];
@@ -12888,15 +13702,16 @@ declare namespace ts {
      */
     export function getLocaleTimeString(system: System): string;
     /**
-     * Create a function that reports watch status by writing to the system and handles the formating of the diagnostic
+     * Create a function that reports watch status by writing to the system and handles the formatting of the diagnostic
      */
     export function createWatchStatusReporter(system: System, pretty?: boolean): WatchStatusReporter;
     /** Parses config file using System interface */
-    export function parseConfigFileWithSystem(configFileName: string, optionsToExtend: CompilerOptions, watchOptionsToExtend: WatchOptions | undefined, system: System, reportDiagnostic: DiagnosticReporter): ParsedCommandLine | undefined;
+    export function parseConfigFileWithSystem(configFileName: string, optionsToExtend: CompilerOptions, extendedConfigCache: Map<ExtendedConfigCacheEntry> | undefined, watchOptionsToExtend: WatchOptions | undefined, system: System, reportDiagnostic: DiagnosticReporter): ParsedCommandLine | undefined;
     export function getErrorCountForSummary(diagnostics: readonly Diagnostic[]): number;
+    export function getFilesInErrorForSummary(diagnostics: readonly Diagnostic[]): (ReportFileInError | undefined)[];
     export function getWatchErrorSummaryDiagnosticMessage(errorCount: number): DiagnosticMessage;
-    export function getErrorSummaryText(errorCount: number, newLine: string): string;
-    export function isBuilderProgram<T extends BuilderProgram>(program: Program | T): program is T;
+    export function getErrorSummaryText(errorCount: number, filesInError: readonly (ReportFileInError | undefined)[], newLine: string, host: HasCurrentDirectory): string;
+    export function isBuilderProgram(program: Program | BuilderProgram): program is BuilderProgram;
     export function listFiles<T extends BuilderProgram>(program: Program | T, write: (s: string) => void): void;
     export function explainFiles(program: Program, write: (s: string) => void): void;
     export function explainIfFileIsRedirect(file: SourceFile, fileNameConvertor?: (fileName: string) => string): DiagnosticMessageChain[] | undefined;
@@ -12924,6 +13739,10 @@ declare namespace ts {
         WildcardDirectory: "Wild card directory";
         FailedLookupLocations: "Failed Lookup Locations";
         TypeRoots: "Type roots";
+        ConfigFileOfReferencedProject: "Config file of referened project";
+        ExtendedConfigOfReferencedProject: "Extended config file of referenced project";
+        WildcardDirectoryOfReferencedProject: "Wild card directory of referenced project";
+        PackageJson: "package.json file";
     }
     interface WatchFactory<X, Y = undefined> extends ts.WatchFactory<X, Y> {
         writeLog: (s: string) => void;
@@ -13049,9 +13868,9 @@ declare namespace ts {
         /** If provided is used to get the environment variable */
         getEnvironmentVariable?(name: string): string | undefined;
         /** If provided, used to resolve the module names, otherwise typescript's default module resolution */
-        resolveModuleNames?(moduleNames: string[], containingFile: string, reusedNames: string[] | undefined, redirectedReference: ResolvedProjectReference | undefined, options: CompilerOptions): (ResolvedModule | undefined)[];
+        resolveModuleNames?(moduleNames: string[], containingFile: string, reusedNames: string[] | undefined, redirectedReference: ResolvedProjectReference | undefined, options: CompilerOptions, containingSourceFile?: SourceFile): (ResolvedModule | undefined)[];
         /** If provided, used to resolve type reference directives, otherwise typescript's default resolution */
-        resolveTypeReferenceDirectives?(typeReferenceDirectiveNames: string[], containingFile: string, redirectedReference: ResolvedProjectReference | undefined, options: CompilerOptions): (ResolvedTypeReferenceDirective | undefined)[];
+        resolveTypeReferenceDirectives?(typeReferenceDirectiveNames: string[] | readonly FileReference[], containingFile: string, redirectedReference: ResolvedProjectReference | undefined, options: CompilerOptions, containingFileMode?: SourceFile["impliedNodeFormat"] | undefined): (ResolvedTypeReferenceDirective | undefined)[];
     }
     /** Internal interface used to wire emit through same host */
     interface ProgramHost<T extends BuilderProgram> {
@@ -13062,6 +13881,8 @@ declare namespace ts {
     interface WatchCompilerHost<T extends BuilderProgram> extends ProgramHost<T>, WatchHost {
         /** Instead of using output d.ts file from project reference, use its source file */
         useSourceOfProjectReferenceRedirect?(): boolean;
+        /** If provided, use this method to get parsed command lines for referenced projects */
+        getParsedCommandLine?(fileName: string): ParsedCommandLine | undefined;
         /** If provided, callback to invoke after every new program creation */
         afterProgramCreate?(program: T): void;
     }
@@ -13098,6 +13919,7 @@ declare namespace ts {
      */
     interface WatchCompilerHostOfConfigFile<T extends BuilderProgram> extends WatchCompilerHost<T> {
         configFileParsingResult?: ParsedCommandLine;
+        extendedConfigCache?: Map<ExtendedConfigCacheEntry>;
     }
     interface Watch<T> {
         /** Synchronize with host and get updated program */
@@ -13277,7 +14099,11 @@ declare namespace ts {
         [option: string]: CompilerOptionsValue | undefined;
     }
     type ResolvedConfigFilePath = ResolvedConfigFileName & Path;
-    type ReportEmitErrorSummary = (errorCount: number) => void;
+    type ReportEmitErrorSummary = (errorCount: number, filesInError: (ReportFileInError | undefined)[]) => void;
+    interface ReportFileInError {
+        fileName: string;
+        line: number;
+    }
     interface SolutionBuilderHostBase<T extends BuilderProgram> extends ProgramHost<T> {
         createDirectory?(path: string): void;
         /**
@@ -13285,6 +14111,7 @@ declare namespace ts {
          * writeFileCallback
          */
         writeFile?(path: string, data: string, writeByteOrderMark?: boolean): void;
+        getCustomTransformers?: (project: string) => CustomTransformers | undefined;
         getModifiedTime(fileName: string): Date | undefined;
         setModifiedTime(fileName: string, date: Date): void;
         deleteFile(fileName: string): void;
@@ -13309,9 +14136,9 @@ declare namespace ts {
     function isCircularBuildOrder(buildOrder: AnyBuildOrder): buildOrder is CircularBuildOrder;
     function getBuildOrderFromAnyBuildOrder(anyBuildOrder: AnyBuildOrder): BuildOrder;
     interface SolutionBuilder<T extends BuilderProgram> {
-        build(project?: string, cancellationToken?: CancellationToken): ExitStatus;
+        build(project?: string, cancellationToken?: CancellationToken, writeFile?: WriteFileCallback, getCustomTransformers?: (project: string) => CustomTransformers): ExitStatus;
         clean(project?: string): ExitStatus;
-        buildReferences(project: string, cancellationToken?: CancellationToken): ExitStatus;
+        buildReferences(project: string, cancellationToken?: CancellationToken, writeFile?: WriteFileCallback, getCustomTransformers?: (project: string) => CustomTransformers): ExitStatus;
         cleanReferences(project?: string): ExitStatus;
         getNextInvalidatedProject(cancellationToken?: CancellationToken): InvalidatedProject<T> | undefined;
         getBuildOrder(): AnyBuildOrder;
@@ -13405,7 +14232,7 @@ declare namespace ts.server {
     }
     function hasArgument(argumentName: string): boolean;
     function findArgument(argumentName: string): string | undefined;
-    function nowString(): `${string}:${string}:${string}.${string}`;
+    function nowString(): string;
 }
 declare namespace ts.server {
     interface TypingInstallerResponse {
@@ -13499,6 +14326,7 @@ declare namespace ts.JsTyping {
         version: Version;
     }
     function isTypingUpToDate(cachedTyping: CachedTyping, availableTypingVersions: MapLike<string>): boolean;
+    const prefixedNodeCoreModuleList: string[];
     const nodeCoreModuleList: readonly string[];
     const nodeCoreModules: Set<string>;
     function nonRelativeModuleNameForTypingCache(moduleName: string): string;
@@ -13579,6 +14407,7 @@ declare namespace ts {
         getDocumentationComment(typeChecker: TypeChecker | undefined): SymbolDisplayPart[];
         getContextualDocumentationComment(context: Node | undefined, checker: TypeChecker | undefined): SymbolDisplayPart[];
         getJsDocTags(checker?: TypeChecker): JSDocTagInfo[];
+        getContextualJsDocTags(context: Node | undefined, checker: TypeChecker | undefined): JSDocTagInfo[];
     }
     interface Type {
         getFlags(): TypeFlags;
@@ -13605,6 +14434,7 @@ declare namespace ts {
         isTypeParameter(): this is TypeParameter;
         isClassOrInterface(): this is InterfaceType;
         isClass(): this is InterfaceType;
+        isIndexType(): this is IndexType;
     }
     interface TypeReference {
         typeArguments?: readonly Type[];
@@ -13613,6 +14443,7 @@ declare namespace ts {
         getDeclaration(): SignatureDeclaration;
         getTypeParameters(): TypeParameter[] | undefined;
         getParameters(): Symbol[];
+        getTypeParameterAtPosition(pos: number): Type;
         getReturnType(): Type;
         getDocumentationComment(typeChecker: TypeChecker | undefined): SymbolDisplayPart[];
         getJsDocTags(): JSDocTagInfo[];
@@ -13708,6 +14539,11 @@ declare namespace ts {
         PartialSemantic = 1,
         Syntactic = 2
     }
+    interface IncompleteCompletionsCache {
+        get(): CompletionInfo | undefined;
+        set(response: CompletionInfo): void;
+        clear(): void;
+    }
     interface LanguageServiceHost extends GetEffectiveTypeRootsHost {
         getCompilationSettings(): CompilerOptions;
         getNewLine?(): string;
@@ -13730,13 +14566,14 @@ declare namespace ts {
         realpath?(path: string): string;
         fileExists?(path: string): boolean;
         getTypeRootsVersion?(): number;
-        resolveModuleNames?(moduleNames: string[], containingFile: string, reusedNames: string[] | undefined, redirectedReference: ResolvedProjectReference | undefined, options: CompilerOptions): (ResolvedModule | undefined)[];
-        getResolvedModuleWithFailedLookupLocationsFromCache?(modulename: string, containingFile: string): ResolvedModuleWithFailedLookupLocations | undefined;
-        resolveTypeReferenceDirectives?(typeDirectiveNames: string[], containingFile: string, redirectedReference: ResolvedProjectReference | undefined, options: CompilerOptions): (ResolvedTypeReferenceDirective | undefined)[];
+        resolveModuleNames?(moduleNames: string[], containingFile: string, reusedNames: string[] | undefined, redirectedReference: ResolvedProjectReference | undefined, options: CompilerOptions, containingSourceFile?: SourceFile): (ResolvedModule | undefined)[];
+        getResolvedModuleWithFailedLookupLocationsFromCache?(modulename: string, containingFile: string, resolutionMode?: ModuleKind.CommonJS | ModuleKind.ESNext): ResolvedModuleWithFailedLookupLocations | undefined;
+        resolveTypeReferenceDirectives?(typeDirectiveNames: string[] | FileReference[], containingFile: string, redirectedReference: ResolvedProjectReference | undefined, options: CompilerOptions, containingFileMode?: SourceFile["impliedNodeFormat"] | undefined): (ResolvedTypeReferenceDirective | undefined)[];
         hasInvalidatedResolution?: HasInvalidatedResolution;
         hasChangedAutomaticTypeDirectiveNames?: HasChangedAutomaticTypeDirectiveNames;
         getGlobalTypingsCacheLocation?(): string | undefined;
         getSymlinkCache?(files?: readonly SourceFile[]): SymlinkCache;
+        getModuleResolutionCache?(): ModuleResolutionCache | undefined;
         getDirectories?(directoryName: string): string[];
         /**
          * Gets a set of custom transformers to use during emit.
@@ -13750,11 +14587,15 @@ declare namespace ts {
         getPackageJsonsVisibleToFile?(fileName: string, rootDir?: string): readonly PackageJsonInfo[];
         getNearestAncestorDirectoryWithPackageJson?(fileName: string): string | undefined;
         getPackageJsonsForAutoImport?(rootDir?: string): readonly PackageJsonInfo[];
-        getImportSuggestionsCache?(): Completions.ImportSuggestionsForFileCache;
+        getCachedExportInfoMap?(): ExportInfoMap;
+        getModuleSpecifierCache?(): ModuleSpecifierCache;
         setCompilerHost?(host: CompilerHost): void;
         useSourceOfProjectReferenceRedirect?(): boolean;
         getPackageJsonAutoImportProvider?(): Program | undefined;
         sendPerformanceEvent?(kind: PerformanceEvent["kind"], durationMs: number): void;
+        getParsedCommandLine?(fileName: string): ParsedCommandLine | undefined;
+        onReleaseParsedCommandLine?(configFileName: string, oldResolvedRef: ResolvedProjectReference | undefined, optionOptions: CompilerOptions): void;
+        getIncompleteCompletionsCache?(): IncompleteCompletionsCache;
     }
     const emptyOptions: {};
     type WithMetadata<T> = T & {
@@ -13838,8 +14679,9 @@ declare namespace ts {
          * @param position A zero-based index of the character where you want the entries
          * @param options An object describing how the request was triggered and what kinds
          * of code actions can be returned with the completions.
+         * @param formattingSettings settings needed for calling formatting functions.
          */
-        getCompletionsAtPosition(fileName: string, position: number, options: GetCompletionsAtPositionOptions | undefined): WithMetadata<CompletionInfo> | undefined;
+        getCompletionsAtPosition(fileName: string, position: number, options: GetCompletionsAtPositionOptions | undefined, formattingSettings?: FormatCodeSettings): WithMetadata<CompletionInfo> | undefined;
         /**
          * Gets the extended details for a completion entry retrieved from `getCompletionsAtPosition`.
          *
@@ -13883,6 +14725,7 @@ declare namespace ts {
         prepareCallHierarchy(fileName: string, position: number): CallHierarchyItem | CallHierarchyItem[] | undefined;
         provideCallHierarchyIncomingCalls(fileName: string, position: number): CallHierarchyIncomingCall[];
         provideCallHierarchyOutgoingCalls(fileName: string, position: number): CallHierarchyOutgoingCall[];
+        provideInlayHints(fileName: string, span: TextSpan, preferences: UserPreferences | undefined): InlayHint[];
         getOutliningSpans(fileName: string): OutliningSpan[];
         getTodoComments(fileName: string, descriptors: TodoCommentDescriptor[]): TodoComment[];
         getBraceMatchingAtPosition(fileName: string, position: number): TextSpan[];
@@ -13916,7 +14759,7 @@ declare namespace ts {
         applyCodeActionCommand(fileName: string, action: CodeActionCommand | CodeActionCommand[]): Promise<ApplyCodeActionCommandResult | ApplyCodeActionCommandResult[]>;
         getApplicableRefactors(fileName: string, positionOrRange: number | TextRange, preferences: UserPreferences | undefined, triggerReason?: RefactorTriggerReason, kind?: string): ApplicableRefactorInfo[];
         getEditsForRefactor(fileName: string, formatOptions: FormatCodeSettings, positionOrRange: number | TextRange, refactorName: string, actionName: string, preferences: UserPreferences | undefined): RefactorEditInfo | undefined;
-        organizeImports(scope: OrganizeImportsScope, formatOptions: FormatCodeSettings, preferences: UserPreferences | undefined): readonly FileTextChanges[];
+        organizeImports(args: OrganizeImportsArgs, formatOptions: FormatCodeSettings, preferences: UserPreferences | undefined): readonly FileTextChanges[];
         getEditsForFileRename(oldFilePath: string, newFilePath: string, formatOptions: FormatCodeSettings, preferences: UserPreferences | undefined): readonly FileTextChanges[];
         getEmitOutput(fileName: string, emitOnlyDtsFiles?: boolean, forceDtsEmit?: boolean): EmitOutput;
         getProgram(): Program | undefined;
@@ -13935,14 +14778,25 @@ declare namespace ts {
         type: "file";
         fileName: string;
     }
-    type OrganizeImportsScope = CombinedCodeFixScope;
-    type CompletionsTriggerCharacter = "." | '"' | "'" | "`" | "/" | "@" | "<" | "#";
+    interface OrganizeImportsArgs extends CombinedCodeFixScope {
+        skipDestructiveCodeActions?: boolean;
+    }
+    type CompletionsTriggerCharacter = "." | '"' | "'" | "`" | "/" | "@" | "<" | "#" | " ";
+    enum CompletionTriggerKind {
+        /** Completion was triggered by typing an identifier, manual invocation (e.g Ctrl+Space) or via API. */
+        Invoked = 1,
+        /** Completion was triggered by a trigger character. */
+        TriggerCharacter = 2,
+        /** Completion was re-triggered as the current completion list is incomplete. */
+        TriggerForIncompleteCompletions = 3
+    }
     interface GetCompletionsAtPositionOptions extends UserPreferences {
         /**
          * If the editor is asking for completions because a certain character was typed
          * (as opposed to when the user explicitly requested them) this should be set.
          */
         triggerCharacter?: CompletionsTriggerCharacter;
+        triggerKind?: CompletionTriggerKind;
         /** @deprecated Use includeCompletionsForModuleExports */
         includeExternalModuleExports?: boolean;
         /** @deprecated Use includeCompletionsWithInsertText */
@@ -14052,6 +14906,18 @@ declare namespace ts {
     interface CallHierarchyOutgoingCall {
         to: CallHierarchyItem;
         fromSpans: TextSpan[];
+    }
+    enum InlayHintKind {
+        Type = "Type",
+        Parameter = "Parameter",
+        Enum = "Enum"
+    }
+    interface InlayHint {
+        text: string;
+        position: number;
+        kind: InlayHintKind;
+        whitespaceBefore?: boolean;
+        whitespaceAfter?: boolean;
     }
     interface TodoCommentDescriptor {
         text: string;
@@ -14427,27 +15293,41 @@ declare namespace ts {
          * true when the current location also allows for a new identifier
          */
         isNewIdentifierLocation: boolean;
+        /**
+         * Indicates to client to continue requesting completions on subsequent keystrokes.
+         */
+        isIncomplete?: true;
         entries: CompletionEntry[];
     }
-    interface CompletionEntryData {
+    interface CompletionEntryDataAutoImport {
+        /**
+         * The name of the property or export in the module's symbol table. Differs from the completion name
+         * in the case of InternalSymbolName.ExportEquals and InternalSymbolName.Default.
+         */
+        exportName: string;
+        moduleSpecifier?: string;
         /** The file name declaring the export's module symbol, if it was an external module */
         fileName?: string;
         /** The module name (with quotes stripped) of the export's module symbol, if it was an ambient module */
         ambientModuleName?: string;
         /** True if the export was found in the package.json AutoImportProvider */
         isPackageJsonImport?: true;
-        /**
-         * The name of the property or export in the module's symbol table. Differs from the completion name
-         * in the case of InternalSymbolName.ExportEquals and InternalSymbolName.Default.
-         */
-        exportName: string;
     }
+    interface CompletionEntryDataUnresolved extends CompletionEntryDataAutoImport {
+        /** The key in the `ExportMapCache` where the completion entry's `SymbolExportInfo[]` is found */
+        exportMapKey: string;
+    }
+    interface CompletionEntryDataResolved extends CompletionEntryDataAutoImport {
+        moduleSpecifier: string;
+    }
+    type CompletionEntryData = CompletionEntryDataUnresolved | CompletionEntryDataResolved;
     interface CompletionEntry {
         name: string;
         kind: ScriptElementKind;
         kindModifiers?: string;
         sortText: string;
         insertText?: string;
+        isSnippet?: true;
         /**
          * An optional span that indicates the text to be replaced by this completion item.
          * If present, this span should be used instead of the default one.
@@ -14456,9 +15336,11 @@ declare namespace ts {
         replacementSpan?: TextSpan;
         hasAction?: true;
         source?: string;
+        sourceDisplay?: SymbolDisplayPart[];
         isRecommended?: true;
         isFromUncheckedFile?: true;
         isPackageJsonImport?: true;
+        isImportStatementCompletion?: true;
         /**
          * A property to be sent back to TS Server in the CompletionDetailsRequest, along with `name`,
          * that allows TS Server to look up the symbol represented by the completion item, disambiguating
@@ -14477,7 +15359,9 @@ declare namespace ts {
         documentation?: SymbolDisplayPart[];
         tags?: JSDocTagInfo[];
         codeActions?: CodeAction[];
+        /** @deprecated Use `sourceDisplay` instead. */
         source?: SymbolDisplayPart[];
+        sourceDisplay?: SymbolDisplayPart[];
     }
     interface OutliningSpan {
         /** The span of the document to actually collapse. */
@@ -14608,7 +15492,10 @@ declare namespace ts {
          * interface Y { foo:number; }
          */
         memberVariableElement = "property",
-        /** class X { constructor() { } } */
+        /**
+         * class X { constructor() { } }
+         * class X { static { } }
+         */
         constructorImplementationElement = "constructor",
         /** interface Y { ():number; } */
         callSignatureElement = "call",
@@ -14628,6 +15515,7 @@ declare namespace ts {
         externalModuleName = "external module name",
         /**
          * <JsxTagName attribute1 attribute2={0} />
+         * @deprecated
          */
         jsxAttribute = "JSX attribute",
         /** String literal */
@@ -14655,7 +15543,13 @@ declare namespace ts {
         tsxModifier = ".tsx",
         jsModifier = ".js",
         jsxModifier = ".jsx",
-        jsonModifier = ".json"
+        jsonModifier = ".json",
+        dmtsModifier = ".d.mts",
+        mtsModifier = ".mts",
+        mjsModifier = ".mjs",
+        dctsModifier = ".d.cts",
+        ctsModifier = ".cts",
+        cjsModifier = ".cjs"
     }
     enum ClassificationTypeNames {
         comment = "comment",
@@ -14754,6 +15648,14 @@ declare namespace ts {
         triggerReason?: RefactorTriggerReason;
         kind?: string;
     }
+    interface InlayHintsContext {
+        file: SourceFile;
+        program: Program;
+        cancellationToken: CancellationToken;
+        host: LanguageServiceHost;
+        span: TextSpan;
+        preferences: UserPreferences;
+    }
 }
 interface PromiseConstructor {
     new <T>(executor: (resolve: (value?: T | PromiseLike<T>) => void, reject: (reason?: any) => void) => void): Promise<T>;
@@ -14821,7 +15723,7 @@ declare namespace ts {
     function hasChildOfKind(n: Node, kind: SyntaxKind, sourceFile: SourceFile): boolean;
     function findChildOfKind<T extends Node>(n: Node, kind: T["kind"], sourceFile: SourceFileLike): T | undefined;
     function findContainingList(node: Node): SyntaxList | undefined;
-    function getContextualTypeOrAncestorTypeNodeType(node: Expression, checker: TypeChecker): Type | undefined;
+    function getContextualTypeFromParentOrAncestorTypeNode(node: Expression, checker: TypeChecker): Type | undefined;
     /**
      * Adjusts the location used for "find references" and "go to definition" when the cursor was not
      * on a property name.
@@ -14843,6 +15745,11 @@ declare namespace ts {
     function getTouchingToken(sourceFile: SourceFile, position: number, includePrecedingTokenAtEndPosition?: (n: Node) => boolean): Node;
     /** Returns a token if position is in [start-of-leading-trivia, end) */
     function getTokenAtPosition(sourceFile: SourceFile, position: number): Node;
+    /**
+     * Returns the first token where position is in [start, end),
+     * excluding `JsxText` tokens containing only whitespace.
+     */
+    function findFirstNonJsxWhitespaceToken(sourceFile: SourceFile, position: number): Node | undefined;
     /**
      * The token on the left of the position is the token that strictly includes the position
      * or sits to the left of the cursor if it is on a boundary. For example
@@ -14908,6 +15815,7 @@ declare namespace ts {
     const typeKeywords: readonly SyntaxKind[];
     function isTypeKeyword(kind: SyntaxKind): boolean;
     function isTypeKeywordToken(node: Node): node is Token<SyntaxKind.TypeKeyword>;
+    function isTypeKeywordTokenOrIdentifier(node: Node): boolean;
     /** True if the symbol is for an external module, as opposed to a namespace. */
     function isExternalModuleSymbol(moduleSymbol: Symbol): boolean;
     /** Returns `true` the first time it encounters a node and `false` afterwards. */
@@ -14918,8 +15826,8 @@ declare namespace ts {
     function skipConstraint(type: Type): Type;
     function getNameFromPropertyName(name: PropertyName): string | undefined;
     function programContainsModules(program: Program): boolean;
-    function programContainsEs6Modules(program: Program): boolean;
-    function compilerOptionsIndicateEs6Modules(compilerOptions: CompilerOptions): boolean;
+    function programContainsEsModules(program: Program): boolean;
+    function compilerOptionsIndicateEsModules(compilerOptions: CompilerOptions): boolean;
     function createModuleSpecifierResolutionHost(program: Program, host: LanguageServiceHost): ModuleSpecifierResolutionHost;
     function getModuleSpecifierResolverHost(program: Program, host: LanguageServiceHost): SymbolTracker["moduleResolverHost"];
     function makeImportIfNecessary(defaultImport: Identifier | undefined, namedImports: readonly ImportSpecifier[] | undefined, moduleSpecifier: string, quotePreference: QuotePreference): ImportDeclaration | undefined;
@@ -14953,19 +15861,23 @@ declare namespace ts {
      */
     function forEachUnique<T, U>(array: readonly T[] | undefined, callback: (element: T, index: number) => U): U | undefined;
     function isTextWhiteSpaceLike(text: string, startPos: number, endPos: number): boolean;
-    function isFirstDeclarationOfSymbolParameter(symbol: Symbol): boolean | undefined;
+    function isFirstDeclarationOfSymbolParameter(symbol: Symbol): boolean;
     function symbolPart(text: string, symbol: Symbol): SymbolDisplayPart;
     function displayPart(text: string, kind: SymbolDisplayPartKind): SymbolDisplayPart;
     function spacePart(): SymbolDisplayPart;
     function keywordPart(kind: SyntaxKind): SymbolDisplayPart;
     function punctuationPart(kind: SyntaxKind): SymbolDisplayPart;
     function operatorPart(kind: SyntaxKind): SymbolDisplayPart;
+    function parameterNamePart(text: string): SymbolDisplayPart;
+    function propertyNamePart(text: string): SymbolDisplayPart;
     function textOrKeywordPart(text: string): SymbolDisplayPart;
     function textPart(text: string): SymbolDisplayPart;
+    function typeAliasNamePart(text: string): SymbolDisplayPart;
+    function typeParameterNamePart(text: string): SymbolDisplayPart;
     function linkTextPart(text: string): SymbolDisplayPart;
-    function linkNamePart(name: EntityName, target: Declaration): JSDocLinkDisplayPart;
+    function linkNamePart(text: string, target: Declaration): JSDocLinkDisplayPart;
     function linkPart(text: string): SymbolDisplayPart;
-    function buildLinkParts(link: JSDocLink, checker?: TypeChecker): SymbolDisplayPart[];
+    function buildLinkParts(link: JSDocLink | JSDocLinkCode | JSDocLinkPlain, checker?: TypeChecker): SymbolDisplayPart[];
     /**
      * The default is CRLF.
      */
@@ -15031,9 +15943,6 @@ declare namespace ts {
     function getSwitchedType(caseClause: CaseClause, checker: TypeChecker): Type | undefined;
     const ANONYMOUS = "anonymous function";
     function getTypeNodeIfAccessible(type: Type, enclosingScope: Node, program: Program, host: LanguageServiceHost): TypeNode | undefined;
-    function syntaxRequiresTrailingCommaOrSemicolonOrASI(kind: SyntaxKind): boolean;
-    function syntaxRequiresTrailingFunctionBlockOrSemicolonOrASI(kind: SyntaxKind): boolean;
-    function syntaxRequiresTrailingModuleBlockOrSemicolonOrASI(kind: SyntaxKind): boolean;
     function syntaxRequiresTrailingSemicolonOrASI(kind: SyntaxKind): boolean;
     const syntaxMayBeASICandidate: (kind: SyntaxKind) => boolean;
     function positionIsASICandidate(pos: number, context: Node, sourceFile: SourceFileLike): boolean;
@@ -15050,12 +15959,24 @@ declare namespace ts {
     function createPackageJsonInfo(fileName: string, host: {
         readFile?(fileName: string): string | undefined;
     }): PackageJsonInfo | undefined;
+    interface PackageJsonImportFilter {
+        allowsImportingAmbientModule: (moduleSymbol: Symbol, moduleSpecifierResolutionHost: ModuleSpecifierResolutionHost) => boolean;
+        allowsImportingSourceFile: (sourceFile: SourceFile, moduleSpecifierResolutionHost: ModuleSpecifierResolutionHost) => boolean;
+        /**
+         * Use for a specific module specifier that has already been resolved.
+         * Use `allowsImportingAmbientModule` or `allowsImportingSourceFile` to resolve
+         * the best module specifier for a given module _and_ determine if it’s importable.
+         */
+        allowsImportingSpecifier: (moduleSpecifier: string) => boolean;
+    }
+    function createPackageJsonImportFilter(fromFile: SourceFile, preferences: UserPreferences, host: LanguageServiceHost): PackageJsonImportFilter;
     function consumesNodeCoreModules(sourceFile: SourceFile): boolean;
     function isInsideNodeModules(fileOrDirectory: string): boolean;
     function isDiagnosticWithLocation(diagnostic: Diagnostic): diagnostic is DiagnosticWithLocation;
     function findDiagnosticForNode(node: Node, sortedFileDiagnostics: readonly Diagnostic[]): DiagnosticWithLocation | undefined;
     function getDiagnosticsWithinSpan(span: TextSpan, sortedFileDiagnostics: readonly Diagnostic[]): readonly DiagnosticWithLocation[];
     function getRefactorContextSpan({ startPosition, endPosition }: RefactorContext): TextSpan;
+    function getFixableErrorSpanExpression(sourceFile: SourceFile, span: TextSpan): Expression | undefined;
     /**
      * If the provided value is an array, the mapping function is applied to each element; otherwise, the mapping function is applied
      * to the provided value itself.
@@ -15068,7 +15989,8 @@ declare namespace ts {
      * If the provided value is an array, the first element of the array is returned; otherwise, the provided value is returned instead.
      */
     function firstOrOnly<T>(valueOrArray: T | readonly T[]): T;
-    function getNameForExportedSymbol(symbol: Symbol, scriptTarget: ScriptTarget | undefined): string;
+    function getNamesForExportedSymbol(symbol: Symbol, scriptTarget: ScriptTarget | undefined): string | [lowercase: string, capitalized: string];
+    function getNameForExportedSymbol(symbol: Symbol, scriptTarget: ScriptTarget | undefined, preferCapitalized?: boolean): string;
     /**
      * Useful to check whether a string contains another string at a specific index
      * without allocating another string or traversing the entire contents of the outer string.
@@ -15091,6 +16013,65 @@ declare namespace ts {
     function startsWithUnderscore(name: string): boolean;
     function isGlobalDeclaration(declaration: Declaration): boolean;
     function isNonGlobalDeclaration(declaration: Declaration): boolean;
+    function isDeprecatedDeclaration(decl: Declaration): boolean;
+    function shouldUseUriStyleNodeCoreModules(file: SourceFile, program: Program): boolean;
+    function getNewLineKind(newLineCharacter: string): NewLineKind;
+    type DiagnosticAndArguments = DiagnosticMessage | [DiagnosticMessage, string] | [DiagnosticMessage, string, string];
+    function diagnosticToString(diag: DiagnosticAndArguments): string;
+    /**
+     * Get format code settings for a code writing context (e.g. when formatting text changes or completions code).
+     */
+    function getFormatCodeSettingsForWriting({ options }: formatting.FormatContext, sourceFile: SourceFile): FormatCodeSettings;
+    function jsxModeNeedsExplicitImport(jsx: JsxEmit | undefined): boolean;
+}
+declare namespace ts {
+    enum ImportKind {
+        Named = 0,
+        Default = 1,
+        Namespace = 2,
+        CommonJS = 3
+    }
+    enum ExportKind {
+        Named = 0,
+        Default = 1,
+        ExportEquals = 2,
+        UMD = 3
+    }
+    interface SymbolExportInfo {
+        readonly symbol: Symbol;
+        readonly moduleSymbol: Symbol;
+        /** Set if `moduleSymbol` is an external module, not an ambient module */
+        moduleFileName: string | undefined;
+        exportKind: ExportKind;
+        targetFlags: SymbolFlags;
+        /** True if export was only found via the package.json AutoImportProvider (for telemetry). */
+        isFromPackageJson: boolean;
+    }
+    interface ExportInfoMap {
+        isUsableByFile(importingFile: Path): boolean;
+        clear(): void;
+        add(importingFile: Path, symbol: Symbol, key: __String, moduleSymbol: Symbol, moduleFile: SourceFile | undefined, exportKind: ExportKind, isFromPackageJson: boolean, checker: TypeChecker): void;
+        get(importingFile: Path, key: string): readonly SymbolExportInfo[] | undefined;
+        search(importingFile: Path, preferCapitalized: boolean, matches: (name: string, targetFlags: SymbolFlags) => boolean, action: (info: readonly SymbolExportInfo[], symbolName: string, isFromAmbientModule: boolean, key: string) => void): void;
+        releaseSymbols(): void;
+        isEmpty(): boolean;
+        /** @returns Whether the change resulted in the cache being cleared */
+        onFileChanged(oldSourceFile: SourceFile, newSourceFile: SourceFile, typeAcquisitionEnabled: boolean): boolean;
+    }
+    interface CacheableExportInfoMapHost {
+        getCurrentProgram(): Program | undefined;
+        getPackageJsonAutoImportProvider(): Program | undefined;
+    }
+    function createCacheableExportInfoMap(host: CacheableExportInfoMapHost): ExportInfoMap;
+    function isImportableFile(program: Program, from: SourceFile, to: SourceFile, preferences: UserPreferences, packageJsonFilter: PackageJsonImportFilter | undefined, moduleSpecifierResolutionHost: ModuleSpecifierResolutionHost, moduleSpecifierCache: ModuleSpecifierCache | undefined): boolean;
+    function forEachExternalModuleToImportFrom(program: Program, host: LanguageServiceHost, useAutoImportProvider: boolean, cb: (module: Symbol, moduleFile: SourceFile | undefined, program: Program, isFromPackageJson: boolean) => void): void;
+    function getExportInfoMap(importingFile: SourceFile, host: LanguageServiceHost, program: Program, cancellationToken: CancellationToken | undefined): ExportInfoMap;
+    function getDefaultLikeExportInfo(moduleSymbol: Symbol, checker: TypeChecker, compilerOptions: CompilerOptions): {
+        symbolForMeaning: Symbol;
+        name: string;
+        symbol: Symbol;
+        exportKind: ExportKind;
+    } | undefined;
 }
 declare namespace ts {
     /** The classifier is used for syntactic highlighting in editors via the TSServer */
@@ -15133,21 +16114,43 @@ declare namespace ts.classifier.v2020 {
     function getEncodedSemanticClassifications(program: Program, cancellationToken: CancellationToken, sourceFile: SourceFile, span: TextSpan): Classifications;
 }
 declare namespace ts.Completions.StringCompletions {
-    function getStringLiteralCompletions(sourceFile: SourceFile, position: number, contextToken: Node | undefined, checker: TypeChecker, options: CompilerOptions, host: LanguageServiceHost, log: Log, preferences: UserPreferences): CompletionInfo | undefined;
+    function getStringLiteralCompletions(sourceFile: SourceFile, position: number, contextToken: Node | undefined, options: CompilerOptions, host: LanguageServiceHost, program: Program, log: Log, preferences: UserPreferences): CompletionInfo | undefined;
     function getStringLiteralCompletionDetails(name: string, sourceFile: SourceFile, position: number, contextToken: Node | undefined, checker: TypeChecker, options: CompilerOptions, host: LanguageServiceHost, cancellationToken: CancellationToken, preferences: UserPreferences): CompletionEntryDetails | undefined;
 }
 declare namespace ts.Completions {
-    export enum SortText {
-        LocalDeclarationPriority = "0",
-        LocationPriority = "1",
-        OptionalMember = "2",
-        MemberDeclaredBySpreadAssignment = "3",
-        SuggestedClassMembers = "4",
-        GlobalsOrKeywords = "5",
-        AutoImportSuggestions = "6",
-        JavascriptIdentifiers = "7"
-    }
+    export const moduleSpecifierResolutionLimit = 100;
+    export const moduleSpecifierResolutionCacheAttemptLimit = 1000;
     export type Log = (message: string) => void;
+    export enum SortText {
+        LocalDeclarationPriority = "10",
+        LocationPriority = "11",
+        OptionalMember = "12",
+        MemberDeclaredBySpreadAssignment = "13",
+        SuggestedClassMembers = "14",
+        GlobalsOrKeywords = "15",
+        AutoImportSuggestions = "16",
+        JavascriptIdentifiers = "17",
+        DeprecatedLocalDeclarationPriority = "18",
+        DeprecatedLocationPriority = "19",
+        DeprecatedOptionalMember = "20",
+        DeprecatedMemberDeclaredBySpreadAssignment = "21",
+        DeprecatedSuggestedClassMembers = "22",
+        DeprecatedGlobalsOrKeywords = "23",
+        DeprecatedAutoImportSuggestions = "24"
+    }
+    enum SortTextId {
+        LocalDeclarationPriority = 10,
+        LocationPriority = 11,
+        OptionalMember = 12,
+        MemberDeclaredBySpreadAssignment = 13,
+        SuggestedClassMembers = 14,
+        GlobalsOrKeywords = 15,
+        AutoImportSuggestions = 16,
+        _JavaScriptIdentifiers = 17,
+        _DeprecatedStart = 18,
+        _First = 10,
+        DeprecatedOffset = 8
+    }
     /**
      * Special values for `CompletionInfo['source']` used to disambiguate
      * completion items with the same `name`. (Each completion item must
@@ -15161,7 +16164,11 @@ declare namespace ts.Completions {
      */
     export enum CompletionSource {
         /** Completions that require `this.` insertion text */
-        ThisProperty = "ThisProperty/"
+        ThisProperty = "ThisProperty/",
+        /** Auto-import that comes attached to a class member snippet */
+        ClassMemberSnippet = "ClassMemberSnippet/",
+        /** A type-only import that needs to be promoted in order to be used at the completion location */
+        TypeOnlyAlias = "TypeOnlyAlias/"
     }
     enum SymbolOriginInfoKind {
         ThisType = 1,
@@ -15169,18 +16176,15 @@ declare namespace ts.Completions {
         Export = 4,
         Promise = 8,
         Nullable = 16,
+        ResolvedExport = 32,
+        TypeOnlyAlias = 64,
         SymbolMemberNoExport = 2,
         SymbolMemberExport = 6
     }
     interface SymbolOriginInfo {
         kind: SymbolOriginInfoKind;
-    }
-    interface SymbolOriginInfoExport extends SymbolOriginInfo {
-        kind: SymbolOriginInfoKind;
-        moduleSymbol: Symbol;
-        isDefaultExport: boolean;
+        isDefaultExport?: boolean;
         isFromPackageJson?: boolean;
-        exportName: string;
         fileName?: string;
     }
     interface UniqueNameSet {
@@ -15188,25 +16192,14 @@ declare namespace ts.Completions {
         has(name: string): boolean;
     }
     /**
-     * Map from symbol id -> SymbolOriginInfo.
+     * Map from symbol index in `symbols` -> SymbolOriginInfo.
      * Only populated for symbols that come from other modules.
      */
-    type SymbolOriginInfoMap = (SymbolOriginInfo | SymbolOriginInfoExport | undefined)[];
-    type SymbolSortTextMap = (SortText | undefined)[];
-    export interface AutoImportSuggestion {
-        symbol: Symbol;
-        symbolName: string;
-        origin: SymbolOriginInfoExport;
-    }
-    export interface ImportSuggestionsForFileCache {
-        clear(): void;
-        get(fileName: string, checker: TypeChecker, projectVersion?: string): readonly AutoImportSuggestion[] | undefined;
-        set(fileName: string, suggestions: readonly AutoImportSuggestion[], projectVersion?: string): void;
-        isEmpty(): boolean;
-    }
-    export function createImportSuggestionsForFileCache(): ImportSuggestionsForFileCache;
-    export function getCompletionsAtPosition(host: LanguageServiceHost, program: Program, log: Log, sourceFile: SourceFile, position: number, preferences: UserPreferences, triggerCharacter: CompletionsTriggerCharacter | undefined): CompletionInfo | undefined;
-    export function getCompletionEntriesFromSymbols(symbols: readonly Symbol[], entries: Push<CompletionEntry>, contextToken: Node | undefined, location: Node | undefined, sourceFile: SourceFile, typeChecker: TypeChecker, target: ScriptTarget, log: Log, kind: CompletionKind, preferences: UserPreferences, propertyAccessToConvert?: PropertyAccessExpression, jsxIdentifierExpected?: boolean, isJsxInitializer?: IsJsxInitializer, recommendedCompletion?: Symbol, symbolToOriginInfoMap?: SymbolOriginInfoMap, symbolToSortTextMap?: SymbolSortTextMap): UniqueNameSet;
+    type SymbolOriginInfoMap = Record<number, SymbolOriginInfo>;
+    /** Map from symbol id -> SortTextId. */
+    type SymbolSortTextIdMap = (SortTextId | undefined)[];
+    export function getCompletionsAtPosition(host: LanguageServiceHost, program: Program, log: Log, sourceFile: SourceFile, position: number, preferences: UserPreferences, triggerCharacter: CompletionsTriggerCharacter | undefined, completionKind: CompletionTriggerKind | undefined, cancellationToken: CancellationToken, formatContext?: formatting.FormatContext): CompletionInfo | undefined;
+    export function getCompletionEntriesFromSymbols(symbols: readonly Symbol[], entries: SortedArray<CompletionEntry>, replacementToken: Node | undefined, contextToken: Node | undefined, location: Node, sourceFile: SourceFile, host: LanguageServiceHost, program: Program, target: ScriptTarget, log: Log, kind: CompletionKind, preferences: UserPreferences, compilerOptions: CompilerOptions, formatContext: formatting.FormatContext | undefined, isTypeOnlyLocation?: boolean, propertyAccessToConvert?: PropertyAccessExpression, jsxIdentifierExpected?: boolean, isJsxInitializer?: IsJsxInitializer, importCompletionNode?: Node, recommendedCompletion?: Symbol, symbolToOriginInfoMap?: SymbolOriginInfoMap, symbolToSortTextIdMap?: SymbolSortTextIdMap, isJsxIdentifierExpected?: boolean, isRightOfOpenTag?: boolean): UniqueNameSet;
     export interface CompletionEntryIdentifier {
         name: string;
         source?: string;
@@ -15295,9 +16288,24 @@ declare namespace ts {
          * @param fileName The name of the file to be released
          * @param compilationSettings The compilation settings used to acquire the file
          */
+        /**@deprecated pass scriptKind for correctness */
         releaseDocument(fileName: string, compilationSettings: CompilerOptions): void;
+        /**
+         * Informs the DocumentRegistry that a file is not needed any longer.
+         *
+         * Note: It is not allowed to call release on a SourceFile that was not acquired from
+         * this registry originally.
+         *
+         * @param fileName The name of the file to be released
+         * @param compilationSettings The compilation settings used to acquire the file
+         * @param scriptKind The script kind of the file to be released
+         */
+        releaseDocument(fileName: string, compilationSettings: CompilerOptions, scriptKind: ScriptKind): void;
+        /**
+         * @deprecated pass scriptKind for correctness */
         releaseDocumentWithKey(path: Path, key: DocumentRegistryBucketKey): void;
-        getLanguageServiceRefCounts(path: Path): [string, number | undefined][];
+        releaseDocumentWithKey(path: Path, key: DocumentRegistryBucketKey, scriptKind: ScriptKind): void;
+        getLanguageServiceRefCounts(path: Path, scriptKind: ScriptKind): [string, number | undefined][];
         reportStats(): string;
     }
     interface ExternalDocumentCache {
@@ -15466,7 +16474,7 @@ declare namespace ts.FindAllReferences {
     type ToReferenceOrRenameEntry<T> = (entry: Entry, originalNode: Node, checker: TypeChecker) => T;
     function getReferenceEntriesForNode(position: number, node: Node, program: Program, sourceFiles: readonly SourceFile[], cancellationToken: CancellationToken, options?: Options, sourceFilesSet?: ReadonlySet<string>): readonly Entry[] | undefined;
     function toRenameLocation(entry: Entry, originalNode: Node, checker: TypeChecker, providePrefixAndSuffixText: boolean): RenameLocation;
-    function toReferenceEntry(entry: Entry): ReferenceEntry;
+    function toReferenceEntry(entry: Entry, symbol: Symbol | undefined): ReferenceEntry;
     function toHighlightSpan(entry: Entry): {
         fileName: string;
         span: HighlightSpan;
@@ -15518,7 +16526,7 @@ declare namespace ts.CallHierarchy {
     };
     type CallHierarchyDeclaration = SourceFile | ModuleDeclaration & {
         name: Identifier;
-    } | FunctionDeclaration | ClassDeclaration | MethodDeclaration | GetAccessorDeclaration | SetAccessorDeclaration | NamedExpression | ConstNamedExpression;
+    } | FunctionDeclaration | ClassDeclaration | ClassStaticBlockDeclaration | MethodDeclaration | GetAccessorDeclaration | SetAccessorDeclaration | NamedExpression | ConstNamedExpression;
     /** Resolves the call hierarchy declaration for a node. */
     function resolveCallHierarchyDeclaration(program: Program, location: Node): CallHierarchyDeclaration | CallHierarchyDeclaration[] | undefined;
     /** Creates a `CallHierarchyItem` for a call hierarchy declaration. */
@@ -15595,7 +16603,7 @@ declare namespace ts.OrganizeImports {
      *   2) Coalescing imports from the same module
      *   3) Sorting imports
      */
-    function organizeImports(sourceFile: SourceFile, formatContext: formatting.FormatContext, host: LanguageServiceHost, program: Program, preferences: UserPreferences): FileTextChanges[];
+    function organizeImports(sourceFile: SourceFile, formatContext: formatting.FormatContext, host: LanguageServiceHost, program: Program, preferences: UserPreferences, skipDestructiveCodeActions?: boolean): FileTextChanges[];
     /**
      * @param importGroup a list of ImportDeclarations, all with the same module name.
      */
@@ -15640,6 +16648,7 @@ declare namespace ts {
 }
 declare namespace ts.Rename {
     function getRenameInfo(program: Program, sourceFile: SourceFile, position: number, options?: RenameInfoOptions): RenameInfo;
+    function nodeIsEligibleForRename(node: Node): boolean;
 }
 declare namespace ts.SmartSelectionRange {
     function getSmartSelectionRange(pos: number, sourceFile: SourceFile): SelectionRange;
@@ -15652,6 +16661,9 @@ declare namespace ts.SignatureHelp {
         readonly argumentCount: number;
     }
     function getArgumentInfoForCompletions(node: Node, position: number, sourceFile: SourceFile): ArgumentInfoForCompletions | undefined;
+}
+declare namespace ts.InlayHints {
+    function provideInlayHints(context: InlayHintsContext): InlayHint[];
 }
 declare namespace ts {
     interface SourceMapper {
@@ -15680,10 +16692,12 @@ declare namespace ts {
 }
 declare namespace ts {
     function computeSuggestionDiagnostics(sourceFile: SourceFile, program: Program, cancellationToken: CancellationToken): DiagnosticWithLocation[];
+    function returnsPromise(node: FunctionLikeDeclaration, checker: TypeChecker): boolean;
     function isReturnStatementWithFixablePromiseHandler(node: Node, checker: TypeChecker): node is ReturnStatement & {
         expression: CallExpression;
     };
     function isFixablePromiseHandler(node: Node, checker: TypeChecker): boolean;
+    function canBeConvertedToAsync(node: Node): node is FunctionDeclaration | MethodDeclaration | FunctionExpression | ArrowFunction;
 }
 declare namespace ts.SymbolDisplay {
     function getSymbolKind(typeChecker: TypeChecker, symbol: Symbol, location: Node): ScriptElementKind;
@@ -15752,6 +16766,7 @@ declare namespace ts.formatting {
 declare namespace ts.formatting {
     interface FormattingScanner {
         advance(): void;
+        getStartPos(): number;
         isOnToken(): boolean;
         isOnEOF(): boolean;
         readTokenInfo(n: Node): TokenInfo;
@@ -15888,13 +16903,13 @@ declare namespace ts.formatting {
     }
 }
 declare namespace ts.textChanges {
-    interface ConfigurableStart {
+    export interface ConfigurableStart {
         leadingTriviaOption?: LeadingTriviaOption;
     }
-    interface ConfigurableEnd {
+    export interface ConfigurableEnd {
         trailingTriviaOption?: TrailingTriviaOption;
     }
-    enum LeadingTriviaOption {
+    export enum LeadingTriviaOption {
         /** Exclude all leading trivia (use getStart()) */
         Exclude = 0,
         /** Include leading trivia and,
@@ -15912,7 +16927,7 @@ declare namespace ts.textChanges {
          */
         StartLine = 3
     }
-    enum TrailingTriviaOption {
+    export enum TrailingTriviaOption {
         /** Exclude all trailing trivia (use getEnd()) */
         Exclude = 0,
         /** Doesn't include whitespace, but does strip comments */
@@ -15933,9 +16948,9 @@ declare namespace ts.textChanges {
      * If pos\end should be interpreted literally (that is, withouth including leading and trailing trivia), `leadingTriviaOption` should be set to `LeadingTriviaOption.Exclude`
      * and `trailingTriviaOption` to `TrailingTriviaOption.Exclude`.
      */
-    interface ConfigurableStartEnd extends ConfigurableStart, ConfigurableEnd {
+    export interface ConfigurableStartEnd extends ConfigurableStart, ConfigurableEnd {
     }
-    interface InsertNodeOptions {
+    export interface InsertNodeOptions {
         /**
          * Text to be inserted before the new node
          */
@@ -15957,20 +16972,20 @@ declare namespace ts.textChanges {
          */
         preserveLeadingWhitespace?: boolean;
     }
-    interface ReplaceWithMultipleNodesOptions extends InsertNodeOptions {
+    export interface ReplaceWithMultipleNodesOptions extends InsertNodeOptions {
         readonly joiner?: string;
     }
-    interface ChangeNodeOptions extends ConfigurableStartEnd, InsertNodeOptions {
+    export interface ChangeNodeOptions extends ConfigurableStartEnd, InsertNodeOptions {
     }
-    interface TextChangesContext {
+    export interface TextChangesContext {
         host: LanguageServiceHost;
         formatContext: formatting.FormatContext;
         preferences: UserPreferences;
     }
-    type TypeAnnotatable = SignatureDeclaration | VariableDeclaration | ParameterDeclaration | PropertyDeclaration | PropertySignature;
-    type ThisTypeAnnotatable = FunctionDeclaration | FunctionExpression;
-    function isThisTypeAnnotatable(containingFunction: SignatureDeclaration): containingFunction is ThisTypeAnnotatable;
-    class ChangeTracker {
+    export type TypeAnnotatable = SignatureDeclaration | VariableDeclaration | ParameterDeclaration | PropertyDeclaration | PropertySignature;
+    export type ThisTypeAnnotatable = FunctionDeclaration | FunctionExpression;
+    export function isThisTypeAnnotatable(containingFunction: SignatureDeclaration): containingFunction is ThisTypeAnnotatable;
+    export class ChangeTracker {
         private readonly newLineCharacter;
         private readonly formatContext;
         private readonly changes;
@@ -15984,7 +16999,9 @@ declare namespace ts.textChanges {
         pushRaw(sourceFile: SourceFile, change: FileTextChanges): void;
         deleteRange(sourceFile: SourceFile, range: TextRange): void;
         delete(sourceFile: SourceFile, node: Node | NodeArray<TypeParameterDeclaration>): void;
+        /** Stop! Consider using `delete` instead, which has logic for deleting nodes from delimited lists. */
         deleteNode(sourceFile: SourceFile, node: Node, options?: ConfigurableStartEnd): void;
+        deleteNodes(sourceFile: SourceFile, nodes: readonly Node[], options: ConfigurableStartEnd | undefined, hasTrailingComment: boolean): void;
         deleteModifier(sourceFile: SourceFile, modifier: Modifier): void;
         deleteNodeRange(sourceFile: SourceFile, startNode: Node, endNode: Node, options?: ConfigurableStartEnd): void;
         deleteNodeRangeExcludingEnd(sourceFile: SourceFile, startNode: Node, afterEndNode: Node | undefined, options?: ConfigurableStartEnd): void;
@@ -15995,6 +17012,7 @@ declare namespace ts.textChanges {
         replaceNodeWithNodes(sourceFile: SourceFile, oldNode: Node, newNodes: readonly Node[], options?: ChangeNodeOptions): void;
         replaceNodeWithText(sourceFile: SourceFile, oldNode: Node, text: string): void;
         replaceNodeRangeWithNodes(sourceFile: SourceFile, startNode: Node, endNode: Node, newNodes: readonly Node[], options?: ReplaceWithMultipleNodesOptions & ConfigurableStartEnd): void;
+        nodeHasTrailingComment(sourceFile: SourceFile, oldNode: Node, configurableEnd?: ConfigurableEnd): boolean;
         private nextCommaToken;
         replacePropertyAssignment(sourceFile: SourceFile, oldNode: PropertyAssignment, newNode: PropertyAssignment): void;
         insertNodeAt(sourceFile: SourceFile, pos: number, newNode: Node, options?: InsertNodeOptions): void;
@@ -16008,6 +17026,10 @@ declare namespace ts.textChanges {
         insertModifierBefore(sourceFile: SourceFile, modifier: SyntaxKind, before: Node): void;
         insertCommentBeforeLine(sourceFile: SourceFile, lineNumber: number, position: number, commentText: string): void;
         insertJsdocCommentBefore(sourceFile: SourceFile, node: HasJSDoc, tag: JSDoc): void;
+        private createJSDocText;
+        replaceJSDocComment(sourceFile: SourceFile, node: HasJSDoc, tags: readonly JSDocTag[]): void;
+        addJSDocTags(sourceFile: SourceFile, parent: HasJSDoc, newTags: readonly JSDocTag[]): void;
+        filterJSDocTags(sourceFile: SourceFile, parent: HasJSDoc, predicate: (tag: JSDocTag) => boolean): void;
         replaceRangeWithText(sourceFile: SourceFile, range: TextRange, text: string): void;
         insertText(sourceFile: SourceFile, pos: number, text: string): void;
         /** Prefer this over replacing a node with another that has a type annotation, as it avoids reformatting the other parts of the node. */
@@ -16016,6 +17038,7 @@ declare namespace ts.textChanges {
         insertTypeParameters(sourceFile: SourceFile, node: SignatureDeclaration, typeParameters: readonly TypeParameterDeclaration[]): void;
         private getOptionsForInsertNodeBefore;
         insertNodeAtConstructorStart(sourceFile: SourceFile, ctr: ConstructorDeclaration, newStatement: Statement): void;
+        insertNodeAtConstructorStartAfterSuperCall(sourceFile: SourceFile, ctr: ConstructorDeclaration, newStatement: Statement): void;
         insertNodeAtConstructorEnd(sourceFile: SourceFile, ctr: ConstructorDeclaration, newStatement: Statement): void;
         private replaceConstructorBody;
         insertNodeAtEndOfScope(sourceFile: SourceFile, scope: Node, newNode: Node): void;
@@ -16038,6 +17061,7 @@ declare namespace ts.textChanges {
         private getInsertNodeAfterOptionsWorker;
         insertName(sourceFile: SourceFile, node: FunctionExpression | ClassExpression | ArrowFunction, name: string): void;
         insertExportModifier(sourceFile: SourceFile, node: DeclarationStatement | VariableStatement): void;
+        insertImportSpecifierAtIndex(sourceFile: SourceFile, importSpecifier: ImportSpecifier, namedImports: NamedImports, index: number): void;
         /**
          * This function should be used to insert nodes in lists when nodes don't carry separators as the part of the node range,
          * i.e. arguments in arguments lists, parameters in parameter lists etc.
@@ -16056,17 +17080,22 @@ declare namespace ts.textChanges {
         getChanges(validate?: ValidateNonFormattedText): FileTextChanges[];
         createNewFile(oldFile: SourceFile | undefined, fileName: string, statements: readonly (Statement | SyntaxKind.NewLineTrivia)[]): void;
     }
-    type ValidateNonFormattedText = (node: Node, text: string) => void;
-    function getNewFileText(statements: readonly Statement[], scriptKind: ScriptKind, newLineCharacter: string, formatContext: formatting.FormatContext): string;
-    function applyChanges(text: string, changes: readonly TextChange[]): string;
-    function isValidLocationToAddComment(sourceFile: SourceFile, position: number): boolean;
+    export type ValidateNonFormattedText = (node: Node, text: string) => void;
+    export function getNewFileText(statements: readonly Statement[], scriptKind: ScriptKind, newLineCharacter: string, formatContext: formatting.FormatContext): string;
+    export function applyChanges(text: string, changes: readonly TextChange[]): string;
+    export function assignPositionsToNode(node: Node): Node;
+    interface TextChangesWriter extends EmitTextWriter, PrintHandlers {
+    }
+    export function createWriter(newLine: string): TextChangesWriter;
+    export function isValidLocationToAddComment(sourceFile: SourceFile, position: number): boolean;
     /** Warning: This deletes comments too. See `copyComments` in `convertFunctionToEs6Class`. */
-    function deleteNode(changes: ChangeTracker, sourceFile: SourceFile, node: Node, options?: ConfigurableStartEnd): void;
+    export function deleteNode(changes: ChangeTracker, sourceFile: SourceFile, node: Node, options?: ConfigurableStartEnd): void;
+    export {};
 }
 declare namespace ts.codefix {
-    type DiagnosticAndArguments = DiagnosticMessage | [DiagnosticMessage, string] | [DiagnosticMessage, string, string];
     function createCodeFixActionWithoutFixAll(fixName: string, changes: FileTextChanges[], description: DiagnosticAndArguments): CodeFixAction;
     function createCodeFixAction(fixName: string, changes: FileTextChanges[], description: DiagnosticAndArguments, fixId: {}, fixAllDescription: DiagnosticAndArguments, command?: CodeActionCommand): CodeFixAction;
+    function createCodeFixActionMaybeFixAll(fixName: string, changes: FileTextChanges[], description: DiagnosticAndArguments, fixId?: {}, fixAllDescription?: DiagnosticAndArguments, command?: CodeActionCommand): CodeFixAction;
     function registerCodeFix(reg: CodeFixRegistration): void;
     function getSupportedErrorCodes(): string[];
     function getFixes(context: CodeFixContext): readonly CodeFixAction[];
@@ -16081,6 +17110,8 @@ declare namespace ts.refactor {
     function registerRefactor(name: string, refactor: Refactor): void;
     function getApplicableRefactors(context: RefactorContext): ApplicableRefactorInfo[];
     function getEditsForRefactor(context: RefactorContext, refactorName: string, actionName: string): RefactorEditInfo | undefined;
+}
+declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
 }
@@ -16121,24 +17152,29 @@ declare namespace ts.codefix {
 declare namespace ts.codefix {
     const importFixName = "import";
     interface ImportAdder {
+        hasFixes(): boolean;
         addImportFromDiagnostic: (diagnostic: DiagnosticWithLocation, context: CodeFixContextBase) => void;
-        addImportFromExportedSymbol: (exportedSymbol: Symbol, usageIsTypeOnly?: boolean) => void;
+        addImportFromExportedSymbol: (exportedSymbol: Symbol, isValidTypeOnlyUseSite?: boolean) => void;
         writeFixes: (changeTracker: textChanges.ChangeTracker) => void;
     }
     function createImportAdder(sourceFile: SourceFile, program: Program, preferences: UserPreferences, host: LanguageServiceHost): ImportAdder;
-    enum ImportKind {
-        Named = 0,
-        Default = 1,
-        Namespace = 2,
-        CommonJS = 3
-    }
-    function getImportCompletionAction(exportedSymbol: Symbol, moduleSymbol: Symbol, sourceFile: SourceFile, symbolName: string, host: LanguageServiceHost, program: Program, formatContext: formatting.FormatContext, position: number, preferences: UserPreferences): {
+    function getImportCompletionAction(targetSymbol: Symbol, moduleSymbol: Symbol, sourceFile: SourceFile, symbolName: string, isJsxTagName: boolean, host: LanguageServiceHost, program: Program, formatContext: formatting.FormatContext, position: number, preferences: UserPreferences): {
         readonly moduleSpecifier: string;
         readonly codeAction: CodeAction;
     };
-    function forEachExternalModuleToImportFrom(program: Program, host: LanguageServiceHost, from: SourceFile, filterByPackageJson: boolean, useAutoImportProvider: boolean, cb: (module: Symbol, moduleFile: SourceFile | undefined, program: Program, isFromPackageJson: boolean) => void): void;
-    function moduleSymbolToValidIdentifier(moduleSymbol: Symbol, target: ScriptTarget | undefined): string;
-    function moduleSpecifierToValidIdentifier(moduleSpecifier: string, target: ScriptTarget | undefined): string;
+    function getPromoteTypeOnlyCompletionAction(sourceFile: SourceFile, symbolToken: Identifier, program: Program, host: LanguageServiceHost, formatContext: formatting.FormatContext, preferences: UserPreferences): CodeAction | undefined;
+    function getModuleSpecifierForBestExportInfo(exportInfo: readonly SymbolExportInfo[], importingFile: SourceFile, program: Program, host: LanguageServiceHost, preferences: UserPreferences, packageJsonImportFilter?: PackageJsonImportFilter, fromCacheOnly?: boolean): {
+        exportInfo?: SymbolExportInfo;
+        moduleSpecifier: string;
+        computedWithoutCacheCount: number;
+    } | undefined;
+    /**
+     * @param forceImportKeyword Indicates that the user has already typed `import`, so the result must start with `import`.
+     * (In other words, do not allow `const x = require("...")` for JS files.)
+     */
+    function getImportKind(importingFile: SourceFile, exportKind: ExportKind, compilerOptions: CompilerOptions, forceImportKeyword?: boolean): ImportKind;
+    function moduleSymbolToValidIdentifier(moduleSymbol: Symbol, target: ScriptTarget | undefined, forceCapitalize: boolean): string;
+    function moduleSpecifierToValidIdentifier(moduleSpecifier: string, target: ScriptTarget | undefined, forceCapitalize?: boolean): string;
 }
 declare namespace ts.codefix {
 }
@@ -16191,7 +17227,10 @@ declare namespace ts.codefix {
 declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
-    function addJSDocTags(changes: textChanges.ChangeTracker, sourceFile: SourceFile, parent: HasJSDoc, newTags: readonly JSDocTag[]): void;
+}
+declare namespace ts.codefix {
+}
+declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
 }
@@ -16205,29 +17244,42 @@ declare namespace ts.codefix {
      * @param importAdder If provided, type annotations will use identifier type references instead of ImportTypeNodes, and the missing imports will be added to the importAdder.
      * @returns Empty string iff there are no member insertions.
      */
-    function createMissingMemberNodes(classDeclaration: ClassLikeDeclaration, possiblyMissingSymbols: readonly Symbol[], sourceFile: SourceFile, context: TypeConstructionContext, preferences: UserPreferences, importAdder: ImportAdder | undefined, addClassElement: (node: ClassElement) => void): void;
-    function getNoopSymbolTrackerWithResolver(context: TypeConstructionContext): SymbolTracker;
-    interface TypeConstructionContext {
+    export function createMissingMemberNodes(classDeclaration: ClassLikeDeclaration, possiblyMissingSymbols: readonly Symbol[], sourceFile: SourceFile, context: TypeConstructionContext, preferences: UserPreferences, importAdder: ImportAdder | undefined, addClassElement: (node: AddNode) => void): void;
+    export function getNoopSymbolTrackerWithResolver(context: TypeConstructionContext): SymbolTracker;
+    export interface TypeConstructionContext {
         program: Program;
         host: LanguageServiceHost;
     }
-    function createSignatureDeclarationFromCallExpression(kind: SyntaxKind.MethodDeclaration | SyntaxKind.FunctionDeclaration, context: CodeFixContextBase, importAdder: ImportAdder, call: CallExpression, name: Identifier | string, modifierFlags: ModifierFlags, contextNode: Node): FunctionDeclaration | MethodDeclaration;
-    function typeToAutoImportableTypeNode(checker: TypeChecker, importAdder: ImportAdder, type: Type, contextNode: Node | undefined, scriptTarget: ScriptTarget, flags?: NodeBuilderFlags, tracker?: SymbolTracker): TypeNode | undefined;
-    function createStubbedBody(text: string, quotePreference: QuotePreference): Block;
-    function setJsonCompilerOptionValues(changeTracker: textChanges.ChangeTracker, configFile: TsConfigSourceFile, options: [string, Expression][]): undefined;
-    function setJsonCompilerOptionValue(changeTracker: textChanges.ChangeTracker, configFile: TsConfigSourceFile, optionName: string, optionValue: Expression): void;
-    function createJsonPropertyAssignment(name: string, initializer: Expression): PropertyAssignment;
-    function findJsonProperty(obj: ObjectLiteralExpression, name: string): PropertyAssignment | undefined;
+    type AddNode = PropertyDeclaration | GetAccessorDeclaration | SetAccessorDeclaration | MethodDeclaration | FunctionExpression | ArrowFunction;
+    export enum PreserveOptionalFlags {
+        Method = 1,
+        Property = 2,
+        All = 3
+    }
+    /**
+     * `addClassElement` will not be called if we can't figure out a representation for `symbol` in `enclosingDeclaration`.
+     * @param body If defined, this will be the body of the member node passed to `addClassElement`. Otherwise, the body will default to a stub.
+     */
+    export function addNewNodeForMemberSymbol(symbol: Symbol, enclosingDeclaration: ClassLikeDeclaration, sourceFile: SourceFile, context: TypeConstructionContext, preferences: UserPreferences, importAdder: ImportAdder | undefined, addClassElement: (node: AddNode) => void, body: Block | undefined, preserveOptional?: PreserveOptionalFlags, isAmbient?: boolean): void;
+    export function createSignatureDeclarationFromSignature(kind: SyntaxKind.MethodDeclaration | SyntaxKind.FunctionExpression | SyntaxKind.ArrowFunction, context: TypeConstructionContext, quotePreference: QuotePreference, signature: Signature, body: Block | undefined, name: PropertyName | undefined, modifiers: NodeArray<Modifier> | undefined, optional: boolean | undefined, enclosingDeclaration: Node | undefined, importAdder: ImportAdder | undefined): MethodDeclaration | FunctionExpression | ArrowFunction | undefined;
+    export function createSignatureDeclarationFromCallExpression(kind: SyntaxKind.MethodDeclaration | SyntaxKind.FunctionDeclaration, context: CodeFixContextBase, importAdder: ImportAdder, call: CallExpression, name: Identifier | string, modifierFlags: ModifierFlags, contextNode: Node): FunctionDeclaration | MethodDeclaration;
+    export function typeToAutoImportableTypeNode(checker: TypeChecker, importAdder: ImportAdder, type: Type, contextNode: Node | undefined, scriptTarget: ScriptTarget, flags?: NodeBuilderFlags, tracker?: SymbolTracker): TypeNode | undefined;
+    export function createStubbedBody(text: string, quotePreference: QuotePreference): Block;
+    export function setJsonCompilerOptionValues(changeTracker: textChanges.ChangeTracker, configFile: TsConfigSourceFile, options: [string, Expression][]): undefined;
+    export function setJsonCompilerOptionValue(changeTracker: textChanges.ChangeTracker, configFile: TsConfigSourceFile, optionName: string, optionValue: Expression): void;
+    export function createJsonPropertyAssignment(name: string, initializer: Expression): PropertyAssignment;
+    export function findJsonProperty(obj: ObjectLiteralExpression, name: string): PropertyAssignment | undefined;
     /**
      * Given a type node containing 'import("./a").SomeType<import("./b").OtherType<...>>',
      * returns an equivalent type reference node with any nested ImportTypeNodes also replaced
      * with type references, and a list of symbols that must be imported to use the type reference.
      */
-    function tryGetAutoImportableReferenceFromTypeNode(importTypeNode: TypeNode | undefined, scriptTarget: ScriptTarget): {
+    export function tryGetAutoImportableReferenceFromTypeNode(importTypeNode: TypeNode | undefined, scriptTarget: ScriptTarget): {
         typeNode: TypeNode;
         symbols: Symbol[];
     } | undefined;
-    function importSymbols(importAdder: ImportAdder, symbols: readonly Symbol[]): void;
+    export function importSymbols(importAdder: ImportAdder, symbols: readonly Symbol[]): void;
+    export {};
 }
 declare namespace ts.codefix {
     type AcceptedDeclaration = ParameterPropertyDeclaration | PropertyDeclaration | PropertyAssignment;
@@ -16292,8 +17344,8 @@ declare namespace ts.refactor.extractSymbol {
      * Compute the associated code actions
      * Exported for tests.
      */
-    function getAvailableActions(context: RefactorContext): readonly ApplicableRefactorInfo[];
-    function getEditsForAction(context: RefactorContext, actionName: string): RefactorEditInfo | undefined;
+    function getRefactorActionsToExtractSymbol(context: RefactorContext): readonly ApplicableRefactorInfo[];
+    function getRefactorEditsToExtractSymbol(context: RefactorContext, actionName: string): RefactorEditInfo | undefined;
     namespace Messages {
         const cannotExtractRange: DiagnosticMessage;
         const cannotExtractImport: DiagnosticMessage;
@@ -16315,7 +17367,6 @@ declare namespace ts.refactor.extractSymbol {
         const cannotExtractReadonlyPropertyInitializerOutsideConstructor: DiagnosticMessage;
         const cannotExtractAmbientBlock: DiagnosticMessage;
         const cannotAccessVariablesFromNestedScopes: DiagnosticMessage;
-        const cannotExtractToOtherFunctionLike: DiagnosticMessage;
         const cannotExtractToJSClass: DiagnosticMessage;
         const cannotExtractToExpressionArrowFunction: DiagnosticMessage;
     }
@@ -16370,7 +17421,7 @@ declare namespace ts.refactor.generateGetAccessorAndSetAccessor {
 }
 declare namespace ts.refactor {
     /**
-     * Returned by refactor funtions when some error message needs to be surfaced to users.
+     * Returned by refactor functions when some error message needs to be surfaced to users.
      */
     interface RefactorErrorInfo {
         error: string;
@@ -16549,7 +17600,7 @@ declare namespace ts {
         getSemanticClassifications(fileName: string, start: number, length: number, format?: SemanticClassificationFormat): string;
         getEncodedSyntacticClassifications(fileName: string, start: number, length: number): string;
         getEncodedSemanticClassifications(fileName: string, start: number, length: number, format?: SemanticClassificationFormat): string;
-        getCompletionsAtPosition(fileName: string, position: number, preferences: UserPreferences | undefined): string;
+        getCompletionsAtPosition(fileName: string, position: number, preferences: UserPreferences | undefined, formattingSettings: FormatCodeSettings | undefined): string;
         getCompletionEntryDetails(fileName: string, position: number, entryName: string, formatOptions: string | undefined, source: string | undefined, preferences: UserPreferences | undefined, data: CompletionEntryData | undefined): string;
         getQuickInfoAtPosition(fileName: string, position: number): string;
         getNameOrDottedNameSpan(fileName: string, startPos: number, endPos: number): string;
@@ -16655,6 +17706,7 @@ declare namespace ts {
         prepareCallHierarchy(fileName: string, position: number): string;
         provideCallHierarchyIncomingCalls(fileName: string, position: number): string;
         provideCallHierarchyOutgoingCalls(fileName: string, position: number): string;
+        provideInlayHints(fileName: string, span: TextSpan, preference: UserPreferences | undefined): string;
         getEmitOutput(fileName: string): string;
         getEmitOutputObject(fileName: string): EmitOutput;
         toggleLineComment(fileName: string, textChange: TextRange): string;
@@ -16678,7 +17730,7 @@ declare namespace ts {
         private loggingEnabled;
         private tracingEnabled;
         resolveModuleNames: ((moduleName: string[], containingFile: string) => (ResolvedModuleFull | undefined)[]) | undefined;
-        resolveTypeReferenceDirectives: ((typeDirectiveNames: string[], containingFile: string) => (ResolvedTypeReferenceDirective | undefined)[]) | undefined;
+        resolveTypeReferenceDirectives: ((typeDirectiveNames: string[] | readonly FileReference[], containingFile: string) => (ResolvedTypeReferenceDirective | undefined)[]) | undefined;
         directoryExists: ((directoryName: string) => boolean) | undefined;
         constructor(shimHost: LanguageServiceShimHost);
         log(s: string): void;
@@ -16773,7 +17825,7 @@ declare namespace ts {
     /** @deprecated Use `factory.createModifier` or the factory supplied by your transformation context instead. */
     const createModifier: <T extends ModifierSyntaxKind>(kind: T) => ModifierToken<T>;
     /** @deprecated Use `factory.createModifiersFromModifierFlags` or the factory supplied by your transformation context instead. */
-    const createModifiersFromModifierFlags: (flags: ModifierFlags) => Modifier[];
+    const createModifiersFromModifierFlags: (flags: ModifierFlags) => Modifier[] | undefined;
     /** @deprecated Use `factory.createQualifiedName` or the factory supplied by your transformation context instead. */
     const createQualifiedName: (left: EntityName, right: string | Identifier) => QualifiedName;
     /** @deprecated Use `factory.updateQualifiedName` or the factory supplied by your transformation context instead. */
@@ -16843,9 +17895,9 @@ declare namespace ts {
     /** @deprecated Use `factory.updateConstructorTypeNode` or the factory supplied by your transformation context instead. */
     const updateConstructorTypeNode: (node: ConstructorTypeNode, typeParameters: NodeArray<TypeParameterDeclaration> | undefined, parameters: NodeArray<ParameterDeclaration>, type: TypeNode) => ConstructorTypeNode;
     /** @deprecated Use `factory.createTypeQueryNode` or the factory supplied by your transformation context instead. */
-    const createTypeQueryNode: (exprName: EntityName) => TypeQueryNode;
+    const createTypeQueryNode: (exprName: EntityName, typeArguments?: readonly TypeNode[] | undefined) => TypeQueryNode;
     /** @deprecated Use `factory.updateTypeQueryNode` or the factory supplied by your transformation context instead. */
-    const updateTypeQueryNode: (node: TypeQueryNode, exprName: EntityName) => TypeQueryNode;
+    const updateTypeQueryNode: (node: TypeQueryNode, exprName: EntityName, typeArguments?: readonly TypeNode[] | undefined) => TypeQueryNode;
     /** @deprecated Use `factory.createTypeLiteralNode` or the factory supplied by your transformation context instead. */
     const createTypeLiteralNode: (members: readonly TypeElement[] | undefined) => TypeLiteralNode;
     /** @deprecated Use `factory.updateTypeLiteralNode` or the factory supplied by your transformation context instead. */
@@ -16899,9 +17951,9 @@ declare namespace ts {
     /** @deprecated Use `factory.updateIndexedAccessTypeNode` or the factory supplied by your transformation context instead. */
     const updateIndexedAccessTypeNode: (node: IndexedAccessTypeNode, objectType: TypeNode, indexType: TypeNode) => IndexedAccessTypeNode;
     /** @deprecated Use `factory.createMappedTypeNode` or the factory supplied by your transformation context instead. */
-    const createMappedTypeNode: (readonlyToken: ReadonlyKeyword | PlusToken | MinusToken | undefined, typeParameter: TypeParameterDeclaration, nameType: TypeNode | undefined, questionToken: QuestionToken | PlusToken | MinusToken | undefined, type: TypeNode | undefined) => MappedTypeNode;
+    const createMappedTypeNode: (readonlyToken: ReadonlyKeyword | PlusToken | MinusToken | undefined, typeParameter: TypeParameterDeclaration, nameType: TypeNode | undefined, questionToken: QuestionToken | PlusToken | MinusToken | undefined, type: TypeNode | undefined, members: NodeArray<TypeElement> | undefined) => MappedTypeNode;
     /** @deprecated Use `factory.updateMappedTypeNode` or the factory supplied by your transformation context instead. */
-    const updateMappedTypeNode: (node: MappedTypeNode, readonlyToken: ReadonlyKeyword | PlusToken | MinusToken | undefined, typeParameter: TypeParameterDeclaration, nameType: TypeNode | undefined, questionToken: QuestionToken | PlusToken | MinusToken | undefined, type: TypeNode | undefined) => MappedTypeNode;
+    const updateMappedTypeNode: (node: MappedTypeNode, readonlyToken: ReadonlyKeyword | PlusToken | MinusToken | undefined, typeParameter: TypeParameterDeclaration, nameType: TypeNode | undefined, questionToken: QuestionToken | PlusToken | MinusToken | undefined, type: TypeNode | undefined, members: NodeArray<TypeElement> | undefined) => MappedTypeNode;
     /** @deprecated Use `factory.createLiteralTypeNode` or the factory supplied by your transformation context instead. */
     const createLiteralTypeNode: (literal: LiteralExpression | BooleanLiteral | PrefixUnaryExpression | NullLiteral) => LiteralTypeNode;
     /** @deprecated Use `factory.updateLiteralTypeNode` or the factory supplied by your transformation context instead. */
@@ -17169,9 +18221,9 @@ declare namespace ts {
     /** @deprecated Use `factory.updateImportEqualsDeclaration` or the factory supplied by your transformation context instead. */
     const updateImportEqualsDeclaration: (node: ImportEqualsDeclaration, decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, isTypeOnly: boolean, name: Identifier, moduleReference: ModuleReference) => ImportEqualsDeclaration;
     /** @deprecated Use `factory.createImportDeclaration` or the factory supplied by your transformation context instead. */
-    const createImportDeclaration: (decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, importClause: ImportClause | undefined, moduleSpecifier: Expression) => ImportDeclaration;
+    const createImportDeclaration: (decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, importClause: ImportClause | undefined, moduleSpecifier: Expression, assertClause?: AssertClause | undefined) => ImportDeclaration;
     /** @deprecated Use `factory.updateImportDeclaration` or the factory supplied by your transformation context instead. */
-    const updateImportDeclaration: (node: ImportDeclaration, decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, importClause: ImportClause | undefined, moduleSpecifier: Expression) => ImportDeclaration;
+    const updateImportDeclaration: (node: ImportDeclaration, decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, importClause: ImportClause | undefined, moduleSpecifier: Expression, assertClause: AssertClause | undefined) => ImportDeclaration;
     /** @deprecated Use `factory.createNamespaceImport` or the factory supplied by your transformation context instead. */
     const createNamespaceImport: (name: Identifier) => NamespaceImport;
     /** @deprecated Use `factory.updateNamespaceImport` or the factory supplied by your transformation context instead. */
@@ -17181,9 +18233,9 @@ declare namespace ts {
     /** @deprecated Use `factory.updateNamedImports` or the factory supplied by your transformation context instead. */
     const updateNamedImports: (node: NamedImports, elements: readonly ImportSpecifier[]) => NamedImports;
     /** @deprecated Use `factory.createImportSpecifier` or the factory supplied by your transformation context instead. */
-    const createImportSpecifier: (propertyName: Identifier | undefined, name: Identifier) => ImportSpecifier;
+    const createImportSpecifier: (isTypeOnly: boolean, propertyName: Identifier | undefined, name: Identifier) => ImportSpecifier;
     /** @deprecated Use `factory.updateImportSpecifier` or the factory supplied by your transformation context instead. */
-    const updateImportSpecifier: (node: ImportSpecifier, propertyName: Identifier | undefined, name: Identifier) => ImportSpecifier;
+    const updateImportSpecifier: (node: ImportSpecifier, isTypeOnly: boolean, propertyName: Identifier | undefined, name: Identifier) => ImportSpecifier;
     /** @deprecated Use `factory.createExportAssignment` or the factory supplied by your transformation context instead. */
     const createExportAssignment: (decorators: readonly Decorator[] | undefined, modifiers: readonly Modifier[] | undefined, isExportEquals: boolean | undefined, expression: Expression) => ExportAssignment;
     /** @deprecated Use `factory.updateExportAssignment` or the factory supplied by your transformation context instead. */
@@ -17193,9 +18245,9 @@ declare namespace ts {
     /** @deprecated Use `factory.updateNamedExports` or the factory supplied by your transformation context instead. */
     const updateNamedExports: (node: NamedExports, elements: readonly ExportSpecifier[]) => NamedExports;
     /** @deprecated Use `factory.createExportSpecifier` or the factory supplied by your transformation context instead. */
-    const createExportSpecifier: (propertyName: string | Identifier | undefined, name: string | Identifier) => ExportSpecifier;
+    const createExportSpecifier: (isTypeOnly: boolean, propertyName: string | Identifier | undefined, name: string | Identifier) => ExportSpecifier;
     /** @deprecated Use `factory.updateExportSpecifier` or the factory supplied by your transformation context instead. */
-    const updateExportSpecifier: (node: ExportSpecifier, propertyName: Identifier | undefined, name: Identifier) => ExportSpecifier;
+    const updateExportSpecifier: (node: ExportSpecifier, isTypeOnly: boolean, propertyName: Identifier | undefined, name: Identifier) => ExportSpecifier;
     /** @deprecated Use `factory.createExternalModuleReference` or the factory supplied by your transformation context instead. */
     const createExternalModuleReference: (expression: Expression) => ExternalModuleReference;
     /** @deprecated Use `factory.updateExternalModuleReference` or the factory supplied by your transformation context instead. */
@@ -17203,51 +18255,51 @@ declare namespace ts {
     /** @deprecated Use `factory.createJSDocTypeExpression` or the factory supplied by your transformation context instead. */
     const createJSDocTypeExpression: (type: TypeNode) => JSDocTypeExpression;
     /** @deprecated Use `factory.createJSDocTypeTag` or the factory supplied by your transformation context instead. */
-    const createJSDocTypeTag: (tagName: Identifier | undefined, typeExpression: JSDocTypeExpression, comment?: string | NodeArray<JSDocText | JSDocLink> | undefined) => JSDocTypeTag;
+    const createJSDocTypeTag: (tagName: Identifier | undefined, typeExpression: JSDocTypeExpression, comment?: string | NodeArray<JSDocComment> | undefined) => JSDocTypeTag;
     /** @deprecated Use `factory.createJSDocReturnTag` or the factory supplied by your transformation context instead. */
-    const createJSDocReturnTag: (tagName: Identifier | undefined, typeExpression?: JSDocTypeExpression | undefined, comment?: string | NodeArray<JSDocText | JSDocLink> | undefined) => JSDocReturnTag;
+    const createJSDocReturnTag: (tagName: Identifier | undefined, typeExpression?: JSDocTypeExpression | undefined, comment?: string | NodeArray<JSDocComment> | undefined) => JSDocReturnTag;
     /** @deprecated Use `factory.createJSDocThisTag` or the factory supplied by your transformation context instead. */
-    const createJSDocThisTag: (tagName: Identifier | undefined, typeExpression: JSDocTypeExpression, comment?: string | NodeArray<JSDocText | JSDocLink> | undefined) => JSDocThisTag;
+    const createJSDocThisTag: (tagName: Identifier | undefined, typeExpression: JSDocTypeExpression, comment?: string | NodeArray<JSDocComment> | undefined) => JSDocThisTag;
     /** @deprecated Use `factory.createJSDocComment` or the factory supplied by your transformation context instead. */
-    const createJSDocComment: (comment?: string | NodeArray<JSDocText | JSDocLink> | undefined, tags?: readonly JSDocTag[] | undefined) => JSDoc;
+    const createJSDocComment: (comment?: string | NodeArray<JSDocComment> | undefined, tags?: readonly JSDocTag[] | undefined) => JSDoc;
     /** @deprecated Use `factory.createJSDocParameterTag` or the factory supplied by your transformation context instead. */
-    const createJSDocParameterTag: (tagName: Identifier | undefined, name: EntityName, isBracketed: boolean, typeExpression?: JSDocTypeExpression | undefined, isNameFirst?: boolean | undefined, comment?: string | NodeArray<JSDocText | JSDocLink> | undefined) => JSDocParameterTag;
+    const createJSDocParameterTag: (tagName: Identifier | undefined, name: EntityName, isBracketed: boolean, typeExpression?: JSDocTypeExpression | undefined, isNameFirst?: boolean | undefined, comment?: string | NodeArray<JSDocComment> | undefined) => JSDocParameterTag;
     /** @deprecated Use `factory.createJSDocClassTag` or the factory supplied by your transformation context instead. */
-    const createJSDocClassTag: (tagName: Identifier | undefined, comment?: string | NodeArray<JSDocText | JSDocLink> | undefined) => JSDocClassTag;
+    const createJSDocClassTag: (tagName: Identifier | undefined, comment?: string | NodeArray<JSDocComment> | undefined) => JSDocClassTag;
     /** @deprecated Use `factory.createJSDocAugmentsTag` or the factory supplied by your transformation context instead. */
     const createJSDocAugmentsTag: (tagName: Identifier | undefined, className: ExpressionWithTypeArguments & {
         readonly expression: Identifier | PropertyAccessEntityNameExpression;
-    }, comment?: string | NodeArray<JSDocText | JSDocLink> | undefined) => JSDocAugmentsTag;
+    }, comment?: string | NodeArray<JSDocComment> | undefined) => JSDocAugmentsTag;
     /** @deprecated Use `factory.createJSDocEnumTag` or the factory supplied by your transformation context instead. */
-    const createJSDocEnumTag: (tagName: Identifier | undefined, typeExpression: JSDocTypeExpression, comment?: string | NodeArray<JSDocText | JSDocLink> | undefined) => JSDocEnumTag;
+    const createJSDocEnumTag: (tagName: Identifier | undefined, typeExpression: JSDocTypeExpression, comment?: string | NodeArray<JSDocComment> | undefined) => JSDocEnumTag;
     /** @deprecated Use `factory.createJSDocTemplateTag` or the factory supplied by your transformation context instead. */
-    const createJSDocTemplateTag: (tagName: Identifier | undefined, constraint: JSDocTypeExpression | undefined, typeParameters: readonly TypeParameterDeclaration[], comment?: string | NodeArray<JSDocText | JSDocLink> | undefined) => JSDocTemplateTag;
+    const createJSDocTemplateTag: (tagName: Identifier | undefined, constraint: JSDocTypeExpression | undefined, typeParameters: readonly TypeParameterDeclaration[], comment?: string | NodeArray<JSDocComment> | undefined) => JSDocTemplateTag;
     /** @deprecated Use `factory.createJSDocTypedefTag` or the factory supplied by your transformation context instead. */
-    const createJSDocTypedefTag: (tagName: Identifier | undefined, typeExpression?: JSDocTypeLiteral | JSDocTypeExpression | undefined, fullName?: Identifier | JSDocNamespaceDeclaration | undefined, comment?: string | NodeArray<JSDocText | JSDocLink> | undefined) => JSDocTypedefTag;
+    const createJSDocTypedefTag: (tagName: Identifier | undefined, typeExpression?: JSDocTypeLiteral | JSDocTypeExpression | undefined, fullName?: Identifier | JSDocNamespaceDeclaration | undefined, comment?: string | NodeArray<JSDocComment> | undefined) => JSDocTypedefTag;
     /** @deprecated Use `factory.createJSDocCallbackTag` or the factory supplied by your transformation context instead. */
-    const createJSDocCallbackTag: (tagName: Identifier | undefined, typeExpression: JSDocSignature, fullName?: Identifier | JSDocNamespaceDeclaration | undefined, comment?: string | NodeArray<JSDocText | JSDocLink> | undefined) => JSDocCallbackTag;
+    const createJSDocCallbackTag: (tagName: Identifier | undefined, typeExpression: JSDocSignature, fullName?: Identifier | JSDocNamespaceDeclaration | undefined, comment?: string | NodeArray<JSDocComment> | undefined) => JSDocCallbackTag;
     /** @deprecated Use `factory.createJSDocSignature` or the factory supplied by your transformation context instead. */
     const createJSDocSignature: (typeParameters: readonly JSDocTemplateTag[] | undefined, parameters: readonly JSDocParameterTag[], type?: JSDocReturnTag | undefined) => JSDocSignature;
     /** @deprecated Use `factory.createJSDocPropertyTag` or the factory supplied by your transformation context instead. */
-    const createJSDocPropertyTag: (tagName: Identifier | undefined, name: EntityName, isBracketed: boolean, typeExpression?: JSDocTypeExpression | undefined, isNameFirst?: boolean | undefined, comment?: string | NodeArray<JSDocText | JSDocLink> | undefined) => JSDocPropertyTag;
+    const createJSDocPropertyTag: (tagName: Identifier | undefined, name: EntityName, isBracketed: boolean, typeExpression?: JSDocTypeExpression | undefined, isNameFirst?: boolean | undefined, comment?: string | NodeArray<JSDocComment> | undefined) => JSDocPropertyTag;
     /** @deprecated Use `factory.createJSDocTypeLiteral` or the factory supplied by your transformation context instead. */
     const createJSDocTypeLiteral: (jsDocPropertyTags?: readonly JSDocPropertyLikeTag[] | undefined, isArrayType?: boolean | undefined) => JSDocTypeLiteral;
     /** @deprecated Use `factory.createJSDocImplementsTag` or the factory supplied by your transformation context instead. */
     const createJSDocImplementsTag: (tagName: Identifier | undefined, className: ExpressionWithTypeArguments & {
         readonly expression: Identifier | PropertyAccessEntityNameExpression;
-    }, comment?: string | NodeArray<JSDocText | JSDocLink> | undefined) => JSDocImplementsTag;
+    }, comment?: string | NodeArray<JSDocComment> | undefined) => JSDocImplementsTag;
     /** @deprecated Use `factory.createJSDocAuthorTag` or the factory supplied by your transformation context instead. */
-    const createJSDocAuthorTag: (tagName: Identifier | undefined, comment?: string | NodeArray<JSDocText | JSDocLink> | undefined) => JSDocAuthorTag;
+    const createJSDocAuthorTag: (tagName: Identifier | undefined, comment?: string | NodeArray<JSDocComment> | undefined) => JSDocAuthorTag;
     /** @deprecated Use `factory.createJSDocPublicTag` or the factory supplied by your transformation context instead. */
-    const createJSDocPublicTag: (tagName: Identifier | undefined, comment?: string | NodeArray<JSDocText | JSDocLink> | undefined) => JSDocPublicTag;
+    const createJSDocPublicTag: (tagName: Identifier | undefined, comment?: string | NodeArray<JSDocComment> | undefined) => JSDocPublicTag;
     /** @deprecated Use `factory.createJSDocPrivateTag` or the factory supplied by your transformation context instead. */
-    const createJSDocPrivateTag: (tagName: Identifier | undefined, comment?: string | NodeArray<JSDocText | JSDocLink> | undefined) => JSDocPrivateTag;
+    const createJSDocPrivateTag: (tagName: Identifier | undefined, comment?: string | NodeArray<JSDocComment> | undefined) => JSDocPrivateTag;
     /** @deprecated Use `factory.createJSDocProtectedTag` or the factory supplied by your transformation context instead. */
-    const createJSDocProtectedTag: (tagName: Identifier | undefined, comment?: string | NodeArray<JSDocText | JSDocLink> | undefined) => JSDocProtectedTag;
+    const createJSDocProtectedTag: (tagName: Identifier | undefined, comment?: string | NodeArray<JSDocComment> | undefined) => JSDocProtectedTag;
     /** @deprecated Use `factory.createJSDocReadonlyTag` or the factory supplied by your transformation context instead. */
-    const createJSDocReadonlyTag: (tagName: Identifier | undefined, comment?: string | NodeArray<JSDocText | JSDocLink> | undefined) => JSDocReadonlyTag;
+    const createJSDocReadonlyTag: (tagName: Identifier | undefined, comment?: string | NodeArray<JSDocComment> | undefined) => JSDocReadonlyTag;
     /** @deprecated Use `factory.createJSDocUnknownTag` or the factory supplied by your transformation context instead. */
-    const createJSDocTag: (tagName: Identifier, comment?: string | NodeArray<JSDocText | JSDocLink> | undefined) => JSDocUnknownTag;
+    const createJSDocTag: (tagName: Identifier, comment?: string | NodeArray<JSDocComment> | undefined) => JSDocUnknownTag;
     /** @deprecated Use `factory.createJsxElement` or the factory supplied by your transformation context instead. */
     const createJsxElement: (openingElement: JsxOpeningElement, children: readonly JsxChild[], closingElement: JsxClosingElement) => JsxElement;
     /** @deprecated Use `factory.updateJsxElement` or the factory supplied by your transformation context instead. */
@@ -17305,7 +18357,7 @@ declare namespace ts {
     /** @deprecated Use `factory.updateHeritageClause` or the factory supplied by your transformation context instead. */
     const updateHeritageClause: (node: HeritageClause, types: readonly ExpressionWithTypeArguments[]) => HeritageClause;
     /** @deprecated Use `factory.createCatchClause` or the factory supplied by your transformation context instead. */
-    const createCatchClause: (variableDeclaration: string | VariableDeclaration | undefined, block: Block) => CatchClause;
+    const createCatchClause: (variableDeclaration: string | VariableDeclaration | BindingName | undefined, block: Block) => CatchClause;
     /** @deprecated Use `factory.updateCatchClause` or the factory supplied by your transformation context instead. */
     const updateCatchClause: (node: CatchClause, variableDeclaration: VariableDeclaration | undefined, block: Block) => CatchClause;
     /** @deprecated Use `factory.createPropertyAssignment` or the factory supplied by your transformation context instead. */
