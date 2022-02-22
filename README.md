@@ -1,6 +1,7 @@
 # Bring your own TypeScript
 [![Downloads](http://img.shields.io/npm/dm/byots.svg)](https://npmjs.org/package/byots)
-[![BuildStatus](https://travis-ci.org/basarat/byots.svg)](https://travis-ci.org/basarat/byots)
+[![Continuous Integration](https://github.com/basarat/byots/actions/workflows/ci.yml/badge.svg)](https://github.com/basarat/byots/actions/workflows/ci.yml)
+
 
 **Use the latest** [**TypeScript**](https://github.com/Microsoft/TypeScript), **with complete access to the compiler API** 🌹
 
