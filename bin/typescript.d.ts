@@ -5702,6 +5702,7 @@ declare namespace ts {
         helpers?: EmitHelper[];
         startsOnNewLine?: boolean;
         snippetElement?: SnippetElement;
+        typeNode?: TypeNode;
     }
     export type SnippetElement = TabStop | Placeholder;
     export interface TabStop {
@@ -11411,6 +11412,8 @@ declare namespace ts {
      */
     function setSnippetElement<T extends Node>(node: T, snippet: SnippetElement): T;
     function ignoreSourceNewlines<T extends Node>(node: T): T;
+    function setTypeNode<T extends Node>(node: T, type: TypeNode): T;
+    function getTypeNode<T extends Node>(node: T): TypeNode | undefined;
 }
 declare namespace ts {
     interface EmitHelperFactory {
