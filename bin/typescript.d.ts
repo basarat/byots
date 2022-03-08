@@ -10321,6 +10321,7 @@ declare namespace ts {
     export function declarationNameToString(name: DeclarationName | QualifiedName | undefined): string;
     export function getNameFromIndexInfo(info: IndexInfo): string | undefined;
     export function isComputedNonLiteralName(name: PropertyName): boolean;
+    export function tryGetTextOfPropertyName(name: PropertyName | NoSubstitutionTemplateLiteral): __String | undefined;
     export function getTextOfPropertyName(name: PropertyName | NoSubstitutionTemplateLiteral): __String;
     export function entityNameToString(name: EntityNameOrEntityNameExpression | JSDocMemberName | JsxTagNameExpression | PrivateIdentifier): string;
     export function createDiagnosticForNode(node: Node, message: DiagnosticMessage, arg0?: string | number, arg1?: string | number, arg2?: string | number, arg3?: string | number): DiagnosticWithLocation;
