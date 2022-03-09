@@ -9053,7 +9053,6 @@ declare namespace ts {
         Command_line_Options: DiagnosticMessage;
         Provide_full_support_for_iterables_in_for_of_spread_and_destructuring_when_targeting_ES5_or_ES3: DiagnosticMessage;
         Enable_all_strict_type_checking_options: DiagnosticMessage;
-        List_of_language_service_plugins: DiagnosticMessage;
         Scoped_package_detected_looking_in_0: DiagnosticMessage;
         Reusing_resolution_of_module_0_from_1_of_old_program_it_was_successfully_resolved_to_2: DiagnosticMessage;
         Reusing_resolution_of_module_0_from_1_of_old_program_it_was_successfully_resolved_to_2_with_Package_ID_3: DiagnosticMessage;
@@ -9171,7 +9170,6 @@ declare namespace ts {
         A_non_dry_build_would_update_output_of_project_0: DiagnosticMessage;
         Cannot_update_output_of_project_0_because_there_was_error_reading_file_1: DiagnosticMessage;
         Cannot_write_file_0_because_it_will_overwrite_tsbuildinfo_file_generated_by_referenced_project_1: DiagnosticMessage;
-        Enable_incremental_compilation: DiagnosticMessage;
         Composite_projects_may_not_disable_incremental_compilation: DiagnosticMessage;
         Specify_file_to_store_incremental_compilation_information: DiagnosticMessage;
         Project_0_is_out_of_date_because_output_for_it_was_generated_with_version_1_that_differs_with_current_version_2: DiagnosticMessage;
@@ -9272,7 +9270,7 @@ declare namespace ts {
         Disallow_import_s_require_s_or_reference_s_from_expanding_the_number_of_files_TypeScript_should_add_to_a_project: DiagnosticMessage;
         Disable_strict_checking_of_generic_signatures_in_function_types: DiagnosticMessage;
         Add_undefined_to_a_type_when_accessed_using_an_index: DiagnosticMessage;
-        Enable_error_reporting_when_a_local_variables_aren_t_read: DiagnosticMessage;
+        Enable_error_reporting_when_local_variables_aren_t_read: DiagnosticMessage;
         Raise_an_error_when_a_function_parameter_isn_t_read: DiagnosticMessage;
         Deprecated_setting_Use_outFile_instead: DiagnosticMessage;
         Specify_an_output_folder_for_all_emitted_files: DiagnosticMessage;
@@ -9311,10 +9309,9 @@ declare namespace ts {
         Enable_verbose_logging: DiagnosticMessage;
         Specify_how_directories_are_watched_on_systems_that_lack_recursive_file_watching_functionality: DiagnosticMessage;
         Specify_how_the_TypeScript_watch_mode_works: DiagnosticMessage;
-        Include_undefined_in_index_signature_results: DiagnosticMessage;
         Require_undeclared_properties_from_index_signatures_to_use_element_accesses: DiagnosticMessage;
         Specify_emit_Slashchecking_behavior_for_imports_that_are_only_used_for_types: DiagnosticMessage;
-        Type_catch_clause_variables_as_unknown_instead_of_any: DiagnosticMessage;
+        Default_catch_clause_variables_as_unknown_instead_of_any: DiagnosticMessage;
         one_of_Colon: DiagnosticMessage;
         one_or_more_Colon: DiagnosticMessage;
         type_Colon: DiagnosticMessage;
