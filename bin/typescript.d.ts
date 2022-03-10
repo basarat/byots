@@ -1328,6 +1328,7 @@ declare namespace ts {
         JSDocFunctionType = 316,
         JSDocVariadicType = 317,
         JSDocNamepathType = 318,
+        /** @deprecated Use SyntaxKind.JSDoc */
         JSDocComment = 319,
         JSDocText = 320,
         JSDocTypeLiteral = 321,
@@ -1396,7 +1397,8 @@ declare namespace ts {
         FirstJSDocTagNode = 326,
         LastJSDocTagNode = 346,
         FirstContextualKeyword = 126,
-        LastContextualKeyword = 159
+        LastContextualKeyword = 159,
+        JSDoc = 319
     }
     export type TriviaSyntaxKind = SyntaxKind.SingleLineCommentTrivia | SyntaxKind.MultiLineCommentTrivia | SyntaxKind.NewLineTrivia | SyntaxKind.WhitespaceTrivia | SyntaxKind.ShebangTrivia | SyntaxKind.ConflictMarkerTrivia;
     export type LiteralSyntaxKind = SyntaxKind.NumericLiteral | SyntaxKind.BigIntLiteral | SyntaxKind.StringLiteral | SyntaxKind.JsxText | SyntaxKind.JsxTextAllWhiteSpaces | SyntaxKind.RegularExpressionLiteral | SyntaxKind.NoSubstitutionTemplateLiteral;
@@ -2945,7 +2947,7 @@ declare namespace ts {
     }
     export type JSDocTypeReferencingNode = JSDocVariadicType | JSDocOptionalType | JSDocNullableType | JSDocNonNullableType;
     export interface JSDoc extends Node {
-        readonly kind: SyntaxKind.JSDocComment;
+        readonly kind: SyntaxKind.JSDoc;
         readonly parent: HasJSDoc;
         readonly tags?: NodeArray<JSDocTag>;
         readonly comment?: string | NodeArray<JSDocComment>;
@@ -4458,6 +4460,7 @@ declare namespace ts {
         aliasTypeArgumentsContainsMarker?: boolean;
         permissiveInstantiation?: Type;
         restrictiveInstantiation?: Type;
+        uniqueLiteralFilledInstantiation?: Type;
         immediateBaseConstraint?: Type;
         widened?: Type;
     }
@@ -10364,7 +10367,9 @@ declare namespace ts {
     export function isVariableLike(node: Node): node is VariableLikeDeclaration;
     export function isVariableLikeOrAccessor(node: Node): node is AccessorDeclaration | VariableLikeDeclaration;
     export function isVariableDeclarationInVariableStatement(node: VariableDeclaration): boolean;
-    export function isValidESSymbolDeclaration(node: Node): node is VariableDeclaration | PropertyDeclaration | SignatureDeclaration;
+    export function isCommonJsExportedExpression(node: Node): boolean;
+    export function isCommonJsExportPropertyAssignment(node: Node): boolean;
+    export function isValidESSymbolDeclaration(node: Node): boolean;
     export function introducesArgumentsExoticObject(node: Node): boolean;
     export function unwrapInnermostStatementOfLabel(node: LabeledStatement, beforeUnwrapLabelCallback?: (node: LabeledStatement) => void): Statement;
     export function isFunctionBlock(node: Node): boolean;
