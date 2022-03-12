@@ -692,7 +692,7 @@ declare namespace ts {
     function removePrefix(str: string, prefix: string): string;
     function tryRemovePrefix(str: string, prefix: string, getCanonicalFileName?: GetCanonicalFileName): string | undefined;
     function and<T>(f: (arg: T) => boolean, g: (arg: T) => boolean): (arg: T) => boolean;
-    function or<T extends unknown[]>(...fs: ((...args: T) => boolean)[]): (...args: T) => boolean;
+    function or<T extends unknown[], U>(...fs: ((...args: T) => U)[]): (...args: T) => U;
     function not<T extends unknown[]>(fn: (...args: T) => boolean): (...args: T) => boolean;
     function assertType<T>(_: T): void;
     function singleElementArray<T>(t: T | undefined): T[] | undefined;
@@ -3228,7 +3228,13 @@ declare namespace ts {
          * This is intended to be the first top-level import/export,
          * but could be arbitrarily nested (e.g. `import.meta`).
          */
-        externalModuleIndicator?: Node;
+        externalModuleIndicator?: Node | true;
+        /**
+         * The callback used to set the external module indicator - this is saved to
+         * be later reused during incremental reparsing, which otherwise lacks the information
+         * to set this field
+         */
+        setExternalModuleIndicator?: (file: SourceFile) => void;
         commonJsModuleIndicator?: Node;
         jsGlobalAugmentations?: SymbolTable;
         identifiers: ESMap<string, string>;
@@ -5003,6 +5009,20 @@ declare namespace ts {
         Node12 = 3,
         NodeNext = 99
     }
+    export enum ModuleDetectionKind {
+        /**
+         * Files with imports, exports and/or import.meta are considered modules
+         */
+        Legacy = 1,
+        /**
+         * Legacy, but also files with jsx under react-jsx or react-jsxdev and esm mode files under moduleResolution: node12+
+         */
+        Auto = 2,
+        /**
+         * Consider all non-declaration files modules, regardless of present syntax
+         */
+        Force = 3
+    }
     export interface PluginImport {
         name: string;
     }
@@ -5091,6 +5111,7 @@ declare namespace ts {
         maxNodeModuleJsDepth?: number;
         module?: ModuleKind;
         moduleResolution?: ModuleResolutionKind;
+        moduleDetection?: ModuleDetectionKind;
         newLine?: NewLineKind;
         noEmit?: boolean;
         noEmitForJsFiles?: boolean;
@@ -5500,6 +5521,13 @@ declare namespace ts {
         useCaseSensitiveFileNames?: boolean | (() => boolean);
     }
     /**
+     * Used by services to specify the minimum host area required to set up source files under any compilation settings
+     */
+    export interface MinimalResolutionCacheHost extends ModuleResolutionHost {
+        getCompilationSettings(): CompilerOptions;
+        getCompilerHost?(): CompilerHost | undefined;
+    }
+    /**
      * Represents the result of module resolution.
      * Module resolution will pick up tsx/jsx/js files even if '--jsx' and '--allowJs' are turned off.
      * The Program will then filter results based on these flags.
@@ -5588,8 +5616,8 @@ declare namespace ts {
     export type HasInvalidatedResolution = (sourceFile: Path) => boolean;
     export type HasChangedAutomaticTypeDirectiveNames = () => boolean;
     export interface CompilerHost extends ModuleResolutionHost {
-        getSourceFile(fileName: string, languageVersion: ScriptTarget, onError?: (message: string) => void, shouldCreateNewSourceFile?: boolean): SourceFile | undefined;
-        getSourceFileByPath?(fileName: string, path: Path, languageVersion: ScriptTarget, onError?: (message: string) => void, shouldCreateNewSourceFile?: boolean): SourceFile | undefined;
+        getSourceFile(fileName: string, languageVersionOrOptions: ScriptTarget | CreateSourceFileOptions, onError?: (message: string) => void, shouldCreateNewSourceFile?: boolean): SourceFile | undefined;
+        getSourceFileByPath?(fileName: string, path: Path, languageVersionOrOptions: ScriptTarget | CreateSourceFileOptions, onError?: (message: string) => void, shouldCreateNewSourceFile?: boolean): SourceFile | undefined;
         getCancellationToken?(): CancellationToken;
         getDefaultLibFileName(options: CompilerOptions): string;
         getDefaultLibLocation?(): string;
@@ -8252,6 +8280,8 @@ declare namespace ts {
         catch_or_finally_expected: DiagnosticMessage;
         An_import_declaration_can_only_be_used_at_the_top_level_of_a_module: DiagnosticMessage;
         An_export_declaration_can_only_be_used_at_the_top_level_of_a_module: DiagnosticMessage;
+        Control_what_method_is_used_to_detect_module_format_JS_files: DiagnosticMessage;
+        auto_Colon_Treat_files_with_imports_exports_import_meta_jsx_with_jsx_Colon_react_jsx_or_esm_format_with_module_Colon_node12_as_modules: DiagnosticMessage;
         The_types_of_0_are_incompatible_between_these_types: DiagnosticMessage;
         The_types_returned_by_0_are_incompatible_between_these_types: DiagnosticMessage;
         Call_signature_return_types_0_and_1_are_incompatible: DiagnosticMessage;
@@ -11045,6 +11075,7 @@ declare namespace ts {
     export function compareDiagnostics(d1: Diagnostic, d2: Diagnostic): Comparison;
     export function compareDiagnosticsSkipRelatedInformation(d1: Diagnostic, d2: Diagnostic): Comparison;
     export function getLanguageVariant(scriptKind: ScriptKind): LanguageVariant;
+    export function getSetExternalModuleIndicator(options: CompilerOptions): (file: SourceFile) => void;
     export function getEmitScriptTarget(compilerOptions: {
         module?: CompilerOptions["module"];
         target?: CompilerOptions["target"];
@@ -11054,6 +11085,7 @@ declare namespace ts {
         target?: CompilerOptions["target"];
     }): ModuleKind;
     export function getEmitModuleResolutionKind(compilerOptions: CompilerOptions): ModuleResolutionKind;
+    export function getEmitModuleDetectionKind(options: CompilerOptions): ModuleDetectionKind;
     export function hasJsonModuleEmitEnabled(options: CompilerOptions): boolean;
     export function unreachableCodeIsError(options: CompilerOptions): boolean;
     export function unusedLabelIsError(options: CompilerOptions): boolean;
@@ -11987,6 +12019,7 @@ declare namespace ts {
     const parseBaseNodeFactory: BaseNodeFactory;
     const parseNodeFactory: NodeFactory;
     function isJSDocLikeText(text: string, start: number): boolean;
+    function isFileProbablyExternalModule(sourceFile: SourceFile): Node | undefined;
     /**
      * Invokes a callback for each child of the given node. The 'cbNode' callback is invoked for all child nodes
      * stored in properties. If a 'cbNodes' callback is specified, it is invoked for embedded arrays; otherwise,
@@ -12016,7 +12049,22 @@ declare namespace ts {
      * and while doing so, handles traversing the structure without relying on the callstack to encode the tree structure.
      */
     function forEachChildRecursively<T>(rootNode: Node, cbNode: (node: Node, parent: Node) => T | "skip" | undefined, cbNodes?: (nodes: NodeArray<Node>, parent: Node) => T | "skip" | undefined): T | undefined;
-    function createSourceFile(fileName: string, sourceText: string, languageVersion: ScriptTarget, setParentNodes?: boolean, scriptKind?: ScriptKind): SourceFile;
+    interface CreateSourceFileOptions {
+        languageVersion: ScriptTarget;
+        /**
+         * Controls the format the file is detected as - this can be derived from only the path
+         * and files on disk, but needs to be done with a module resolution cache in scope to be performant.
+         * This is usually `undefined` for compilations that do not have `moduleResolution` values of `node12` or `nodenext`.
+         */
+        impliedNodeFormat?: ModuleKind.ESNext | ModuleKind.CommonJS;
+        /**
+         * Controls how module-y-ness is set for the given file. Usually the result of calling
+         * `getSetExternalModuleIndicator` on a valid `CompilerOptions` object. If not present, the default
+         * check specified by `isFileProbablyExternalModule` will be used to set the field.
+         */
+        setExternalModuleIndicator?: (file: SourceFile) => void;
+    }
+    function createSourceFile(fileName: string, sourceText: string, languageVersionOrOptions: ScriptTarget | CreateSourceFileOptions, setParentNodes?: boolean, scriptKind?: ScriptKind): SourceFile;
     function parseIsolatedEntityName(text: string, languageVersion: ScriptTarget): EntityName | undefined;
     /**
      * Parse json text into SyntaxTree and return node and parse errors if any
@@ -13000,7 +13048,7 @@ declare namespace ts {
         originalDirectoryExists: ((directory: string) => boolean) | undefined;
         originalCreateDirectory: ((directory: string) => void) | undefined;
         originalWriteFile: WriteFileCallback | undefined;
-        getSourceFileWithCache: ((fileName: string, languageVersion: ScriptTarget, onError?: ((message: string) => void) | undefined, shouldCreateNewSourceFile?: boolean | undefined) => SourceFile | undefined) | undefined;
+        getSourceFileWithCache: ((fileName: string, languageVersionOrOptions: ScriptTarget | CreateSourceFileOptions, onError?: ((message: string) => void) | undefined, shouldCreateNewSourceFile?: boolean | undefined) => SourceFile | undefined) | undefined;
         readFileWithCache: (fileName: string) => string | undefined;
     };
     export function getPreEmitDiagnostics(program: Program, sourceFile?: SourceFile, cancellationToken?: CancellationToken): readonly Diagnostic[];
@@ -13672,7 +13720,7 @@ declare namespace ts {
     }
     interface CachedResolvedModuleWithFailedLookupLocations extends ResolvedModuleWithFailedLookupLocations, ResolutionWithFailedLookupLocations {
     }
-    export interface ResolutionCacheHost extends ModuleResolutionHost {
+    export interface ResolutionCacheHost extends MinimalResolutionCacheHost {
         toPath(fileName: string): Path;
         getCanonicalFileName: GetCanonicalFileName;
         getCompilationSettings(): CompilerOptions;
@@ -13688,7 +13736,6 @@ declare namespace ts {
         writeLog(s: string): void;
         getCurrentProgram(): Program | undefined;
         fileIsOpen(filePath: Path): boolean;
-        getCompilerHost?(): CompilerHost | undefined;
         onDiscoveredSymlink?(): void;
     }
     export function removeIgnoredPath(path: Path): Path | undefined;
@@ -14570,7 +14617,7 @@ declare namespace ts {
         set(response: CompletionInfo): void;
         clear(): void;
     }
-    interface LanguageServiceHost extends GetEffectiveTypeRootsHost {
+    interface LanguageServiceHost extends GetEffectiveTypeRootsHost, MinimalResolutionCacheHost {
         getCompilationSettings(): CompilerOptions;
         getNewLine?(): string;
         getProjectVersion?(): string;
@@ -14588,9 +14635,9 @@ declare namespace ts {
         error?(s: string): void;
         useCaseSensitiveFileNames?(): boolean;
         readDirectory?(path: string, extensions?: readonly string[], exclude?: readonly string[], include?: readonly string[], depth?: number): string[];
-        readFile?(path: string, encoding?: string): string | undefined;
         realpath?(path: string): string;
-        fileExists?(path: string): boolean;
+        readFile(path: string, encoding?: string): string | undefined;
+        fileExists(path: string): boolean;
         getTypeRootsVersion?(): number;
         resolveModuleNames?(moduleNames: string[], containingFile: string, reusedNames: string[] | undefined, redirectedReference: ResolvedProjectReference | undefined, options: CompilerOptions, containingSourceFile?: SourceFile): (ResolvedModule | undefined)[];
         getResolvedModuleWithFailedLookupLocationsFromCache?(modulename: string, containingFile: string, resolutionMode?: ModuleKind.CommonJS | ModuleKind.ESNext): ResolvedModuleWithFailedLookupLocations | undefined;
@@ -16280,30 +16327,36 @@ declare namespace ts {
          * the SourceFile if was not found in the registry.
          *
          * @param fileName The name of the file requested
-         * @param compilationSettings Some compilation settings like target affects the
+         * @param compilationSettingsOrHost Some compilation settings like target affects the
          * shape of a the resulting SourceFile. This allows the DocumentRegistry to store
-         * multiple copies of the same file for different compilation settings.
+         * multiple copies of the same file for different compilation settings. A minimal
+         * resolution cache is needed to fully define a source file's shape when
+         * the compilation settings include `module: node12`+, so providing a cache host
+         * object should be preferred. A common host is a language service `ConfiguredProject`.
          * @param scriptSnapshot Text of the file. Only used if the file was not found
          * in the registry and a new one was created.
          * @param version Current version of the file. Only used if the file was not found
          * in the registry and a new one was created.
          */
-        acquireDocument(fileName: string, compilationSettings: CompilerOptions, scriptSnapshot: IScriptSnapshot, version: string, scriptKind?: ScriptKind): SourceFile;
-        acquireDocumentWithKey(fileName: string, path: Path, compilationSettings: CompilerOptions, key: DocumentRegistryBucketKey, scriptSnapshot: IScriptSnapshot, version: string, scriptKind?: ScriptKind): SourceFile;
+        acquireDocument(fileName: string, compilationSettingsOrHost: CompilerOptions | MinimalResolutionCacheHost, scriptSnapshot: IScriptSnapshot, version: string, scriptKind?: ScriptKind): SourceFile;
+        acquireDocumentWithKey(fileName: string, path: Path, compilationSettingsOrHost: CompilerOptions | MinimalResolutionCacheHost, key: DocumentRegistryBucketKey, scriptSnapshot: IScriptSnapshot, version: string, scriptKind?: ScriptKind): SourceFile;
         /**
          * Request an updated version of an already existing SourceFile with a given fileName
          * and compilationSettings. The update will in-turn call updateLanguageServiceSourceFile
          * to get an updated SourceFile.
          *
          * @param fileName The name of the file requested
-         * @param compilationSettings Some compilation settings like target affects the
+         * @param compilationSettingsOrHost Some compilation settings like target affects the
          * shape of a the resulting SourceFile. This allows the DocumentRegistry to store
-         * multiple copies of the same file for different compilation settings.
+         * multiple copies of the same file for different compilation settings. A minimal
+         * resolution cache is needed to fully define a source file's shape when
+         * the compilation settings include `module: node12`+, so providing a cache host
+         * object should be preferred. A common host is a language service `ConfiguredProject`.
          * @param scriptSnapshot Text of the file.
          * @param version Current version of the file.
          */
-        updateDocument(fileName: string, compilationSettings: CompilerOptions, scriptSnapshot: IScriptSnapshot, version: string, scriptKind?: ScriptKind): SourceFile;
-        updateDocumentWithKey(fileName: string, path: Path, compilationSettings: CompilerOptions, key: DocumentRegistryBucketKey, scriptSnapshot: IScriptSnapshot, version: string, scriptKind?: ScriptKind): SourceFile;
+        updateDocument(fileName: string, compilationSettingsOrHost: CompilerOptions | MinimalResolutionCacheHost, scriptSnapshot: IScriptSnapshot, version: string, scriptKind?: ScriptKind): SourceFile;
+        updateDocumentWithKey(fileName: string, path: Path, compilationSettingsOrHost: CompilerOptions | MinimalResolutionCacheHost, key: DocumentRegistryBucketKey, scriptSnapshot: IScriptSnapshot, version: string, scriptKind?: ScriptKind): SourceFile;
         getKeyForCompilationSettings(settings: CompilerOptions): DocumentRegistryBucketKey;
         /**
          * Informs the DocumentRegistry that a file is not needed any longer.
@@ -17485,7 +17538,7 @@ declare namespace ts {
     function displayPartsToString(displayParts: SymbolDisplayPart[] | undefined): string;
     function getDefaultCompilerOptions(): CompilerOptions;
     function getSupportedCodeFixes(): string[];
-    function createLanguageServiceSourceFile(fileName: string, scriptSnapshot: IScriptSnapshot, scriptTarget: ScriptTarget, version: string, setNodeParents: boolean, scriptKind?: ScriptKind): SourceFile;
+    function createLanguageServiceSourceFile(fileName: string, scriptSnapshot: IScriptSnapshot, scriptTargetOrOptions: ScriptTarget | CreateSourceFileOptions, version: string, setNodeParents: boolean, scriptKind?: ScriptKind): SourceFile;
     function updateLanguageServiceSourceFile(sourceFile: SourceFile, scriptSnapshot: IScriptSnapshot, version: string, textChangeRange: TextChangeRange | undefined, aggressiveChecks?: boolean): SourceFile;
     /** A cancellation that throttles calls to the host */
     class ThrottledCancellationToken implements CancellationToken {
