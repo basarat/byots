@@ -10,7 +10,7 @@
 
 **Still Just TypeScript**
 
-* `byots` will use whatever TypeScript version you install *in your application*. So you are actually using whatever TypeScript you bring in. However we highly recommend `npm install typescript@next byots@latest` so you don't get any type definition - JavaScript inconsistencies.
+* `byots` will use whatever TypeScript version you install *in your application*. So you are actually using whatever TypeScript you bring in. However we highly recommend `npm install typescript@next byots@latest` so you don't get any `JavaScriptFromTypeScript - TypeDefinitionFromByots` inconsistencies.
 
 **But with the following advantage**
 
