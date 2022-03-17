@@ -7933,7 +7933,7 @@ declare namespace ts {
         Identifier_expected: DiagnosticMessage;
         _0_expected: DiagnosticMessage;
         A_file_cannot_have_a_reference_to_itself: DiagnosticMessage;
-        The_parser_expected_to_find_a_to_match_the_token_here: DiagnosticMessage;
+        The_parser_expected_to_find_a_1_to_match_the_0_token_here: DiagnosticMessage;
         Trailing_comma_not_allowed: DiagnosticMessage;
         Asterisk_Slash_expected: DiagnosticMessage;
         An_element_access_expression_should_take_an_argument: DiagnosticMessage;
@@ -16213,14 +16213,15 @@ declare namespace ts.Completions {
         SuggestedClassMembers = "14",
         GlobalsOrKeywords = "15",
         AutoImportSuggestions = "16",
-        JavascriptIdentifiers = "17",
-        DeprecatedLocalDeclarationPriority = "18",
-        DeprecatedLocationPriority = "19",
-        DeprecatedOptionalMember = "20",
-        DeprecatedMemberDeclaredBySpreadAssignment = "21",
-        DeprecatedSuggestedClassMembers = "22",
-        DeprecatedGlobalsOrKeywords = "23",
-        DeprecatedAutoImportSuggestions = "24"
+        ClassMemberSnippets = "17",
+        JavascriptIdentifiers = "18",
+        DeprecatedLocalDeclarationPriority = "19",
+        DeprecatedLocationPriority = "20",
+        DeprecatedOptionalMember = "21",
+        DeprecatedMemberDeclaredBySpreadAssignment = "22",
+        DeprecatedSuggestedClassMembers = "23",
+        DeprecatedGlobalsOrKeywords = "24",
+        DeprecatedAutoImportSuggestions = "25"
     }
     enum SortTextId {
         LocalDeclarationPriority = 10,
@@ -16230,10 +16231,10 @@ declare namespace ts.Completions {
         SuggestedClassMembers = 14,
         GlobalsOrKeywords = 15,
         AutoImportSuggestions = 16,
-        _JavaScriptIdentifiers = 17,
-        _DeprecatedStart = 18,
+        _JavaScriptIdentifiers = 18,
+        _DeprecatedStart = 19,
         _First = 10,
-        DeprecatedOffset = 8
+        DeprecatedOffset = 9
     }
     /**
      * Special values for `CompletionInfo['source']` used to disambiguate
