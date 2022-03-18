@@ -8149,6 +8149,7 @@ declare namespace ts {
         Cannot_use_export_import_on_a_type_or_type_only_namespace_when_the_isolatedModules_flag_is_provided: DiagnosticMessage;
         Decorator_function_return_type_0_is_not_assignable_to_type_1: DiagnosticMessage;
         Decorator_function_return_type_is_0_but_is_expected_to_be_void_or_any: DiagnosticMessage;
+        A_type_referenced_in_a_decorated_signature_must_be_imported_with_import_type_or_a_namespace_import_when_isolatedModules_and_emitDecoratorMetadata_are_enabled: DiagnosticMessage;
         with_statements_are_not_allowed_in_an_async_function_block: DiagnosticMessage;
         await_expressions_are_only_allowed_within_async_functions_and_at_the_top_levels_of_modules: DiagnosticMessage;
         Did_you_mean_to_use_a_Colon_An_can_only_follow_a_property_name_when_the_containing_object_literal_is_part_of_a_destructuring_pattern: DiagnosticMessage;
@@ -17328,6 +17329,8 @@ declare namespace ts.codefix {
 declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
+}
+declare namespace ts.codefix {
     /**
      * Finds members of the resolved type that are missing in the class pointed to by class decl
      * and generates source code for the missing members.
@@ -17425,6 +17428,7 @@ declare namespace ts.codefix {
 declare namespace ts.refactor {
 }
 declare namespace ts.refactor {
+    function doChangeNamedToNamespaceOrDefault(sourceFile: SourceFile, program: Program, changes: textChanges.ChangeTracker, toConvert: NamedImports, shouldUseDefault?: boolean): void;
 }
 declare namespace ts.refactor.convertToOptionalChainExpression {
 }
