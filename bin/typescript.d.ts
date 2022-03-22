@@ -16146,6 +16146,7 @@ declare namespace ts {
     interface CacheableExportInfoMapHost {
         getCurrentProgram(): Program | undefined;
         getPackageJsonAutoImportProvider(): Program | undefined;
+        getGlobalTypingsCacheLocation(): string | undefined;
     }
     function createCacheableExportInfoMap(host: CacheableExportInfoMapHost): ExportInfoMap;
     function isImportableFile(program: Program, from: SourceFile, to: SourceFile, preferences: UserPreferences, packageJsonFilter: PackageJsonImportFilter | undefined, moduleSpecifierResolutionHost: ModuleSpecifierResolutionHost, moduleSpecifierCache: ModuleSpecifierCache | undefined): boolean;
