@@ -221,7 +221,7 @@ declare namespace ts {
     function filter<T, U extends T>(array: readonly T[] | undefined, f: (x: T) => x is U): readonly U[] | undefined;
     function filter<T, U extends T>(array: readonly T[] | undefined, f: (x: T) => boolean): readonly T[] | undefined;
     function filterMutate<T>(array: T[], f: (x: T, i: number, array: T[]) => boolean): void;
-    function clear(array: {}[]): void;
+    function clear(array: unknown[]): void;
     function map<T, U>(array: readonly T[], f: (x: T, i: number) => U): U[];
     function map<T, U>(array: readonly T[] | undefined, f: (x: T, i: number) => U): U[] | undefined;
     function mapIterator<T, U>(iter: Iterator<T>, mapFn: (x: T) => U): Iterator<U>;
@@ -529,7 +529,7 @@ declare namespace ts {
     /**
      * Tests whether a value is an array.
      */
-    function isArray(value: any): value is readonly {}[];
+    function isArray(value: any): value is readonly unknown[];
     function toArray<T>(value: T | T[]): T[];
     function toArray<T>(value: T | readonly T[]): readonly T[];
     /**
@@ -541,7 +541,7 @@ declare namespace ts {
     function tryCast<T>(value: T, test: (value: T) => boolean): T | undefined;
     function cast<TOut extends TIn, TIn = any>(value: TIn | undefined, test: (value: TIn) => value is TOut): TOut;
     /** Does nothing. */
-    function noop(_?: {} | null | undefined): void;
+    function noop(_?: unknown): void;
     /** Do nothing and return false */
     function returnFalse(): false;
     /** Do nothing and return true */
@@ -3505,8 +3505,6 @@ declare namespace ts {
          */
         getTypeChecker(): TypeChecker;
         getCommonSourceDirectory(): string;
-        getDiagnosticsProducingTypeChecker(): TypeChecker;
-        dropDiagnosticsProducingTypeChecker(): void;
         getCachedSemanticDiagnostics(sourceFile?: SourceFile): readonly Diagnostic[] | undefined;
         getClassifiableNames(): Set<__String>;
         getNodeCount(): number;
@@ -8311,6 +8309,7 @@ declare namespace ts {
         Construct_signatures_with_no_arguments_have_incompatible_return_types_0_and_1: DiagnosticMessage;
         The_type_modifier_cannot_be_used_on_a_named_import_when_import_type_is_used_on_its_import_statement: DiagnosticMessage;
         The_type_modifier_cannot_be_used_on_a_named_export_when_export_type_is_used_on_its_export_statement: DiagnosticMessage;
+        This_type_parameter_probably_needs_an_extends_object_constraint: DiagnosticMessage;
         Duplicate_identifier_0: DiagnosticMessage;
         Initializer_of_instance_member_variable_0_cannot_reference_identifier_1_declared_in_the_constructor: DiagnosticMessage;
         Static_members_cannot_reference_class_type_parameters: DiagnosticMessage;
@@ -12556,7 +12555,7 @@ declare namespace ts {
     function getNodeId(node: Node): number;
     function getSymbolId(symbol: Symbol): SymbolId;
     function isInstantiatedModule(node: ModuleDeclaration, preserveConstEnums: boolean): boolean;
-    function createTypeChecker(host: TypeCheckerHost, produceDiagnostics: boolean): TypeChecker;
+    function createTypeChecker(host: TypeCheckerHost): TypeChecker;
     function signatureHasRestParameter(s: Signature): boolean;
     function signatureHasLiteralTypes(s: Signature): boolean;
 }
@@ -17070,10 +17069,6 @@ declare namespace ts.textChanges {
          * Text of inserted node will be formatted with this delta, otherwise delta will be inferred from the new node kind
          */
         delta?: number;
-        /**
-         * Do not trim leading white spaces in the edit range
-         */
-        preserveLeadingWhitespace?: boolean;
     }
     export interface ReplaceWithMultipleNodesOptions extends InsertNodeOptions {
         readonly joiner?: string;
