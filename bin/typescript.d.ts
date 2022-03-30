@@ -3727,6 +3727,7 @@ declare namespace ts {
          */
         getResolvedSignature(node: CallLikeExpression, candidatesOutArray?: Signature[], argumentCount?: number): Signature | undefined;
         getResolvedSignatureForSignatureHelp(node: CallLikeExpression, candidatesOutArray?: Signature[], argumentCount?: number): Signature | undefined;
+        getResolvedSignatureForStringLiteralCompletions(call: CallLikeExpression, editingArgument: Node, candidatesOutArray: Signature[]): Signature | undefined;
         getExpandedParameters(sig: Signature): readonly (readonly Symbol[])[];
         hasEffectiveRestParameter(sig: Signature): boolean;
         containsArgumentsReference(declaration: SignatureDeclaration): boolean;
