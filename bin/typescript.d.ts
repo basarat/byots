@@ -5124,6 +5124,7 @@ declare namespace ts {
         maxNodeModuleJsDepth?: number;
         module?: ModuleKind;
         moduleResolution?: ModuleResolutionKind;
+        moduleSuffixes?: string[];
         moduleDetection?: ModuleDetectionKind;
         newLine?: NewLineKind;
         noEmit?: boolean;
@@ -5391,6 +5392,7 @@ declare namespace ts {
     export interface CommandLineOptionOfListType extends CommandLineOptionBase {
         type: "list";
         element: CommandLineOptionOfCustomType | CommandLineOptionOfStringType | CommandLineOptionOfNumberType | CommandLineOptionOfBooleanType | TsConfigOnlyOption;
+        listPreserveFalsyValues?: boolean;
     }
     export type CommandLineOption = CommandLineOptionOfCustomType | CommandLineOptionOfStringType | CommandLineOptionOfNumberType | CommandLineOptionOfBooleanType | TsConfigOnlyOption | CommandLineOptionOfListType;
     export enum CharacterCodes {
@@ -7281,6 +7283,8 @@ declare namespace ts {
         readonly includeAutomaticOptionalChainCompletions?: boolean;
         readonly includeCompletionsWithInsertText?: boolean;
         readonly includeCompletionsWithClassMemberSnippets?: boolean;
+        readonly includeCompletionsWithObjectLiteralMethodSnippets?: boolean;
+        readonly useLabelDetailsInCompletionEntries?: boolean;
         readonly allowIncompleteCompletions?: boolean;
         readonly importModuleSpecifierPreference?: "shortest" | "project-relative" | "relative" | "non-relative";
         /** Determines whether we import `foo/index.ts` as "foo", "foo/index", or "foo/index.js" */
@@ -9398,6 +9402,7 @@ declare namespace ts {
         An_expanded_version_of_this_information_showing_all_possible_compiler_options: DiagnosticMessage;
         Compiles_the_current_project_with_additional_settings: DiagnosticMessage;
         true_for_ES2022_and_above_including_ESNext: DiagnosticMessage;
+        List_of_file_name_suffixes_to_search_when_resolving_a_module: DiagnosticMessage;
         Variable_0_implicitly_has_an_1_type: DiagnosticMessage;
         Parameter_0_implicitly_has_an_1_type: DiagnosticMessage;
         Member_0_implicitly_has_an_1_type: DiagnosticMessage;
@@ -15432,6 +15437,7 @@ declare namespace ts {
         hasAction?: true;
         source?: string;
         sourceDisplay?: SymbolDisplayPart[];
+        labelDetails?: CompletionEntryLabelDetails;
         isRecommended?: true;
         isFromUncheckedFile?: true;
         isPackageJsonImport?: true;
@@ -15445,6 +15451,10 @@ declare namespace ts {
          * is an auto-import.
          */
         data?: CompletionEntryData;
+    }
+    interface CompletionEntryLabelDetails {
+        detail?: string;
+        description?: string;
     }
     interface CompletionEntryDetails {
         name: string;
@@ -15983,6 +15993,7 @@ declare namespace ts {
     function typeToDisplayParts(typechecker: TypeChecker, type: Type, enclosingDeclaration?: Node, flags?: TypeFormatFlags): SymbolDisplayPart[];
     function symbolToDisplayParts(typeChecker: TypeChecker, symbol: Symbol, enclosingDeclaration?: Node, meaning?: SymbolFlags, flags?: SymbolFormatFlags): SymbolDisplayPart[];
     function signatureToDisplayParts(typechecker: TypeChecker, signature: Signature, enclosingDeclaration?: Node, flags?: TypeFormatFlags): SymbolDisplayPart[];
+    function nodeToDisplayParts(node: Node, enclosingDeclaration: Node): SymbolDisplayPart[];
     function isImportOrExportSpecifierName(location: Node): location is Identifier;
     function getScriptKind(fileName: string, host: LanguageServiceHost): ScriptKind;
     function getSymbolTarget(symbol: Symbol, checker: TypeChecker): Symbol;
@@ -16218,37 +16229,23 @@ declare namespace ts.Completions {
     export const moduleSpecifierResolutionLimit = 100;
     export const moduleSpecifierResolutionCacheAttemptLimit = 1000;
     export type Log = (message: string) => void;
-    export enum SortText {
-        LocalDeclarationPriority = "10",
-        LocationPriority = "11",
-        OptionalMember = "12",
-        MemberDeclaredBySpreadAssignment = "13",
-        SuggestedClassMembers = "14",
-        GlobalsOrKeywords = "15",
-        AutoImportSuggestions = "16",
-        ClassMemberSnippets = "17",
-        JavascriptIdentifiers = "18",
-        DeprecatedLocalDeclarationPriority = "19",
-        DeprecatedLocationPriority = "20",
-        DeprecatedOptionalMember = "21",
-        DeprecatedMemberDeclaredBySpreadAssignment = "22",
-        DeprecatedSuggestedClassMembers = "23",
-        DeprecatedGlobalsOrKeywords = "24",
-        DeprecatedAutoImportSuggestions = "25"
-    }
-    enum SortTextId {
-        LocalDeclarationPriority = 10,
-        LocationPriority = 11,
-        OptionalMember = 12,
-        MemberDeclaredBySpreadAssignment = 13,
-        SuggestedClassMembers = 14,
-        GlobalsOrKeywords = 15,
-        AutoImportSuggestions = 16,
-        _JavaScriptIdentifiers = 18,
-        _DeprecatedStart = 19,
-        _First = 10,
-        DeprecatedOffset = 9
-    }
+    export type SortText = string & {
+        __sortText: any;
+    };
+    export const SortText: {
+        LocalDeclarationPriority: SortText;
+        LocationPriority: SortText;
+        OptionalMember: SortText;
+        MemberDeclaredBySpreadAssignment: SortText;
+        SuggestedClassMembers: SortText;
+        GlobalsOrKeywords: SortText;
+        AutoImportSuggestions: SortText;
+        ClassMemberSnippets: SortText;
+        JavascriptIdentifiers: SortText;
+        Deprecated(sortText: SortText): SortText;
+        ObjectLiteralProperty(presetSortText: SortText, symbolDisplayName: string): SortText;
+        SortBelow(sortText: SortText): SortText;
+    };
     /**
      * Special values for `CompletionInfo['source']` used to disambiguate
      * completion items with the same `name`. (Each completion item must
@@ -16266,7 +16263,9 @@ declare namespace ts.Completions {
         /** Auto-import that comes attached to a class member snippet */
         ClassMemberSnippet = "ClassMemberSnippet/",
         /** A type-only import that needs to be promoted in order to be used at the completion location */
-        TypeOnlyAlias = "TypeOnlyAlias/"
+        TypeOnlyAlias = "TypeOnlyAlias/",
+        /** Auto-import that comes attached to an object literal method snippet */
+        ObjectLiteralMethodSnippet = "ObjectLiteralMethodSnippet/"
     }
     enum SymbolOriginInfoKind {
         ThisType = 1,
@@ -16276,6 +16275,7 @@ declare namespace ts.Completions {
         Nullable = 16,
         ResolvedExport = 32,
         TypeOnlyAlias = 64,
+        ObjectLiteralMethod = 128,
         SymbolMemberNoExport = 2,
         SymbolMemberExport = 6
     }
@@ -16291,13 +16291,12 @@ declare namespace ts.Completions {
     }
     /**
      * Map from symbol index in `symbols` -> SymbolOriginInfo.
-     * Only populated for symbols that come from other modules.
      */
     type SymbolOriginInfoMap = Record<number, SymbolOriginInfo>;
-    /** Map from symbol id -> SortTextId. */
-    type SymbolSortTextIdMap = (SortTextId | undefined)[];
+    /** Map from symbol id -> SortText. */
+    type SymbolSortTextMap = (SortText | undefined)[];
     export function getCompletionsAtPosition(host: LanguageServiceHost, program: Program, log: Log, sourceFile: SourceFile, position: number, preferences: UserPreferences, triggerCharacter: CompletionsTriggerCharacter | undefined, completionKind: CompletionTriggerKind | undefined, cancellationToken: CancellationToken, formatContext?: formatting.FormatContext): CompletionInfo | undefined;
-    export function getCompletionEntriesFromSymbols(symbols: readonly Symbol[], entries: SortedArray<CompletionEntry>, replacementToken: Node | undefined, contextToken: Node | undefined, location: Node, sourceFile: SourceFile, host: LanguageServiceHost, program: Program, target: ScriptTarget, log: Log, kind: CompletionKind, preferences: UserPreferences, compilerOptions: CompilerOptions, formatContext: formatting.FormatContext | undefined, isTypeOnlyLocation?: boolean, propertyAccessToConvert?: PropertyAccessExpression, jsxIdentifierExpected?: boolean, isJsxInitializer?: IsJsxInitializer, importCompletionNode?: Node, recommendedCompletion?: Symbol, symbolToOriginInfoMap?: SymbolOriginInfoMap, symbolToSortTextIdMap?: SymbolSortTextIdMap, isJsxIdentifierExpected?: boolean, isRightOfOpenTag?: boolean): UniqueNameSet;
+    export function getCompletionEntriesFromSymbols(symbols: readonly Symbol[], entries: SortedArray<CompletionEntry>, replacementToken: Node | undefined, contextToken: Node | undefined, location: Node, sourceFile: SourceFile, host: LanguageServiceHost, program: Program, target: ScriptTarget, log: Log, kind: CompletionKind, preferences: UserPreferences, compilerOptions: CompilerOptions, formatContext: formatting.FormatContext | undefined, isTypeOnlyLocation?: boolean, propertyAccessToConvert?: PropertyAccessExpression, jsxIdentifierExpected?: boolean, isJsxInitializer?: IsJsxInitializer, importCompletionNode?: Node, recommendedCompletion?: Symbol, symbolToOriginInfoMap?: SymbolOriginInfoMap, symbolToSortTextMap?: SymbolSortTextMap, isJsxIdentifierExpected?: boolean, isRightOfOpenTag?: boolean): UniqueNameSet;
     export interface CompletionEntryIdentifier {
         name: string;
         source?: string;
@@ -17142,7 +17141,7 @@ declare namespace ts.textChanges {
         insertNodeAtConstructorEnd(sourceFile: SourceFile, ctr: ConstructorDeclaration, newStatement: Statement): void;
         private replaceConstructorBody;
         insertNodeAtEndOfScope(sourceFile: SourceFile, scope: Node, newNode: Node): void;
-        insertNodeAtClassStart(sourceFile: SourceFile, cls: ClassLikeDeclaration | InterfaceDeclaration, newElement: ClassElement): void;
+        insertMemberAtStart(sourceFile: SourceFile, node: ClassLikeDeclaration | InterfaceDeclaration | TypeLiteralNode, newElement: ClassElement | PropertySignature | MethodSignature): void;
         insertNodeAtObjectStart(sourceFile: SourceFile, obj: ObjectLiteralExpression, newElement: ObjectLiteralElementLike): void;
         private insertNodeAtStartWorker;
         /**
@@ -17364,7 +17363,7 @@ declare namespace ts.codefix {
      */
     export function addNewNodeForMemberSymbol(symbol: Symbol, enclosingDeclaration: ClassLikeDeclaration, sourceFile: SourceFile, context: TypeConstructionContext, preferences: UserPreferences, importAdder: ImportAdder | undefined, addClassElement: (node: AddNode) => void, body: Block | undefined, preserveOptional?: PreserveOptionalFlags, isAmbient?: boolean): void;
     export function createSignatureDeclarationFromSignature(kind: SyntaxKind.MethodDeclaration | SyntaxKind.FunctionExpression | SyntaxKind.ArrowFunction, context: TypeConstructionContext, quotePreference: QuotePreference, signature: Signature, body: Block | undefined, name: PropertyName | undefined, modifiers: NodeArray<Modifier> | undefined, optional: boolean | undefined, enclosingDeclaration: Node | undefined, importAdder: ImportAdder | undefined): MethodDeclaration | FunctionExpression | ArrowFunction | undefined;
-    export function createSignatureDeclarationFromCallExpression(kind: SyntaxKind.MethodDeclaration | SyntaxKind.FunctionDeclaration, context: CodeFixContextBase, importAdder: ImportAdder, call: CallExpression, name: Identifier | string, modifierFlags: ModifierFlags, contextNode: Node): FunctionDeclaration | MethodDeclaration;
+    export function createSignatureDeclarationFromCallExpression(kind: SyntaxKind.MethodDeclaration | SyntaxKind.FunctionDeclaration | SyntaxKind.MethodSignature, context: CodeFixContextBase, importAdder: ImportAdder, call: CallExpression, name: Identifier | string, modifierFlags: ModifierFlags, contextNode: Node): MethodSignature | FunctionDeclaration | MethodDeclaration;
     export function typeToAutoImportableTypeNode(checker: TypeChecker, importAdder: ImportAdder, type: Type, contextNode: Node | undefined, scriptTarget: ScriptTarget, flags?: NodeBuilderFlags, tracker?: SymbolTracker): TypeNode | undefined;
     export function createStubbedBody(text: string, quotePreference: QuotePreference): Block;
     export function setJsonCompilerOptionValues(changeTracker: textChanges.ChangeTracker, configFile: TsConfigSourceFile, options: [string, Expression][]): undefined;
