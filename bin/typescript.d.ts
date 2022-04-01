@@ -16587,6 +16587,7 @@ declare namespace ts.FindAllReferences {
     namespace Core {
         /** Core find-all-references algorithm. Handles special cases before delegating to `getReferencedSymbolsForSymbol`. */
         function getReferencedSymbolsForNode(position: number, node: Node, program: Program, sourceFiles: readonly SourceFile[], cancellationToken: CancellationToken, options?: Options, sourceFilesSet?: ReadonlySet<string>): readonly SymbolAndEntries[] | undefined;
+        function getAdjustedNode(node: Node, options: Options): Node;
         function getReferencesForFileName(fileName: string, program: Program, sourceFiles: readonly SourceFile[], sourceFilesSet?: ReadonlySet<string>): readonly Entry[];
         function eachExportReference(sourceFiles: readonly SourceFile[], checker: TypeChecker, cancellationToken: CancellationToken | undefined, exportSymbol: Symbol, exportingModuleSymbol: Symbol, exportName: string, isDefaultExport: boolean, cb: (ref: Identifier) => void): void;
         /** Used as a quick check for whether a symbol is used at all in a file (besides its definition). */
