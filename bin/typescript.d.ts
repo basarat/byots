@@ -1441,24 +1441,25 @@ declare namespace ts {
         YieldContext = 8192,
         DecoratorContext = 16384,
         AwaitContext = 32768,
-        ThisNodeHasError = 65536,
-        JavaScriptFile = 131072,
-        ThisNodeOrAnySubNodesHasError = 262144,
-        HasAggregatedChildData = 524288,
-        PossiblyContainsDynamicImport = 1048576,
-        PossiblyContainsImportMeta = 2097152,
-        JSDoc = 4194304,
-        Ambient = 8388608,
-        InWithStatement = 16777216,
-        JsonFile = 33554432,
-        TypeCached = 67108864,
-        Deprecated = 134217728,
+        DisallowConditionalTypesContext = 65536,
+        ThisNodeHasError = 131072,
+        JavaScriptFile = 262144,
+        ThisNodeOrAnySubNodesHasError = 524288,
+        HasAggregatedChildData = 1048576,
+        PossiblyContainsDynamicImport = 2097152,
+        PossiblyContainsImportMeta = 4194304,
+        JSDoc = 8388608,
+        Ambient = 16777216,
+        InWithStatement = 33554432,
+        JsonFile = 67108864,
+        TypeCached = 134217728,
+        Deprecated = 268435456,
         BlockScoped = 3,
         ReachabilityCheckFlags = 768,
         ReachabilityAndEmitFlags = 2816,
-        ContextFlags = 25358336,
+        ContextFlags = 50720768,
         TypeExcludesFlags = 40960,
-        PermanentlySetIncrementalFlags = 3145728
+        PermanentlySetIncrementalFlags = 6291456
     }
     export enum ModifierFlags {
         None = 0,
@@ -2941,10 +2942,12 @@ declare namespace ts {
     export interface JSDocNonNullableType extends JSDocType {
         readonly kind: SyntaxKind.JSDocNonNullableType;
         readonly type: TypeNode;
+        readonly postfix: boolean;
     }
     export interface JSDocNullableType extends JSDocType {
         readonly kind: SyntaxKind.JSDocNullableType;
         readonly type: TypeNode;
+        readonly postfix: boolean;
     }
     export interface JSDocOptionalType extends JSDocType {
         readonly kind: SyntaxKind.JSDocOptionalType;
@@ -4933,6 +4936,11 @@ declare namespace ts {
         nonFixingMapper: TypeMapper;
         returnMapper?: TypeMapper;
         inferredTypeParameters?: readonly TypeParameter[];
+        intraExpressionInferenceSites?: IntraExpressionInferenceSite[];
+    }
+    export interface IntraExpressionInferenceSite {
+        node: Expression | MethodDeclaration;
+        type: Type;
     }
     export interface WideningContext {
         parent?: WideningContext;
@@ -5934,10 +5942,19 @@ declare namespace ts {
         parenthesizeExpressionOfExpressionStatement(expression: Expression): Expression;
         parenthesizeConciseBodyOfArrowFunction(body: Expression): Expression;
         parenthesizeConciseBodyOfArrowFunction(body: ConciseBody): ConciseBody;
-        parenthesizeMemberOfConditionalType(member: TypeNode): TypeNode;
-        parenthesizeMemberOfElementType(member: TypeNode): TypeNode;
-        parenthesizeElementTypeOfArrayType(member: TypeNode): TypeNode;
-        parenthesizeConstituentTypesOfUnionOrIntersectionType(members: readonly TypeNode[]): NodeArray<TypeNode>;
+        parenthesizeCheckTypeOfConditionalType(type: TypeNode): TypeNode;
+        parenthesizeExtendsTypeOfConditionalType(type: TypeNode): TypeNode;
+        parenthesizeOperandOfTypeOperator(type: TypeNode): TypeNode;
+        parenthesizeOperandOfReadonlyTypeOperator(type: TypeNode): TypeNode;
+        parenthesizeNonArrayTypeOfPostfixType(type: TypeNode): TypeNode;
+        parenthesizeElementTypesOfTupleType(types: readonly (TypeNode | NamedTupleMember)[]): NodeArray<TypeNode>;
+        parenthesizeElementTypeOfTupleType(type: TypeNode | NamedTupleMember): TypeNode | NamedTupleMember;
+        parenthesizeTypeOfOptionalType(type: TypeNode): TypeNode;
+        parenthesizeConstituentTypeOfUnionType(type: TypeNode): TypeNode;
+        parenthesizeConstituentTypesOfUnionType(constituents: readonly TypeNode[]): NodeArray<TypeNode>;
+        parenthesizeConstituentTypeOfIntersectionType(type: TypeNode): TypeNode;
+        parenthesizeConstituentTypesOfIntersectionType(constituents: readonly TypeNode[]): NodeArray<TypeNode>;
+        parenthesizeLeadingTypeArgument(typeNode: TypeNode): TypeNode;
         parenthesizeTypeArguments(typeParameters: readonly TypeNode[] | undefined): NodeArray<TypeNode> | undefined;
     }
     export interface NodeConverters {
@@ -5953,6 +5970,8 @@ declare namespace ts {
     export interface NodeFactory {
         readonly parenthesizer: ParenthesizerRules;
         readonly converters: NodeConverters;
+        readonly baseFactory: BaseNodeFactory;
+        readonly flags: NodeFactoryFlags;
         createNodeArray<T extends Node>(elements?: readonly T[], hasTrailingComma?: boolean): NodeArray<T>;
         createNumericLiteral(value: string | number, numericLiteralFlags?: TokenFlags): NumericLiteral;
         createBigIntLiteral(value: string | PseudoBigInt): BigIntLiteral;
@@ -6269,9 +6288,9 @@ declare namespace ts {
         updateExternalModuleReference(node: ExternalModuleReference, expression: Expression): ExternalModuleReference;
         createJSDocAllType(): JSDocAllType;
         createJSDocUnknownType(): JSDocUnknownType;
-        createJSDocNonNullableType(type: TypeNode): JSDocNonNullableType;
+        createJSDocNonNullableType(type: TypeNode, postfix?: boolean): JSDocNonNullableType;
         updateJSDocNonNullableType(node: JSDocNonNullableType, type: TypeNode): JSDocNonNullableType;
-        createJSDocNullableType(type: TypeNode): JSDocNullableType;
+        createJSDocNullableType(type: TypeNode, postfix?: boolean): JSDocNullableType;
         updateJSDocNullableType(node: JSDocNullableType, type: TypeNode): JSDocNullableType;
         createJSDocOptionalType(type: TypeNode): JSDocOptionalType;
         updateJSDocOptionalType(node: JSDocOptionalType, type: TypeNode): JSDocOptionalType;
@@ -8795,6 +8814,7 @@ declare namespace ts {
         Relative_import_paths_need_explicit_file_extensions_in_EcmaScript_imports_when_moduleResolution_is_node12_or_nodenext_Did_you_mean_0: DiagnosticMessage;
         Import_assertions_are_not_allowed_on_statements_that_transpile_to_commonjs_require_calls: DiagnosticMessage;
         Import_assertion_values_must_be_string_literal_expressions: DiagnosticMessage;
+        All_declarations_of_0_must_have_identical_constraints: DiagnosticMessage;
         Import_declaration_0_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_interface_has_or_is_using_private_name_1: DiagnosticMessage;
@@ -15154,7 +15174,6 @@ declare namespace ts {
     }
     interface ReferenceEntry extends DocumentSpan {
         isWriteAccess: boolean;
-        isDefinition: boolean;
         isInString?: true;
     }
     interface ImplementationLocation extends DocumentSpan {
@@ -15270,7 +15289,10 @@ declare namespace ts {
     }
     interface ReferencedSymbol {
         definition: ReferencedSymbolDefinitionInfo;
-        references: ReferenceEntry[];
+        references: ReferencedSymbolEntry[];
+    }
+    interface ReferencedSymbolEntry extends ReferenceEntry {
+        isDefinition?: boolean;
     }
     enum SymbolDisplayPartKind {
         aliasName = 0,
@@ -16577,7 +16599,7 @@ declare namespace ts.FindAllReferences {
     type ToReferenceOrRenameEntry<T> = (entry: Entry, originalNode: Node, checker: TypeChecker) => T;
     function getReferenceEntriesForNode(position: number, node: Node, program: Program, sourceFiles: readonly SourceFile[], cancellationToken: CancellationToken, options?: Options, sourceFilesSet?: ReadonlySet<string>): readonly Entry[] | undefined;
     function toRenameLocation(entry: Entry, originalNode: Node, checker: TypeChecker, providePrefixAndSuffixText: boolean): RenameLocation;
-    function toReferenceEntry(entry: Entry, symbol: Symbol | undefined): ReferenceEntry;
+    function toReferenceEntry(entry: Entry): ReferenceEntry;
     function toHighlightSpan(entry: Entry): {
         fileName: string;
         span: HighlightSpan;
@@ -17763,7 +17785,7 @@ declare namespace ts {
         getOccurrencesAtPosition(fileName: string, position: number): string;
         /**
          * Returns a JSON-encoded value of the type:
-         * { fileName: string; highlights: { start: number; length: number, isDefinition: boolean }[] }[]
+         * { fileName: string; highlights: { start: number; length: number }[] }[]
          *
          * @param fileToSearch A JSON encoded string[] containing the file names that should be
          *  considered when searching.
