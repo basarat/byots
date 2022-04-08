@@ -4215,6 +4215,7 @@ declare namespace ts {
     }
     export interface SymbolLinks {
         immediateTarget?: Symbol;
+        aliasTarget?: Symbol;
         target?: Symbol;
         type?: Type;
         writeType?: Type;
@@ -17495,6 +17496,7 @@ declare namespace ts.refactor.extractSymbol {
         const cannotAccessVariablesFromNestedScopes: DiagnosticMessage;
         const cannotExtractToJSClass: DiagnosticMessage;
         const cannotExtractToExpressionArrowFunction: DiagnosticMessage;
+        const cannotExtractFunctionsContainingThisToMethod: DiagnosticMessage;
     }
     enum RangeFacts {
         None = 0,
@@ -17502,10 +17504,11 @@ declare namespace ts.refactor.extractSymbol {
         IsGenerator = 2,
         IsAsyncFunction = 4,
         UsesThis = 8,
+        UsesThisInFunction = 16,
         /**
          * The range is in a function which needs the 'static' modifier in a class
          */
-        InStaticRegion = 16
+        InStaticRegion = 32
     }
     /**
      * Represents an expression or a list of statements that should be extracted with some extra information
@@ -17518,6 +17521,10 @@ declare namespace ts.refactor.extractSymbol {
          * Used to ensure we don't turn something used outside the range free (or worse, resolve to a different entity).
          */
         readonly declarations: Symbol[];
+        /**
+         * If `this` is referring to a function instead of class, we need to retrieve its type.
+         */
+        readonly thisNode: Node | undefined;
     }
     /**
      * Result of 'getRangeToExtract' operation: contains either a range or a list of errors
