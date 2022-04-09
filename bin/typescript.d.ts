@@ -3906,7 +3906,6 @@ declare namespace ts {
         UseAliasDefinedOutsideCurrentScope = 16384,
         UseSingleQuotesForStringLiteralType = 268435456,
         NoTypeReduction = 536870912,
-        NoUndefinedOptionalParameterType = 1073741824,
         AllowThisInObjectLiteral = 32768,
         AllowQualifiedNameInPlaceOfIdentifier = 65536,
         /** @deprecated AllowQualifedNameInPlaceOfIdentifier. Use AllowQualifiedNameInPlaceOfIdentifier instead. */
@@ -11354,6 +11353,7 @@ declare namespace ts {
         readonly fileNameIndex: number;
     }
     export function getNodeModulePathParts(fullPath: string): NodeModulePathParts | undefined;
+    export function getParameterTypeNode(parameter: ParameterDeclaration | JSDocParameterTag): TypeNode | undefined;
     export {};
 }
 declare namespace ts {
