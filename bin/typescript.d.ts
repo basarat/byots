@@ -11221,6 +11221,7 @@ declare namespace ts {
     export const supportedTSExtensionsFlat: readonly Extension[];
     export const supportedJSExtensions: readonly Extension[][];
     export const supportedJSExtensionsFlat: readonly Extension[];
+    export const supportedDeclarationExtensions: readonly Extension[];
     export function getSupportedExtensions(options?: CompilerOptions): readonly Extension[][];
     export function getSupportedExtensions(options?: CompilerOptions, extraFileExtensions?: readonly FileExtensionInfo[]): readonly string[][];
     export function getSupportedExtensionsWithJsonIfResolveJsonModule(options: CompilerOptions | undefined, supportedExtensions: readonly Extension[][]): readonly Extension[][];
