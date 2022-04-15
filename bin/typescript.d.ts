@@ -4027,6 +4027,7 @@ declare namespace ts {
     export type TypePredicate = ThisTypePredicate | IdentifierTypePredicate | AssertsThisTypePredicate | AssertsIdentifierTypePredicate;
     export type AnyImportSyntax = ImportDeclaration | ImportEqualsDeclaration;
     export type AnyImportOrRequire = AnyImportSyntax | VariableDeclarationInitializedTo<RequireOrImportCall>;
+    export type AnyImportOrBareOrAccessedRequire = AnyImportSyntax | VariableDeclarationInitializedTo<RequireOrImportCall | AccessExpression>;
     export type AnyImportOrRequireStatement = AnyImportSyntax | RequireVariableStatement;
     export type AnyImportOrReExport = AnyImportSyntax | ExportDeclaration;
     export interface ValidImportTypeNode extends ImportTypeNode {
@@ -5152,6 +5153,7 @@ declare namespace ts {
         assumeChangesOnlyAffectDirectDependencies?: boolean;
         noLib?: boolean;
         noResolve?: boolean;
+        noDtsResolution?: boolean;
         noUncheckedIndexedAccess?: boolean;
         out?: string;
         outDir?: string;
@@ -10391,6 +10393,7 @@ declare namespace ts {
     export function isDeclarationWithTypeParameters(node: Node): node is DeclarationWithTypeParameters;
     export function isDeclarationWithTypeParameterChildren(node: Node): node is DeclarationWithTypeParameterChildren;
     export function isAnyImportSyntax(node: Node): node is AnyImportSyntax;
+    export function isAnyImportOrBareOrAccessedRequire(node: Node): node is AnyImportOrBareOrAccessedRequire;
     export function isLateVisibilityPaintedStatement(node: Node): node is LateVisibilityPaintedStatement;
     export function hasPossibleExternalModuleReference(node: Node): node is AnyImportOrReExport | ModuleDeclaration | ImportTypeNode | ImportCall;
     export function isAnyImportOrReExport(node: Node): node is AnyImportOrReExport;
@@ -10612,7 +10615,7 @@ declare namespace ts {
     export function isSpecialPropertyDeclaration(expr: PropertyAccessExpression | ElementAccessExpression): expr is PropertyAccessExpression | LiteralLikeElementAccessExpression;
     export function setValueDeclaration(symbol: Symbol, node: Declaration): void;
     export function isFunctionSymbol(symbol: Symbol | undefined): boolean | undefined;
-    export function tryGetModuleSpecifierFromDeclaration(node: AnyImportOrRequire): string | undefined;
+    export function tryGetModuleSpecifierFromDeclaration(node: AnyImportOrBareOrAccessedRequire): StringLiteralLike | undefined;
     export function importFromModuleSpecifier(node: StringLiteralLike): AnyValidImportOrReExport;
     export function tryGetImportFromModuleSpecifier(node: StringLiteralLike): AnyValidImportOrReExport | undefined;
     export function getExternalModuleName(node: AnyImportOrReExport | ImportTypeNode | ImportCall | ModuleDeclaration): Expression | undefined;
@@ -10954,6 +10957,7 @@ declare namespace ts {
     export function tryGetPropertyAccessOrIdentifierToString(expr: Expression): string | undefined;
     export function isPrototypeAccess(node: Node): node is BindableStaticAccessExpression;
     export function isRightSideOfQualifiedNameOrPropertyAccess(node: Node): boolean;
+    export function isRightSideOfAccessExpression(node: Node): boolean;
     export function isRightSideOfQualifiedNameOrPropertyAccessOrJSDocMemberName(node: Node): boolean;
     export function isEmptyObjectLiteral(expression: Node): boolean;
     export function isEmptyArrayLiteral(expression: Node): boolean;
@@ -11093,6 +11097,7 @@ declare namespace ts {
     export function isBundleFileTextLike(section: BundleFileSection): section is BundleFileTextLike;
     export function isNamedImportsOrExports(node: Node): node is NamedImportsOrExports;
     export function getLeftmostAccessExpression(expr: Expression): Expression;
+    export function forEachNameInAccessChainWalkingLeft<T>(name: MemberName | StringLiteralLike, action: (name: MemberName | StringLiteralLike) => T | undefined): T | undefined;
     export function getLeftmostExpression(node: Expression, stopAtCallExpressions: boolean): Expression;
     export interface ObjectAllocator {
         getNodeConstructor(): new (kind: SyntaxKind, pos?: number, end?: number) => Node;
@@ -14832,6 +14837,7 @@ declare namespace ts {
         getRenameInfo(fileName: string, position: number, options?: RenameInfoOptions): RenameInfo;
         findRenameLocations(fileName: string, position: number, findInStrings: boolean, findInComments: boolean, providePrefixAndSuffixTextForRename?: boolean): readonly RenameLocation[] | undefined;
         getSmartSelectionRange(fileName: string, position: number): SelectionRange;
+        getDefinitionAtPosition(fileName: string, position: number, searchOtherFilesOnly: boolean): readonly DefinitionInfo[] | undefined;
         getDefinitionAtPosition(fileName: string, position: number): readonly DefinitionInfo[] | undefined;
         getDefinitionAndBoundSpan(fileName: string, position: number): DefinitionInfoAndBoundSpan | undefined;
         getTypeDefinitionAtPosition(fileName: string, position: number): readonly DefinitionInfo[] | undefined;
@@ -15282,6 +15288,8 @@ declare namespace ts {
         containerName: string;
         unverified?: boolean;
         isLocal?: boolean;
+        isAmbient?: boolean;
+        failedAliasResolution?: boolean;
     }
     interface DefinitionInfoAndBoundSpan {
         definitions?: readonly DefinitionInfo[];
@@ -16618,6 +16626,7 @@ declare namespace ts.FindAllReferences {
         /** Used as a quick check for whether a symbol is used at all in a file (besides its definition). */
         function isSymbolReferencedInFile(definition: Identifier, checker: TypeChecker, sourceFile: SourceFile, searchContainer?: Node): boolean;
         function eachSymbolReferenceInFile<T>(definition: Identifier, checker: TypeChecker, sourceFile: SourceFile, cb: (token: Identifier) => T, searchContainer?: Node): T | undefined;
+        function getTopMostDeclarationNamesInFile(declarationName: string, sourceFile: SourceFile): readonly Node[];
         function someSignatureUsage(signature: SignatureDeclaration, sourceFiles: readonly SourceFile[], checker: TypeChecker, cb: (name: Identifier, call?: CallExpression) => boolean): boolean;
         /**
          * Given an initial searchMeaning, extracted from a location, widen the search scope based on the declarations
@@ -16673,7 +16682,7 @@ declare namespace ts {
     export {};
 }
 declare namespace ts.GoToDefinition {
-    function getDefinitionAtPosition(program: Program, sourceFile: SourceFile, position: number): readonly DefinitionInfo[] | undefined;
+    function getDefinitionAtPosition(program: Program, sourceFile: SourceFile, position: number, searchOtherFilesOnly?: boolean): readonly DefinitionInfo[] | undefined;
     function getReferenceAtPosition(sourceFile: SourceFile, position: number, program: Program): {
         reference: FileReference;
         fileName: string;
@@ -16682,6 +16691,8 @@ declare namespace ts.GoToDefinition {
     } | undefined;
     function getTypeDefinitionAtPosition(typeChecker: TypeChecker, sourceFile: SourceFile, position: number): readonly DefinitionInfo[] | undefined;
     function getDefinitionAndBoundSpan(program: Program, sourceFile: SourceFile, position: number): DefinitionInfoAndBoundSpan | undefined;
+    /** Creates a DefinitionInfo from a Declaration, using the declaration's name if possible. */
+    function createDefinitionInfo(declaration: Declaration, checker: TypeChecker, symbol: Symbol, node: Node, unverified?: boolean, failedAliasResolution?: boolean): DefinitionInfo;
     function findReferenceInPosition(refs: readonly FileReference[], pos: number): FileReference | undefined;
 }
 declare namespace ts.JsDoc {
