@@ -13284,10 +13284,6 @@ declare namespace ts {
          * This is equivalent to referencedMap, but for the emitted .d.ts file.
          */
         readonly exportedModulesMap: BuilderState.ManyToManyPathMap | undefined;
-        previousCache?: {
-            id: number;
-            version: number;
-        };
         /**
          * true if file version is used as signature
          * This helps in delaying the calculation of the d.ts hash as version for the file till reasonable time
@@ -13319,7 +13315,6 @@ declare namespace ts {
             impliedFormat: number | undefined;
         }
         interface ReadonlyManyToManyPathMap {
-            readonly id: number;
             clone(): ManyToManyPathMap;
             forEach(action: (v: ReadonlySet<Path>, k: Path) => void): void;
             getKeys(v: Path): ReadonlySet<Path> | undefined;
@@ -13334,9 +13329,9 @@ declare namespace ts {
             deletedKeys(): ReadonlySet<Path> | undefined;
         }
         interface ManyToManyPathMap extends ReadonlyManyToManyPathMap {
-            version(): number;
             deleteKey(k: Path): boolean;
             set(k: Path, v: ReadonlySet<Path>): void;
+            clear(): void;
         }
         function createManyToManyPathMap(): ManyToManyPathMap;
         /**
