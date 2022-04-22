@@ -3402,7 +3402,10 @@ declare namespace ts {
     export type ResolvedConfigFileName = string & {
         _isResolvedConfigFileName: never;
     };
-    export type WriteFileCallback = (fileName: string, data: string, writeByteOrderMark: boolean, onError?: (message: string) => void, sourceFiles?: readonly SourceFile[]) => void;
+    export interface WriteFileCallbackData {
+        sourceMapUrlPos?: number;
+    }
+    export type WriteFileCallback = (fileName: string, text: string, writeByteOrderMark: boolean, onError?: (message: string) => void, sourceFiles?: readonly SourceFile[], data?: WriteFileCallbackData) => void;
     export class OperationCanceledException {
     }
     export interface CancellationToken {
@@ -3552,6 +3555,8 @@ declare namespace ts {
          * This implementation handles file exists to be true if file is source of project reference redirect when program is created using useSourceOfProjectReferenceRedirect
          */
         fileExists(fileName: string): boolean;
+        /** Call compilerHost.writeFile on host program was created with */
+        writeFile: WriteFileCallback;
     }
     export interface Program extends TypeCheckerHost, ModuleSpecifierResolutionHost {
     }
@@ -5672,6 +5677,7 @@ declare namespace ts {
         createDirectory?(directory: string): void;
         getSymlinkCache?(): SymlinkCache;
         disableUseFileVersionAsSignature?: boolean;
+        storeFilesChangingSignatureDuringEmit?: boolean;
     }
     /** true if --out otherwise source file name */
     export type SourceOfProjectReferenceRedirect = string | true;
@@ -7558,10 +7564,11 @@ declare namespace ts {
         base64decode?(input: string): string;
         base64encode?(input: string): string;
         bufferFrom?(input: string, encoding?: string): Buffer;
-        now?(): Date;
-        disableUseFileVersionAsSignature?: boolean;
         require?(baseDir: string, moduleName: string): RequireResult;
         defaultWatchFileKind?(): WatchFileKind | undefined;
+        now?(): Date;
+        disableUseFileVersionAsSignature?: boolean;
+        storeFilesChangingSignatureDuringEmit?: boolean;
     }
     export interface FileWatcher {
         close(): void;
@@ -10847,7 +10854,7 @@ declare namespace ts {
     export function getSourceFilePathInNewDirWorker(fileName: string, newDirPath: string, currentDirectory: string, commonSourceDirectory: string, getCanonicalFileName: GetCanonicalFileName): string;
     export function writeFile(host: {
         writeFile: WriteFileCallback;
-    }, diagnostics: DiagnosticCollection, fileName: string, data: string, writeByteOrderMark: boolean, sourceFiles?: readonly SourceFile[]): void;
+    }, diagnostics: DiagnosticCollection, fileName: string, text: string, writeByteOrderMark: boolean, sourceFiles?: readonly SourceFile[], data?: WriteFileCallbackData): void;
     export function writeFileEnsuringDirectories(path: string, data: string, writeByteOrderMark: boolean, writeFile: (path: string, data: string, writeByteOrderMark: boolean) => void, createDirectory: (path: string) => void, directoryExists: (path: string) => boolean): void;
     export function getLineOfLocalPosition(sourceFile: SourceFile, pos: number): number;
     export function getLineOfLocalPositionFromLineMap(lineMap: readonly number[], pos: number): number;
@@ -13369,6 +13376,10 @@ declare namespace ts {
          */
         function updateShapeSignature(state: Readonly<BuilderState>, programOfThisState: Program, sourceFile: SourceFile, cacheToUpdateSignature: ESMap<Path, string>, cancellationToken: CancellationToken | undefined, computeHash: ComputeHash, exportedModulesMapCache?: ManyToManyPathMap, useFileVersionAsSignature?: boolean): boolean;
         /**
+         * Coverts the declaration emit result into exported modules map
+         */
+        function updateExportedModules(sourceFile: SourceFile, exportedModulesFromDeclarationEmit: ExportedModulesFromDeclarationEmit | undefined, exportedModulesMapCache: ManyToManyPathMap): void;
+        /**
          * Updates the exported modules from cache into state's exported modules map
          * This should be called whenever it is safe to commit the state of the builder
          */
@@ -13540,6 +13551,8 @@ declare namespace ts {
          * true if program has been emitted
          */
         programEmitComplete?: true;
+        /** Stores list of files that change signature during emit - test only */
+        filesChangingSignature?: Set<Path>;
     }
     type ProgramBuildInfoFileId = number & {
         __programBuildInfoFileIdBrand: any;
@@ -13616,6 +13629,10 @@ declare namespace ts {
          * disable using source file version as signature for testing
          */
         disableUseFileVersionAsSignature?: boolean;
+        /**
+         * Store the list of files that update signature during the emit
+         */
+        storeFilesChangingSignatureDuringEmit?: boolean;
     }
     /**
      * Builder to manage the program state changes
@@ -14000,6 +14017,7 @@ declare namespace ts {
         createDirectory?(path: string): void;
         writeFile?(path: string, data: string, writeByteOrderMark?: boolean): void;
         disableUseFileVersionAsSignature?: boolean;
+        storeFilesChangingSignatureDuringEmit?: boolean;
     }
     interface WatchCompilerHost<T extends BuilderProgram> extends ProgramHost<T>, WatchHost {
         /** Instead of using output d.ts file from project reference, use its source file */
