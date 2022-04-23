@@ -10367,7 +10367,7 @@ declare namespace ts {
         TerminateUnterminatedLiterals = 4,
         AllowNumericSeparator = 8
     }
-    export function getLiteralText(node: LiteralLikeNode, sourceFile: SourceFile, flags: GetLiteralTextFlags): string;
+    export function getLiteralText(node: LiteralLikeNode, sourceFile: SourceFile | undefined, flags: GetLiteralTextFlags): string;
     export function getTextOfConstantValue(value: string | number): string;
     export function makeIdentifierFromModuleName(moduleName: string): string;
     export function isBlockOrCatchScoped(declaration: Declaration): boolean;
@@ -17312,7 +17312,7 @@ declare namespace ts.codefix {
         readonly codeAction: CodeAction;
     };
     function getPromoteTypeOnlyCompletionAction(sourceFile: SourceFile, symbolToken: Identifier, program: Program, host: LanguageServiceHost, formatContext: formatting.FormatContext, preferences: UserPreferences): CodeAction | undefined;
-    function getModuleSpecifierForBestExportInfo(exportInfo: readonly SymbolExportInfo[], importingFile: SourceFile, program: Program, host: LanguageServiceHost, preferences: UserPreferences, packageJsonImportFilter?: PackageJsonImportFilter, fromCacheOnly?: boolean): {
+    function getModuleSpecifierForBestExportInfo(exportInfo: readonly SymbolExportInfo[], symbolName: string, position: number, isValidTypeOnlyUseSite: boolean, importingFile: SourceFile, program: Program, host: LanguageServiceHost, preferences: UserPreferences, packageJsonImportFilter?: PackageJsonImportFilter, fromCacheOnly?: boolean): {
         exportInfo?: SymbolExportInfo;
         moduleSpecifier: string;
         computedWithoutCacheCount: number;
