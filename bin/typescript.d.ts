@@ -7026,7 +7026,7 @@ declare namespace ts {
     export interface ResolvedModuleSpecifierInfo {
         modulePaths: readonly ModulePath[] | undefined;
         moduleSpecifiers: readonly string[] | undefined;
-        isAutoImportable: boolean | undefined;
+        isBlockedByPackageJsonDependencies: boolean | undefined;
     }
     export interface ModuleSpecifierOptions {
         overrideImportMode?: SourceFile["impliedNodeFormat"];
@@ -7034,7 +7034,7 @@ declare namespace ts {
     export interface ModuleSpecifierCache {
         get(fromFileName: Path, toFileName: Path, preferences: UserPreferences, options: ModuleSpecifierOptions): Readonly<ResolvedModuleSpecifierInfo> | undefined;
         set(fromFileName: Path, toFileName: Path, preferences: UserPreferences, options: ModuleSpecifierOptions, modulePaths: readonly ModulePath[], moduleSpecifiers: readonly string[]): void;
-        setIsAutoImportable(fromFileName: Path, toFileName: Path, preferences: UserPreferences, options: ModuleSpecifierOptions, isAutoImportable: boolean): void;
+        setBlockedByPackageJsonDependencies(fromFileName: Path, toFileName: Path, preferences: UserPreferences, options: ModuleSpecifierOptions, isBlockedByPackageJsonDependencies: boolean): void;
         setModulePaths(fromFileName: Path, toFileName: Path, preferences: UserPreferences, options: ModuleSpecifierOptions, modulePaths: readonly ModulePath[]): void;
         clear(): void;
         count(): number;
@@ -8807,6 +8807,7 @@ declare namespace ts {
         This_syntax_requires_an_imported_helper_named_1_with_2_parameters_which_is_not_compatible_with_the_one_in_0_Consider_upgrading_your_version_of_0: DiagnosticMessage;
         A_get_accessor_must_be_at_least_as_accessible_as_the_setter: DiagnosticMessage;
         Declaration_or_statement_expected_This_follows_a_block_of_statements_so_if_you_intended_to_write_a_destructuring_assignment_you_might_need_to_wrap_the_the_whole_assignment_in_parentheses: DiagnosticMessage;
+        Expected_1_argument_but_got_0_new_Promise_needs_a_JSDoc_hint_to_produce_a_resolve_that_can_be_called_without_arguments: DiagnosticMessage;
         Initializer_for_property_0: DiagnosticMessage;
         Property_0_does_not_exist_on_type_1_Try_changing_the_lib_compiler_option_to_include_dom: DiagnosticMessage;
         Class_declaration_cannot_implement_overload_list_for_0: DiagnosticMessage;
@@ -15425,7 +15426,18 @@ declare namespace ts {
         argumentIndex: number;
         argumentCount: number;
     }
+    enum CompletionInfoFlags {
+        None = 0,
+        MayIncludeAutoImports = 1,
+        IsImportStatementCompletion = 2,
+        IsContinuation = 4,
+        ResolvedModuleSpecifiers = 8,
+        ResolvedModuleSpecifiersBeyondLimit = 16,
+        MayIncludeMethodSnippets = 32
+    }
     interface CompletionInfo {
+        /** For performance telemetry. */
+        flags?: CompletionInfoFlags;
         /** Not true for all global completions. This will be true if the enclosing scope matches a few syntax kinds. See `isSnippetScope`. */
         isGlobalCompletion: boolean;
         isMemberCompletion: boolean;
@@ -15982,6 +15994,8 @@ declare namespace ts {
     function compilerOptionsIndicateEsModules(compilerOptions: CompilerOptions): boolean;
     function createModuleSpecifierResolutionHost(program: Program, host: LanguageServiceHost): ModuleSpecifierResolutionHost;
     function getModuleSpecifierResolverHost(program: Program, host: LanguageServiceHost): SymbolTracker["moduleResolverHost"];
+    function moduleResolutionRespectsExports(moduleResolution: ModuleResolutionKind): boolean;
+    function moduleResolutionUsesNodeModules(moduleResolution: ModuleResolutionKind): boolean;
     function makeImportIfNecessary(defaultImport: Identifier | undefined, namedImports: readonly ImportSpecifier[] | undefined, moduleSpecifier: string, quotePreference: QuotePreference): ImportDeclaration | undefined;
     function makeImport(defaultImport: Identifier | undefined, namedImports: readonly ImportSpecifier[] | undefined, moduleSpecifier: string | Expression, quotePreference: QuotePreference, isTypeOnly?: boolean): ImportDeclaration;
     function makeStringLiteral(text: string, quotePreference: QuotePreference): StringLiteral;
