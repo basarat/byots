@@ -8206,7 +8206,7 @@ declare namespace ts {
         Dynamic_imports_are_only_supported_when_the_module_flag_is_set_to_es2020_es2022_esnext_commonjs_amd_system_umd_node12_or_nodenext: DiagnosticMessage;
         Dynamic_imports_only_support_a_second_argument_when_the_module_option_is_set_to_esnext_or_nodenext: DiagnosticMessage;
         Argument_of_dynamic_import_cannot_be_spread_element: DiagnosticMessage;
-        Dynamic_import_cannot_have_type_arguments: DiagnosticMessage;
+        This_use_of_import_is_invalid_import_calls_can_be_written_but_they_must_have_parentheses_and_cannot_have_type_arguments: DiagnosticMessage;
         String_literal_with_double_quotes_expected: DiagnosticMessage;
         Property_value_can_only_be_string_literal_numeric_literal_true_false_null_object_literal_or_array_literal: DiagnosticMessage;
         _0_accepts_too_few_arguments_to_be_used_as_a_decorator_here_Did_you_mean_to_call_it_first_and_write_0: DiagnosticMessage;
@@ -8593,7 +8593,6 @@ declare namespace ts {
         A_rest_element_cannot_have_a_property_name: DiagnosticMessage;
         Enum_declarations_can_only_merge_with_namespace_or_other_enum_declarations: DiagnosticMessage;
         Property_0_may_not_exist_on_type_1_Did_you_mean_2: DiagnosticMessage;
-        Type_0_is_not_an_array_type_or_a_string_type_Use_compiler_option_downlevelIteration_to_allow_iterating_of_iterators: DiagnosticMessage;
         Could_not_find_name_0_Did_you_mean_1: DiagnosticMessage;
         Object_is_of_type_unknown: DiagnosticMessage;
         A_rest_element_type_must_be_an_array_type: DiagnosticMessage;
