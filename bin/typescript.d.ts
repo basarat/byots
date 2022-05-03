@@ -8342,7 +8342,6 @@ declare namespace ts {
         Construct_signatures_with_no_arguments_have_incompatible_return_types_0_and_1: DiagnosticMessage;
         The_type_modifier_cannot_be_used_on_a_named_import_when_import_type_is_used_on_its_import_statement: DiagnosticMessage;
         The_type_modifier_cannot_be_used_on_a_named_export_when_export_type_is_used_on_its_export_statement: DiagnosticMessage;
-        This_type_parameter_probably_needs_an_extends_object_constraint: DiagnosticMessage;
         Duplicate_identifier_0: DiagnosticMessage;
         Initializer_of_instance_member_variable_0_cannot_reference_identifier_1_declared_in_the_constructor: DiagnosticMessage;
         Static_members_cannot_reference_class_type_parameters: DiagnosticMessage;
@@ -16939,7 +16938,7 @@ declare namespace ts.formatting {
         readEOFTokenRange(): TextRangeWithKind;
         getCurrentLeadingTrivia(): TextRangeWithKind[] | undefined;
         lastTrailingTriviaWasNewLine(): boolean;
-        skipToEndOf(node: Node): void;
+        skipToEndOf(node: Node | NodeArray<Node>): void;
         skipToStartOf(node: Node): void;
     }
     function getFormattingScanner<T>(text: string, languageVariant: LanguageVariant, startPos: number, endPos: number, cb: (scanner: FormattingScanner) => T): T;
