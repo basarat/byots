@@ -3230,7 +3230,7 @@ declare namespace ts {
         hasNoDefaultLib: boolean;
         languageVersion: ScriptTarget;
         /**
-         * When `module` is `Node12` or `NodeNext`, this field controls whether the
+         * When `module` is `Node16` or `NodeNext`, this field controls whether the
          * source file in question is an ESNext-output-format file, or a CommonJS-output-format
          * module. This is derived by the module resolver as it looks up the file, since
          * it is derived from either the file extension of the module, or the containing
@@ -5033,7 +5033,7 @@ declare namespace ts {
     export enum ModuleResolutionKind {
         Classic = 1,
         NodeJs = 2,
-        Node12 = 3,
+        Node16 = 3,
         NodeNext = 99
     }
     export enum ModuleDetectionKind {
@@ -5042,7 +5042,7 @@ declare namespace ts {
          */
         Legacy = 1,
         /**
-         * Legacy, but also files with jsx under react-jsx or react-jsxdev and esm mode files under moduleResolution: node12+
+         * Legacy, but also files with jsx under react-jsx or react-jsxdev and esm mode files under moduleResolution: node16+
          */
         Auto = 2,
         /**
@@ -5242,7 +5242,7 @@ declare namespace ts {
         ES2020 = 6,
         ES2022 = 7,
         ESNext = 99,
-        Node12 = 100,
+        Node16 = 100,
         NodeNext = 199
     }
     export enum JsxEmit {
@@ -8192,6 +8192,7 @@ declare namespace ts {
         _0_modifier_can_only_appear_on_a_type_parameter_of_a_class_interface_or_type_alias: DiagnosticMessage;
         with_statements_are_not_allowed_in_an_async_function_block: DiagnosticMessage;
         await_expressions_are_only_allowed_within_async_functions_and_at_the_top_levels_of_modules: DiagnosticMessage;
+        The_current_file_is_a_CommonJS_module_and_cannot_use_await_at_the_top_level: DiagnosticMessage;
         Did_you_mean_to_use_a_Colon_An_can_only_follow_a_property_name_when_the_containing_object_literal_is_part_of_a_destructuring_pattern: DiagnosticMessage;
         The_body_of_an_if_statement_cannot_be_the_empty_statement: DiagnosticMessage;
         Global_module_exports_may_only_appear_in_module_files: DiagnosticMessage;
@@ -8203,8 +8204,8 @@ declare namespace ts {
         Type_of_await_operand_must_either_be_a_valid_promise_or_must_not_contain_a_callable_then_member: DiagnosticMessage;
         Type_of_yield_operand_in_an_async_generator_must_either_be_a_valid_promise_or_must_not_contain_a_callable_then_member: DiagnosticMessage;
         Type_of_iterated_elements_of_a_yield_Asterisk_operand_must_either_be_a_valid_promise_or_must_not_contain_a_callable_then_member: DiagnosticMessage;
-        Dynamic_imports_are_only_supported_when_the_module_flag_is_set_to_es2020_es2022_esnext_commonjs_amd_system_umd_node12_or_nodenext: DiagnosticMessage;
-        Dynamic_imports_only_support_a_second_argument_when_the_module_option_is_set_to_esnext_or_nodenext: DiagnosticMessage;
+        Dynamic_imports_are_only_supported_when_the_module_flag_is_set_to_es2020_es2022_esnext_commonjs_amd_system_umd_node16_or_nodenext: DiagnosticMessage;
+        Dynamic_imports_only_support_a_second_argument_when_the_module_option_is_set_to_esnext_node16_or_nodenext: DiagnosticMessage;
         Argument_of_dynamic_import_cannot_be_spread_element: DiagnosticMessage;
         This_use_of_import_is_invalid_import_calls_can_be_written_but_they_must_have_parentheses_and_cannot_have_type_arguments: DiagnosticMessage;
         String_literal_with_double_quotes_expected: DiagnosticMessage;
@@ -8221,7 +8222,7 @@ declare namespace ts {
         Module_0_does_not_refer_to_a_value_but_is_used_as_a_value_here: DiagnosticMessage;
         Module_0_does_not_refer_to_a_type_but_is_used_as_a_type_here_Did_you_mean_typeof_import_0: DiagnosticMessage;
         Type_arguments_cannot_be_used_here: DiagnosticMessage;
-        The_import_meta_meta_property_is_only_allowed_when_the_module_option_is_es2020_es2022_esnext_system_node12_or_nodenext: DiagnosticMessage;
+        The_import_meta_meta_property_is_only_allowed_when_the_module_option_is_es2020_es2022_esnext_system_node16_or_nodenext: DiagnosticMessage;
         A_label_is_not_allowed_here: DiagnosticMessage;
         An_expression_of_type_void_cannot_be_tested_for_truthiness: DiagnosticMessage;
         This_parameter_is_not_allowed_with_use_strict_directive: DiagnosticMessage;
@@ -8252,7 +8253,7 @@ declare namespace ts {
         await_expressions_are_only_allowed_at_the_top_level_of_a_file_when_that_file_is_a_module_but_this_file_has_no_imports_or_exports_Consider_adding_an_empty_export_to_make_this_file_a_module: DiagnosticMessage;
         _0_was_imported_here: DiagnosticMessage;
         _0_was_exported_here: DiagnosticMessage;
-        Top_level_await_expressions_are_only_allowed_when_the_module_option_is_set_to_es2022_esnext_system_or_nodenext_and_the_target_option_is_set_to_es2017_or_higher: DiagnosticMessage;
+        Top_level_await_expressions_are_only_allowed_when_the_module_option_is_set_to_es2022_esnext_system_node16_or_nodenext_and_the_target_option_is_set_to_es2017_or_higher: DiagnosticMessage;
         An_import_alias_cannot_reference_a_declaration_that_was_exported_using_export_type: DiagnosticMessage;
         An_import_alias_cannot_reference_a_declaration_that_was_imported_using_import_type: DiagnosticMessage;
         Unexpected_token_Did_you_mean_or_rbrace: DiagnosticMessage;
@@ -8304,7 +8305,7 @@ declare namespace ts {
         File_redirects_to_file_0: DiagnosticMessage;
         The_file_is_in_the_program_because_Colon: DiagnosticMessage;
         for_await_loops_are_only_allowed_at_the_top_level_of_a_file_when_that_file_is_a_module_but_this_file_has_no_imports_or_exports_Consider_adding_an_empty_export_to_make_this_file_a_module: DiagnosticMessage;
-        Top_level_for_await_loops_are_only_allowed_when_the_module_option_is_set_to_es2022_esnext_system_or_nodenext_and_the_target_option_is_set_to_es2017_or_higher: DiagnosticMessage;
+        Top_level_for_await_loops_are_only_allowed_when_the_module_option_is_set_to_es2022_esnext_system_node16_or_nodenext_and_the_target_option_is_set_to_es2017_or_higher: DiagnosticMessage;
         Decorators_may_not_be_applied_to_this_parameters: DiagnosticMessage;
         Unexpected_keyword_or_identifier: DiagnosticMessage;
         Unknown_keyword_or_identifier_Did_you_mean_0: DiagnosticMessage;
@@ -8322,7 +8323,7 @@ declare namespace ts {
         Preserve_unused_imported_values_in_the_JavaScript_output_that_would_otherwise_be_removed: DiagnosticMessage;
         Dynamic_imports_can_only_accept_a_module_specifier_and_an_optional_assertion_as_arguments: DiagnosticMessage;
         Private_identifiers_are_only_allowed_in_class_bodies_and_may_only_be_used_as_part_of_a_class_member_declaration_property_access_or_on_the_left_hand_side_of_an_in_expression: DiagnosticMessage;
-        Resolution_modes_are_only_supported_when_moduleResolution_is_node12_or_nodenext: DiagnosticMessage;
+        Resolution_modes_are_only_supported_when_moduleResolution_is_node16_or_nodenext: DiagnosticMessage;
         resolution_mode_should_be_either_require_or_import: DiagnosticMessage;
         resolution_mode_can_only_be_set_for_type_only_imports: DiagnosticMessage;
         resolution_mode_is_the_only_valid_key_for_type_import_assertions: DiagnosticMessage;
@@ -8333,7 +8334,7 @@ declare namespace ts {
         An_import_declaration_can_only_be_used_at_the_top_level_of_a_module: DiagnosticMessage;
         An_export_declaration_can_only_be_used_at_the_top_level_of_a_module: DiagnosticMessage;
         Control_what_method_is_used_to_detect_module_format_JS_files: DiagnosticMessage;
-        auto_Colon_Treat_files_with_imports_exports_import_meta_jsx_with_jsx_Colon_react_jsx_or_esm_format_with_module_Colon_node12_as_modules: DiagnosticMessage;
+        auto_Colon_Treat_files_with_imports_exports_import_meta_jsx_with_jsx_Colon_react_jsx_or_esm_format_with_module_Colon_node16_as_modules: DiagnosticMessage;
         The_types_of_0_are_incompatible_between_these_types: DiagnosticMessage;
         The_types_returned_by_0_are_incompatible_between_these_types: DiagnosticMessage;
         Call_signature_return_types_0_and_1_are_incompatible: DiagnosticMessage;
@@ -8819,8 +8820,8 @@ declare namespace ts {
         Import_assertions_are_only_supported_when_the_module_option_is_set_to_esnext_or_nodenext: DiagnosticMessage;
         Import_assertions_cannot_be_used_with_type_only_imports_or_exports: DiagnosticMessage;
         Cannot_find_namespace_0_Did_you_mean_1: DiagnosticMessage;
-        Relative_import_paths_need_explicit_file_extensions_in_EcmaScript_imports_when_moduleResolution_is_node12_or_nodenext_Consider_adding_an_extension_to_the_import_path: DiagnosticMessage;
-        Relative_import_paths_need_explicit_file_extensions_in_EcmaScript_imports_when_moduleResolution_is_node12_or_nodenext_Did_you_mean_0: DiagnosticMessage;
+        Relative_import_paths_need_explicit_file_extensions_in_EcmaScript_imports_when_moduleResolution_is_node16_or_nodenext_Consider_adding_an_extension_to_the_import_path: DiagnosticMessage;
+        Relative_import_paths_need_explicit_file_extensions_in_EcmaScript_imports_when_moduleResolution_is_node16_or_nodenext_Did_you_mean_0: DiagnosticMessage;
         Import_assertions_are_not_allowed_on_statements_that_transpile_to_commonjs_require_calls: DiagnosticMessage;
         Import_assertion_values_must_be_string_literal_expressions: DiagnosticMessage;
         All_declarations_of_0_must_have_identical_constraints: DiagnosticMessage;
@@ -9486,7 +9487,6 @@ declare namespace ts {
         This_syntax_is_reserved_in_files_with_the_mts_or_cts_extension_Use_an_as_expression_instead: DiagnosticMessage;
         This_syntax_is_reserved_in_files_with_the_mts_or_cts_extension_Add_a_trailing_comma_or_explicit_constraint: DiagnosticMessage;
         A_mapped_type_may_not_declare_properties_or_methods: DiagnosticMessage;
-        JSON_imports_are_experimental_in_ES_module_mode_imports: DiagnosticMessage;
         You_cannot_rename_this_element: DiagnosticMessage;
         You_cannot_rename_elements_that_are_defined_in_the_standard_TypeScript_library: DiagnosticMessage;
         import_can_only_be_used_in_TypeScript_files: DiagnosticMessage;
@@ -12115,7 +12115,7 @@ declare namespace ts {
         /**
          * Controls the format the file is detected as - this can be derived from only the path
          * and files on disk, but needs to be done with a module resolution cache in scope to be performant.
-         * This is usually `undefined` for compilations that do not have `moduleResolution` values of `node12` or `nodenext`.
+         * This is usually `undefined` for compilations that do not have `moduleResolution` values of `node16` or `nodenext`.
          */
         impliedNodeFormat?: ModuleKind.ESNext | ModuleKind.CommonJS;
         /**
@@ -12527,7 +12527,7 @@ declare namespace ts {
         Exports = 8,
         ExportsPatternTrailers = 16,
         AllFeatures = 30,
-        Node12Default = 14,
+        Node16Default = 30,
         NodeNextDefault = 30,
         EsmMode = 32
     }
@@ -14849,7 +14849,8 @@ declare namespace ts {
         getRenameInfo(fileName: string, position: number, options?: RenameInfoOptions): RenameInfo;
         findRenameLocations(fileName: string, position: number, findInStrings: boolean, findInComments: boolean, providePrefixAndSuffixTextForRename?: boolean): readonly RenameLocation[] | undefined;
         getSmartSelectionRange(fileName: string, position: number): SelectionRange;
-        getDefinitionAtPosition(fileName: string, position: number, searchOtherFilesOnly: boolean): readonly DefinitionInfo[] | undefined;
+        getDefinitionAtPosition(fileName: string, position: number, searchOtherFilesOnly: false, stopAtAlias: boolean): readonly DefinitionInfo[] | undefined;
+        getDefinitionAtPosition(fileName: string, position: number, searchOtherFilesOnly: boolean, stopAtAlias: false): readonly DefinitionInfo[] | undefined;
         getDefinitionAtPosition(fileName: string, position: number): readonly DefinitionInfo[] | undefined;
         getDefinitionAndBoundSpan(fileName: string, position: number): DefinitionInfoAndBoundSpan | undefined;
         getTypeDefinitionAtPosition(fileName: string, position: number): readonly DefinitionInfo[] | undefined;
@@ -16413,7 +16414,7 @@ declare namespace ts {
          * shape of a the resulting SourceFile. This allows the DocumentRegistry to store
          * multiple copies of the same file for different compilation settings. A minimal
          * resolution cache is needed to fully define a source file's shape when
-         * the compilation settings include `module: node12`+, so providing a cache host
+         * the compilation settings include `module: node16`+, so providing a cache host
          * object should be preferred. A common host is a language service `ConfiguredProject`.
          * @param scriptSnapshot Text of the file. Only used if the file was not found
          * in the registry and a new one was created.
@@ -16432,7 +16433,7 @@ declare namespace ts {
          * shape of a the resulting SourceFile. This allows the DocumentRegistry to store
          * multiple copies of the same file for different compilation settings. A minimal
          * resolution cache is needed to fully define a source file's shape when
-         * the compilation settings include `module: node12`+, so providing a cache host
+         * the compilation settings include `module: node16`+, so providing a cache host
          * object should be preferred. A common host is a language service `ConfiguredProject`.
          * @param scriptSnapshot Text of the file.
          * @param version Current version of the file.
@@ -16707,7 +16708,7 @@ declare namespace ts {
     export {};
 }
 declare namespace ts.GoToDefinition {
-    function getDefinitionAtPosition(program: Program, sourceFile: SourceFile, position: number, searchOtherFilesOnly?: boolean): readonly DefinitionInfo[] | undefined;
+    function getDefinitionAtPosition(program: Program, sourceFile: SourceFile, position: number, searchOtherFilesOnly?: boolean, stopAtAlias?: boolean): readonly DefinitionInfo[] | undefined;
     function getReferenceAtPosition(sourceFile: SourceFile, position: number, program: Program): {
         reference: FileReference;
         fileName: string;
