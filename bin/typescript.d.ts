@@ -5625,6 +5625,7 @@ declare namespace ts {
     export interface ResolvedModuleWithFailedLookupLocations {
         readonly resolvedModule: ResolvedModuleFull | undefined;
         readonly failedLookupLocations: string[];
+        readonly resolutionDiagnostics: Diagnostic[];
     }
     export interface ResolvedTypeReferenceDirective {
         primary: boolean;
@@ -5642,6 +5643,7 @@ declare namespace ts {
     export interface ResolvedTypeReferenceDirectiveWithFailedLookupLocations {
         readonly resolvedTypeReferenceDirective: ResolvedTypeReferenceDirective | undefined;
         readonly failedLookupLocations: string[];
+        resolutionDiagnostics: Diagnostic[];
     }
     export type HasInvalidatedResolution = (sourceFile: Path) => boolean;
     export type HasChangedAutomaticTypeDirectiveNames = () => boolean;
@@ -8343,6 +8345,8 @@ declare namespace ts {
         Construct_signatures_with_no_arguments_have_incompatible_return_types_0_and_1: DiagnosticMessage;
         The_type_modifier_cannot_be_used_on_a_named_import_when_import_type_is_used_on_its_import_statement: DiagnosticMessage;
         The_type_modifier_cannot_be_used_on_a_named_export_when_export_type_is_used_on_its_export_statement: DiagnosticMessage;
+        The_project_root_is_ambiguous_but_is_required_to_resolve_export_map_entry_0_in_file_1_Supply_the_rootDir_compiler_option_to_disambiguate: DiagnosticMessage;
+        The_project_root_is_ambiguous_but_is_required_to_resolve_import_map_entry_0_in_file_1_Supply_the_rootDir_compiler_option_to_disambiguate: DiagnosticMessage;
         Duplicate_identifier_0: DiagnosticMessage;
         Initializer_of_instance_member_variable_0_cannot_reference_identifier_1_declared_in_the_constructor: DiagnosticMessage;
         Static_members_cannot_reference_class_type_parameters: DiagnosticMessage;
@@ -10825,6 +10829,10 @@ declare namespace ts {
     export function getDeclarationEmitOutputFilePath(fileName: string, host: EmitHost): string;
     export function getDeclarationEmitOutputFilePathWorker(fileName: string, options: CompilerOptions, currentDirectory: string, commonSourceDirectory: string, getCanonicalFileName: GetCanonicalFileName): string;
     export function getDeclarationEmitExtensionForPath(path: string): Extension.Dts | Extension.Dmts | Extension.Dcts | ".json.d.ts";
+    /**
+     * This function is an inverse of `getDeclarationEmitExtensionForPath`.
+     */
+    export function getPossibleOriginalInputExtensionForExtension(path: string): Extension[];
     export function outFile(options: CompilerOptions): string | undefined;
     /** Returns 'undefined' if and only if 'options.paths' is undefined. */
     export function getPathsBasePath(options: CompilerOptions, host: {
@@ -12412,6 +12420,8 @@ declare namespace ts {
         packageJsonInfoCache: PackageJsonInfoCache | undefined;
         features: NodeResolutionFeatures;
         conditions: string[];
+        requestContainingDirectory: string | undefined;
+        reportDiagnostic: DiagnosticReporter;
     }
     /** Just the fields that we use for module resolution. */
     interface PackageJsonPathFields {
