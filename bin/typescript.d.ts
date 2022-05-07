@@ -61,7 +61,7 @@ declare namespace ts {
     export {};
 }
 declare namespace ts {
-    const versionMajorMinor = "4.7";
+    const versionMajorMinor = "4.8";
     /** The version of the TypeScript compiler release */
     const version: string;
     /**
@@ -8936,6 +8936,7 @@ declare namespace ts {
         This_member_cannot_have_a_JSDoc_comment_with_an_override_tag_because_it_is_not_declared_in_the_base_class_0: DiagnosticMessage;
         This_member_cannot_have_a_JSDoc_comment_with_an_override_tag_because_it_is_not_declared_in_the_base_class_0_Did_you_mean_1: DiagnosticMessage;
         Compiler_option_0_of_value_1_is_unstable_Use_nightly_TypeScript_to_silence_this_error_Try_updating_with_npm_install_D_typescript_next: DiagnosticMessage;
+        Resolution_mode_assertions_are_unstable_Use_nightly_TypeScript_to_silence_this_error_Try_updating_with_npm_install_D_typescript_next: DiagnosticMessage;
         The_current_host_does_not_support_the_0_option: DiagnosticMessage;
         Cannot_find_the_common_subdirectory_path_for_the_input_files: DiagnosticMessage;
         File_specification_cannot_end_in_a_recursive_directory_wildcard_Asterisk_Asterisk_Colon_0: DiagnosticMessage;
@@ -10806,6 +10807,7 @@ declare namespace ts {
     export function isIntrinsicJsxName(name: __String | string): boolean;
     export function getIndentString(level: number): string;
     export function getIndentSize(): number;
+    export function isNightly(): boolean;
     export function createTextWriter(newLine: string): EmitTextWriter;
     export function getTrailingSemicolonDeferringWriter(writer: EmitTextWriter): EmitTextWriter;
     export function hostUsesCaseSensitiveFileNames(host: {
@@ -13156,7 +13158,7 @@ declare namespace ts {
     export function getModeForUsageLocation(file: {
         impliedNodeFormat?: SourceFile["impliedNodeFormat"];
     }, usage: StringLiteralLike): ModuleKind.CommonJS | ModuleKind.ESNext | undefined;
-    export function getResolutionModeOverrideForClause(clause: AssertClause | undefined, grammarErrorOnNode?: (node: Node, diagnostic: DiagnosticMessage) => boolean): ModuleKind.CommonJS | ModuleKind.ESNext | undefined;
+    export function getResolutionModeOverrideForClause(clause: AssertClause | undefined, grammarErrorOnNode?: (node: Node, diagnostic: DiagnosticMessage) => void): ModuleKind.CommonJS | ModuleKind.ESNext | undefined;
     export function loadWithModeAwareCache<T>(names: string[], containingFile: SourceFile, containingFileName: string, redirectedReference: ResolvedProjectReference | undefined, loader: (name: string, resolverMode: ModuleKind.CommonJS | ModuleKind.ESNext | undefined, containingFileName: string, redirectedReference: ResolvedProjectReference | undefined) => T): T[];
     export function forEachResolvedProjectReference<T>(resolvedProjectReferences: readonly (ResolvedProjectReference | undefined)[] | undefined, cb: (resolvedProjectReference: ResolvedProjectReference, parent: ResolvedProjectReference | undefined) => T | undefined): T | undefined;
     export const inferredTypesContainingFile = "__inferred type names__.ts";
