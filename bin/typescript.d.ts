@@ -10274,6 +10274,8 @@ declare namespace ts {
     function guessIndentation(lines: string[]): number | undefined;
     function isStringLiteralLike(node: Node): node is StringLiteralLike;
     function isJSDocLinkLike(node: Node): node is JSDocLink | JSDocLinkCode | JSDocLinkPlain;
+    function hasRestParameter(s: SignatureDeclaration | JSDocSignature): boolean;
+    function isRestParameter(node: ParameterDeclaration | JSDocParameterTag): boolean;
 }
 declare namespace ts {
     export const resolvingEmptyArray: never[];
@@ -10652,8 +10654,6 @@ declare namespace ts {
     export function getTypeParameterFromJsDoc(node: TypeParameterDeclaration & {
         parent: JSDocTemplateTag;
     }): TypeParameterDeclaration | undefined;
-    export function hasRestParameter(s: SignatureDeclaration | JSDocSignature): boolean;
-    export function isRestParameter(node: ParameterDeclaration | JSDocParameterTag): boolean;
     export function hasTypeArguments(node: Node): node is HasTypeArguments;
     export enum AssignmentKind {
         None = 0,
