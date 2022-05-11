@@ -5330,6 +5330,7 @@ declare namespace ts {
         validatedIncludeSpecs: readonly string[] | undefined;
         validatedExcludeSpecs: readonly string[] | undefined;
         pathPatterns: readonly (string | Pattern)[] | undefined;
+        isDefaultIncludeSpec: boolean;
     }
     export type RequireResult<T = {}> = {
         module: T;
@@ -8330,6 +8331,7 @@ declare namespace ts {
         resolution_mode_can_only_be_set_for_type_only_imports: DiagnosticMessage;
         resolution_mode_is_the_only_valid_key_for_type_import_assertions: DiagnosticMessage;
         Type_import_assertions_should_have_exactly_one_key_resolution_mode_with_value_import_or_require: DiagnosticMessage;
+        Matched_by_default_include_pattern_Asterisk_Asterisk_Slash_Asterisk: DiagnosticMessage;
         The_import_meta_meta_property_is_not_allowed_in_files_which_will_build_into_CommonJS_output: DiagnosticMessage;
         Module_0_cannot_be_imported_using_this_construct_The_specifier_only_resolves_to_an_ES_module_which_cannot_be_imported_synchronously_Use_dynamic_import_instead: DiagnosticMessage;
         catch_or_finally_expected: DiagnosticMessage;
@@ -12366,6 +12368,7 @@ declare namespace ts {
      */
     export function parseJsonSourceFileConfigFileContent(sourceFile: TsConfigSourceFile, host: ParseConfigHost, basePath: string, existingOptions?: CompilerOptions, configFileName?: string, resolutionStack?: Path[], extraFileExtensions?: readonly FileExtensionInfo[], extendedConfigCache?: Map<ExtendedConfigCacheEntry>, existingWatchOptions?: WatchOptions): ParsedCommandLine;
     export function setConfigFileInOptions(options: CompilerOptions, configFile: TsConfigSourceFile | undefined): void;
+    export const defaultIncludeSpec = "**/*";
     export function canJsonReportNoInputFiles(raw: any): boolean;
     export function updateErrorForNoInputFiles(fileNames: string[], configFileName: string, configFileSpecs: ConfigFileSpecs, configParseDiagnostics: Diagnostic[], canJsonReportNoInutFiles: boolean): boolean;
     export interface ParsedTsconfig {
@@ -13867,7 +13870,7 @@ declare namespace ts {
     export function explainFiles(program: Program, write: (s: string) => void): void;
     export function explainIfFileIsRedirect(file: SourceFile, fileNameConvertor?: (fileName: string) => string): DiagnosticMessageChain[] | undefined;
     export function getMatchedFileSpec(program: Program, fileName: string): string | undefined;
-    export function getMatchedIncludeSpec(program: Program, fileName: string): string | undefined;
+    export function getMatchedIncludeSpec(program: Program, fileName: string): string | true | undefined;
     export function fileIncludeReasonToDiagnostics(program: Program, reason: FileIncludeReason, fileNameConvertor?: (fileName: string) => string): DiagnosticMessageChain;
     /**
      * Helper that emit files, report diagnostics and lists emitted and/or source files depending on compiler options
