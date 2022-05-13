@@ -8833,6 +8833,7 @@ declare namespace ts {
         Import_assertions_are_not_allowed_on_statements_that_transpile_to_commonjs_require_calls: DiagnosticMessage;
         Import_assertion_values_must_be_string_literal_expressions: DiagnosticMessage;
         All_declarations_of_0_must_have_identical_constraints: DiagnosticMessage;
+        This_condition_will_always_return_0_since_JavaScript_compares_objects_by_reference_not_value: DiagnosticMessage;
         Import_declaration_0_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_interface_has_or_is_using_private_name_1: DiagnosticMessage;
@@ -10153,6 +10154,8 @@ declare namespace ts {
     function isNodeArray<T extends Node>(array: readonly T[]): array is NodeArray<T>;
     function isLiteralKind(kind: SyntaxKind): kind is LiteralToken["kind"];
     function isLiteralExpression(node: Node): node is LiteralExpression;
+    /** @internal */
+    function isLiteralExpressionOfObject(node: Node): boolean;
     function isTemplateLiteralKind(kind: SyntaxKind): kind is TemplateLiteralToken["kind"];
     function isTemplateLiteralToken(node: Node): node is TemplateLiteralToken;
     function isTemplateMiddleOrTemplateTail(node: Node): node is TemplateMiddle | TemplateTail;
@@ -13899,6 +13902,13 @@ declare namespace ts {
         ExtendedConfigOfReferencedProject: "Extended config file of referenced project";
         WildcardDirectoryOfReferencedProject: "Wild card directory of referenced project";
         PackageJson: "package.json file";
+        ClosedScriptInfo: "Closed Script info";
+        ConfigFileForInferredRoot: "Config file for the inferred project root";
+        NodeModules: "node_modules for closed script infos and package.jsons affecting module specifier cache";
+        MissingSourceMapFile: "Missing source map file";
+        NoopConfigFileForInferredRoot: "Noop Config file for the inferred project root";
+        MissingGeneratedFile: "Missing generated file";
+        NodeModulesForModuleSpecifierCache: "node_modules for module specifier cache invalidation";
     }
     interface WatchFactory<X, Y = undefined> extends ts.WatchFactory<X, Y> {
         writeLog: (s: string) => void;
