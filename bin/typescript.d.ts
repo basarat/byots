@@ -8226,6 +8226,7 @@ declare namespace ts {
         infer_declarations_are_only_permitted_in_the_extends_clause_of_a_conditional_type: DiagnosticMessage;
         Module_0_does_not_refer_to_a_value_but_is_used_as_a_value_here: DiagnosticMessage;
         Module_0_does_not_refer_to_a_type_but_is_used_as_a_type_here_Did_you_mean_typeof_import_0: DiagnosticMessage;
+        Class_constructor_may_not_be_an_accessor: DiagnosticMessage;
         Type_arguments_cannot_be_used_here: DiagnosticMessage;
         The_import_meta_meta_property_is_only_allowed_when_the_module_option_is_es2020_es2022_esnext_system_node16_or_nodenext: DiagnosticMessage;
         A_label_is_not_allowed_here: DiagnosticMessage;
@@ -8244,6 +8245,7 @@ declare namespace ts {
         An_enum_member_name_must_be_followed_by_a_or: DiagnosticMessage;
         Tagged_template_expressions_are_not_permitted_in_an_optional_chain: DiagnosticMessage;
         Identifier_expected_0_is_a_reserved_word_that_cannot_be_used_here: DiagnosticMessage;
+        Class_constructor_may_not_be_a_generator: DiagnosticMessage;
         _0_cannot_be_used_as_a_value_because_it_was_imported_using_import_type: DiagnosticMessage;
         _0_cannot_be_used_as_a_value_because_it_was_exported_using_export_type: DiagnosticMessage;
         A_type_only_import_can_specify_a_default_import_or_named_bindings_but_not_both: DiagnosticMessage;
