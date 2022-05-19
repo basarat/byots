@@ -14936,6 +14936,7 @@ declare namespace ts {
         getProgram(): Program | undefined;
         getNonBoundSourceFile(fileName: string): SourceFile;
         getAutoImportProvider(): Program | undefined;
+        updateIsDefinitionOfReferencedSymbols(referencedSymbols: readonly ReferencedSymbol[], knownSymbolSpans: Set<DocumentSpan>): boolean;
         toggleLineComment(fileName: string, textRange: TextRange): TextChange[];
         toggleMultilineComment(fileName: string, textRange: TextRange): TextChange[];
         commentSelection(fileName: string, textRange: TextRange): TextChange[];
@@ -16055,6 +16056,9 @@ declare namespace ts {
      */
     function forEachUnique<T, U>(array: readonly T[] | undefined, callback: (element: T, index: number) => U): U | undefined;
     function isTextWhiteSpaceLike(text: string, startPos: number, endPos: number): boolean;
+    function getMappedLocation(location: DocumentPosition, sourceMapper: SourceMapper, fileExists: ((path: string) => boolean) | undefined): DocumentPosition | undefined;
+    function getMappedDocumentSpan(documentSpan: DocumentSpan, sourceMapper: SourceMapper, fileExists?: (path: string) => boolean): DocumentSpan | undefined;
+    function getMappedContextSpan(documentSpan: DocumentSpan, sourceMapper: SourceMapper, fileExists?: (path: string) => boolean): TextSpan | undefined;
     function isFirstDeclarationOfSymbolParameter(symbol: Symbol): boolean;
     function symbolPart(text: string, symbol: Symbol): SymbolDisplayPart;
     function displayPart(text: string, kind: SymbolDisplayPartKind): SymbolDisplayPart;
@@ -16671,6 +16675,8 @@ declare namespace ts.FindAllReferences {
         span: HighlightSpan;
     };
     function getTextSpanOfEntry(entry: Entry): TextSpan;
+    /** Whether a reference, `node`, is a definition of the `target` symbol */
+    function isDeclarationOfSymbol(node: Node, target: Symbol | undefined): boolean;
     /** Encapsulates the core find-all-references algorithm. */
     namespace Core {
         /** Core find-all-references algorithm. Handles special cases before delegating to `getReferencedSymbolsForSymbol`. */
