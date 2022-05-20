@@ -702,6 +702,7 @@ declare namespace ts {
     function startsWith(str: string, prefix: string): boolean;
     function removePrefix(str: string, prefix: string): string;
     function tryRemovePrefix(str: string, prefix: string, getCanonicalFileName?: GetCanonicalFileName): string | undefined;
+    function isPatternMatch({ prefix, suffix }: Pattern, candidate: string): boolean;
     function and<T>(f: (arg: T) => boolean, g: (arg: T) => boolean): (arg: T) => boolean;
     function or<T extends unknown[], U>(...fs: ((...args: T) => U)[]): (...args: T) => U;
     function not<T extends unknown[]>(fn: (...args: T) => boolean): (...args: T) => boolean;
