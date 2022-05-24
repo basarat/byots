@@ -14314,8 +14314,6 @@ declare namespace ts {
         getBuildOrder(): AnyBuildOrder;
         getUpToDateStatusOfProject(project: string): UpToDateStatus;
         invalidateProject(configFilePath: ResolvedConfigFilePath, reloadLevel?: ConfigFileProgramReloadLevel): void;
-        buildNextInvalidatedProject(): void;
-        getAllParsedConfigs(): readonly ParsedCommandLine[];
         close(): void;
     }
     /**
