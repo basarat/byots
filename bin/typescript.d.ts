@@ -653,7 +653,7 @@ declare namespace ts {
      * accents/diacritic marks, or case as unequal.
      */
     function compareStringsCaseSensitiveUI(a: string, b: string): Comparison;
-    function compareProperties<T, K extends keyof T>(a: T | undefined, b: T | undefined, key: K, comparer: Comparer<T[K]>): Comparison;
+    function compareProperties<T extends object, K extends keyof T>(a: T | undefined, b: T | undefined, key: K, comparer: Comparer<T[K]>): Comparison;
     /** True is greater than false. */
     function compareBooleans(a: boolean, b: boolean): Comparison;
     /**
@@ -4564,6 +4564,8 @@ declare namespace ts {
         IsGenericIndexType = 8388608,
         IsGenericType = 12582912,
         ContainsIntersections = 16777216,
+        IsUnknownLikeUnionComputed = 33554432,
+        IsUnknownLikeUnion = 67108864,
         IsNeverIntersectionComputed = 16777216,
         IsNeverIntersection = 33554432
     }
@@ -8353,6 +8355,7 @@ declare namespace ts {
         Construct_signatures_with_no_arguments_have_incompatible_return_types_0_and_1: DiagnosticMessage;
         The_type_modifier_cannot_be_used_on_a_named_import_when_import_type_is_used_on_its_import_statement: DiagnosticMessage;
         The_type_modifier_cannot_be_used_on_a_named_export_when_export_type_is_used_on_its_export_statement: DiagnosticMessage;
+        This_type_parameter_probably_needs_an_extends_object_constraint: DiagnosticMessage;
         The_project_root_is_ambiguous_but_is_required_to_resolve_export_map_entry_0_in_file_1_Supply_the_rootDir_compiler_option_to_disambiguate: DiagnosticMessage;
         The_project_root_is_ambiguous_but_is_required_to_resolve_import_map_entry_0_in_file_1_Supply_the_rootDir_compiler_option_to_disambiguate: DiagnosticMessage;
         Duplicate_identifier_0: DiagnosticMessage;
