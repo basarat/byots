@@ -8841,6 +8841,7 @@ declare namespace ts {
         Import_assertion_values_must_be_string_literal_expressions: DiagnosticMessage;
         All_declarations_of_0_must_have_identical_constraints: DiagnosticMessage;
         This_condition_will_always_return_0_since_JavaScript_compares_objects_by_reference_not_value: DiagnosticMessage;
+        An_interface_cannot_extend_a_primitive_type_like_0_an_interface_can_only_extend_named_types_and_classes: DiagnosticMessage;
         Import_declaration_0_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_interface_has_or_is_using_private_name_1: DiagnosticMessage;
