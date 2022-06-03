@@ -7061,6 +7061,7 @@ declare namespace ts {
         trackExternalModuleSymbolOfImportTypeNode?(symbol: Symbol): void;
         reportNonlocalAugmentation?(containingFile: SourceFile, parentSymbol: Symbol, augmentingSymbol: Symbol): void;
         reportNonSerializableProperty?(propertyName: string): void;
+        reportImportTypeNodeResolutionModeOverride?(): void;
     }
     export interface TextSpan {
         start: number;
@@ -8138,6 +8139,7 @@ declare namespace ts {
         Decorators_are_not_valid_here: DiagnosticMessage;
         Decorators_cannot_be_applied_to_multiple_get_Slashset_accessors_of_the_same_name: DiagnosticMessage;
         _0_cannot_be_compiled_under_isolatedModules_because_it_is_considered_a_global_script_file_Add_an_import_export_or_an_empty_export_statement_to_make_it_a_module: DiagnosticMessage;
+        Invalid_optional_chain_from_new_expression_Did_you_mean_to_call_0: DiagnosticMessage;
         Code_contained_in_a_class_is_evaluated_in_JavaScript_s_strict_mode_which_does_not_allow_this_use_of_0_For_more_information_see_https_Colon_Slash_Slashdeveloper_mozilla_org_Slashen_US_Slashdocs_SlashWeb_SlashJavaScript_SlashReference_SlashStrict_mode: DiagnosticMessage;
         A_class_declaration_without_the_default_modifier_must_have_a_name: DiagnosticMessage;
         Identifier_expected_0_is_a_reserved_word_in_strict_mode: DiagnosticMessage;
@@ -8334,7 +8336,7 @@ declare namespace ts {
         Preserve_unused_imported_values_in_the_JavaScript_output_that_would_otherwise_be_removed: DiagnosticMessage;
         Dynamic_imports_can_only_accept_a_module_specifier_and_an_optional_assertion_as_arguments: DiagnosticMessage;
         Private_identifiers_are_only_allowed_in_class_bodies_and_may_only_be_used_as_part_of_a_class_member_declaration_property_access_or_on_the_left_hand_side_of_an_in_expression: DiagnosticMessage;
-        Resolution_modes_are_only_supported_when_moduleResolution_is_node16_or_nodenext: DiagnosticMessage;
+        resolution_mode_assertions_are_only_supported_when_moduleResolution_is_node16_or_nodenext: DiagnosticMessage;
         resolution_mode_should_be_either_require_or_import: DiagnosticMessage;
         resolution_mode_can_only_be_set_for_type_only_imports: DiagnosticMessage;
         resolution_mode_is_the_only_valid_key_for_type_import_assertions: DiagnosticMessage;
@@ -8842,6 +8844,7 @@ declare namespace ts {
         All_declarations_of_0_must_have_identical_constraints: DiagnosticMessage;
         This_condition_will_always_return_0_since_JavaScript_compares_objects_by_reference_not_value: DiagnosticMessage;
         An_interface_cannot_extend_a_primitive_type_like_0_an_interface_can_only_extend_named_types_and_classes: DiagnosticMessage;
+        The_type_of_this_expression_cannot_be_named_without_a_resolution_mode_assertion_which_is_an_unstable_feature_Use_nightly_TypeScript_to_silence_this_error_Try_updating_with_npm_install_D_typescript_next: DiagnosticMessage;
         Import_declaration_0_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_interface_has_or_is_using_private_name_1: DiagnosticMessage;
@@ -8949,7 +8952,7 @@ declare namespace ts {
         This_member_cannot_have_a_JSDoc_comment_with_an_override_tag_because_it_is_not_declared_in_the_base_class_0: DiagnosticMessage;
         This_member_cannot_have_a_JSDoc_comment_with_an_override_tag_because_it_is_not_declared_in_the_base_class_0_Did_you_mean_1: DiagnosticMessage;
         Compiler_option_0_of_value_1_is_unstable_Use_nightly_TypeScript_to_silence_this_error_Try_updating_with_npm_install_D_typescript_next: DiagnosticMessage;
-        Resolution_mode_assertions_are_unstable_Use_nightly_TypeScript_to_silence_this_error_Try_updating_with_npm_install_D_typescript_next: DiagnosticMessage;
+        resolution_mode_assertions_are_unstable_Use_nightly_TypeScript_to_silence_this_error_Try_updating_with_npm_install_D_typescript_next: DiagnosticMessage;
         The_current_host_does_not_support_the_0_option: DiagnosticMessage;
         Cannot_find_the_common_subdirectory_path_for_the_input_files: DiagnosticMessage;
         File_specification_cannot_end_in_a_recursive_directory_wildcard_Asterisk_Asterisk_Colon_0: DiagnosticMessage;
@@ -11869,6 +11872,7 @@ declare namespace ts {
     function isImportEqualsDeclaration(node: Node): node is ImportEqualsDeclaration;
     function isImportDeclaration(node: Node): node is ImportDeclaration;
     function isImportClause(node: Node): node is ImportClause;
+    function isImportTypeAssertionContainer(node: Node): node is ImportTypeAssertionContainer;
     function isAssertClause(node: Node): node is AssertClause;
     function isAssertEntry(node: Node): node is AssertEntry;
     function isNamespaceImport(node: Node): node is NamespaceImport;
@@ -13163,14 +13167,43 @@ declare namespace ts {
     export function formatDiagnosticsWithColorAndContext(diagnostics: readonly Diagnostic[], host: FormatDiagnosticsHost): string;
     export function flattenDiagnosticMessageText(diag: string | DiagnosticMessageChain | undefined, newLine: string, indent?: number): string;
     export function loadWithTypeDirectiveCache<T>(names: string[] | readonly FileReference[], containingFile: string, redirectedReference: ResolvedProjectReference | undefined, containingFileMode: SourceFile["impliedNodeFormat"], loader: (name: string, containingFile: string, redirectedReference: ResolvedProjectReference | undefined, resolutionMode: SourceFile["impliedNodeFormat"]) => T): T[];
-    interface SourceFileImportsList {
+    /**
+     * Subset of a SourceFile used to calculate index-based resolutions
+     * This includes some internal fields, so unless you have very good reason,
+     * (and are willing to use some less stable internals) you should probably just pass a SourceFile.
+     *
+     * @internal
+     */
+    export interface SourceFileImportsList {
         imports: SourceFile["imports"];
         moduleAugmentations: SourceFile["moduleAugmentations"];
         impliedNodeFormat?: SourceFile["impliedNodeFormat"];
     }
+    /**
+     * Calculates the resulting resolution mode for some reference in some file - this is generally the explicitly
+     * provided resolution mode in the reference, unless one is not present, in which case it is the mode of the containing file.
+     */
     export function getModeForFileReference(ref: FileReference | string, containingFileMode: SourceFile["impliedNodeFormat"]): ModuleKind.CommonJS | ModuleKind.ESNext | undefined;
+    /**
+     * Calculates the final resolution mode for an import at some index within a file's imports list. This is generally the explicitly
+     * defined mode of the import if provided, or, if not, the mode of the containing file (with some exceptions: import=require is always commonjs, dynamic import is always esm).
+     * If you have an actual import node, prefer using getModeForUsageLocation on the reference string node.
+     * @param file File to fetch the resolution mode within
+     * @param index Index into the file's complete resolution list to get the resolution of - this is a concatenation of the file's imports and module augmentations
+     */
+    export function getModeForResolutionAtIndex(file: SourceFile, index: number): ModuleKind.CommonJS | ModuleKind.ESNext | undefined;
+    /** @internal */
     export function getModeForResolutionAtIndex(file: SourceFileImportsList, index: number): ModuleKind.CommonJS | ModuleKind.ESNext | undefined;
     export function isExclusivelyTypeOnlyImportOrExport(decl: ImportDeclaration | ExportDeclaration): boolean;
+    /**
+     * Calculates the final resolution mode for a given module reference node. This is generally the explicitly provided resolution mode, if
+     * one exists, or the mode of the containing source file. (Excepting import=require, which is always commonjs, and dynamic import, which is always esm).
+     * Notably, this function always returns `undefined` if the containing file has an `undefined` `impliedNodeFormat` - this field is only set when
+     * `moduleResolution` is `node16`+.
+     * @param file The file the import or import-like reference is contained within
+     * @param usage The module reference string
+     * @returns The final resolution mode of the import
+     */
     export function getModeForUsageLocation(file: {
         impliedNodeFormat?: SourceFile["impliedNodeFormat"];
     }, usage: StringLiteralLike): ModuleKind.CommonJS | ModuleKind.ESNext | undefined;
