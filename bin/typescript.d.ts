@@ -4078,6 +4078,12 @@ declare namespace ts {
         getAccessor: GetAccessorDeclaration | undefined;
         setAccessor: SetAccessorDeclaration | undefined;
     }
+    export interface AllDecorators {
+        decorators: NodeArray<Decorator> | undefined;
+        parameters?: readonly (readonly Decorator[] | undefined)[];
+        getDecorators?: NodeArray<Decorator> | undefined;
+        setDecorators?: NodeArray<Decorator> | undefined;
+    }
     /** Indicates how to serialize the name for a TypeReferenceNode when emitting decorator metadata */
     export enum TypeReferenceSerializationKind {
         Unknown = 0,
@@ -5707,21 +5713,22 @@ declare namespace ts {
         ContainsES2015 = 1024,
         ContainsGenerator = 2048,
         ContainsDestructuringAssignment = 4096,
-        ContainsTypeScriptClassSyntax = 4096,
-        ContainsLexicalThis = 8192,
-        ContainsRestOrSpread = 16384,
-        ContainsObjectRestOrSpread = 32768,
-        ContainsComputedPropertyName = 65536,
-        ContainsBlockScopedBinding = 131072,
-        ContainsBindingPattern = 262144,
-        ContainsYield = 524288,
-        ContainsAwait = 1048576,
-        ContainsHoistedDeclarationOrCompletion = 2097152,
-        ContainsDynamicImport = 4194304,
-        ContainsClassFields = 8388608,
-        ContainsPossibleTopLevelAwait = 16777216,
-        ContainsLexicalSuper = 33554432,
-        ContainsUpdateExpressionForIdentifier = 67108864,
+        ContainsTypeScriptClassSyntax = 8192,
+        ContainsLexicalThis = 16384,
+        ContainsRestOrSpread = 32768,
+        ContainsObjectRestOrSpread = 65536,
+        ContainsComputedPropertyName = 131072,
+        ContainsBlockScopedBinding = 262144,
+        ContainsBindingPattern = 524288,
+        ContainsYield = 1048576,
+        ContainsAwait = 2097152,
+        ContainsHoistedDeclarationOrCompletion = 4194304,
+        ContainsDynamicImport = 8388608,
+        ContainsClassFields = 16777216,
+        ContainsDecorators = 33554432,
+        ContainsPossibleTopLevelAwait = 67108864,
+        ContainsLexicalSuper = 134217728,
+        ContainsUpdateExpressionForIdentifier = 268435456,
         HasComputedFlags = 536870912,
         AssertTypeScript = 1,
         AssertJsx = 2,
@@ -5739,22 +5746,22 @@ declare namespace ts {
         OuterExpressionExcludes = 536870912,
         PropertyAccessExcludes = 536870912,
         NodeExcludes = 536870912,
-        ArrowFunctionExcludes = 557748224,
-        FunctionExcludes = 591310848,
-        ConstructorExcludes = 591306752,
-        MethodOrAccessorExcludes = 574529536,
-        PropertyExcludes = 570433536,
-        ClassExcludes = 536940544,
-        ModuleExcludes = 589443072,
+        ArrowFunctionExcludes = 612179968,
+        FunctionExcludes = 746414080,
+        ConstructorExcludes = 746405888,
+        MethodOrAccessorExcludes = 679297024,
+        PropertyExcludes = 671105024,
+        ClassExcludes = 537010176,
+        ModuleExcludes = 742678528,
         TypeExcludes = -2,
-        ObjectLiteralExcludes = 536973312,
-        ArrayLiteralOrCallOrNewExcludes = 536887296,
-        VariableDeclarationListExcludes = 537165824,
+        ObjectLiteralExcludes = 537075712,
+        ArrayLiteralOrCallOrNewExcludes = 536903680,
+        VariableDeclarationListExcludes = 537460736,
         ParameterExcludes = 536870912,
-        CatchClauseExcludes = 536903680,
-        BindingPatternExcludes = 536887296,
-        ContainsLexicalThisOrSuper = 33562624,
-        PropertyNamePropagatingFlags = 33562624
+        CatchClauseExcludes = 536936448,
+        BindingPatternExcludes = 536903680,
+        ContainsLexicalThisOrSuper = 134234112,
+        PropertyNamePropagatingFlags = 134234112
     }
     export interface SourceMapRange extends TextRange {
         source?: SourceMapSource;
@@ -10696,6 +10703,7 @@ declare namespace ts {
      * If given node is not a parenthesiezd type, undefined is return as the former.
      */
     export function walkUpParenthesizedTypesAndGetParentAndChild(node: Node): [ParenthesizedTypeNode | undefined, Node];
+    export function skipTypeParentheses(node: TypeNode): TypeNode;
     export function skipParentheses(node: Expression, excludeJSDocTypeAssertions?: boolean): Expression;
     export function skipParentheses(node: Node, excludeJSDocTypeAssertions?: boolean): Node;
     export function isDeleteTarget(node: Node): boolean;
@@ -12098,6 +12106,12 @@ declare namespace ts {
      * @returns A function that walks a `BinaryExpression` node using the above callbacks, returning the result of the call to `onExit` from the outermost `BinaryExpression` node.
      */
     function createBinaryExpressionTrampoline<TOuterState, TState, TResult>(onEnter: (node: BinaryExpression, prev: TState | undefined, outerState: TOuterState) => TState, onLeft: ((left: Expression, userState: TState, node: BinaryExpression) => BinaryExpression | void) | undefined, onOperator: ((operatorToken: BinaryOperatorToken, userState: TState, node: BinaryExpression) => void) | undefined, onRight: ((right: Expression, userState: TState, node: BinaryExpression) => BinaryExpression | void) | undefined, onExit: (node: BinaryExpression, userState: TState) => TResult, foldState: ((userState: TState, result: TResult, side: "left" | "right") => TState) | undefined): (node: BinaryExpression, outerState: TOuterState) => TResult;
+    /**
+     * If `nodes` is not undefined, creates an empty `NodeArray` that preserves the `pos` and `end` of `nodes`.
+     * @internal
+     */
+    function elideNodes<T extends Node>(factory: NodeFactory, nodes: NodeArray<T>): NodeArray<T>;
+    function elideNodes<T extends Node>(factory: NodeFactory, nodes: NodeArray<T> | undefined): NodeArray<T> | undefined;
 }
 declare namespace ts {
     function setTextRange<T extends TextRange>(range: T, location: TextRange | undefined): T;
@@ -12825,6 +12839,20 @@ declare namespace ts {
      * @param member The class element node.
      */
     function isNonStaticMethodOrAccessorWithPrivateName(member: ClassElement): member is PrivateIdentifierMethodDeclaration | PrivateIdentifierAccessorDeclaration;
+    /**
+     * Gets an AllDecorators object containing the decorators for the class and the decorators for the
+     * parameters of the constructor of the class.
+     *
+     * @param node The class node.
+     */
+    function getAllDecoratorsOfClass(node: ClassLikeDeclaration): AllDecorators | undefined;
+    /**
+     * Gets an AllDecorators object containing the decorators for the member and its parameters.
+     *
+     * @param parent The class node that contains the member.
+     * @param member The class member.
+     */
+    function getAllDecoratorsOfClassElement(member: ClassElement, parent: ClassLikeDeclaration): AllDecorators | undefined;
 }
 declare namespace ts {
     enum FlattenLevel {
@@ -12880,6 +12908,57 @@ declare namespace ts {
      * When --useDefineForClassFields is on, this transforms to ECMAScript semantics, with Object.defineProperty.
      */
     function transformClassFields(context: TransformationContext): (x: SourceFile | Bundle) => SourceFile | Bundle;
+}
+declare namespace ts {
+    type SerializedEntityName = Identifier | PropertyAccessEntityNameExpression;
+    type SerializedTypeNode = SerializedEntityName | ConditionalExpression | VoidExpression;
+    export interface RuntimeTypeSerializerContext {
+        /** Specifies the current lexical block scope */
+        currentLexicalScope: SourceFile | Block | ModuleBlock | CaseBlock;
+        /** Specifies the containing `class`, but only when there is no other block scope between the current location and the `class`. */
+        currentNameScope: ClassLikeDeclaration | undefined;
+    }
+    export interface RuntimeTypeSerializer {
+        /**
+         * Serializes a type node for use with decorator type metadata.
+         *
+         * Types are serialized in the following fashion:
+         * - Void types point to "undefined" (e.g. "void 0")
+         * - Function and Constructor types point to the global "Function" constructor.
+         * - Interface types with a call or construct signature types point to the global
+         *   "Function" constructor.
+         * - Array and Tuple types point to the global "Array" constructor.
+         * - Type predicates and booleans point to the global "Boolean" constructor.
+         * - String literal types and strings point to the global "String" constructor.
+         * - Enum and number types point to the global "Number" constructor.
+         * - Symbol types point to the global "Symbol" constructor.
+         * - Type references to classes (or class-like variables) point to the constructor for the class.
+         * - Anything else points to the global "Object" constructor.
+         *
+         * @param node The type node to serialize.
+         */
+        serializeTypeNode(serializerContext: RuntimeTypeSerializerContext, node: TypeNode): Expression;
+        /**
+         * Serializes the type of a node for use with decorator type metadata.
+         * @param node The node that should have its type serialized.
+         */
+        serializeTypeOfNode(serializerContext: RuntimeTypeSerializerContext, node: PropertyDeclaration | ParameterDeclaration | AccessorDeclaration | ClassLikeDeclaration | MethodDeclaration): Expression;
+        /**
+         * Serializes the types of the parameters of a node for use with decorator type metadata.
+         * @param node The node that should have its parameter types serialized.
+         */
+        serializeParameterTypesOfNode(serializerContext: RuntimeTypeSerializerContext, node: Node, container: ClassLikeDeclaration): ArrayLiteralExpression;
+        /**
+         * Serializes the return type of a node for use with decorator type metadata.
+         * @param node The node that should have its return type serialized.
+         */
+        serializeReturnTypeOfNode(serializerContext: RuntimeTypeSerializerContext, node: Node): SerializedTypeNode;
+    }
+    export function createRuntimeTypeSerializer(context: TransformationContext): RuntimeTypeSerializer;
+    export {};
+}
+declare namespace ts {
+    function transformLegacyDecorators(context: TransformationContext): (x: SourceFile | Bundle) => SourceFile | Bundle;
 }
 declare namespace ts {
     function transformES2017(context: TransformationContext): (x: SourceFile | Bundle) => SourceFile | Bundle;
@@ -14551,7 +14630,7 @@ declare namespace ts.JsTyping {
      * @param typeAcquisition is used to customize the typing acquisition process
      * @param compilerOptions are used as a source for typing inference
      */
-    function discoverTypings(host: TypingResolutionHost, log: ((message: string) => void) | undefined, fileNames: string[], projectRootPath: Path, safeList: SafeList, packageNameToTypingLocation: ReadonlyESMap<string, CachedTyping>, typeAcquisition: TypeAcquisition, unresolvedImports: readonly string[], typesRegistry: ReadonlyESMap<string, MapLike<string>>): {
+    function discoverTypings(host: TypingResolutionHost, log: ((message: string) => void) | undefined, fileNames: string[], projectRootPath: Path, safeList: SafeList, packageNameToTypingLocation: ReadonlyESMap<string, CachedTyping>, typeAcquisition: TypeAcquisition, unresolvedImports: readonly string[], typesRegistry: ReadonlyESMap<string, MapLike<string>>, compilerOptions: CompilerOptions): {
         cachedTypingPaths: string[];
         newTypingNames: string[];
         filesToWatch: string[];
