@@ -3406,6 +3406,7 @@ declare namespace ts {
     };
     export interface WriteFileCallbackData {
         sourceMapUrlPos?: number;
+        buildInfo?: BuildInfo;
     }
     export type WriteFileCallback = (fileName: string, text: string, writeByteOrderMark: boolean, onError?: (message: string) => void, sourceFiles?: readonly SourceFile[], data?: WriteFileCallbackData) => void;
     export class OperationCanceledException {
@@ -5381,6 +5382,9 @@ declare namespace ts {
         affectsSemanticDiagnostics?: true;
         affectsEmit?: true;
         affectsProgramStructure?: true;
+        affectsDeclarationPath?: true;
+        affectsMultiFileEmitBuildInfo?: true;
+        affectsBundleEmitBuildInfo?: true;
         transpileOptionValue?: boolean | undefined;
         extraValidation?: (value: CompilerOptionsValue) => [DiagnosticMessage, ...string[]] | undefined;
     }
@@ -5636,6 +5640,7 @@ declare namespace ts {
     export interface ResolvedModuleWithFailedLookupLocations {
         readonly resolvedModule: ResolvedModuleFull | undefined;
         readonly failedLookupLocations: string[];
+        readonly affectingLocations: string[];
         readonly resolutionDiagnostics: Diagnostic[];
     }
     export interface ResolvedTypeReferenceDirective {
@@ -5654,6 +5659,7 @@ declare namespace ts {
     export interface ResolvedTypeReferenceDirectiveWithFailedLookupLocations {
         readonly resolvedTypeReferenceDirective: ResolvedTypeReferenceDirective | undefined;
         readonly failedLookupLocations: string[];
+        readonly affectingLocations: string[];
         resolutionDiagnostics: Diagnostic[];
     }
     export type HasInvalidatedResolution = (sourceFile: Path) => boolean;
@@ -5691,6 +5697,7 @@ declare namespace ts {
         getSymlinkCache?(): SymlinkCache;
         disableUseFileVersionAsSignature?: boolean;
         storeFilesChangingSignatureDuringEmit?: boolean;
+        now?(): Date;
     }
     /** true if --out otherwise source file name */
     export type SourceOfProjectReferenceRedirect = string | true;
@@ -5922,6 +5929,7 @@ declare namespace ts {
         getProgramBuildInfo(): ProgramBuildInfo | undefined;
         getSourceFileFromReference: Program["getSourceFileFromReference"];
         readonly redirectTargetsMap: RedirectTargetsMap;
+        createHash?(data: string): string;
     }
     export interface PropertyDescriptorAttributes {
         enumerable?: boolean | Expression;
@@ -6837,6 +6845,8 @@ declare namespace ts {
     }
     export interface BundleFileInfo {
         sections: BundleFileSection[];
+        hash?: string;
+        mapHash?: string;
         sources?: SourceFileInfo;
     }
     export interface BundleBuildInfo {
@@ -7371,7 +7381,7 @@ declare namespace ts {
         Changed = 1,
         Deleted = 2
     }
-    export type FileWatcherCallback = (fileName: string, eventKind: FileWatcherEventKind) => void;
+    export type FileWatcherCallback = (fileName: string, eventKind: FileWatcherEventKind, modifiedTime?: Date) => void;
     export type DirectoryWatcherCallback = (fileName: string) => void;
     export interface WatchedFile {
         readonly fileName: string;
@@ -7413,7 +7423,7 @@ declare namespace ts {
         useCaseSensitiveFileNames: boolean;
         getCurrentDirectory: System["getCurrentDirectory"];
         getAccessibleSortedChildDirectories(path: string): readonly string[];
-        directoryExists(dir: string): boolean;
+        fileSystemEntryExists: FileSystemEntryExists;
         realpath(s: string): string;
         setTimeout: NonNullable<System["setTimeout"]>;
         clearTimeout: NonNullable<System["clearTimeout"]>;
@@ -7423,33 +7433,39 @@ declare namespace ts {
      * that means if this is recursive watcher, watch the children directories as well
      * (eg on OS that dont support recursive watch using fs.watch use fs.watchFile)
      */
-    export function createDirectoryWatcherSupportingRecursive({ watchDirectory, useCaseSensitiveFileNames, getCurrentDirectory, getAccessibleSortedChildDirectories, directoryExists, realpath, setTimeout, clearTimeout }: RecursiveDirectoryWatcherHost): HostWatchDirectory;
-    export type FsWatchCallback = (eventName: "rename" | "change", relativeFileName: string | undefined) => void;
+    export function createDirectoryWatcherSupportingRecursive({ watchDirectory, useCaseSensitiveFileNames, getCurrentDirectory, getAccessibleSortedChildDirectories, fileSystemEntryExists, realpath, setTimeout, clearTimeout }: RecursiveDirectoryWatcherHost): HostWatchDirectory;
+    export type FsWatchCallback = (eventName: "rename" | "change", relativeFileName: string | undefined, modifiedTime?: Date) => void;
     export type FsWatch = (fileOrDirectory: string, entryKind: FileSystemEntryKind, callback: FsWatchCallback, recursive: boolean, fallbackPollingInterval: PollingInterval, fallbackOptions: WatchOptions | undefined) => FileWatcher;
+    export interface FsWatchWorkerWatcher extends FileWatcher {
+        on(eventName: string, listener: () => void): void;
+    }
+    export type FsWatchWorker = (fileOrDirectory: string, recursive: boolean, callback: FsWatchCallback) => FsWatchWorkerWatcher;
     export enum FileSystemEntryKind {
         File = 0,
         Directory = 1
     }
     export function createFileWatcherCallback(callback: FsWatchCallback): FileWatcherCallback;
+    export type FileSystemEntryExists = (fileorDirectrory: string, entryKind: FileSystemEntryKind) => boolean;
     export interface CreateSystemWatchFunctions {
         pollingWatchFile: HostWatchFile;
         getModifiedTime: NonNullable<System["getModifiedTime"]>;
         setTimeout: NonNullable<System["setTimeout"]>;
         clearTimeout: NonNullable<System["clearTimeout"]>;
-        fsWatch: FsWatch;
-        fileExists: System["fileExists"];
+        fsWatchWorker: FsWatchWorker;
+        fileSystemEntryExists: FileSystemEntryExists;
         useCaseSensitiveFileNames: boolean;
         getCurrentDirectory: System["getCurrentDirectory"];
         fsSupportsRecursiveFsWatch: boolean;
-        directoryExists: System["directoryExists"];
         getAccessibleSortedChildDirectories(path: string): readonly string[];
         realpath(s: string): string;
         tscWatchFile: string | undefined;
         useNonPollingWatchers?: boolean;
         tscWatchDirectory: string | undefined;
         defaultWatchFileKind: System["defaultWatchFileKind"];
+        inodeWatching: boolean;
+        sysLog: (s: string) => void;
     }
-    export function createSystemWatchFunctions({ pollingWatchFile, getModifiedTime, setTimeout, clearTimeout, fsWatch, fileExists, useCaseSensitiveFileNames, getCurrentDirectory, fsSupportsRecursiveFsWatch, directoryExists, getAccessibleSortedChildDirectories, realpath, tscWatchFile, useNonPollingWatchers, tscWatchDirectory, defaultWatchFileKind, }: CreateSystemWatchFunctions): {
+    export function createSystemWatchFunctions({ pollingWatchFile, getModifiedTime, setTimeout, clearTimeout, fsWatchWorker, fileSystemEntryExists, useCaseSensitiveFileNames, getCurrentDirectory, fsSupportsRecursiveFsWatch, getAccessibleSortedChildDirectories, realpath, tscWatchFile, useNonPollingWatchers, tscWatchDirectory, defaultWatchFileKind, inodeWatching, sysLog, }: CreateSystemWatchFunctions): {
         watchFile: HostWatchFile;
         watchDirectory: HostWatchDirectory;
     };
@@ -9262,8 +9278,8 @@ declare namespace ts {
         Cannot_prepend_project_0_because_it_does_not_have_outFile_set: DiagnosticMessage;
         Output_file_0_from_project_1_does_not_exist: DiagnosticMessage;
         Referenced_project_0_may_not_disable_emit: DiagnosticMessage;
-        Project_0_is_out_of_date_because_oldest_output_1_is_older_than_newest_input_2: DiagnosticMessage;
-        Project_0_is_up_to_date_because_newest_input_1_is_older_than_oldest_output_2: DiagnosticMessage;
+        Project_0_is_out_of_date_because_output_1_is_older_than_input_2: DiagnosticMessage;
+        Project_0_is_up_to_date_because_newest_input_1_is_older_than_output_2: DiagnosticMessage;
         Project_0_is_out_of_date_because_output_file_1_does_not_exist: DiagnosticMessage;
         Project_0_is_out_of_date_because_its_dependency_1_is_out_of_date: DiagnosticMessage;
         Project_0_is_up_to_date_with_d_ts_files_from_its_dependencies: DiagnosticMessage;
@@ -9307,6 +9323,8 @@ declare namespace ts {
         Reusing_resolution_of_type_reference_directive_0_from_1_found_in_cache_from_location_2_it_was_successfully_resolved_to_3: DiagnosticMessage;
         Reusing_resolution_of_type_reference_directive_0_from_1_found_in_cache_from_location_2_it_was_successfully_resolved_to_3_with_Package_ID_4: DiagnosticMessage;
         Reusing_resolution_of_type_reference_directive_0_from_1_found_in_cache_from_location_2_it_was_not_resolved: DiagnosticMessage;
+        Project_0_is_out_of_date_because_buildinfo_file_1_indicates_that_some_of_the_changes_were_not_emitted: DiagnosticMessage;
+        Project_0_is_up_to_date_but_needs_to_update_timestamps_of_output_files_that_are_older_than_input_files: DiagnosticMessage;
         The_expected_type_comes_from_property_0_which_is_declared_here_on_type_1: DiagnosticMessage;
         The_expected_type_comes_from_this_index_signature: DiagnosticMessage;
         The_expected_type_comes_from_the_return_type_of_this_signature: DiagnosticMessage;
@@ -11196,6 +11214,7 @@ declare namespace ts {
     export function getUseDefineForClassFields(compilerOptions: CompilerOptions): boolean;
     export function compilerOptionsAffectSemanticDiagnostics(newOptions: CompilerOptions, oldOptions: CompilerOptions): boolean;
     export function compilerOptionsAffectEmit(newOptions: CompilerOptions, oldOptions: CompilerOptions): boolean;
+    export function compilerOptionsAffectDeclarationPath(newOptions: CompilerOptions, oldOptions: CompilerOptions): boolean;
     export function getCompilerOptionValue(options: CompilerOptions, option: CommandLineOption): unknown;
     export function getJSXTransformEnabled(options: CompilerOptions): boolean;
     export function getJSXImplicitImportBase(compilerOptions: CompilerOptions, file?: SourceFile): string | undefined;
@@ -12222,9 +12241,11 @@ declare namespace ts {
     export const optionsForWatch: CommandLineOption[];
     export const commonOptionsWithBuild: CommandLineOption[];
     export const targetOptionDeclaration: CommandLineOptionOfCustomType;
+    export const moduleOptionDeclaration: CommandLineOptionOfCustomType;
     export const optionDeclarations: CommandLineOption[];
     export const semanticDiagnosticsOptionDeclarations: readonly CommandLineOption[];
     export const affectsEmitOptionDeclarations: readonly CommandLineOption[];
+    export const affectsDeclarationPathOptionDeclarations: readonly CommandLineOption[];
     export const moduleResolutionOptionDeclarations: readonly CommandLineOption[];
     export const sourceFileAffectingCompilerOptions: readonly CommandLineOption[];
     export const optionsAffectingProgramStructure: readonly CommandLineOption[];
@@ -12370,6 +12391,7 @@ declare namespace ts {
      */
     /** @internal */
     export function convertToTSConfig(configParseResult: ParsedCommandLine, configFileName: string, host: ConvertToTSConfigHost): TSConfig;
+    export function getNameOfCompilerOptionValue(value: CompilerOptionsValue, customTypeMap: ESMap<string, string | number>): string | undefined;
     /**
      * Generate a list of the compiler options whose value is not the default.
      * @param options compilerOptions to be evaluated.
@@ -12452,6 +12474,7 @@ declare namespace ts {
         compilerOptions: CompilerOptions;
         traceEnabled: boolean;
         failedLookupLocations: Push<string>;
+        affectingLocations: Push<string>;
         resultFromCache?: ResolvedModuleWithFailedLookupLocations;
         packageJsonInfoCache: PackageJsonInfoCache | undefined;
         features: NodeResolutionFeatures;
@@ -13090,6 +13113,9 @@ declare namespace ts {
         getCanonicalFileName(fileName: string): string;
         useCaseSensitiveFileNames(): boolean;
         getNewLine(): string;
+        createHash?(data: string): string;
+        now?(): Date;
+        getBuildInfo?(fileName: string, configFilePath: string | undefined): BuildInfo | undefined;
     }
     function emitUsingBuildInfo(config: ParsedCommandLine, host: EmitUsingBuildInfoHost, getCommandLine: (ref: ProjectReference) => ParsedCommandLine | undefined, customTransformers?: CustomTransformers): EmitUsingBuildInfoResult;
     function createPrinter(printerOptions?: PrinterOptions, handlers?: PrintHandlers): Printer;
@@ -13391,27 +13417,11 @@ declare namespace ts {
         name: string;
         writeByteOrderMark: boolean;
         text: string;
+        buildInfo?: BuildInfo;
     }
 }
 declare namespace ts {
     function getFileEmitOutput(program: Program, sourceFile: SourceFile, emitOnlyDtsFiles: boolean, cancellationToken?: CancellationToken, customTransformers?: CustomTransformers, forceDtsEmit?: boolean): EmitOutput;
-    interface ReusableBuilderState {
-        /**
-         * Information of the file eg. its version, signature etc
-         */
-        fileInfos: ReadonlyESMap<Path, BuilderState.FileInfo>;
-        /**
-         * Contains the map of ReferencedSet=Referenced files of the file if module emit is enabled
-         * Otherwise undefined
-         * Thus non undefined value indicates, module emit
-         */
-        readonly referencedMap?: BuilderState.ReadonlyManyToManyPathMap | undefined;
-        /**
-         * Contains the map of exported modules ReferencedSet=exported module files from the file if module emit is enabled
-         * Otherwise undefined
-         */
-        readonly exportedModulesMap?: BuilderState.ReadonlyManyToManyPathMap | undefined;
-    }
     interface BuilderState {
         /**
          * Information of the file eg. its version, signature etc
@@ -13422,25 +13432,33 @@ declare namespace ts {
          * Otherwise undefined
          * Thus non undefined value indicates, module emit
          */
-        readonly referencedMap: BuilderState.ReadonlyManyToManyPathMap | undefined;
+        readonly referencedMap?: BuilderState.ReadonlyManyToManyPathMap | undefined;
         /**
          * Contains the map of exported modules ReferencedSet=exported module files from the file if module emit is enabled
          * Otherwise undefined
          *
          * This is equivalent to referencedMap, but for the emitted .d.ts file.
          */
-        readonly exportedModulesMap: BuilderState.ManyToManyPathMap | undefined;
+        readonly exportedModulesMap?: BuilderState.ManyToManyPathMap | undefined;
         /**
          * true if file version is used as signature
          * This helps in delaying the calculation of the d.ts hash as version for the file till reasonable time
          */
-        useFileVersionAsSignature: boolean;
+        useFileVersionAsSignature?: boolean;
         /**
          * Map of files that have already called update signature.
          * That means hence forth these files are assumed to have
          * no change in their signature for this version of the program
          */
-        hasCalledUpdateShapeSignature: Set<Path>;
+        hasCalledUpdateShapeSignature?: Set<Path>;
+        /**
+         * Stores signatures before before the update till affected file is commited
+         */
+        oldSignatures?: ESMap<Path, string | false>;
+        /**
+         * Stores exportedModulesMap before the update till affected file is commited
+         */
+        oldExportedModulesMap?: ESMap<Path, ReadonlySet<Path> | false>;
         /**
          * Cache of all files excluding default library file for the current program
          */
@@ -13458,26 +13476,16 @@ declare namespace ts {
             readonly version: string;
             signature: string | undefined;
             affectsGlobalScope: true | undefined;
-            impliedFormat: number | undefined;
+            impliedFormat: SourceFile["impliedNodeFormat"];
         }
         interface ReadonlyManyToManyPathMap {
-            clone(): ManyToManyPathMap;
-            forEach(action: (v: ReadonlySet<Path>, k: Path) => void): void;
             getKeys(v: Path): ReadonlySet<Path> | undefined;
             getValues(k: Path): ReadonlySet<Path> | undefined;
-            hasKey(k: Path): boolean;
             keys(): Iterator<Path>;
-            /**
-             * The set of arguments to {@link deleteKeys} which have not subsequently
-             * been arguments to {@link set}.  Note that a key does not have to have
-             * ever been in the map to appear in this set.
-             */
-            deletedKeys(): ReadonlySet<Path> | undefined;
         }
         interface ManyToManyPathMap extends ReadonlyManyToManyPathMap {
             deleteKey(k: Path): boolean;
             set(k: Path, v: ReadonlySet<Path>): void;
-            clear(): void;
         }
         function createManyToManyPathMap(): ManyToManyPathMap;
         /**
@@ -13487,42 +13495,30 @@ declare namespace ts {
         /**
          * Returns true if oldState is reusable, that is the emitKind = module/non module has not changed
          */
-        function canReuseOldState(newReferencedMap: ReadonlyManyToManyPathMap | undefined, oldState: Readonly<ReusableBuilderState> | undefined): boolean | undefined;
+        function canReuseOldState(newReferencedMap: ReadonlyManyToManyPathMap | undefined, oldState: BuilderState | undefined): boolean | undefined;
         /**
          * Creates the state of file references and signature for the new program from oldState if it is safe
          */
-        function create(newProgram: Program, getCanonicalFileName: GetCanonicalFileName, oldState?: Readonly<ReusableBuilderState>, disableUseFileVersionAsSignature?: boolean): BuilderState;
+        function create(newProgram: Program, getCanonicalFileName: GetCanonicalFileName, oldState?: Readonly<BuilderState>, disableUseFileVersionAsSignature?: boolean): BuilderState;
         /**
          * Releases needed properties
          */
         function releaseCache(state: BuilderState): void;
         /**
-         * Creates a clone of the state
-         */
-        function clone(state: Readonly<BuilderState>): BuilderState;
-        /**
          * Gets the files affected by the path from the program
          */
-        function getFilesAffectedBy(state: BuilderState, programOfThisState: Program, path: Path, cancellationToken: CancellationToken | undefined, computeHash: ComputeHash, cacheToUpdateSignature?: ESMap<Path, string>, exportedModulesMapCache?: ManyToManyPathMap): readonly SourceFile[];
-        /**
-         * Updates the signatures from the cache into state's fileinfo signatures
-         * This should be called whenever it is safe to commit the state of the builder
-         */
-        function updateSignaturesFromCache(state: BuilderState, signatureCache: ESMap<Path, string>): void;
+        function getFilesAffectedBy(state: BuilderState, programOfThisState: Program, path: Path, cancellationToken: CancellationToken | undefined, computeHash: ComputeHash): readonly SourceFile[];
+        function getFilesAffectedByWithOldState(state: BuilderState, programOfThisState: Program, path: Path, cancellationToken: CancellationToken | undefined, computeHash: ComputeHash): readonly SourceFile[];
         function updateSignatureOfFile(state: BuilderState, signature: string | undefined, path: Path): void;
         /**
          * Returns if the shape of the signature has changed since last emit
          */
-        function updateShapeSignature(state: Readonly<BuilderState>, programOfThisState: Program, sourceFile: SourceFile, cacheToUpdateSignature: ESMap<Path, string>, cancellationToken: CancellationToken | undefined, computeHash: ComputeHash, exportedModulesMapCache?: ManyToManyPathMap, useFileVersionAsSignature?: boolean): boolean;
+        function updateShapeSignature(state: BuilderState, programOfThisState: Program, sourceFile: SourceFile, cancellationToken: CancellationToken | undefined, computeHash: ComputeHash, useFileVersionAsSignature?: boolean | undefined): boolean;
+        function computeSignature(text: string, computeHash: ComputeHash | undefined): string;
         /**
          * Coverts the declaration emit result into exported modules map
          */
-        function updateExportedModules(sourceFile: SourceFile, exportedModulesFromDeclarationEmit: ExportedModulesFromDeclarationEmit | undefined, exportedModulesMapCache: ManyToManyPathMap): void;
-        /**
-         * Updates the exported modules from cache into state's exported modules map
-         * This should be called whenever it is safe to commit the state of the builder
-         */
-        function updateExportedFilesMapFromCache(state: BuilderState, exportedModulesMapCache: ManyToManyPathMap | undefined): void;
+        function updateExportedModules(state: BuilderState, sourceFile: SourceFile, exportedModulesFromDeclarationEmit: ExportedModulesFromDeclarationEmit | undefined): void;
         /**
          * Get all the dependencies of the sourceFile
          */
@@ -13555,36 +13551,15 @@ declare namespace ts {
         messageText: string | ReusableDiagnosticMessageChain;
     }
     type ReusableDiagnosticMessageChain = DiagnosticMessageChain;
-    interface ReusableBuilderProgramState extends ReusableBuilderState {
+    interface ReusableBuilderProgramState extends BuilderState {
         /**
          * Cache of bind and check diagnostics for files with their Path being the key
          */
-        semanticDiagnosticsPerFile?: ReadonlyESMap<Path, readonly ReusableDiagnostic[] | readonly Diagnostic[]> | undefined;
+        semanticDiagnosticsPerFile?: ESMap<Path, readonly ReusableDiagnostic[] | readonly Diagnostic[]> | undefined;
         /**
          * The map has key by source file's path that has been changed
          */
-        changedFilesSet?: ReadonlySet<Path>;
-        /**
-         * Set of affected files being iterated
-         */
-        affectedFiles?: readonly SourceFile[] | undefined;
-        /**
-         * Current changed file for iterating over affected files
-         */
-        currentChangedFilePath?: Path | undefined;
-        /**
-         * Map of file signatures, with key being file path, calculated while getting current changed file's affected files
-         * These will be committed whenever the iteration through affected files of current changed file is complete
-         */
-        currentAffectedFilesSignatures?: ReadonlyESMap<Path, string> | undefined;
-        /**
-         * Newly computed visible to outside referencedSet
-         */
-        currentAffectedFilesExportedModulesMap?: BuilderState.ReadonlyManyToManyPathMap | undefined;
-        /**
-         * True if the semantic diagnostics were copied from the old state
-         */
-        semanticDiagnosticsFromOldState?: Set<Path>;
+        changedFilesSet?: Set<Path>;
         /**
          * program corresponding to this state
          */
@@ -13600,12 +13575,24 @@ declare namespace ts {
         /**
          * Files pending to be emitted kind.
          */
-        affectedFilesPendingEmitKind?: ReadonlyESMap<Path, BuilderFileEmit> | undefined;
+        affectedFilesPendingEmitKind?: ESMap<Path, BuilderFileEmit> | undefined;
         /**
          * Current index to retrieve pending affected file
          */
         affectedFilesPendingEmitIndex?: number | undefined;
         hasReusableDiagnostic?: true;
+        /**
+         * Hash of d.ts emitted for the file, use to track when emit of d.ts changes
+         */
+        emitSignatures?: ESMap<Path, string>;
+        /**
+         * Hash of d.ts emit with --out
+         */
+        outSignature?: string;
+        /**
+         * Time when d.ts was modified
+         */
+        dtsChangeTime: number | undefined;
     }
     enum BuilderFileEmit {
         DtsOnly = 0,
@@ -13614,7 +13601,7 @@ declare namespace ts {
     /**
      * State to store the changed files, affected files and cache semantic diagnostics
      */
-    interface BuilderProgramState extends BuilderState {
+    interface BuilderProgramState extends BuilderState, ReusableBuilderProgramState {
         /**
          * Cache of bind and check diagnostics for files with their Path being the key
          */
@@ -13626,7 +13613,7 @@ declare namespace ts {
         /**
          * Set of affected files being iterated
          */
-        affectedFiles: readonly SourceFile[] | undefined;
+        affectedFiles?: readonly SourceFile[] | undefined;
         /**
          * Current index to retrieve affected file from
          */
@@ -13634,18 +13621,7 @@ declare namespace ts {
         /**
          * Current changed file for iterating over affected files
          */
-        currentChangedFilePath: Path | undefined;
-        /**
-         * Map of file signatures, with key being file path, calculated while getting current changed file's affected files
-         * These will be committed whenever the iteration through affected files of current changed file is complete
-         */
-        currentAffectedFilesSignatures: ESMap<Path, string> | undefined;
-        /**
-         * Newly computed visible to outside referencedSet
-         * We need to store the updates separately in case the in-progress build is cancelled
-         * and we need to roll back.
-         */
-        currentAffectedFilesExportedModulesMap: BuilderState.ManyToManyPathMap | undefined;
+        currentChangedFilePath?: Path | undefined;
         /**
          * Already seen affected files
          */
@@ -13659,25 +13635,13 @@ declare namespace ts {
          */
         semanticDiagnosticsFromOldState?: Set<Path>;
         /**
-         * program corresponding to this state
+         * Records if change in dts emit was detected
          */
-        program: Program | undefined;
-        /**
-         * compilerOptions for the program
-         */
-        compilerOptions: CompilerOptions;
+        hasChangedEmitSignature?: boolean;
         /**
          * Files pending to be emitted
          */
         affectedFilesPendingEmit: Path[] | undefined;
-        /**
-         * Files pending to be emitted kind.
-         */
-        affectedFilesPendingEmitKind: ESMap<Path, BuilderFileEmit> | undefined;
-        /**
-         * Current index to retrieve pending affected file
-         */
-        affectedFilesPendingEmitIndex: number | undefined;
         /**
          * true if build info is emitted
          */
@@ -13693,6 +13657,9 @@ declare namespace ts {
         /** Stores list of files that change signature during emit - test only */
         filesChangingSignature?: Set<Path>;
     }
+    type SavedBuildProgramEmitState = Pick<BuilderProgramState, "affectedFilesPendingEmit" | "affectedFilesPendingEmitIndex" | "affectedFilesPendingEmitKind" | "seenEmittedFiles" | "programEmitComplete" | "emitSignatures" | "outSignature" | "dtsChangeTime" | "hasChangedEmitSignature"> & {
+        changedFilesSet: BuilderProgramState["changedFilesSet"] | undefined;
+    };
     type ProgramBuildInfoFileId = number & {
         __programBuildInfoFileIdBrand: any;
     };
@@ -13712,10 +13679,15 @@ declare namespace ts {
         signature: string | false | undefined;
     };
     /**
+     * [fileId, signature] if different from file's signature
+     * fileId if file wasnt emitted
+     */
+    type ProgramBuildInfoEmitSignature = ProgramBuildInfoFileId | [fileId: ProgramBuildInfoFileId, signature: string];
+    /**
      * ProgramBuildInfoFileInfo is string if FileInfo.version === FileInfo.signature && !FileInfo.affectsGlobalScope otherwise encoded FileInfo
      */
     type ProgramBuildInfoFileInfo = string | ProgramBuildInfoBuilderStateFileInfo;
-    interface ProgramBuildInfo {
+    interface ProgramMultiFileEmitBuildInfo {
         fileNames: readonly string[];
         fileInfos: readonly ProgramBuildInfoFileInfo[];
         options: CompilerOptions | undefined;
@@ -13724,7 +13696,19 @@ declare namespace ts {
         exportedModulesMap?: ProgramBuildInfoReferencedMap;
         semanticDiagnosticsPerFile?: ProgramBuildInfoDiagnostic[];
         affectedFilesPendingEmit?: ProgramBuilderInfoFilePendingEmit[];
+        changeFileSet?: readonly ProgramBuildInfoFileId[];
+        emitSignatures?: readonly ProgramBuildInfoEmitSignature[];
+        dtsChangeTime?: number;
     }
+    interface ProgramBundleEmitBuildInfo {
+        fileNames: readonly string[];
+        fileInfos: readonly string[];
+        options: CompilerOptions | undefined;
+        outSignature?: string;
+        dtsChangeTime?: number;
+    }
+    type ProgramBuildInfo = ProgramMultiFileEmitBuildInfo | ProgramBundleEmitBuildInfo;
+    function isProgramBundleEmitBuildInfo(info: ProgramBuildInfo): info is ProgramBundleEmitBuildInfo;
     enum BuilderProgramKind {
         SemanticDiagnosticsBuilderProgram = 0,
         EmitAndSemanticDiagnosticsBuilderProgram = 1
@@ -13736,12 +13720,14 @@ declare namespace ts {
         configFileParsingDiagnostics: readonly Diagnostic[];
     }
     function getBuilderCreationParameters(newProgramOrRootNames: Program | readonly string[] | undefined, hostOrOptions: BuilderProgramHost | CompilerOptions | undefined, oldProgramOrHost?: BuilderProgram | CompilerHost, configFileParsingDiagnosticsOrOldProgram?: readonly Diagnostic[] | BuilderProgram, configFileParsingDiagnostics?: readonly Diagnostic[], projectReferences?: readonly ProjectReference[]): BuilderCreationParameters;
+    function computeSignature(text: string, data: WriteFileCallbackData | undefined, computeHash: BuilderState.ComputeHash | undefined): string;
     function createBuilderProgram(kind: BuilderProgramKind.SemanticDiagnosticsBuilderProgram, builderCreationParameters: BuilderCreationParameters): SemanticDiagnosticsBuilderProgram;
     function createBuilderProgram(kind: BuilderProgramKind.EmitAndSemanticDiagnosticsBuilderProgram, builderCreationParameters: BuilderCreationParameters): EmitAndSemanticDiagnosticsBuilderProgram;
     function toBuilderStateFileInfo(fileInfo: ProgramBuildInfoFileInfo): BuilderState.FileInfo;
-    function createBuildProgramUsingProgramBuildInfo(program: ProgramBuildInfo, buildInfoPath: string, host: ReadBuildProgramHost): EmitAndSemanticDiagnosticsBuilderProgram;
+    function createBuilderProgramUsingProgramBuildInfo(program: ProgramBuildInfo, buildInfoPath: string, host: ReadBuildProgramHost): EmitAndSemanticDiagnosticsBuilderProgram;
+    function getBuildInfoFileVersionMap(program: ProgramBuildInfo, buildInfoPath: string, host: Pick<ReadBuildProgramHost, "useCaseSensitiveFileNames" | "getCurrentDirectory">): ESMap<Path, string>;
     function createRedirectedBuilderProgram(getState: () => {
-        program: Program | undefined;
+        program?: Program | undefined;
         compilerOptions: CompilerOptions;
     }, configFileParsingDiagnostics: readonly Diagnostic[]): BuilderProgram;
 }
@@ -13772,14 +13758,18 @@ declare namespace ts {
          * Store the list of files that update signature during the emit
          */
         storeFilesChangingSignatureDuringEmit?: boolean;
+        /**
+         * Gets the current time
+         */
+        now?(): Date;
     }
     /**
      * Builder to manage the program state changes
      */
     interface BuilderProgram {
         getState(): ReusableBuilderProgramState;
-        backupState(): void;
-        restoreState(): void;
+        saveEmitState(): SavedBuildProgramEmitState;
+        restoreEmitState(saved: SavedBuildProgramEmitState): void;
         /**
          * Returns current program
          */
@@ -13920,6 +13910,7 @@ declare namespace ts {
     }
     interface ResolutionWithFailedLookupLocations {
         readonly failedLookupLocations: string[];
+        readonly affectingLocations: string[];
         isInvalidated?: boolean;
         refCount?: number;
         files?: Path[];
@@ -13931,6 +13922,7 @@ declare namespace ts {
         getCanonicalFileName: GetCanonicalFileName;
         getCompilationSettings(): CompilerOptions;
         watchDirectoryOfFailedLookupLocation(directory: string, cb: DirectoryWatcherCallback, flags: WatchDirectoryFlags): FileWatcher;
+        watchAffectingFileLocation(file: string, cb: FileWatcherCallback): FileWatcher;
         onInvalidatedResolution(): void;
         watchTypeRootsDirectory(directory: string, cb: DirectoryWatcherCallback, flags: WatchDirectoryFlags): FileWatcher;
         onChangedAutomaticTypeDirectiveNames(): void;
@@ -14092,6 +14084,7 @@ declare namespace ts {
         useCaseSensitiveFileNames(): boolean;
         getCurrentDirectory(): string;
         readFile(fileName: string): string | undefined;
+        getBuildInfo?(fileName: string, configFilePath: string | undefined): BuildInfo | undefined;
     }
     function readBuilderProgram(compilerOptions: CompilerOptions, host: ReadBuildProgramHost): EmitAndSemanticDiagnosticsBuilderProgram | undefined;
     function createIncrementalCompilerHost(options: CompilerOptions, system?: System): CompilerHost;
@@ -14164,6 +14157,7 @@ declare namespace ts {
         writeFile?(path: string, data: string, writeByteOrderMark?: boolean): void;
         disableUseFileVersionAsSignature?: boolean;
         storeFilesChangingSignatureDuringEmit?: boolean;
+        now?(): Date;
     }
     interface WatchCompilerHost<T extends BuilderProgram> extends ProgramHost<T>, WatchHost {
         /** Instead of using output d.ts file from project reference, use its source file */
@@ -14261,16 +14255,19 @@ declare namespace ts {
         OutputMissing = 4,
         OutOfDateWithSelf = 5,
         OutOfDateWithUpstream = 6,
-        UpstreamOutOfDate = 7,
-        UpstreamBlocked = 8,
-        ComputingUpstream = 9,
-        TsVersionOutputOfDate = 10,
+        OutOfDateBuildInfo = 7,
+        UpstreamOutOfDate = 8,
+        UpstreamBlocked = 9,
+        ComputingUpstream = 10,
+        TsVersionOutputOfDate = 11,
+        UpToDateWithInputFileText = 12,
         /**
          * Projects with no outputs (i.e. "solution" files)
          */
-        ContainerOnly = 11
+        ContainerOnly = 13,
+        ForceBuild = 14
     }
-    type UpToDateStatus = Status.Unbuildable | Status.UpToDate | Status.OutOfDateWithPrepend | Status.OutputMissing | Status.OutOfDateWithSelf | Status.OutOfDateWithUpstream | Status.UpstreamOutOfDate | Status.UpstreamBlocked | Status.ComputingUpstream | Status.TsVersionOutOfDate | Status.ContainerOnly;
+    type UpToDateStatus = Status.Unbuildable | Status.UpToDate | Status.OutOfDateWithPrepend | Status.OutputMissing | Status.OutOfDateWithSelf | Status.OutOfDateWithUpstream | Status.OutOfDateBuildInfo | Status.UpstreamOutOfDate | Status.UpstreamBlocked | Status.ComputingUpstream | Status.TsVersionOutOfDate | Status.ContainerOnly | Status.ForceBuild;
     namespace Status {
         /**
          * The project can't be built at all in its current state. For example,
@@ -14291,12 +14288,10 @@ declare namespace ts {
          * We track what the newest input file is.
          */
         interface UpToDate {
-            type: UpToDateStatusType.UpToDate | UpToDateStatusType.UpToDateWithUpstreamTypes;
+            type: UpToDateStatusType.UpToDate | UpToDateStatusType.UpToDateWithUpstreamTypes | UpToDateStatusType.UpToDateWithInputFileText;
             newestInputFileTime?: Date;
             newestInputFileName?: string;
-            newestDeclarationFileContentChangedTime?: Date;
-            newestOutputFileTime?: Date;
-            newestOutputFileName?: string;
+            newestDeclarationFileContentChangedTime: Date | undefined;
             oldestOutputFileName: string;
         }
         /**
@@ -14324,6 +14319,13 @@ declare namespace ts {
             type: UpToDateStatusType.OutOfDateWithSelf;
             outOfDateOutputFileName: string;
             newerInputFileName: string;
+        }
+        /**
+         * Buildinfo indicates that build is out of date
+         */
+        interface OutOfDateBuildInfo {
+            type: UpToDateStatusType.OutOfDateBuildInfo;
+            buildInfoFile: string;
         }
         /**
          * This project depends on an out-of-date project, so shouldn't be built yet
@@ -14359,6 +14361,9 @@ declare namespace ts {
             outOfDateOutputFileName: string;
             newerProjectName: string;
         }
+        interface ForceBuild {
+            type: UpToDateStatusType.ForceBuild;
+        }
     }
     function resolveConfigFileProjectName(project: string): ResolvedConfigFileName;
 }
@@ -14386,6 +14391,10 @@ declare namespace ts {
         [option: string]: CompilerOptionsValue | undefined;
     }
     type ResolvedConfigFilePath = ResolvedConfigFileName & Path;
+    /** Helper to use now method instead of current date for testing purposes to get consistent baselines */
+    function getCurrentTime(host: {
+        now?(): Date;
+    }): Date;
     type ReportEmitErrorSummary = (errorCount: number, filesInError: (ReportFileInError | undefined)[]) => void;
     interface ReportFileInError {
         fileName: string;
