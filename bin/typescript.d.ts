@@ -8425,9 +8425,11 @@ declare namespace ts {
         Construct_signatures_with_no_arguments_have_incompatible_return_types_0_and_1: DiagnosticMessage;
         The_type_modifier_cannot_be_used_on_a_named_import_when_import_type_is_used_on_its_import_statement: DiagnosticMessage;
         The_type_modifier_cannot_be_used_on_a_named_export_when_export_type_is_used_on_its_export_statement: DiagnosticMessage;
-        This_type_parameter_probably_needs_an_extends_object_constraint: DiagnosticMessage;
+        This_type_parameter_might_need_an_extends_0_constraint: DiagnosticMessage;
         The_project_root_is_ambiguous_but_is_required_to_resolve_export_map_entry_0_in_file_1_Supply_the_rootDir_compiler_option_to_disambiguate: DiagnosticMessage;
         The_project_root_is_ambiguous_but_is_required_to_resolve_import_map_entry_0_in_file_1_Supply_the_rootDir_compiler_option_to_disambiguate: DiagnosticMessage;
+        Add_extends_constraint: DiagnosticMessage;
+        Add_extends_constraint_to_all_type_parameters: DiagnosticMessage;
         Duplicate_identifier_0: DiagnosticMessage;
         Initializer_of_instance_member_variable_0_cannot_reference_identifier_1_declared_in_the_constructor: DiagnosticMessage;
         Static_members_cannot_reference_class_type_parameters: DiagnosticMessage;
@@ -17564,6 +17566,8 @@ declare namespace ts.codefix {
     function getImportKind(importingFile: SourceFile, exportKind: ExportKind, compilerOptions: CompilerOptions, forceImportKeyword?: boolean): ImportKind;
     function moduleSymbolToValidIdentifier(moduleSymbol: Symbol, target: ScriptTarget | undefined, forceCapitalize: boolean): string;
     function moduleSpecifierToValidIdentifier(moduleSpecifier: string, target: ScriptTarget | undefined, forceCapitalize?: boolean): string;
+}
+declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
 }
