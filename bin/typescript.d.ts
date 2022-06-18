@@ -7400,6 +7400,7 @@ declare namespace ts {
         readonly includeInlayFunctionLikeReturnTypeHints?: boolean;
         readonly includeInlayEnumMemberValueHints?: boolean;
         readonly allowRenameOfImportPath?: boolean;
+        readonly autoImportFileExcludePatterns?: string[];
     }
     /** Represents a bigint literal value without requiring bigint support */
     export interface PseudoBigInt {
@@ -9887,6 +9888,9 @@ declare namespace ts {
         For_await_loops_cannot_be_used_inside_a_class_static_block: DiagnosticMessage;
         Invalid_use_of_0_It_cannot_be_used_inside_a_class_static_block: DiagnosticMessage;
         A_return_statement_cannot_be_used_inside_a_class_static_block: DiagnosticMessage;
+        _0_is_a_type_and_cannot_be_imported_in_JavaScript_files_Use_1_in_a_JSDoc_type_annotation: DiagnosticMessage;
+        Types_cannot_appear_in_export_declarations_in_JavaScript_files: DiagnosticMessage;
+        _0_is_automatically_exported_here: DiagnosticMessage;
     };
 }
 declare namespace ts {
@@ -16459,8 +16463,8 @@ declare namespace ts {
     }
     function createCacheableExportInfoMap(host: CacheableExportInfoMapHost): ExportInfoMap;
     function isImportableFile(program: Program, from: SourceFile, to: SourceFile, preferences: UserPreferences, packageJsonFilter: PackageJsonImportFilter | undefined, moduleSpecifierResolutionHost: ModuleSpecifierResolutionHost, moduleSpecifierCache: ModuleSpecifierCache | undefined): boolean;
-    function forEachExternalModuleToImportFrom(program: Program, host: LanguageServiceHost, useAutoImportProvider: boolean, cb: (module: Symbol, moduleFile: SourceFile | undefined, program: Program, isFromPackageJson: boolean) => void): void;
-    function getExportInfoMap(importingFile: SourceFile, host: LanguageServiceHost, program: Program, cancellationToken: CancellationToken | undefined): ExportInfoMap;
+    function forEachExternalModuleToImportFrom(program: Program, host: LanguageServiceHost, preferences: UserPreferences, useAutoImportProvider: boolean, cb: (module: Symbol, moduleFile: SourceFile | undefined, program: Program, isFromPackageJson: boolean) => void): void;
+    function getExportInfoMap(importingFile: SourceFile, host: LanguageServiceHost, program: Program, preferences: UserPreferences, cancellationToken: CancellationToken | undefined): ExportInfoMap;
     function getDefaultLikeExportInfo(moduleSymbol: Symbol, checker: TypeChecker, compilerOptions: CompilerOptions): {
         symbolForMeaning: Symbol;
         name: string;
