@@ -515,6 +515,7 @@ declare namespace ts {
         remove(key: __String, value: T): void;
     }
     function createUnderscoreEscapedMultiMap<T>(): UnderscoreEscapedMultiMap<T>;
+    function createQueue<T>(items?: readonly T[]): Queue<T>;
     /**
      * Creates a Set with custom equality and hash code functionality.  This is useful when you
      * want to use something looser than object identity - e.g. "has the same span".
@@ -7407,6 +7408,11 @@ declare namespace ts {
         negative: boolean;
         base10Value: string;
     }
+    export interface Queue<T> {
+        enqueue(...items: T[]): void;
+        dequeue(): T;
+        isEmpty(): boolean;
+    }
     export {};
 }
 declare function setTimeout(handler: (...args: any[]) => void, timeout: number): any;
@@ -8419,6 +8425,7 @@ declare namespace ts {
         An_export_declaration_can_only_be_used_at_the_top_level_of_a_module: DiagnosticMessage;
         Control_what_method_is_used_to_detect_module_format_JS_files: DiagnosticMessage;
         auto_Colon_Treat_files_with_imports_exports_import_meta_jsx_with_jsx_Colon_react_jsx_or_esm_format_with_module_Colon_node16_as_modules: DiagnosticMessage;
+        An_instantiation_expression_cannot_be_followed_by_a_property_access: DiagnosticMessage;
         The_types_of_0_are_incompatible_between_these_types: DiagnosticMessage;
         The_types_returned_by_0_are_incompatible_between_these_types: DiagnosticMessage;
         Call_signature_return_types_0_and_1_are_incompatible: DiagnosticMessage;
