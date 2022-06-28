@@ -3463,6 +3463,7 @@ declare namespace ts {
     export interface WriteFileCallbackData {
         sourceMapUrlPos?: number;
         buildInfo?: BuildInfo;
+        diagnostics?: readonly DiagnosticWithLocation[];
     }
     export type WriteFileCallback = (fileName: string, text: string, writeByteOrderMark: boolean, onError?: (message: string) => void, sourceFiles?: readonly SourceFile[], data?: WriteFileCallbackData) => void;
     export class OperationCanceledException {
@@ -3681,7 +3682,6 @@ declare namespace ts {
         diagnostics: readonly Diagnostic[];
         emittedFiles?: string[];
         sourceMaps?: SourceMapEmitResult[];
-        exportedModulesFromDeclarationEmit?: ExportedModulesFromDeclarationEmit;
     }
     export interface TypeCheckerHost extends ModuleSpecifierResolutionHost {
         getCompilerOptions(): CompilerOptions;
@@ -13485,7 +13485,6 @@ declare namespace ts {
         outputFiles: OutputFile[];
         emitSkipped: boolean;
         diagnostics: readonly Diagnostic[];
-        exportedModulesFromDeclarationEmit?: ExportedModulesFromDeclarationEmit;
     }
     interface OutputFile {
         name: string;
@@ -13581,14 +13580,13 @@ declare namespace ts {
         /**
          * Gets the files affected by the path from the program
          */
-        function getFilesAffectedBy(state: BuilderState, programOfThisState: Program, path: Path, cancellationToken: CancellationToken | undefined, computeHash: ComputeHash): readonly SourceFile[];
-        function getFilesAffectedByWithOldState(state: BuilderState, programOfThisState: Program, path: Path, cancellationToken: CancellationToken | undefined, computeHash: ComputeHash): readonly SourceFile[];
+        function getFilesAffectedBy(state: BuilderState, programOfThisState: Program, path: Path, cancellationToken: CancellationToken | undefined, computeHash: ComputeHash, getCanonicalFileName: GetCanonicalFileName): readonly SourceFile[];
+        function getFilesAffectedByWithOldState(state: BuilderState, programOfThisState: Program, path: Path, cancellationToken: CancellationToken | undefined, computeHash: ComputeHash, getCanonicalFileName: GetCanonicalFileName): readonly SourceFile[];
         function updateSignatureOfFile(state: BuilderState, signature: string | undefined, path: Path): void;
         /**
          * Returns if the shape of the signature has changed since last emit
          */
-        function updateShapeSignature(state: BuilderState, programOfThisState: Program, sourceFile: SourceFile, cancellationToken: CancellationToken | undefined, computeHash: ComputeHash, useFileVersionAsSignature?: boolean | undefined): boolean;
-        function computeSignature(text: string, computeHash: ComputeHash | undefined): string;
+        function updateShapeSignature(state: BuilderState, programOfThisState: Program, sourceFile: SourceFile, cancellationToken: CancellationToken | undefined, computeHash: ComputeHash, getCanonicalFileName: GetCanonicalFileName, useFileVersionAsSignature?: boolean | undefined): boolean;
         /**
          * Coverts the declaration emit result into exported modules map
          */
@@ -13794,7 +13792,8 @@ declare namespace ts {
         configFileParsingDiagnostics: readonly Diagnostic[];
     }
     function getBuilderCreationParameters(newProgramOrRootNames: Program | readonly string[] | undefined, hostOrOptions: BuilderProgramHost | CompilerOptions | undefined, oldProgramOrHost?: BuilderProgram | CompilerHost, configFileParsingDiagnosticsOrOldProgram?: readonly Diagnostic[] | BuilderProgram, configFileParsingDiagnostics?: readonly Diagnostic[], projectReferences?: readonly ProjectReference[]): BuilderCreationParameters;
-    function computeSignature(text: string, data: WriteFileCallbackData | undefined, computeHash: BuilderState.ComputeHash | undefined): string;
+    function computeSignatureWithDiagnostics(sourceFile: SourceFile, text: string, computeHash: BuilderState.ComputeHash | undefined, getCanonicalFileName: GetCanonicalFileName, data: WriteFileCallbackData | undefined): string;
+    function computeSignature(text: string, computeHash: BuilderState.ComputeHash | undefined, data?: WriteFileCallbackData): string;
     function createBuilderProgram(kind: BuilderProgramKind.SemanticDiagnosticsBuilderProgram, builderCreationParameters: BuilderCreationParameters): SemanticDiagnosticsBuilderProgram;
     function createBuilderProgram(kind: BuilderProgramKind.EmitAndSemanticDiagnosticsBuilderProgram, builderCreationParameters: BuilderCreationParameters): EmitAndSemanticDiagnosticsBuilderProgram;
     function toBuilderStateFileInfo(fileInfo: ProgramBuildInfoFileInfo): BuilderState.FileInfo;
