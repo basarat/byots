@@ -847,6 +847,7 @@ declare namespace ts {
         }): () => never;
         function createDeprecation(name: string, options?: DeprecationOptions): () => void;
         function deprecate<F extends (...args: any[]) => any>(func: F, options?: DeprecationOptions): F;
+        function formatVariance(varianceFlags: VarianceFlags): string;
     }
 }
 declare namespace ts {
@@ -1001,7 +1002,7 @@ declare namespace ts {
          * these operations.
          */
         export function push(phase: Phase, name: string, args?: Args, separateBeginAndEnd?: boolean): void;
-        export function pop(): void;
+        export function pop(results?: Args): void;
         export function popAll(): void;
         export function dumpLegend(): void;
         export {};
