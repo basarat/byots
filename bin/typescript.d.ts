@@ -4934,9 +4934,10 @@ declare namespace ts {
     export enum TypeMapKind {
         Simple = 0,
         Array = 1,
-        Function = 2,
-        Composite = 3,
-        Merged = 4
+        Deferred = 2,
+        Function = 3,
+        Composite = 4,
+        Merged = 5
     }
     export type TypeMapper = {
         kind: TypeMapKind.Simple;
@@ -4947,8 +4948,13 @@ declare namespace ts {
         sources: readonly Type[];
         targets: readonly Type[] | undefined;
     } | {
+        kind: TypeMapKind.Deferred;
+        sources: readonly Type[];
+        targets: (() => Type)[];
+    } | {
         kind: TypeMapKind.Function;
         func: (t: Type) => Type;
+        debugInfo?: () => string;
     } | {
         kind: TypeMapKind.Composite | TypeMapKind.Merged;
         mapper1: TypeMapper;
@@ -5754,7 +5760,6 @@ declare namespace ts {
         getSymlinkCache?(): SymlinkCache;
         disableUseFileVersionAsSignature?: boolean;
         storeFilesChangingSignatureDuringEmit?: boolean;
-        now?(): Date;
     }
     /** true if --out otherwise source file name */
     export type SourceOfProjectReferenceRedirect = string | true;
@@ -13189,7 +13194,6 @@ declare namespace ts {
         useCaseSensitiveFileNames(): boolean;
         getNewLine(): string;
         createHash?(data: string): string;
-        now?(): Date;
         getBuildInfo?(fileName: string, configFilePath: string | undefined): BuildInfo | undefined;
     }
     function emitUsingBuildInfo(config: ParsedCommandLine, host: EmitUsingBuildInfoHost, getCommandLine: (ref: ProjectReference) => ParsedCommandLine | undefined, customTransformers?: CustomTransformers): EmitUsingBuildInfoResult;
@@ -13663,9 +13667,9 @@ declare namespace ts {
          */
         outSignature?: string;
         /**
-         * Time when d.ts was modified
+         * Name of the file whose dts was the latest to change
          */
-        dtsChangeTime: number | undefined;
+        latestChangedDtsFile: string | undefined;
     }
     enum BuilderFileEmit {
         DtsOnly = 0,
@@ -13730,7 +13734,7 @@ declare namespace ts {
         /** Stores list of files that change signature during emit - test only */
         filesChangingSignature?: Set<Path>;
     }
-    type SavedBuildProgramEmitState = Pick<BuilderProgramState, "affectedFilesPendingEmit" | "affectedFilesPendingEmitIndex" | "affectedFilesPendingEmitKind" | "seenEmittedFiles" | "programEmitComplete" | "emitSignatures" | "outSignature" | "dtsChangeTime" | "hasChangedEmitSignature"> & {
+    type SavedBuildProgramEmitState = Pick<BuilderProgramState, "affectedFilesPendingEmit" | "affectedFilesPendingEmitIndex" | "affectedFilesPendingEmitKind" | "seenEmittedFiles" | "programEmitComplete" | "emitSignatures" | "outSignature" | "latestChangedDtsFile" | "hasChangedEmitSignature"> & {
         changedFilesSet: BuilderProgramState["changedFilesSet"] | undefined;
     };
     type ProgramBuildInfoFileId = number & {
@@ -13771,14 +13775,14 @@ declare namespace ts {
         affectedFilesPendingEmit?: ProgramBuilderInfoFilePendingEmit[];
         changeFileSet?: readonly ProgramBuildInfoFileId[];
         emitSignatures?: readonly ProgramBuildInfoEmitSignature[];
-        dtsChangeTime?: number;
+        latestChangedDtsFile?: string;
     }
     interface ProgramBundleEmitBuildInfo {
         fileNames: readonly string[];
         fileInfos: readonly string[];
         options: CompilerOptions | undefined;
         outSignature?: string;
-        dtsChangeTime?: number;
+        latestChangedDtsFile?: string;
     }
     type ProgramBuildInfo = ProgramMultiFileEmitBuildInfo | ProgramBundleEmitBuildInfo;
     function isProgramBundleEmitBuildInfo(info: ProgramBuildInfo): info is ProgramBundleEmitBuildInfo;
@@ -13844,6 +13848,7 @@ declare namespace ts {
         getState(): ReusableBuilderProgramState;
         saveEmitState(): SavedBuildProgramEmitState;
         restoreEmitState(saved: SavedBuildProgramEmitState): void;
+        hasChangedEmitSignature?(): boolean;
         /**
          * Returns current program
          */
@@ -14365,7 +14370,6 @@ declare namespace ts {
             type: UpToDateStatusType.UpToDate | UpToDateStatusType.UpToDateWithUpstreamTypes | UpToDateStatusType.UpToDateWithInputFileText;
             newestInputFileTime?: Date;
             newestInputFileName?: string;
-            newestDeclarationFileContentChangedTime: Date | undefined;
             oldestOutputFileName: string;
         }
         /**
