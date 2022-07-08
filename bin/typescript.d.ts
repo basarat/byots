@@ -8944,6 +8944,7 @@ declare namespace ts {
         The_type_of_this_expression_cannot_be_named_without_a_resolution_mode_assertion_which_is_an_unstable_feature_Use_nightly_TypeScript_to_silence_this_error_Try_updating_with_npm_install_D_typescript_next: DiagnosticMessage;
         _0_is_an_unused_renaming_of_1_Did_you_intend_to_use_it_as_a_type_annotation: DiagnosticMessage;
         We_can_only_write_a_type_for_0_by_adding_a_type_for_the_entire_parameter_here: DiagnosticMessage;
+        Type_of_instance_member_variable_0_cannot_reference_identifier_1_declared_in_the_constructor: DiagnosticMessage;
         Import_declaration_0_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_interface_has_or_is_using_private_name_1: DiagnosticMessage;
@@ -12724,7 +12725,13 @@ declare namespace ts {
         rest: string;
     };
     export function allKeysStartWithDot(obj: MapLike<unknown>): boolean;
-    export function isApplicableVersionedTypesKey(conditions: string[], key: string): boolean;
+    /**
+     * @internal
+     * From https://github.com/nodejs/node/blob/8f39f51cbbd3b2de14b9ee896e26421cc5b20121/lib/internal/modules/esm/resolve.js#L722 -
+     * "longest" has some nuance as to what "longest" means in the presence of pattern trailers
+     */
+    export function comparePatternKeys(a: string, b: string): 0 | 1 | -1;
+    export function isApplicableVersionedTypesKey(conditions: readonly string[], key: string): boolean;
     export function getTypesPackageName(packageName: string): string;
     export function mangleScopedPackageName(packageName: string): string;
     export function getPackageNameFromTypesPackageName(mangledName: string): string;
