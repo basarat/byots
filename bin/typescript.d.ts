@@ -852,6 +852,14 @@ declare namespace ts {
         function createDeprecation(name: string, options?: DeprecationOptions): () => void;
         function deprecate<F extends (...args: any[]) => any>(func: F, options?: DeprecationOptions): F;
         function formatVariance(varianceFlags: VarianceFlags): string;
+        type DebugType = Type & {
+            __debugTypeToString(): string;
+        };
+        class DebugTypeMapper {
+            kind: TypeMapKind;
+            __debugToString(): string;
+        }
+        function attachDebugPrototypeIfDebug(mapper: TypeMapper): TypeMapper;
     }
 }
 declare namespace ts {
