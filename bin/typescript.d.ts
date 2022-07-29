@@ -543,6 +543,7 @@ declare namespace ts {
     function cast<TOut extends TIn, TIn = any>(value: TIn | undefined, test: (value: TIn) => value is TOut): TOut;
     /** Does nothing. */
     function noop(_?: unknown): void;
+    const noopPush: Push<any>;
     /** Do nothing and return false */
     function returnFalse(): false;
     /** Do nothing and return true */
@@ -8666,6 +8667,7 @@ declare namespace ts {
         Cannot_create_an_instance_of_an_abstract_class: DiagnosticMessage;
         Overload_signatures_must_all_be_abstract_or_non_abstract: DiagnosticMessage;
         Abstract_method_0_in_class_1_cannot_be_accessed_via_super_expression: DiagnosticMessage;
+        A_tuple_type_cannot_be_indexed_with_a_negative_value: DiagnosticMessage;
         Non_abstract_class_0_does_not_implement_inherited_abstract_member_1_from_class_2: DiagnosticMessage;
         All_declarations_of_an_abstract_method_must_be_consecutive: DiagnosticMessage;
         Cannot_assign_an_abstract_constructor_type_to_a_non_abstract_constructor_type: DiagnosticMessage;
@@ -12585,7 +12587,7 @@ declare namespace ts {
         resultFromCache?: ResolvedModuleWithFailedLookupLocations;
         packageJsonInfoCache: PackageJsonInfoCache | undefined;
         features: NodeResolutionFeatures;
-        conditions: string[];
+        conditions: readonly string[];
         requestContainingDirectory: string | undefined;
         reportDiagnostic: DiagnosticReporter;
     }
@@ -12723,6 +12725,7 @@ declare namespace ts {
      */
     export function parseNodeModuleFromPath(resolved: string): string | undefined;
     export function getEntrypointsFromPackageJsonInfo(packageJsonInfo: PackageJsonInfo, options: CompilerOptions, host: ModuleResolutionHost, cache: ModuleResolutionCache | undefined, resolveJs?: boolean): string[] | false;
+    export function getTemporaryModuleResolutionState(packageJsonInfoCache: PackageJsonInfoCache | undefined, host: ModuleResolutionHost, options: CompilerOptions): ModuleResolutionState;
     interface PackageJsonInfo {
         packageDirectory: string;
         packageJsonContent: PackageJsonPathFields;
@@ -12733,7 +12736,7 @@ declare namespace ts {
     /**
      * A function for locating the package.json scope for a given path
      */
-    export function getPackageScopeForPath(fileName: Path, packageJsonInfoCache: PackageJsonInfoCache | undefined, host: ModuleResolutionHost, options: CompilerOptions): PackageJsonInfo | undefined;
+    export function getPackageScopeForPath(fileName: Path, state: ModuleResolutionState): PackageJsonInfo | undefined;
     export function getPackageJsonInfo(packageDirectory: string, onlyRecordFailures: boolean, state: ModuleResolutionState): PackageJsonInfo | undefined;
     export function parsePackageName(moduleName: string): {
         packageName: string;
