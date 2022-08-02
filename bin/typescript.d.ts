@@ -3319,6 +3319,8 @@ declare namespace ts {
          * CommonJS-output-format by the node module transformer and type checker, regardless of extension or context.
          */
         impliedNodeFormat?: ModuleKind.ESNext | ModuleKind.CommonJS;
+        packageJsonLocations?: readonly string[];
+        packageJsonScope?: PackageJsonInfo;
         scriptKind: ScriptKind;
         /**
          * The first "most obvious" node that makes a file an external module.
@@ -8446,6 +8448,10 @@ declare namespace ts {
         resolution_mode_is_the_only_valid_key_for_type_import_assertions: DiagnosticMessage;
         Type_import_assertions_should_have_exactly_one_key_resolution_mode_with_value_import_or_require: DiagnosticMessage;
         Matched_by_default_include_pattern_Asterisk_Asterisk_Slash_Asterisk: DiagnosticMessage;
+        File_is_ECMAScript_module_because_0_has_field_type_with_value_module: DiagnosticMessage;
+        File_is_CommonJS_module_because_0_has_field_type_whose_value_is_not_module: DiagnosticMessage;
+        File_is_CommonJS_module_because_0_does_not_have_field_type: DiagnosticMessage;
+        File_is_CommonJS_module_because_package_json_was_not_found: DiagnosticMessage;
         The_import_meta_meta_property_is_not_allowed_in_files_which_will_build_into_CommonJS_output: DiagnosticMessage;
         Module_0_cannot_be_imported_using_this_construct_The_specifier_only_resolves_to_an_ES_module_which_cannot_be_imported_synchronously_Use_dynamic_import_instead: DiagnosticMessage;
         catch_or_finally_expected: DiagnosticMessage;
@@ -12296,6 +12302,8 @@ declare namespace ts {
          * check specified by `isFileProbablyExternalModule` will be used to set the field.
          */
         setExternalModuleIndicator?: (file: SourceFile) => void;
+        packageJsonLocations?: readonly string[];
+        packageJsonScope?: PackageJsonInfo;
     }
     function createSourceFile(fileName: string, sourceText: string, languageVersionOrOptions: ScriptTarget | CreateSourceFileOptions, setParentNodes?: boolean, scriptKind?: ScriptKind): SourceFile;
     function parseIsolatedEntityName(text: string, languageVersion: ScriptTarget): EntityName | undefined;
@@ -12634,6 +12642,7 @@ declare namespace ts {
      */
     export function getAutomaticTypeDirectiveNames(options: CompilerOptions, host: ModuleResolutionHost): string[];
     export interface TypeReferenceDirectiveResolutionCache extends PerDirectoryResolutionCache<ResolvedTypeReferenceDirectiveWithFailedLookupLocations>, PackageJsonInfoCache {
+        clearAllExceptPackageJsonInfoCache(): void;
     }
     export interface ModeAwareCache<T> {
         get(key: string, mode: ModuleKind.CommonJS | ModuleKind.ESNext | undefined): T | undefined;
@@ -12658,6 +12667,7 @@ declare namespace ts {
     }
     export interface ModuleResolutionCache extends PerDirectoryResolutionCache<ResolvedModuleWithFailedLookupLocations>, NonRelativeModuleNameResolutionCache, PackageJsonInfoCache {
         getPackageJsonInfoCache(): PackageJsonInfoCache;
+        clearAllExceptPackageJsonInfoCache(): void;
     }
     /**
      * Stored map from non-relative module name to a table: directory -> result of module lookup in this directory
@@ -12670,6 +12680,7 @@ declare namespace ts {
         getPackageJsonInfo(packageJsonPath: string): PackageJsonInfo | boolean | undefined;
         setPackageJsonInfo(packageJsonPath: string, info: PackageJsonInfo | boolean): void;
         entries(): [Path, PackageJsonInfo | boolean][];
+        getInternalMap(): ESMap<Path, PackageJsonInfo | boolean> | undefined;
         clear(): void;
     }
     export interface PerModuleNameCache {
@@ -12727,7 +12738,7 @@ declare namespace ts {
     export function parseNodeModuleFromPath(resolved: string): string | undefined;
     export function getEntrypointsFromPackageJsonInfo(packageJsonInfo: PackageJsonInfo, options: CompilerOptions, host: ModuleResolutionHost, cache: ModuleResolutionCache | undefined, resolveJs?: boolean): string[] | false;
     export function getTemporaryModuleResolutionState(packageJsonInfoCache: PackageJsonInfoCache | undefined, host: ModuleResolutionHost, options: CompilerOptions): ModuleResolutionState;
-    interface PackageJsonInfo {
+    export interface PackageJsonInfo {
         packageDirectory: string;
         packageJsonContent: PackageJsonPathFields;
         versionPaths: VersionPaths | undefined;
@@ -13558,6 +13569,7 @@ declare namespace ts {
      * @returns `undefined` if the path has no relevant implied format, `ModuleKind.ESNext` for esm format, and `ModuleKind.CommonJS` for cjs format
      */
     export function getImpliedNodeFormatForFile(fileName: Path, packageJsonInfoCache: PackageJsonInfoCache | undefined, host: ModuleResolutionHost, options: CompilerOptions): ModuleKind.ESNext | ModuleKind.CommonJS | undefined;
+    export function getImpliedNodeFormatForFileWorker(fileName: Path, packageJsonInfoCache: PackageJsonInfoCache | undefined, host: ModuleResolutionHost, options: CompilerOptions): ModuleKind.CommonJS | ModuleKind.ESNext | Partial<CreateSourceFileOptions> | undefined;
     /** @internal */
     export const plainJSErrors: Set<number>;
     /**
@@ -14114,7 +14126,7 @@ declare namespace ts {
         hasChangedAutomaticTypeDirectiveNames(): boolean;
         isFileWithInvalidatedNonRelativeUnresolvedImports(path: Path): boolean;
         startCachingPerDirectoryResolution(): void;
-        finishCachingPerDirectoryResolution(): void;
+        finishCachingPerDirectoryResolution(newProgram: Program | undefined, oldProgram: Program | undefined): void;
         updateTypeRootsWatch(): void;
         closeTypeRootsWatch(): void;
         getModuleResolutionCache(): ModuleResolutionCache;
@@ -14155,7 +14167,7 @@ declare namespace ts {
      * "c:/", "c:/users", "c:/users/username", "c:/users/username/folderAtRoot", "c:/folderAtRoot"
      * @param dirPath
      */
-    export function canWatchDirectory(dirPath: Path): boolean;
+    export function canWatchDirectoryOrFile(dirPath: Path): boolean;
     export function createResolutionCache(resolutionHost: ResolutionCacheHost, rootDirForResolution: string | undefined, logChangesWhenResolvingModule: boolean): ResolutionCache;
     export {};
 }
@@ -14197,7 +14209,7 @@ declare namespace ts {
     export function isBuilderProgram(program: Program | BuilderProgram): program is BuilderProgram;
     export function listFiles<T extends BuilderProgram>(program: Program | T, write: (s: string) => void): void;
     export function explainFiles(program: Program, write: (s: string) => void): void;
-    export function explainIfFileIsRedirect(file: SourceFile, fileNameConvertor?: (fileName: string) => string): DiagnosticMessageChain[] | undefined;
+    export function explainIfFileIsRedirectAndImpliedFormat(file: SourceFile, fileNameConvertor?: (fileName: string) => string): DiagnosticMessageChain[] | undefined;
     export function getMatchedFileSpec(program: Program, fileName: string): string | undefined;
     export function getMatchedIncludeSpec(program: Program, fileName: string): string | true | undefined;
     export function fileIncludeReasonToDiagnostics(program: Program, reason: FileIncludeReason, fileNameConvertor?: (fileName: string) => string): DiagnosticMessageChain;
@@ -14221,6 +14233,7 @@ declare namespace ts {
         MissingFile: "Missing file";
         WildcardDirectory: "Wild card directory";
         FailedLookupLocations: "Failed Lookup Locations";
+        AffectingFileLocation: "File location affecting resolution";
         TypeRoots: "Type roots";
         ConfigFileOfReferencedProject: "Config file of referened project";
         ExtendedConfigOfReferencedProject: "Extended config file of referenced project";
@@ -14362,6 +14375,10 @@ declare namespace ts {
         resolveModuleNames?(moduleNames: string[], containingFile: string, reusedNames: string[] | undefined, redirectedReference: ResolvedProjectReference | undefined, options: CompilerOptions, containingSourceFile?: SourceFile): (ResolvedModule | undefined)[];
         /** If provided, used to resolve type reference directives, otherwise typescript's default resolution */
         resolveTypeReferenceDirectives?(typeReferenceDirectiveNames: string[] | readonly FileReference[], containingFile: string, redirectedReference: ResolvedProjectReference | undefined, options: CompilerOptions, containingFileMode?: SourceFile["impliedNodeFormat"] | undefined): (ResolvedTypeReferenceDirective | undefined)[];
+        /**
+         * Returns the module resolution cache used by a provided `resolveModuleNames` implementation so that any non-name module resolution operations (eg, package.json lookup) can reuse it
+         */
+        getModuleResolutionCache?(): ModuleResolutionCache | undefined;
     }
     /** Internal interface used to wire emit through same host */
     interface ProgramHost<T extends BuilderProgram> {
@@ -15017,7 +15034,7 @@ declare namespace ts {
         OptionalDependencies = 8,
         All = 15
     }
-    interface PackageJsonInfo {
+    interface ProjectPackageJsonInfo {
         fileName: string;
         parseable: boolean;
         dependencies?: ESMap<string, string>;
@@ -15089,9 +15106,9 @@ declare namespace ts {
         writeFile?(fileName: string, content: string): void;
         getDocumentPositionMapper?(generatedFileName: string, sourceFileName?: string): DocumentPositionMapper | undefined;
         getSourceFileLike?(fileName: string): SourceFileLike | undefined;
-        getPackageJsonsVisibleToFile?(fileName: string, rootDir?: string): readonly PackageJsonInfo[];
+        getPackageJsonsVisibleToFile?(fileName: string, rootDir?: string): readonly ProjectPackageJsonInfo[];
         getNearestAncestorDirectoryWithPackageJson?(fileName: string): string | undefined;
-        getPackageJsonsForAutoImport?(rootDir?: string): readonly PackageJsonInfo[];
+        getPackageJsonsForAutoImport?(rootDir?: string): readonly ProjectPackageJsonInfo[];
         getCachedExportInfoMap?(): ExportInfoMap;
         getModuleSpecifierCache?(): ModuleSpecifierCache;
         setCompilerHost?(host: CompilerHost): void;
@@ -15272,6 +15289,7 @@ declare namespace ts {
         getEditsForFileRename(oldFilePath: string, newFilePath: string, formatOptions: FormatCodeSettings, preferences: UserPreferences | undefined): readonly FileTextChanges[];
         getEmitOutput(fileName: string, emitOnlyDtsFiles?: boolean, forceDtsEmit?: boolean): EmitOutput;
         getProgram(): Program | undefined;
+        getCurrentProgram(): Program | undefined;
         getNonBoundSourceFile(fileName: string): SourceFile;
         getAutoImportProvider(): Program | undefined;
         updateIsDefinitionOfReferencedSymbols(referencedSymbols: readonly ReferencedSymbol[], knownSymbolSpans: Set<DocumentSpan>): boolean;
@@ -16502,10 +16520,10 @@ declare namespace ts {
     function tryIOAndConsumeErrors<T>(host: unknown, toApply: ((...a: any[]) => T) | undefined, ...args: any[]): any;
     function findPackageJsons(startDirectory: string, host: Pick<LanguageServiceHost, "fileExists">, stopDirectory?: string): string[];
     function findPackageJson(directory: string, host: LanguageServiceHost): string | undefined;
-    function getPackageJsonsVisibleToFile(fileName: string, host: LanguageServiceHost): readonly PackageJsonInfo[];
+    function getPackageJsonsVisibleToFile(fileName: string, host: LanguageServiceHost): readonly ProjectPackageJsonInfo[];
     function createPackageJsonInfo(fileName: string, host: {
         readFile?(fileName: string): string | undefined;
-    }): PackageJsonInfo | undefined;
+    }): ProjectPackageJsonInfo | undefined;
     interface PackageJsonImportFilter {
         allowsImportingAmbientModule: (moduleSymbol: Symbol, moduleSpecifierResolutionHost: ModuleSpecifierResolutionHost) => boolean;
         allowsImportingSourceFile: (sourceFile: SourceFile, moduleSpecifierResolutionHost: ModuleSpecifierResolutionHost) => boolean;
@@ -16802,8 +16820,8 @@ declare namespace ts {
          * @param version Current version of the file. Only used if the file was not found
          * in the registry and a new one was created.
          */
-        acquireDocument(fileName: string, compilationSettingsOrHost: CompilerOptions | MinimalResolutionCacheHost, scriptSnapshot: IScriptSnapshot, version: string, scriptKind?: ScriptKind): SourceFile;
-        acquireDocumentWithKey(fileName: string, path: Path, compilationSettingsOrHost: CompilerOptions | MinimalResolutionCacheHost, key: DocumentRegistryBucketKey, scriptSnapshot: IScriptSnapshot, version: string, scriptKind?: ScriptKind): SourceFile;
+        acquireDocument(fileName: string, compilationSettingsOrHost: CompilerOptions | MinimalResolutionCacheHost, scriptSnapshot: IScriptSnapshot, version: string, scriptKind?: ScriptKind, sourceFileOptions?: CreateSourceFileOptions | ScriptTarget): SourceFile;
+        acquireDocumentWithKey(fileName: string, path: Path, compilationSettingsOrHost: CompilerOptions | MinimalResolutionCacheHost, key: DocumentRegistryBucketKey, scriptSnapshot: IScriptSnapshot, version: string, scriptKind?: ScriptKind, sourceFileOptions?: CreateSourceFileOptions | ScriptTarget): SourceFile;
         /**
          * Request an updated version of an already existing SourceFile with a given fileName
          * and compilationSettings. The update will in-turn call updateLanguageServiceSourceFile
@@ -16819,20 +16837,9 @@ declare namespace ts {
          * @param scriptSnapshot Text of the file.
          * @param version Current version of the file.
          */
-        updateDocument(fileName: string, compilationSettingsOrHost: CompilerOptions | MinimalResolutionCacheHost, scriptSnapshot: IScriptSnapshot, version: string, scriptKind?: ScriptKind): SourceFile;
-        updateDocumentWithKey(fileName: string, path: Path, compilationSettingsOrHost: CompilerOptions | MinimalResolutionCacheHost, key: DocumentRegistryBucketKey, scriptSnapshot: IScriptSnapshot, version: string, scriptKind?: ScriptKind): SourceFile;
+        updateDocument(fileName: string, compilationSettingsOrHost: CompilerOptions | MinimalResolutionCacheHost, scriptSnapshot: IScriptSnapshot, version: string, scriptKind?: ScriptKind, sourceFileOptions?: CreateSourceFileOptions | ScriptTarget): SourceFile;
+        updateDocumentWithKey(fileName: string, path: Path, compilationSettingsOrHost: CompilerOptions | MinimalResolutionCacheHost, key: DocumentRegistryBucketKey, scriptSnapshot: IScriptSnapshot, version: string, scriptKind?: ScriptKind, sourceFileOptions?: CreateSourceFileOptions | ScriptTarget): SourceFile;
         getKeyForCompilationSettings(settings: CompilerOptions): DocumentRegistryBucketKey;
-        /**
-         * Informs the DocumentRegistry that a file is not needed any longer.
-         *
-         * Note: It is not allowed to call release on a SourceFile that was not acquired from
-         * this registry originally.
-         *
-         * @param fileName The name of the file to be released
-         * @param compilationSettings The compilation settings used to acquire the file
-         */
-        /**@deprecated pass scriptKind for correctness */
-        releaseDocument(fileName: string, compilationSettings: CompilerOptions): void;
         /**
          * Informs the DocumentRegistry that a file is not needed any longer.
          *
@@ -16843,22 +16850,38 @@ declare namespace ts {
          * @param compilationSettings The compilation settings used to acquire the file
          * @param scriptKind The script kind of the file to be released
          */
-        releaseDocument(fileName: string, compilationSettings: CompilerOptions, scriptKind: ScriptKind): void;
+        /**@deprecated pass scriptKind and impliedNodeFormat for correctness */
+        releaseDocument(fileName: string, compilationSettings: CompilerOptions, scriptKind?: ScriptKind): void;
         /**
-         * @deprecated pass scriptKind for correctness */
-        releaseDocumentWithKey(path: Path, key: DocumentRegistryBucketKey): void;
-        releaseDocumentWithKey(path: Path, key: DocumentRegistryBucketKey, scriptKind: ScriptKind): void;
+         * Informs the DocumentRegistry that a file is not needed any longer.
+         *
+         * Note: It is not allowed to call release on a SourceFile that was not acquired from
+         * this registry originally.
+         *
+         * @param fileName The name of the file to be released
+         * @param compilationSettings The compilation settings used to acquire the file
+         * @param scriptKind The script kind of the file to be released
+         * @param impliedNodeFormat The implied source file format of the file to be released
+         */
+        releaseDocument(fileName: string, compilationSettings: CompilerOptions, scriptKind: ScriptKind, impliedNodeFormat: SourceFile["impliedNodeFormat"]): void;
+        /**
+         * @deprecated pass scriptKind for and impliedNodeFormat correctness */
+        releaseDocumentWithKey(path: Path, key: DocumentRegistryBucketKey, scriptKind?: ScriptKind): void;
+        releaseDocumentWithKey(path: Path, key: DocumentRegistryBucketKey, scriptKind: ScriptKind, impliedNodeFormat: SourceFile["impliedNodeFormat"]): void;
         getLanguageServiceRefCounts(path: Path, scriptKind: ScriptKind): [string, number | undefined][];
         reportStats(): string;
     }
     interface ExternalDocumentCache {
-        setDocument(key: DocumentRegistryBucketKey, path: Path, sourceFile: SourceFile): void;
-        getDocument(key: DocumentRegistryBucketKey, path: Path): SourceFile | undefined;
+        setDocument(key: DocumentRegistryBucketKeyWithMode, path: Path, sourceFile: SourceFile): void;
+        getDocument(key: DocumentRegistryBucketKeyWithMode, path: Path): SourceFile | undefined;
     }
     type DocumentRegistryBucketKey = string & {
         __bucketKey: any;
     };
     function createDocumentRegistry(useCaseSensitiveFileNames?: boolean, currentDirectory?: string): DocumentRegistry;
+    type DocumentRegistryBucketKeyWithMode = string & {
+        __documentRegistryBucketKeyWithMode: any;
+    };
     function createDocumentRegistryInternal(useCaseSensitiveFileNames?: boolean, currentDirectory?: string, externalCache?: ExternalDocumentCache): DocumentRegistry;
 }
 declare namespace ts.FindAllReferences {
