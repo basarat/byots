@@ -6050,7 +6050,7 @@ declare namespace ts {
         parenthesizeBranchOfConditionalExpression(branch: Expression): Expression;
         parenthesizeExpressionOfExportDefault(expression: Expression): Expression;
         parenthesizeExpressionOfNew(expression: Expression): LeftHandSideExpression;
-        parenthesizeLeftSideOfAccess(expression: Expression): LeftHandSideExpression;
+        parenthesizeLeftSideOfAccess(expression: Expression, optionalChain?: boolean): LeftHandSideExpression;
         parenthesizeOperandOfPostfixUnary(operand: Expression): LeftHandSideExpression;
         parenthesizeOperandOfPrefixUnary(operand: Expression): UnaryExpression;
         parenthesizeExpressionsOfCommaDelimitedList(elements: readonly Expression[]): NodeArray<Expression>;
