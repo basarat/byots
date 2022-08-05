@@ -8453,7 +8453,7 @@ declare namespace ts {
         File_is_CommonJS_module_because_0_does_not_have_field_type: DiagnosticMessage;
         File_is_CommonJS_module_because_package_json_was_not_found: DiagnosticMessage;
         The_import_meta_meta_property_is_not_allowed_in_files_which_will_build_into_CommonJS_output: DiagnosticMessage;
-        Module_0_cannot_be_imported_using_this_construct_The_specifier_only_resolves_to_an_ES_module_which_cannot_be_imported_synchronously_Use_dynamic_import_instead: DiagnosticMessage;
+        Module_0_cannot_be_imported_using_this_construct_The_specifier_only_resolves_to_an_ES_module_which_cannot_be_imported_with_require_Use_an_ECMAScript_import_instead: DiagnosticMessage;
         catch_or_finally_expected: DiagnosticMessage;
         An_import_declaration_can_only_be_used_at_the_top_level_of_a_module: DiagnosticMessage;
         An_export_declaration_can_only_be_used_at_the_top_level_of_a_module: DiagnosticMessage;
@@ -8461,6 +8461,11 @@ declare namespace ts {
         auto_Colon_Treat_files_with_imports_exports_import_meta_jsx_with_jsx_Colon_react_jsx_or_esm_format_with_module_Colon_node16_as_modules: DiagnosticMessage;
         An_instantiation_expression_cannot_be_followed_by_a_property_access: DiagnosticMessage;
         Identifier_or_string_literal_expected: DiagnosticMessage;
+        The_current_file_is_a_CommonJS_module_whose_imports_will_produce_require_calls_however_the_referenced_file_is_an_ECMAScript_module_and_cannot_be_imported_with_require_Consider_writing_a_dynamic_import_0_call_instead: DiagnosticMessage;
+        To_convert_this_file_to_an_ECMAScript_module_change_its_file_extension_to_0_or_create_a_local_package_json_file_with_type_Colon_module: DiagnosticMessage;
+        To_convert_this_file_to_an_ECMAScript_module_change_its_file_extension_to_0_or_add_the_field_type_Colon_module_to_1: DiagnosticMessage;
+        To_convert_this_file_to_an_ECMAScript_module_add_the_field_type_Colon_module_to_0: DiagnosticMessage;
+        To_convert_this_file_to_an_ECMAScript_module_create_a_local_package_json_file_with_type_Colon_module: DiagnosticMessage;
         The_types_of_0_are_incompatible_between_these_types: DiagnosticMessage;
         The_types_returned_by_0_are_incompatible_between_these_types: DiagnosticMessage;
         Call_signature_return_types_0_and_1_are_incompatible: DiagnosticMessage;
