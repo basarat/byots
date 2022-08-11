@@ -14,53 +14,6 @@ and limitations under the License.
 ***************************************************************************** */
 
 declare namespace ts {
-    type GetIteratorCallback = <I extends readonly any[] | ReadonlySetShim<any> | ReadonlyMapShim<any, any> | undefined>(iterable: I) => IteratorShim<I extends ReadonlyMapShim<infer K, infer V> ? [K, V] : I extends ReadonlySetShim<infer T> ? T : I extends readonly (infer T)[] ? T : I extends undefined ? undefined : never>;
-    type IteratorResultShim<T> = {
-        value: T;
-        done?: false;
-    } | {
-        value: void;
-        done: true;
-    };
-    interface IteratorShim<T> {
-        next(): IteratorResultShim<T>;
-    }
-    interface ReadonlyMapShim<K, V> {
-        readonly size: number;
-        get(key: K): V | undefined;
-        has(key: K): boolean;
-        keys(): IteratorShim<K>;
-        values(): IteratorShim<V>;
-        entries(): IteratorShim<[K, V]>;
-        forEach(action: (value: V, key: K) => void): void;
-    }
-    interface MapShim<K, V> extends ReadonlyMapShim<K, V> {
-        set(key: K, value: V): this;
-        delete(key: K): boolean;
-        clear(): void;
-    }
-    type MapShimConstructor = new <K, V>(iterable?: readonly (readonly [K, V])[] | ReadonlyMapShim<K, V>) => MapShim<K, V>;
-    interface ReadonlySetShim<T> {
-        readonly size: number;
-        has(value: T): boolean;
-        keys(): IteratorShim<T>;
-        values(): IteratorShim<T>;
-        entries(): IteratorShim<[T, T]>;
-        forEach(action: (value: T, key: T) => void): void;
-    }
-    interface SetShim<T> extends ReadonlySetShim<T> {
-        add(value: T): this;
-        delete(value: T): boolean;
-        clear(): void;
-    }
-    type SetShimConstructor = new <T>(iterable?: readonly T[] | ReadonlySetShim<T>) => SetShim<T>;
-    export namespace ShimCollections {
-        function createMapShim(getIterator: GetIteratorCallback): MapShimConstructor;
-        function createSetShim(getIterator: GetIteratorCallback): SetShimConstructor;
-    }
-    export {};
-}
-declare namespace ts {
     const versionMajorMinor = "4.9";
     /** The version of the TypeScript compiler release */
     const version: string;
@@ -9425,6 +9378,7 @@ declare namespace ts {
         Reusing_resolution_of_type_reference_directive_0_from_1_found_in_cache_from_location_2_it_was_not_resolved: DiagnosticMessage;
         Project_0_is_out_of_date_because_buildinfo_file_1_indicates_that_some_of_the_changes_were_not_emitted: DiagnosticMessage;
         Project_0_is_up_to_date_but_needs_to_update_timestamps_of_output_files_that_are_older_than_input_files: DiagnosticMessage;
+        Project_0_is_out_of_date_because_there_was_error_reading_file_1: DiagnosticMessage;
         The_expected_type_comes_from_property_0_which_is_declared_here_on_type_1: DiagnosticMessage;
         The_expected_type_comes_from_this_index_signature: DiagnosticMessage;
         The_expected_type_comes_from_the_return_type_of_this_signature: DiagnosticMessage;
@@ -11149,6 +11103,9 @@ declare namespace ts {
     export function base64decode(host: {
         base64decode?(input: string): string;
     } | undefined, input: string): string;
+    export function readJsonOrUndefined(path: string, hostOrText: {
+        readFile(fileName: string): string | undefined;
+    } | string): object | undefined;
     export function readJson(path: string, host: {
         readFile(fileName: string): string | undefined;
     }): object;
@@ -13333,7 +13290,7 @@ declare namespace ts {
     function getFirstProjectOutput(configFile: ParsedCommandLine, ignoreCase: boolean): string;
     function emitFiles(resolver: EmitResolver, host: EmitHost, targetSourceFile: SourceFile | undefined, { scriptTransformers, declarationTransformers }: EmitTransformers, emitOnlyDtsFiles?: boolean, onlyBuildInfo?: boolean, forceDtsEmit?: boolean): EmitResult;
     function getBuildInfoText(buildInfo: BuildInfo): string;
-    function getBuildInfo(buildInfoText: string): BuildInfo;
+    function getBuildInfo(buildInfoFile: string, buildInfoText: string): BuildInfo | undefined;
     const notImplementedResolver: EmitResolver;
     /** File that isnt present resulting in error or output files */
     type EmitUsingBuildInfoResult = string | readonly OutputFile[];
@@ -14487,21 +14444,22 @@ declare namespace ts {
          */
         OutOfDateWithPrepend = 3,
         OutputMissing = 4,
-        OutOfDateWithSelf = 5,
-        OutOfDateWithUpstream = 6,
-        OutOfDateBuildInfo = 7,
-        UpstreamOutOfDate = 8,
-        UpstreamBlocked = 9,
-        ComputingUpstream = 10,
-        TsVersionOutputOfDate = 11,
-        UpToDateWithInputFileText = 12,
+        ErrorReadingFile = 5,
+        OutOfDateWithSelf = 6,
+        OutOfDateWithUpstream = 7,
+        OutOfDateBuildInfo = 8,
+        UpstreamOutOfDate = 9,
+        UpstreamBlocked = 10,
+        ComputingUpstream = 11,
+        TsVersionOutputOfDate = 12,
+        UpToDateWithInputFileText = 13,
         /**
          * Projects with no outputs (i.e. "solution" files)
          */
-        ContainerOnly = 13,
-        ForceBuild = 14
+        ContainerOnly = 14,
+        ForceBuild = 15
     }
-    type UpToDateStatus = Status.Unbuildable | Status.UpToDate | Status.OutOfDateWithPrepend | Status.OutputMissing | Status.OutOfDateWithSelf | Status.OutOfDateWithUpstream | Status.OutOfDateBuildInfo | Status.UpstreamOutOfDate | Status.UpstreamBlocked | Status.ComputingUpstream | Status.TsVersionOutOfDate | Status.ContainerOnly | Status.ForceBuild;
+    type UpToDateStatus = Status.Unbuildable | Status.UpToDate | Status.OutOfDateWithPrepend | Status.OutputMissing | Status.ErrorReadingFile | Status.OutOfDateWithSelf | Status.OutOfDateWithUpstream | Status.OutOfDateBuildInfo | Status.UpstreamOutOfDate | Status.UpstreamBlocked | Status.ComputingUpstream | Status.TsVersionOutOfDate | Status.ContainerOnly | Status.ForceBuild;
     namespace Status {
         /**
          * The project can't be built at all in its current state. For example,
@@ -14544,6 +14502,11 @@ declare namespace ts {
              * The name of the first output file that didn't exist
              */
             missingOutputFileName: string;
+        }
+        /** Error reading file */
+        interface ErrorReadingFile {
+            type: UpToDateStatusType.ErrorReadingFile;
+            fileName: string;
         }
         /**
          * One or more of the project's outputs is older than its newest input.
