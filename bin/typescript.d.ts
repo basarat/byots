@@ -855,6 +855,8 @@ declare namespace ts {
     interface Performance {
         mark(name: string): void;
         measure(name: string, startMark?: string, endMark?: string): void;
+        clearMeasures(name?: string): void;
+        clearMarks(name?: string): void;
         now(): number;
         timeOrigin: number;
     }
@@ -924,6 +926,9 @@ declare namespace ts.performance {
      * @param cb The action to perform for each measure
      */
     function forEachMeasure(cb: (measureName: string, duration: number) => void): void;
+    function forEachMark(cb: (markName: string) => void): void;
+    function clearMeasures(name?: string): void;
+    function clearMarks(name?: string): void;
     /**
      * Indicates whether the performance API is enabled.
      */
