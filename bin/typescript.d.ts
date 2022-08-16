@@ -342,6 +342,10 @@ declare namespace ts {
      */
     function singleOrUndefined<T>(array: readonly T[] | undefined): T | undefined;
     /**
+     * Returns the only element of an array if it contains only one element; throws otherwise.
+     */
+    function single<T>(array: readonly T[]): T;
+    /**
      * Returns the only element of an array if it contains only one element; otherwise, returns the
      * array.
      */
@@ -8707,7 +8711,7 @@ declare namespace ts {
         Cannot_find_name_0_Do_you_need_to_install_type_definitions_for_node_Try_npm_i_save_dev_types_Slashnode_and_then_add_node_to_the_types_field_in_your_tsconfig: DiagnosticMessage;
         Cannot_find_name_0_Do_you_need_to_install_type_definitions_for_jQuery_Try_npm_i_save_dev_types_Slashjquery_and_then_add_jquery_to_the_types_field_in_your_tsconfig: DiagnosticMessage;
         Cannot_find_name_0_Do_you_need_to_install_type_definitions_for_a_test_runner_Try_npm_i_save_dev_types_Slashjest_or_npm_i_save_dev_types_Slashmocha_and_then_add_jest_or_mocha_to_the_types_field_in_your_tsconfig: DiagnosticMessage;
-        This_module_is_declared_with_using_export_and_can_only_be_used_with_a_default_import_when_using_the_0_flag: DiagnosticMessage;
+        This_module_is_declared_with_export_and_can_only_be_used_with_a_default_import_when_using_the_0_flag: DiagnosticMessage;
         _0_can_only_be_imported_by_using_a_default_import: DiagnosticMessage;
         _0_can_only_be_imported_by_turning_on_the_esModuleInterop_flag_and_using_a_default_import: DiagnosticMessage;
         _0_can_only_be_imported_by_using_a_require_call_or_by_using_a_default_import: DiagnosticMessage;
