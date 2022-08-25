@@ -3728,6 +3728,8 @@ declare namespace ts {
         /** Note that the resulting nodes cannot be checked. */
         symbolToExpression(symbol: Symbol, meaning: SymbolFlags, enclosingDeclaration: Node | undefined, flags: NodeBuilderFlags | undefined): Expression | undefined;
         /** Note that the resulting nodes cannot be checked. */
+        symbolToNode(symbol: Symbol, meaning: SymbolFlags, enclosingDeclaration: Node | undefined, flags: NodeBuilderFlags | undefined): Node | undefined;
+        /** Note that the resulting nodes cannot be checked. */
         symbolToTypeParameterDeclarations(symbol: Symbol, enclosingDeclaration: Node | undefined, flags: NodeBuilderFlags | undefined): NodeArray<TypeParameterDeclaration> | undefined;
         /** Note that the resulting nodes cannot be checked. */
         symbolToParameterDeclaration(symbol: Symbol, enclosingDeclaration: Node | undefined, flags: NodeBuilderFlags | undefined): ParameterDeclaration | undefined;
@@ -3968,6 +3970,7 @@ declare namespace ts {
         AllowEmptyTuple = 524288,
         AllowUniqueESSymbolType = 1048576,
         AllowEmptyIndexInfoType = 2097152,
+        WriteComputedProps = 1073741824,
         AllowNodeModulesRelativePaths = 67108864,
         DoNotIncludeSymbolChain = 134217728,
         IgnoreErrors = 70221824,
@@ -4007,7 +4010,8 @@ declare namespace ts {
         UseOnlyExternalAliasing = 2,
         AllowAnyNodeKind = 4,
         UseAliasDefinedOutsideCurrentScope = 8,
-        DoNotIncludeSymbolChain = 16
+        WriteComputedProps = 16,
+        DoNotIncludeSymbolChain = 32
     }
     export interface SymbolWalker {
         /** Note: Return values are not ordered. */
