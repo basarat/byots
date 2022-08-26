@@ -3690,6 +3690,7 @@ declare namespace ts {
         getTypeOfPropertyOfType(type: Type, propertyName: string): Type | undefined;
         getIndexInfoOfType(type: Type, kind: IndexKind): IndexInfo | undefined;
         getIndexInfosOfType(type: Type): readonly IndexInfo[];
+        getIndexInfosOfIndexSymbol: (indexSymbol: Symbol) => IndexInfo[];
         getSignaturesOfType(type: Type, kind: SignatureKind): readonly Signature[];
         getIndexTypeOfType(type: Type, kind: IndexKind): Type | undefined;
         getIndexType(type: Type): Type;
@@ -4322,6 +4323,7 @@ declare namespace ts {
         isConstructorDeclaredProperty?: boolean;
         tupleLabelDeclaration?: NamedTupleMember | ParameterDeclaration;
         accessibleChainCache?: ESMap<string, Symbol[] | undefined>;
+        filteredIndexSymbolCache?: ESMap<string, Symbol>;
     }
     export enum EnumKind {
         Numeric = 0,
@@ -9809,6 +9811,7 @@ declare namespace ts {
         Set_the_module_option_in_your_configuration_file_to_0: DiagnosticMessage;
         Convert_invalid_character_to_its_html_entity_code: DiagnosticMessage;
         Convert_all_invalid_characters_to_HTML_entity_code: DiagnosticMessage;
+        Convert_all_const_to_let: DiagnosticMessage;
         Convert_function_expression_0_to_arrow_function: DiagnosticMessage;
         Convert_function_declaration_0_to_arrow_function: DiagnosticMessage;
         Fix_all_implicit_this_errors: DiagnosticMessage;
@@ -16603,7 +16606,7 @@ declare namespace ts {
         clear(): void;
         add(importingFile: Path, symbol: Symbol, key: __String, moduleSymbol: Symbol, moduleFile: SourceFile | undefined, exportKind: ExportKind, isFromPackageJson: boolean, checker: TypeChecker): void;
         get(importingFile: Path, key: string): readonly SymbolExportInfo[] | undefined;
-        search(importingFile: Path, preferCapitalized: boolean, matches: (name: string, targetFlags: SymbolFlags) => boolean, action: (info: readonly SymbolExportInfo[], symbolName: string, isFromAmbientModule: boolean, key: string) => void): void;
+        search<T>(importingFile: Path, preferCapitalized: boolean, matches: (name: string, targetFlags: SymbolFlags) => boolean, action: (info: readonly SymbolExportInfo[], symbolName: string, isFromAmbientModule: boolean, key: string) => T | undefined): T | undefined;
         releaseSymbols(): void;
         isEmpty(): boolean;
         /** @returns Whether the change resulted in the cache being cleared */
@@ -17714,7 +17717,7 @@ declare namespace ts.codefix {
         addImportFromExportedSymbol: (exportedSymbol: Symbol, isValidTypeOnlyUseSite?: boolean) => void;
         writeFixes: (changeTracker: textChanges.ChangeTracker) => void;
     }
-    function createImportAdder(sourceFile: SourceFile, program: Program, preferences: UserPreferences, host: LanguageServiceHost): ImportAdder;
+    function createImportAdder(sourceFile: SourceFile, program: Program, preferences: UserPreferences, host: LanguageServiceHost, cancellationToken?: CancellationToken): ImportAdder;
     /**
      * Computes module specifiers for multiple import additions to a file.
      */
@@ -17726,7 +17729,7 @@ declare namespace ts.codefix {
         } | undefined;
     }
     function createImportSpecifierResolver(importingFile: SourceFile, program: Program, host: LanguageServiceHost, preferences: UserPreferences): ImportSpecifierResolver;
-    function getImportCompletionAction(targetSymbol: Symbol, moduleSymbol: Symbol, sourceFile: SourceFile, symbolName: string, isJsxTagName: boolean, host: LanguageServiceHost, program: Program, formatContext: formatting.FormatContext, position: number, preferences: UserPreferences): {
+    function getImportCompletionAction(targetSymbol: Symbol, moduleSymbol: Symbol, sourceFile: SourceFile, symbolName: string, isJsxTagName: boolean, host: LanguageServiceHost, program: Program, formatContext: formatting.FormatContext, position: number, preferences: UserPreferences, cancellationToken: CancellationToken): {
         readonly moduleSpecifier: string;
         readonly codeAction: CodeAction;
     };
