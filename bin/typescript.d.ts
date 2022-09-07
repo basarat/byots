@@ -7447,11 +7447,6 @@ declare namespace ts {
     }
     export type FileWatcherCallback = (fileName: string, eventKind: FileWatcherEventKind, modifiedTime?: Date) => void;
     export type DirectoryWatcherCallback = (fileName: string) => void;
-    export interface WatchedFile {
-        readonly fileName: string;
-        readonly callback: FileWatcherCallback;
-        mtime: Date;
-    }
     export enum PollingInterval {
         High = 2000,
         Medium = 500,
@@ -7468,36 +7463,10 @@ declare namespace ts {
         500: number;
         2000: number;
     };
-    export function setCustomPollingValues(system: System): void;
-    export function createDynamicPriorityPollingWatchFile(host: {
-        getModifiedTime: NonNullable<System["getModifiedTime"]>;
-        setTimeout: NonNullable<System["setTimeout"]>;
-    }): HostWatchFile;
-    export function createSingleFileWatcherPerName(watchFile: HostWatchFile, useCaseSensitiveFileNames: boolean): HostWatchFile;
-    /**
-     * Returns true if file status changed
-     */
-    export function onWatchedFileStat(watchedFile: WatchedFile, modifiedTime: Date): boolean;
     export function getFileWatcherEventKind(oldTime: number, newTime: number): FileWatcherEventKind;
     export const ignoredPaths: string[];
     export function sysLog(s: string): void;
     export function setSysLog(logger: typeof sysLog): void;
-    export interface RecursiveDirectoryWatcherHost {
-        watchDirectory: HostWatchDirectory;
-        useCaseSensitiveFileNames: boolean;
-        getCurrentDirectory: System["getCurrentDirectory"];
-        getAccessibleSortedChildDirectories(path: string): readonly string[];
-        fileSystemEntryExists: FileSystemEntryExists;
-        realpath(s: string): string;
-        setTimeout: NonNullable<System["setTimeout"]>;
-        clearTimeout: NonNullable<System["clearTimeout"]>;
-    }
-    /**
-     * Watch the directory recursively using host provided method to watch child directories
-     * that means if this is recursive watcher, watch the children directories as well
-     * (eg on OS that dont support recursive watch using fs.watch use fs.watchFile)
-     */
-    export function createDirectoryWatcherSupportingRecursive({ watchDirectory, useCaseSensitiveFileNames, getCurrentDirectory, getAccessibleSortedChildDirectories, fileSystemEntryExists, realpath, setTimeout, clearTimeout }: RecursiveDirectoryWatcherHost): HostWatchDirectory;
     export type FsWatchCallback = (eventName: "rename" | "change", relativeFileName: string | undefined, modifiedTime?: Date) => void;
     export type FsWatch = (fileOrDirectory: string, entryKind: FileSystemEntryKind, callback: FsWatchCallback, recursive: boolean, fallbackPollingInterval: PollingInterval, fallbackOptions: WatchOptions | undefined) => FileWatcher;
     export interface FsWatchWorkerWatcher extends FileWatcher {
@@ -7508,10 +7477,9 @@ declare namespace ts {
         File = 0,
         Directory = 1
     }
-    export function createFileWatcherCallback(callback: FsWatchCallback): FileWatcherCallback;
     export type FileSystemEntryExists = (fileorDirectrory: string, entryKind: FileSystemEntryKind) => boolean;
     export interface CreateSystemWatchFunctions {
-        pollingWatchFile: HostWatchFile;
+        pollingWatchFileWorker: HostWatchFile;
         getModifiedTime: NonNullable<System["getModifiedTime"]>;
         setTimeout: NonNullable<System["setTimeout"]>;
         clearTimeout: NonNullable<System["clearTimeout"]>;
@@ -7529,7 +7497,7 @@ declare namespace ts {
         inodeWatching: boolean;
         sysLog: (s: string) => void;
     }
-    export function createSystemWatchFunctions({ pollingWatchFile, getModifiedTime, setTimeout, clearTimeout, fsWatchWorker, fileSystemEntryExists, useCaseSensitiveFileNames, getCurrentDirectory, fsSupportsRecursiveFsWatch, getAccessibleSortedChildDirectories, realpath, tscWatchFile, useNonPollingWatchers, tscWatchDirectory, defaultWatchFileKind, inodeWatching, sysLog, }: CreateSystemWatchFunctions): {
+    export function createSystemWatchFunctions({ pollingWatchFileWorker, getModifiedTime, setTimeout, clearTimeout, fsWatchWorker, fileSystemEntryExists, useCaseSensitiveFileNames, getCurrentDirectory, fsSupportsRecursiveFsWatch, getAccessibleSortedChildDirectories, realpath, tscWatchFile, useNonPollingWatchers, tscWatchDirectory, defaultWatchFileKind, inodeWatching, sysLog, }: CreateSystemWatchFunctions): {
         watchFile: HostWatchFile;
         watchDirectory: HostWatchDirectory;
     };
