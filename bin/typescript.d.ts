@@ -9929,6 +9929,11 @@ declare namespace ts {
         Types_cannot_appear_in_export_declarations_in_JavaScript_files: DiagnosticMessage;
         _0_is_automatically_exported_here: DiagnosticMessage;
         Properties_with_the_accessor_modifier_are_only_available_when_targeting_ECMAScript_2015_and_higher: DiagnosticMessage;
+        _0_is_of_type_unknown: DiagnosticMessage;
+        _0_is_possibly_null: DiagnosticMessage;
+        _0_is_possibly_undefined: DiagnosticMessage;
+        _0_is_possibly_null_or_undefined: DiagnosticMessage;
+        The_value_0_cannot_be_used_here: DiagnosticMessage;
     };
 }
 declare namespace ts {
