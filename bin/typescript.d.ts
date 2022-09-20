@@ -3949,6 +3949,7 @@ declare namespace ts {
         isPropertyAccessible(node: Node, isSuper: boolean, isWrite: boolean, containingType: Type, property: Symbol): boolean;
         getTypeOnlyAliasDeclaration(symbol: Symbol): TypeOnlyAliasDeclaration | undefined;
         getMemberOverrideModifierStatus(node: ClassLikeDeclaration, member: ClassElement): MemberOverrideStatus;
+        isTypeParameterPossiblyReferenced(tp: TypeParameter, node: Node): boolean;
     }
     export enum MemberOverrideStatus {
         Ok = 0,
@@ -8523,8 +8524,6 @@ declare namespace ts {
         The_operand_of_an_increment_or_decrement_operator_must_be_a_variable_or_a_property_access: DiagnosticMessage;
         The_left_hand_side_of_an_instanceof_expression_must_be_of_type_any_an_object_type_or_a_type_parameter: DiagnosticMessage;
         The_right_hand_side_of_an_instanceof_expression_must_be_of_type_any_or_of_a_type_assignable_to_the_Function_interface_type: DiagnosticMessage;
-        The_left_hand_side_of_an_in_expression_must_be_a_private_identifier_or_of_type_any_string_number_or_symbol: DiagnosticMessage;
-        The_right_hand_side_of_an_in_expression_must_not_be_a_primitive: DiagnosticMessage;
         The_left_hand_side_of_an_arithmetic_operation_must_be_of_type_any_number_bigint_or_an_enum_type: DiagnosticMessage;
         The_right_hand_side_of_an_arithmetic_operation_must_be_of_type_any_number_bigint_or_an_enum_type: DiagnosticMessage;
         The_left_hand_side_of_an_assignment_expression_must_be_a_variable_or_a_property_access: DiagnosticMessage;
@@ -8773,6 +8772,7 @@ declare namespace ts {
         Type_0_has_no_signatures_for_which_the_type_argument_list_is_applicable: DiagnosticMessage;
         Type_0_is_not_assignable_to_type_1_as_implied_by_variance_annotation: DiagnosticMessage;
         Variance_annotations_are_only_supported_in_type_aliases_for_object_function_constructor_and_mapped_types: DiagnosticMessage;
+        Type_0_may_represent_a_primitive_value_which_is_not_permitted_as_the_right_operand_of_the_in_operator: DiagnosticMessage;
         Cannot_augment_module_0_with_value_exports_because_it_resolves_to_a_non_module_entity: DiagnosticMessage;
         A_member_initializer_in_a_enum_declaration_cannot_reference_members_declared_after_it_including_members_defined_in_other_enums: DiagnosticMessage;
         Merged_declaration_0_cannot_include_a_default_export_declaration_Consider_adding_a_separate_export_default_0_declaration_instead: DiagnosticMessage;
