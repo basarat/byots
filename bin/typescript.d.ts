@@ -663,6 +663,8 @@ declare namespace ts {
     function tryRemovePrefix(str: string, prefix: string, getCanonicalFileName?: GetCanonicalFileName): string | undefined;
     function isPatternMatch({ prefix, suffix }: Pattern, candidate: string): boolean;
     function and<T>(f: (arg: T) => boolean, g: (arg: T) => boolean): (arg: T) => boolean;
+    function or<P, R1 extends P, R2 extends P>(f1: (p1: P) => p1 is R1, f2: (p2: P) => p2 is R2): (p: P) => p is R1 | R2;
+    function or<P, R1 extends P, R2 extends P, R3 extends P>(f1: (p1: P) => p1 is R1, f2: (p2: P) => p2 is R2, f3: (p3: P) => p3 is R3): (p: P) => p is R1 | R2 | R3;
     function or<T extends unknown[], U>(...fs: ((...args: T) => U)[]): (...args: T) => U;
     function not<T extends unknown[]>(fn: (...args: T) => boolean): (...args: T) => boolean;
     function assertType<T>(_: T): void;
@@ -8953,6 +8955,7 @@ declare namespace ts {
         _0_is_an_unused_renaming_of_1_Did_you_intend_to_use_it_as_a_type_annotation: DiagnosticMessage;
         We_can_only_write_a_type_for_0_by_adding_a_type_for_the_entire_parameter_here: DiagnosticMessage;
         Type_of_instance_member_variable_0_cannot_reference_identifier_1_declared_in_the_constructor: DiagnosticMessage;
+        This_condition_will_always_return_0: DiagnosticMessage;
         Import_declaration_0_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_class_has_or_is_using_private_name_1: DiagnosticMessage;
         Type_parameter_0_of_exported_interface_has_or_is_using_private_name_1: DiagnosticMessage;
@@ -9895,6 +9898,8 @@ declare namespace ts {
         Delete_unused_param_tag_0: DiagnosticMessage;
         Delete_all_unused_param_tags: DiagnosticMessage;
         Rename_param_tag_name_0_to_1: DiagnosticMessage;
+        Use_0: DiagnosticMessage;
+        Use_Number_isNaN_in_all_conditions: DiagnosticMessage;
         No_value_exists_in_scope_for_the_shorthand_property_0_Either_declare_one_or_provide_an_initializer: DiagnosticMessage;
         Classes_may_not_have_a_field_named_constructor: DiagnosticMessage;
         JSX_expressions_may_not_use_the_comma_operator_Did_you_mean_to_write_an_array: DiagnosticMessage;
@@ -16820,7 +16825,7 @@ declare namespace ts.Completions {
     /** Map from symbol id -> SortText. */
     type SymbolSortTextMap = (SortText | undefined)[];
     export function getCompletionsAtPosition(host: LanguageServiceHost, program: Program, log: Log, sourceFile: SourceFile, position: number, preferences: UserPreferences, triggerCharacter: CompletionsTriggerCharacter | undefined, completionKind: CompletionTriggerKind | undefined, cancellationToken: CancellationToken, formatContext?: formatting.FormatContext): CompletionInfo | undefined;
-    export function getCompletionEntriesFromSymbols(symbols: readonly Symbol[], entries: SortedArray<CompletionEntry>, replacementToken: Node | undefined, contextToken: Node | undefined, location: Node, sourceFile: SourceFile, host: LanguageServiceHost, program: Program, target: ScriptTarget, log: Log, kind: CompletionKind, preferences: UserPreferences, compilerOptions: CompilerOptions, formatContext: formatting.FormatContext | undefined, isTypeOnlyLocation?: boolean, propertyAccessToConvert?: PropertyAccessExpression, jsxIdentifierExpected?: boolean, isJsxInitializer?: IsJsxInitializer, importCompletionNode?: Node, recommendedCompletion?: Symbol, symbolToOriginInfoMap?: SymbolOriginInfoMap, symbolToSortTextMap?: SymbolSortTextMap, isJsxIdentifierExpected?: boolean, isRightOfOpenTag?: boolean): UniqueNameSet;
+    export function getCompletionEntriesFromSymbols(symbols: readonly Symbol[], entries: SortedArray<CompletionEntry>, replacementToken: Node | undefined, contextToken: Node | undefined, location: Node, sourceFile: SourceFile, host: LanguageServiceHost, program: Program, target: ScriptTarget, log: Log, kind: CompletionKind, preferences: UserPreferences, compilerOptions: CompilerOptions, formatContext: formatting.FormatContext | undefined, isTypeOnlyLocation?: boolean, propertyAccessToConvert?: PropertyAccessExpression, jsxIdentifierExpected?: boolean, isJsxInitializer?: IsJsxInitializer, importStatementCompletion?: ImportStatementCompletionInfo, recommendedCompletion?: Symbol, symbolToOriginInfoMap?: SymbolOriginInfoMap, symbolToSortTextMap?: SymbolSortTextMap, isJsxIdentifierExpected?: boolean, isRightOfOpenTag?: boolean): UniqueNameSet;
     export interface CompletionEntryIdentifier {
         name: string;
         source?: string;
@@ -16841,6 +16846,14 @@ declare namespace ts.Completions {
         None = 5
     }
     export function getPropertiesForObjectExpression(contextualType: Type, completionsType: Type | undefined, obj: ObjectLiteralExpression | JsxAttributes, checker: TypeChecker): Symbol[];
+    interface ImportStatementCompletionInfo {
+        isKeywordOnlyCompletion: boolean;
+        keywordCompletion: TokenSyntaxKind | undefined;
+        isNewIdentifierLocation: boolean;
+        isTopLevelTypeOnly: boolean;
+        couldBeTypeOnlyImportSpecifier: boolean;
+        replacementSpan: TextSpan | undefined;
+    }
     export {};
 }
 declare namespace ts {
@@ -17884,6 +17897,8 @@ declare namespace ts.codefix {
 declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
+}
+declare namespace ts.codefix {
     /**
      * Finds members of the resolved type that are missing in the class pointed to by class decl
      * and generates source code for the missing members.
@@ -17934,6 +17949,7 @@ declare namespace ts.codefix {
         symbols: Symbol[];
     } | undefined;
     export function importSymbols(importAdder: ImportAdder, symbols: readonly Symbol[]): void;
+    export function findAncestorMatchingSpan(sourceFile: SourceFile, span: TextSpan): Node;
     export {};
 }
 declare namespace ts.codefix {
