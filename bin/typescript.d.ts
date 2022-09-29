@@ -835,10 +835,17 @@ declare namespace ts {
         readonly prerelease: readonly string[];
         readonly build: readonly string[];
         constructor(text: string);
-        constructor(major: number, minor?: number, patch?: number, prerelease?: string, build?: string);
+        constructor(major: number, minor?: number, patch?: number, prerelease?: string | readonly string[], build?: string | readonly string[]);
         static tryParse(text: string): Version | undefined;
         compareTo(other: Version | undefined): Comparison;
         increment(field: "major" | "minor" | "patch"): Version;
+        with(fields: {
+            major?: number;
+            minor?: number;
+            patch?: number;
+            prerelease?: string | readonly string[];
+            build?: string | readonly string[];
+        }): Version;
         toString(): string;
     }
     /**
@@ -848,6 +855,10 @@ declare namespace ts {
         private _alternatives;
         constructor(spec: string);
         static tryParse(text: string): VersionRange | undefined;
+        /**
+         * Tests whether a version matches the range. This is equivalent to `satisfies(version, range, { includePrerelease: true })`.
+         * in `node-semver`.
+         */
         test(version: Version | string): boolean;
         toString(): string;
     }
