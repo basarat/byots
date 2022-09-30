@@ -3883,6 +3883,7 @@ declare namespace ts {
         createPromiseType(type: Type): Type;
         getPromiseType(): Type;
         getPromiseLikeType(): Type;
+        getAsyncIterableType(): Type | undefined;
         isTypeAssignableTo(source: Type, target: Type): boolean;
         createAnonymousType(symbol: Symbol | undefined, members: SymbolTable, callSignatures: Signature[], constructSignatures: Signature[], indexInfos: IndexInfo[]): Type;
         createSignature(declaration: SignatureDeclaration | undefined, typeParameters: readonly TypeParameter[] | undefined, thisParameter: Symbol | undefined, parameters: readonly Symbol[], resolvedReturnType: Type, typePredicate: TypePredicate | undefined, minArgumentCount: number, flags: SignatureFlags): Signature;
@@ -15389,8 +15390,15 @@ declare namespace ts {
         type: "file";
         fileName: string;
     }
+    enum OrganizeImportsMode {
+        All = "All",
+        SortAndCombine = "SortAndCombine",
+        RemoveUnused = "RemoveUnused"
+    }
     interface OrganizeImportsArgs extends CombinedCodeFixScope {
+        /** @deprecated Use `mode` instead */
         skipDestructiveCodeActions?: boolean;
+        mode?: OrganizeImportsMode;
     }
     type CompletionsTriggerCharacter = "." | '"' | "'" | "`" | "/" | "@" | "<" | "#" | " ";
     enum CompletionTriggerKind {
@@ -17268,7 +17276,7 @@ declare namespace ts.OrganizeImports {
      *   2) Coalescing imports from the same module
      *   3) Sorting imports
      */
-    function organizeImports(sourceFile: SourceFile, formatContext: formatting.FormatContext, host: LanguageServiceHost, program: Program, preferences: UserPreferences, skipDestructiveCodeActions?: boolean): FileTextChanges[];
+    function organizeImports(sourceFile: SourceFile, formatContext: formatting.FormatContext, host: LanguageServiceHost, program: Program, preferences: UserPreferences, mode: OrganizeImportsMode): FileTextChanges[];
     /**
      * @param importGroup a list of ImportDeclarations, all with the same module name.
      */
