@@ -7543,11 +7543,10 @@ declare namespace ts {
         tscWatchFile: string | undefined;
         useNonPollingWatchers?: boolean;
         tscWatchDirectory: string | undefined;
-        defaultWatchFileKind: System["defaultWatchFileKind"];
         inodeWatching: boolean;
         sysLog: (s: string) => void;
     }
-    export function createSystemWatchFunctions({ pollingWatchFileWorker, getModifiedTime, setTimeout, clearTimeout, fsWatchWorker, fileSystemEntryExists, useCaseSensitiveFileNames, getCurrentDirectory, fsSupportsRecursiveFsWatch, getAccessibleSortedChildDirectories, realpath, tscWatchFile, useNonPollingWatchers, tscWatchDirectory, defaultWatchFileKind, inodeWatching, sysLog, }: CreateSystemWatchFunctions): {
+    export function createSystemWatchFunctions({ pollingWatchFileWorker, getModifiedTime, setTimeout, clearTimeout, fsWatchWorker, fileSystemEntryExists, useCaseSensitiveFileNames, getCurrentDirectory, fsSupportsRecursiveFsWatch, getAccessibleSortedChildDirectories, realpath, tscWatchFile, useNonPollingWatchers, tscWatchDirectory, inodeWatching, sysLog, }: CreateSystemWatchFunctions): {
         watchFile: HostWatchFile;
         watchDirectory: HostWatchDirectory;
     };
@@ -7679,7 +7678,6 @@ declare namespace ts {
         base64encode?(input: string): string;
         bufferFrom?(input: string, encoding?: string): Buffer;
         require?(baseDir: string, moduleName: string): RequireResult;
-        defaultWatchFileKind?(): WatchFileKind | undefined;
         now?(): Date;
         disableUseFileVersionAsSignature?: boolean;
         storeFilesChangingSignatureDuringEmit?: boolean;
