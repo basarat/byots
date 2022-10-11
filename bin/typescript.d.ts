@@ -18083,11 +18083,6 @@ declare namespace ts.refactor.extractSymbol {
         readonly range: Expression | Statement[];
         readonly facts: RangeFacts;
         /**
-         * A list of symbols that are declared in the selected range which are visible in the containing lexical scope
-         * Used to ensure we don't turn something used outside the range free (or worse, resolve to a different entity).
-         */
-        readonly declarations: Symbol[];
-        /**
          * If `this` is referring to a function instead of class, we need to retrieve its type.
          */
         readonly thisNode: Node | undefined;
