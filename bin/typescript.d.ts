@@ -4504,7 +4504,7 @@ declare namespace ts {
         deferredNodes?: Set<Node>;
         capturedBlockScopeBindings?: Symbol[];
         outerTypeParameters?: TypeParameter[];
-        isExhaustive?: boolean;
+        isExhaustive?: boolean | 0;
         skipDirectInference?: true;
         declarationRequiresScopeChange?: boolean;
         serializedTypes?: ESMap<string, TypeNode & {
