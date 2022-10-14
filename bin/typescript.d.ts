@@ -9742,6 +9742,8 @@ declare namespace ts {
         Remove_type_from_import_of_0_from_1: DiagnosticMessage;
         Add_import_from_0: DiagnosticMessage;
         Update_import_from_0: DiagnosticMessage;
+        Export_0_from_module_1: DiagnosticMessage;
+        Export_all_referenced_locals: DiagnosticMessage;
         Convert_function_to_an_ES2015_class: DiagnosticMessage;
         Convert_0_to_1_in_0: DiagnosticMessage;
         Extract_to_0_in_1: DiagnosticMessage;
@@ -11554,6 +11556,8 @@ declare namespace ts {
     }
     export function getNodeModulePathParts(fullPath: string): NodeModulePathParts | undefined;
     export function getParameterTypeNode(parameter: ParameterDeclaration | JSDocParameterTag): TypeNode | undefined;
+    export function isTypeDeclaration(node: Node): node is TypeParameterDeclaration | ClassDeclaration | InterfaceDeclaration | TypeAliasDeclaration | JSDocTypedefTag | JSDocCallbackTag | JSDocEnumTag | EnumDeclaration | ImportClause | ImportSpecifier | ExportSpecifier;
+    export function canHaveExportModifier(node: Node): node is Extract<HasModifiers, Statement>;
     export {};
 }
 declare namespace ts {
@@ -16680,6 +16684,7 @@ declare namespace ts {
      */
     function getFormatCodeSettingsForWriting({ options }: formatting.FormatContext, sourceFile: SourceFile): FormatCodeSettings;
     function jsxModeNeedsExplicitImport(jsx: JsxEmit | undefined): boolean;
+    function isSourceFileFromLibrary(program: Program, node: SourceFile): boolean;
 }
 declare namespace ts {
     enum ImportKind {
@@ -17852,6 +17857,8 @@ declare namespace ts.codefix {
     function getImportKind(importingFile: SourceFile, exportKind: ExportKind, compilerOptions: CompilerOptions, forceImportKeyword?: boolean): ImportKind;
     function moduleSymbolToValidIdentifier(moduleSymbol: Symbol, target: ScriptTarget | undefined, forceCapitalize: boolean): string;
     function moduleSpecifierToValidIdentifier(moduleSpecifier: string, target: ScriptTarget | undefined, forceCapitalize?: boolean): string;
+}
+declare namespace ts.codefix {
 }
 declare namespace ts.codefix {
 }
