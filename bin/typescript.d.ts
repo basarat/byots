@@ -9426,6 +9426,10 @@ declare namespace ts {
         Project_0_is_out_of_date_because_buildinfo_file_1_indicates_that_some_of_the_changes_were_not_emitted: DiagnosticMessage;
         Project_0_is_up_to_date_but_needs_to_update_timestamps_of_output_files_that_are_older_than_input_files: DiagnosticMessage;
         Project_0_is_out_of_date_because_there_was_error_reading_file_1: DiagnosticMessage;
+        Resolving_in_0_mode_with_conditions_1: DiagnosticMessage;
+        Matched_0_condition_1: DiagnosticMessage;
+        Using_0_subpath_1_with_target_2: DiagnosticMessage;
+        Saw_non_matching_condition_0: DiagnosticMessage;
         The_expected_type_comes_from_property_0_which_is_declared_here_on_type_1: DiagnosticMessage;
         The_expected_type_comes_from_this_index_signature: DiagnosticMessage;
         The_expected_type_comes_from_the_return_type_of_this_signature: DiagnosticMessage;
