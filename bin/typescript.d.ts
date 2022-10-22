@@ -573,7 +573,8 @@ declare namespace ts {
      * Compare two TextSpans, first by `start`, then by `length`.
      */
     function compareTextSpans(a: Partial<TextSpan> | undefined, b: Partial<TextSpan> | undefined): Comparison;
-    function min<T>(a: T, b: T, compare: Comparer<T>): T;
+    function min<T>(items: readonly [T, ...T[]], compare: Comparer<T>): T;
+    function min<T>(items: readonly T[], compare: Comparer<T>): T | undefined;
     /**
      * Compare two strings using a case-insensitive ordinal comparison.
      *
@@ -4462,8 +4463,8 @@ declare namespace ts {
         SuperInstance = 256,
         SuperStatic = 512,
         ContextChecked = 1024,
-        AsyncMethodWithSuper = 2048,
-        AsyncMethodWithSuperBinding = 4096,
+        MethodWithSuperPropertyAccessInAsync = 2048,
+        MethodWithSuperPropertyAssignmentInAsync = 4096,
         CaptureArguments = 8192,
         EnumValuesComputed = 16384,
         LexicalModuleMergesWithClass = 32768,
