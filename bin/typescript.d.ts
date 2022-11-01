@@ -14,7 +14,7 @@ and limitations under the License.
 ***************************************************************************** */
 
 declare namespace ts {
-    const versionMajorMinor = "4.9";
+    const versionMajorMinor = "5.0";
     /** The version of the TypeScript compiler release */
     const version: string;
     /**
@@ -12584,7 +12584,12 @@ declare namespace ts {
      */
     /** @internal */
     export function convertToTSConfig(configParseResult: ParsedCommandLine, configFileName: string, host: ConvertToTSConfigHost): TSConfig;
+    export function optionMapToObject(optionMap: ESMap<string, CompilerOptionsValue>): object;
     export function getNameOfCompilerOptionValue(value: CompilerOptionsValue, customTypeMap: ESMap<string, string | number>): string | undefined;
+    export function serializeCompilerOptions(options: CompilerOptions, pathOptions?: {
+        configFilePath: string;
+        useCaseSensitiveFileNames: boolean;
+    }): ESMap<string, CompilerOptionsValue>;
     /**
      * Generate a list of the compiler options whose value is not the default.
      * @param options compilerOptions to be evaluated.
@@ -13973,7 +13978,7 @@ declare namespace ts {
         __programBuildInfoFileIdListIdBrand: any;
     };
     type ProgramBuildInfoDiagnostic = ProgramBuildInfoFileId | [fileId: ProgramBuildInfoFileId, diagnostics: readonly ReusableDiagnostic[]];
-    type ProgramBuilderInfoFilePendingEmit = [fileId: ProgramBuildInfoFileId, emitKind: BuilderFileEmit];
+    type ProgramBuilderInfoFilePendingEmit = ProgramBuildInfoFileId | [fileId: ProgramBuildInfoFileId];
     type ProgramBuildInfoReferencedMap = [fileId: ProgramBuildInfoFileId, fileIdListId: ProgramBuildInfoFileIdListId][];
     type ProgramBuildInfoBuilderStateFileInfo = Omit<BuilderState.FileInfo, "signature"> & {
         /**
@@ -14031,6 +14036,7 @@ declare namespace ts {
     function createBuilderProgram(kind: BuilderProgramKind.SemanticDiagnosticsBuilderProgram, builderCreationParameters: BuilderCreationParameters): SemanticDiagnosticsBuilderProgram;
     function createBuilderProgram(kind: BuilderProgramKind.EmitAndSemanticDiagnosticsBuilderProgram, builderCreationParameters: BuilderCreationParameters): EmitAndSemanticDiagnosticsBuilderProgram;
     function toBuilderStateFileInfo(fileInfo: ProgramBuildInfoFileInfo): BuilderState.FileInfo;
+    function toBuilderFileEmit(value: ProgramBuilderInfoFilePendingEmit): BuilderFileEmit;
     function createBuilderProgramUsingProgramBuildInfo(program: ProgramBuildInfo, buildInfoPath: string, host: ReadBuildProgramHost): EmitAndSemanticDiagnosticsBuilderProgram;
     function getBuildInfoFileVersionMap(program: ProgramBuildInfo, buildInfoPath: string, host: Pick<ReadBuildProgramHost, "useCaseSensitiveFileNames" | "getCurrentDirectory">): ESMap<Path, string>;
     function createRedirectedBuilderProgram(getState: () => {
