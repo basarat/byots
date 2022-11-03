@@ -4748,8 +4748,11 @@ declare namespace ts {
     }
     export interface TupleType extends GenericType {
         elementFlags: readonly ElementFlags[];
+        /** Number of required or variadic elements */
         minLength: number;
+        /** Number of initial required or optional elements */
         fixedLength: number;
+        /** True if tuple has any rest or variadic elements */
         hasRestElement: boolean;
         combinedFlags: ElementFlags;
         readonly: boolean;
@@ -14002,21 +14005,21 @@ declare namespace ts {
         fileNames: readonly string[];
         fileInfos: readonly ProgramBuildInfoFileInfo[];
         options: CompilerOptions | undefined;
-        fileIdsList?: readonly (readonly ProgramBuildInfoFileId[])[];
-        referencedMap?: ProgramBuildInfoReferencedMap;
-        exportedModulesMap?: ProgramBuildInfoReferencedMap;
-        semanticDiagnosticsPerFile?: ProgramBuildInfoDiagnostic[];
-        affectedFilesPendingEmit?: ProgramBuilderInfoFilePendingEmit[];
-        changeFileSet?: readonly ProgramBuildInfoFileId[];
-        emitSignatures?: readonly ProgramBuildInfoEmitSignature[];
-        latestChangedDtsFile?: string;
+        fileIdsList: readonly (readonly ProgramBuildInfoFileId[])[] | undefined;
+        referencedMap: ProgramBuildInfoReferencedMap | undefined;
+        exportedModulesMap: ProgramBuildInfoReferencedMap | undefined;
+        semanticDiagnosticsPerFile: ProgramBuildInfoDiagnostic[] | undefined;
+        affectedFilesPendingEmit: ProgramBuilderInfoFilePendingEmit[] | undefined;
+        changeFileSet: readonly ProgramBuildInfoFileId[] | undefined;
+        emitSignatures: readonly ProgramBuildInfoEmitSignature[] | undefined;
+        latestChangedDtsFile?: string | undefined;
     }
     interface ProgramBundleEmitBuildInfo {
         fileNames: readonly string[];
         fileInfos: readonly string[];
         options: CompilerOptions | undefined;
-        outSignature?: string;
-        latestChangedDtsFile?: string;
+        outSignature: string | undefined;
+        latestChangedDtsFile: string | undefined;
     }
     type ProgramBuildInfo = ProgramMultiFileEmitBuildInfo | ProgramBundleEmitBuildInfo;
     function isProgramBundleEmitBuildInfo(info: ProgramBuildInfo): info is ProgramBundleEmitBuildInfo;
