@@ -3240,7 +3240,7 @@ declare namespace ts {
     }
     export type FlowType = Type | IncompleteType;
     export interface IncompleteType {
-        flags: TypeFlags;
+        flags: TypeFlags | 0;
         type: Type;
     }
     export interface AmdDependency {
@@ -8645,7 +8645,7 @@ declare namespace ts {
         The_0_operator_cannot_be_applied_to_type_symbol: DiagnosticMessage;
         Spread_operator_in_new_expressions_is_only_available_when_targeting_ECMAScript_5_and_higher: DiagnosticMessage;
         Enum_declarations_must_all_be_const_or_non_const: DiagnosticMessage;
-        const_enum_member_initializers_can_only_contain_literal_values_and_other_computed_enum_values: DiagnosticMessage;
+        const_enum_member_initializers_must_be_constant_expressions: DiagnosticMessage;
         const_enums_can_only_be_used_in_property_or_index_access_expressions_or_the_right_hand_side_of_an_import_declaration_or_export_assignment_or_type_query: DiagnosticMessage;
         A_const_enum_member_can_only_be_accessed_using_a_string_literal: DiagnosticMessage;
         const_enum_member_initializer_was_evaluated_to_a_non_finite_value: DiagnosticMessage;
@@ -8701,7 +8701,6 @@ declare namespace ts {
         Object_is_possibly_undefined: DiagnosticMessage;
         Object_is_possibly_null_or_undefined: DiagnosticMessage;
         A_function_returning_never_cannot_have_a_reachable_end_point: DiagnosticMessage;
-        Enum_type_0_has_members_with_initializers_that_are_not_literals: DiagnosticMessage;
         Type_0_cannot_be_used_to_index_type_1: DiagnosticMessage;
         Type_0_has_no_matching_index_signature_for_type_1: DiagnosticMessage;
         Type_0_cannot_be_used_as_an_index_type: DiagnosticMessage;
@@ -9944,7 +9943,7 @@ declare namespace ts {
         An_optional_chain_cannot_contain_private_identifiers: DiagnosticMessage;
         The_intersection_0_was_reduced_to_never_because_property_1_has_conflicting_types_in_some_constituents: DiagnosticMessage;
         The_intersection_0_was_reduced_to_never_because_property_1_exists_in_multiple_constituents_and_is_private_in_some: DiagnosticMessage;
-        Only_numeric_enums_can_have_computed_members_but_this_expression_has_type_0_If_you_do_not_need_exhaustiveness_checks_consider_using_an_object_literal_instead: DiagnosticMessage;
+        Type_0_is_not_assignable_to_type_1_as_required_for_computed_enum_member_values: DiagnosticMessage;
         Specify_the_JSX_fragment_factory_function_to_use_when_targeting_react_JSX_emit_with_jsxFactory_compiler_option_is_specified_e_g_Fragment: DiagnosticMessage;
         Invalid_value_for_jsxFragmentFactory_0_is_not_a_valid_identifier_or_qualified_name: DiagnosticMessage;
         Class_decorators_can_t_be_used_with_static_private_identifier_Consider_removing_the_experimental_decorator: DiagnosticMessage;
