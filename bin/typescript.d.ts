@@ -5802,6 +5802,7 @@ declare namespace ts {
         getSymlinkCache?(): SymlinkCache;
         disableUseFileVersionAsSignature?: boolean;
         storeFilesChangingSignatureDuringEmit?: boolean;
+        getBuildInfo?(fileName: string, configFilePath: string | undefined): BuildInfo | undefined;
     }
     /** true if --out otherwise source file name */
     export type SourceOfProjectReferenceRedirect = string | true;
@@ -11615,9 +11616,10 @@ declare namespace ts {
     function createUnparsedSourceFile(inputFile: InputFiles, type: "js" | "dts", stripInternal?: boolean): UnparsedSource;
     function createUnparsedSourceFile(text: string, mapPath: string | undefined, map: string | undefined): UnparsedSource;
     function createInputFiles(javascriptText: string, declarationText: string): InputFiles;
-    function createInputFiles(readFileText: (path: string) => string | undefined, javascriptPath: string, javascriptMapPath: string | undefined, declarationPath: string, declarationMapPath: string | undefined, buildInfoPath: string | undefined): InputFiles;
     function createInputFiles(javascriptText: string, declarationText: string, javascriptMapPath: string | undefined, javascriptMapText: string | undefined, declarationMapPath: string | undefined, declarationMapText: string | undefined): InputFiles;
-    function createInputFiles(javascriptText: string, declarationText: string, javascriptMapPath: string | undefined, javascriptMapText: string | undefined, declarationMapPath: string | undefined, declarationMapText: string | undefined, javascriptPath: string | undefined, declarationPath: string | undefined, buildInfoPath?: string | undefined, buildInfo?: BuildInfo, oldFileOfCurrentEmit?: boolean): InputFiles;
+    function createInputFiles(readFileText: (path: string) => string | undefined, javascriptPath: string, javascriptMapPath: string | undefined, declarationPath: string, declarationMapPath: string | undefined, buildInfoPath: string | undefined): InputFiles;
+    function createInputFilesWithFilePaths(readFileText: (path: string) => string | undefined, javascriptPath: string, javascriptMapPath: string | undefined, declarationPath: string, declarationMapPath: string | undefined, buildInfoPath: string | undefined, host?: CompilerHost, options?: CompilerOptions): InputFiles;
+    function createInputFilesWithFileTexts(javascriptPath: string | undefined, javascriptText: string, javascriptMapPath: string | undefined, javascriptMapText: string | undefined, declarationPath: string | undefined, declarationText: string, declarationMapPath: string | undefined, declarationMapText: string | undefined, buildInfoPath?: string, buildInfo?: BuildInfo, oldFileOfCurrentEmit?: boolean): InputFiles;
     /**
      * Create an external source map source file reference
      */
@@ -13423,15 +13425,7 @@ declare namespace ts {
     const notImplementedResolver: EmitResolver;
     /** File that isnt present resulting in error or output files */
     type EmitUsingBuildInfoResult = string | readonly OutputFile[];
-    interface EmitUsingBuildInfoHost extends ModuleResolutionHost {
-        getCurrentDirectory(): string;
-        getCanonicalFileName(fileName: string): string;
-        useCaseSensitiveFileNames(): boolean;
-        getNewLine(): string;
-        createHash?(data: string): string;
-        getBuildInfo?(fileName: string, configFilePath: string | undefined): BuildInfo | undefined;
-    }
-    function emitUsingBuildInfo(config: ParsedCommandLine, host: EmitUsingBuildInfoHost, getCommandLine: (ref: ProjectReference) => ParsedCommandLine | undefined, customTransformers?: CustomTransformers): EmitUsingBuildInfoResult;
+    function emitUsingBuildInfo(config: ParsedCommandLine, host: CompilerHost, getCommandLine: (ref: ProjectReference) => ParsedCommandLine | undefined, customTransformers?: CustomTransformers): EmitUsingBuildInfoResult;
     function createPrinter(printerOptions?: PrinterOptions, handlers?: PrintHandlers): Printer;
 }
 declare namespace ts {
@@ -13546,6 +13540,8 @@ declare namespace ts {
     export function resolveTripleslashReference(moduleName: string, containingFile: string): string;
     export function computeCommonSourceDirectoryOfFilenames(fileNames: readonly string[], currentDirectory: string, getCanonicalFileName: GetCanonicalFileName): string;
     export function createCompilerHost(options: CompilerOptions, setParentNodes?: boolean): CompilerHost;
+    export function createGetSourceFile(readFile: ProgramHost<any>["readFile"], getCompilerOptions: () => CompilerOptions, setParentNodes: boolean | undefined): CompilerHost["getSourceFile"];
+    export function createWriteFileMeasuringIO(actualWriteFile: (path: string, data: string, writeByteOrderMark: boolean) => void, createDirectory: (path: string) => void, directoryExists: (path: string) => boolean): CompilerHost["writeFile"];
     export function createCompilerHostWorker(options: CompilerOptions, setParentNodes?: boolean, system?: System): CompilerHost;
     interface CompilerHostLikeForCache {
         fileExists(fileName: string): boolean;
@@ -13705,7 +13701,7 @@ declare namespace ts {
     /** @deprecated */ export interface ResolveProjectReferencePathHost {
         fileExists(fileName: string): boolean;
     }
-    export function createPrependNodes(projectReferences: readonly ProjectReference[] | undefined, getCommandLine: (ref: ProjectReference, index: number) => ParsedCommandLine | undefined, readFile: (path: string) => string | undefined): InputFiles[];
+    export function createPrependNodes(projectReferences: readonly ProjectReference[] | undefined, getCommandLine: (ref: ProjectReference, index: number) => ParsedCommandLine | undefined, readFile: (path: string) => string | undefined, host: CompilerHost): InputFiles[];
     /**
      * Returns the target config filename of a project reference.
      * Note: The file might not exist.
@@ -14743,6 +14739,7 @@ declare namespace ts {
         reportDiagnostic: DiagnosticReporter;
         reportSolutionBuilderStatus: DiagnosticReporter;
         afterProgramEmitAndDiagnostics?(program: T): void;
+        beforeEmitBundle?(config: ParsedCommandLine): void;
         afterEmitBundle?(config: ParsedCommandLine): void;
         now?(): Date;
     }
