@@ -14,7 +14,6 @@
         "removeComments": true,
         "noLib": false,
         "preserveConstEnums": true,
-        "suppressImplicitAnyIndexErrors": true,
         "outDir": "lib"
     },
     "include": [
